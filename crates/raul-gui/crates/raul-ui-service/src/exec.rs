@@ -1,5 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! Running the `nvmod` command line.
+//!
+//! The one exception to ADR-0005 outside `nvmod-runner`: this module starts `nvmod` itself with a process group, a
+//! streamed line-by-line output and a cooperative stop with a grace period, none of which the runner offers yet.
+//! `crates/nvmod-runner/tests/no_command_elsewhere.rs` names this file; moving it onto the runner removes the entry.
+#![allow(clippy::disallowed_methods)]
 
 use std::io::{BufRead, BufReader, Read};
 use std::path::PathBuf;
