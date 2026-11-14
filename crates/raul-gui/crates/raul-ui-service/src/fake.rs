@@ -2,13 +2,14 @@
 //! A [`Service`] that answers from a script, for tests of screens and wizards without a command line.
 
 use crate::dto::{
-    DoctorReport, ImportReport, InstallReport, RollbackReport, SortReport, TargetReport,
-    ToolsReport, TtwReport, VerifyReport,
+    DoctorReport, ImportReport, InstallReport, ModsReport, RollbackReport, SetupReport, SortReport,
+    TargetReport, ToolsReport, TtwReport, VerifyReport,
 };
-use crate::exec::{Exec, Output};
+use crate::exec::{CancelHandle, Exec, Output};
 use crate::service::{
-    DoctorRequest, ImportRequest, InstallRequest, InstallResult, RollbackRequest, Service,
-    ServiceError, SortRequest, TargetRequest, ToolsRequest, TtwRequest, VerifyRequest,
+    DoctorRequest, ImportRequest, InstallRequest, InstallResult, ModsRequest, RollbackRequest,
+    Service, ServiceError, SetupRequest, SortRequest, TargetRequest, ToolsRequest, TtwRequest,
+    VerifyRequest,
 };
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -62,6 +63,8 @@ pub struct FakeService {
     tools_lists: Script<ToolsRequest, ToolsReport>,
     tools_verifies: Script<ToolsRequest, ToolsReport>,
     rollbacks: Script<RollbackRequest, RollbackReport>,
+    mods: Script<ModsRequest, ModsReport>,
+    setups: Script<SetupRequest, SetupReport>,
 }
 
 impl FakeService {
@@ -128,6 +131,28 @@ impl FakeService {
     pub fn on_rollback(&self, answer: Result<RollbackReport, ServiceError>) -> &Self {
         self.rollbacks.queue(answer);
         self
+    }
+
+    /// Queues the answer of the next `mods_change` call.
+    pub fn on_mods(&self, answer: Result<ModsReport, ServiceError>) -> &Self {
+        self.mods.queue(answer);
+        self
+    }
+
+    /// Queues the answer of the next `setup` call.
+    pub fn on_setup(&self, answer: Result<SetupReport, ServiceError>) -> &Self {
+        self.setups.queue(answer);
+        self
+    }
+
+    /// The `mods_change` requests so far.
+    pub fn mods_calls(&self) -> Vec<ModsRequest> {
+        self.mods.calls()
+    }
+
+    /// The `setup` requests so far.
+    pub fn setup_calls(&self) -> Vec<SetupRequest> {
+        self.setups.calls()
     }
 
     /// The `sort` requests so far.
@@ -232,13 +257,24 @@ impl Service for FakeService {
     fn rollback(&self, request: &RollbackRequest) -> Result<RollbackReport, ServiceError> {
         self.rollbacks.call(request, "rollback")
     }
+
+    fn mods_change(&self, request: &ModsRequest) -> Result<ModsReport, ServiceError> {
+        self.mods.call(request, "mods_change")
+    }
+
+    fn setup(&self, request: &SetupRequest) -> Result<SetupReport, ServiceError> {
+        self.setups.call(request, "setup")
+    }
 }
+
+/// One scripted run and, when it has one, how it ends if it is stopped.
+type ScriptedRun = (Result<Output, String>, Option<Output>);
 
 /// An [`Exec`] that answers each run from a script and records the arguments, for tests of job streaming
 /// without a command line. A run with nothing left in the script panics.
 #[derive(Debug, Default)]
 pub struct ScriptedExec {
-    runs: RefCell<VecDeque<Result<Output, String>>>,
+    runs: RefCell<VecDeque<ScriptedRun>>,
     calls: RefCell<Vec<Vec<String>>>,
 }
 
@@ -254,17 +290,40 @@ impl ScriptedExec {
         if !lines.is_empty() {
             stdout.push('\n');
         }
-        self.runs.borrow_mut().push_back(Ok(Output {
-            code: Some(code),
-            stdout,
-            stderr: stderr.to_owned(),
-        }));
+        self.runs.borrow_mut().push_back((
+            Ok(Output {
+                code: Some(code),
+                stdout,
+                stderr: stderr.to_owned(),
+            }),
+            None,
+        ));
+        self
+    }
+
+    /// Says what the run queued last does when [`Exec::run_cancellable`] is asked to stop it: the lines it has
+    /// not printed yet are replaced by `lines`, and it ends with `code` (`None` for a run a signal cut off). A
+    /// stop that comes after the last line changes nothing, as with a real command that has already ended.
+    pub fn on_cancel(&self, lines: &[&str], code: Option<i64>, stderr: &str) -> &Self {
+        let mut stdout = lines.join("\n");
+        if !lines.is_empty() {
+            stdout.push('\n');
+        }
+        if let Some(last) = self.runs.borrow_mut().back_mut() {
+            last.1 = Some(Output {
+                code,
+                stdout,
+                stderr: stderr.to_owned(),
+            });
+        }
         self
     }
 
     /// Queues a run that cannot start.
     pub fn on_start_failure(&self, why: &str) -> &Self {
-        self.runs.borrow_mut().push_back(Err(why.to_owned()));
+        self.runs
+            .borrow_mut()
+            .push_back((Err(why.to_owned()), None));
         self
     }
 
@@ -277,7 +336,39 @@ impl ScriptedExec {
 impl Exec for ScriptedExec {
     fn run(&self, args: &[String]) -> Result<Output, String> {
         self.calls.borrow_mut().push(args.to_vec());
-        next(&self.runs, "run")
+        next(&self.runs, "run").0
+    }
+
+    fn run_cancellable(
+        &self,
+        args: &[String],
+        on_line: &mut dyn FnMut(&str),
+        cancel: &CancelHandle,
+    ) -> Result<Output, String> {
+        self.calls.borrow_mut().push(args.to_vec());
+        let (run, on_cancel) = next(&self.runs, "run");
+        let out = run?;
+        let mut delivered = String::new();
+        for line in out.stdout.lines() {
+            if cancel.is_requested()
+                && let Some(stopped) = &on_cancel
+            {
+                for l in stopped.stdout.lines() {
+                    on_line(l);
+                    delivered.push_str(l);
+                    delivered.push('\n');
+                }
+                return Ok(Output {
+                    code: stopped.code,
+                    stdout: delivered,
+                    stderr: stopped.stderr.clone(),
+                });
+            }
+            on_line(line);
+            delivered.push_str(line);
+            delivered.push('\n');
+        }
+        Ok(out)
     }
 }
 
@@ -434,6 +525,131 @@ mod tests {
         assert_eq!(fake.tools_list_calls().len(), 1);
         assert_eq!(fake.tools_verify_calls().len(), 1);
         assert_eq!(fake.rollback_calls(), [rb]);
+    }
+
+    #[test]
+    fn setup_and_mods_requests_are_the_words_after_the_command() {
+        use nvmod_ui_model::mods::ModStep;
+        let mut setup = SetupRequest::fresh("/i", "/b", "m.yaml");
+        setup.mods = vec!["a.zip".into(), "b.zip".into()];
+        setup.skip_nv_rs = true;
+        setup.keep_partial = true;
+        setup.dry_run = true;
+        assert_eq!(
+            setup.args(),
+            [
+                "--instance",
+                "/i",
+                "--base",
+                "/b",
+                "--masterlist",
+                "m.yaml",
+                "--mod",
+                "a.zip",
+                "--mod",
+                "b.zip",
+                "--skip-nv-rs",
+                "--keep-partial",
+                "--dry-run"
+            ]
+        );
+        let spec = setup.job_spec(nvmod_ui_model::job::JobId(1));
+        assert!(
+            !spec.writes && spec.dry_run && !spec.cancellable,
+            "a dry run only plans"
+        );
+        // A resume and a restart take the Instance and nothing else, whatever else is set.
+        let mut resume = SetupRequest::resume("/i");
+        resume.keep_partial = true;
+        resume.dry_run = true;
+        assert_eq!(resume.args(), ["--resume", "--instance", "/i"]);
+        let spec = resume.job_spec(nvmod_ui_model::job::JobId(1));
+        assert!(spec.writes && spec.cancellable && !spec.dry_run);
+        assert_eq!(
+            SetupRequest::restart("/i", false).args(),
+            ["--restart", "--instance", "/i"]
+        );
+        assert_eq!(
+            SetupRequest::restart("/i", true).args(),
+            ["--restart", "--instance", "/i", "--yes"]
+        );
+        let restart = SetupRequest::restart("/i", true).job_spec(nvmod_ui_model::job::JobId(1));
+        assert!(restart.writes && !restart.cancellable);
+
+        let mods = |step, dry_run| ModsRequest {
+            instance: "/i".into(),
+            profile: Some("P".into()),
+            step,
+            dry_run,
+        };
+        assert_eq!(
+            mods(ModStep::Enable(vec!["A".into(), "B C".into()]), true).args(),
+            [
+                "enable",
+                "A",
+                "B C",
+                "--instance",
+                "/i",
+                "--profile",
+                "P",
+                "--dry-run"
+            ]
+        );
+        assert_eq!(
+            mods(ModStep::Disable(vec!["A".into()]), false).args(),
+            ["disable", "A", "--instance", "/i", "--profile", "P"]
+        );
+        assert_eq!(
+            mods(
+                ModStep::Move {
+                    name: "A".into(),
+                    position: 3
+                },
+                false
+            )
+            .args(),
+            [
+                "reorder",
+                "A",
+                "--position",
+                "3",
+                "--instance",
+                "/i",
+                "--profile",
+                "P"
+            ]
+        );
+    }
+
+    #[test]
+    fn a_scripted_run_that_is_stopped_prints_its_stop_lines_instead_of_the_rest() {
+        let exec = ScriptedExec::new();
+        exec.on_run(&["one", "two", "three"], 0, "")
+            .on_cancel(&["stopped"], Some(4), "err");
+        let cancel = CancelHandle::new();
+        let mut seen = Vec::new();
+        let out = exec
+            .run_cancellable(
+                &["x".into()],
+                &mut |l| {
+                    seen.push(l.to_owned());
+                    if l == "one" {
+                        cancel.request();
+                    }
+                },
+                &cancel,
+            )
+            .unwrap();
+        assert_eq!(seen, ["one", "stopped"]);
+        assert_eq!((out.code, out.stderr.as_str()), (Some(4), "err"));
+        assert_eq!(out.stdout, "one\nstopped\n");
+        // A run without a stop script, or a stop after the last line, runs to its end.
+        exec.on_run(&["a"], 0, "").on_cancel(&["z"], None, "");
+        let late = CancelHandle::new();
+        let out = exec
+            .run_cancellable(&[], &mut |_| late.request(), &late)
+            .unwrap();
+        assert_eq!((out.code, out.stdout.as_str()), (Some(0), "a\n"));
     }
 
     #[test]

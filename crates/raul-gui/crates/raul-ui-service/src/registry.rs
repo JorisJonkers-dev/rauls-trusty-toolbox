@@ -69,6 +69,11 @@ impl Action {
         }
     }
 
+    /// Whether a run of it can be stopped from the GUI: the long ones that write, `setup`, `ttw` and `install`.
+    pub fn cancellable(self) -> bool {
+        matches!(self, Self::Setup | Self::Ttw | Self::InstallMod)
+    }
+
     /// What the GUI calls it.
     pub fn label(self) -> &'static str {
         match self {

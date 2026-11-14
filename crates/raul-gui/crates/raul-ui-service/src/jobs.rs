@@ -6,12 +6,12 @@
 //! both cases the job is in the table from its start to its end, and a late or missing event cannot leave it
 //! running.
 
-use crate::exec::{Exec, Output};
+use crate::exec::{CancelHandle, Exec, Output};
 use crate::registry::Action;
 use crate::service::{CliService, ServiceError, cause_of, repro};
 use crate::wiring::outcome_of;
 use nvmod_ui_model::error::{ExitClass, ViewError};
-use nvmod_ui_model::job::{JobEvent, JobId, JobTable, Outcome};
+use nvmod_ui_model::job::{JobError, JobEvent, JobId, JobTable, Outcome};
 use nvmod_ui_model::setup::{parse_line, to_job_event};
 
 /// What to run as a job.
@@ -27,6 +27,8 @@ pub struct JobSpec {
     pub writes: bool,
     /// Whether the command only plans (`--dry-run`): a successful run ends as a dry run.
     pub dry_run: bool,
+    /// Whether Cancel is offered ([`Action::cancellable`] for the actions that can be stopped).
+    pub cancellable: bool,
 }
 
 impl JobSpec {
@@ -38,6 +40,7 @@ impl JobSpec {
             args,
             writes: false,
             dry_run: false,
+            cancellable: action.cancellable(),
         }
     }
 
@@ -48,10 +51,11 @@ impl JobSpec {
         self
     }
 
-    /// Marks the job as a dry run.
+    /// Marks the job as a dry run. A dry run is not offered Cancel.
     #[must_use]
     pub fn dry(mut self) -> Self {
         self.dry_run = true;
+        self.cancellable = false;
         self
     }
 }
@@ -75,7 +79,7 @@ impl Feed<'_> {
                 id: self.spec.id,
                 op: self.spec.action.command().to_owned(),
                 writes: self.spec.writes,
-                cancellable: false,
+                cancellable: self.spec.cancellable,
             });
         }
     }
@@ -107,6 +111,35 @@ impl Feed<'_> {
     }
 }
 
+/// What the log says of a command that was stopped before it could report.
+fn cancelled_line(spec: &JobSpec) -> String {
+    if spec.writes {
+        format!(
+            "cancelled: nvmod {} was stopped before it could say what it left behind; run the Doctor{}",
+            spec.action.command(),
+            if spec.action == Action::Setup {
+                " (the Instance can be continued with a resume or removed with a restart)"
+            } else {
+                ""
+            }
+        )
+    } else {
+        format!("cancelled: nvmod {} was stopped", spec.action.command())
+    }
+}
+
+/// Asks a job to stop: the table marks it as cancelling (so it keeps holding the Instance until it ends) and
+/// `handle`, the one the job was started with, tells the runner.
+///
+/// # Errors
+/// [`JobError::Unknown`] or [`JobError::NotCancellable`] (not offered, not running, or already cancelling); the
+/// handle is not touched then.
+pub fn cancel_job(table: &mut JobTable, id: JobId, handle: &CancelHandle) -> Result<(), JobError> {
+    table.request_cancel(id)?;
+    handle.request();
+    Ok(())
+}
+
 impl<E: Exec> CliService<E> {
     /// Runs `spec` as a job, handing each [`JobEvent`] to `sink` as it happens. The command line is run with
     /// `--json`.
@@ -123,6 +156,29 @@ impl<E: Exec> CliService<E> {
         spec: &JobSpec,
         sink: &mut dyn FnMut(JobEvent),
     ) -> Result<Output, ServiceError> {
+        self.run_job_cancellable(spec, sink, &CancelHandle::new())
+    }
+
+    /// [`CliService::run_job`] that can be stopped: when `cancel` is requested the command is asked to end and
+    /// forced to after a grace period (see [`Exec::run_cancellable`]), and the job ends as follows.
+    ///
+    /// * The command reported its own end (a `finished` event, or an exit code of its own): that is the outcome,
+    ///   so a command that rolled itself back ends as [`Outcome::RolledBack`] and one that kept its partial
+    ///   result as [`Outcome::KeptPartial`].
+    /// * The command was cut off by the signal before it could report: a job that writes ends as
+    ///   [`Outcome::Failed`] (the state is not known, the log says to run the Doctor), one that does not write as
+    ///   [`Outcome::Cancelled`].
+    /// * Cancel was requested before the command started: it is not started, and the job is
+    ///   [`Outcome::Cancelled`].
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the process could not be started; no event is sent then.
+    pub fn run_job_cancellable(
+        &self,
+        spec: &JobSpec,
+        sink: &mut dyn FnMut(JobEvent),
+        cancel: &CancelHandle,
+    ) -> Result<Output, ServiceError> {
         let args = Self::words(spec.action, spec.args.clone(), true);
         let mut feed = Feed {
             spec,
@@ -132,31 +188,65 @@ impl<E: Exec> CliService<E> {
             streamed: false,
             last_seq: 0,
         };
+        if cancel.is_requested() {
+            feed.start();
+            let line = String::from("cancelled before it started: nothing was run");
+            feed.emit(JobEvent::Log {
+                id: spec.id,
+                seq: 1,
+                line,
+            });
+            feed.emit(JobEvent::Finished {
+                id: spec.id,
+                seq: 2,
+                outcome: Outcome::Cancelled,
+                exit: ExitClass::Ok,
+            });
+            return Ok(Output {
+                code: None,
+                stdout: String::new(),
+                stderr: String::new(),
+            });
+        }
         let out = self
             .exec()
-            .run_streaming(&args, &mut |line| {
-                if let Ok(parsed) = parse_line(line)
-                    && let Some(event) = to_job_event(spec.id, &parsed)
-                {
-                    feed.streamed = true;
-                    feed.emit(event);
-                }
-            })
+            .run_cancellable(
+                &args,
+                &mut |line| {
+                    if let Ok(parsed) = parse_line(line)
+                        && let Some(event) = to_job_event(spec.id, &parsed)
+                    {
+                        feed.streamed = true;
+                        feed.emit(event);
+                    }
+                },
+                cancel,
+            )
             .map_err(|why| {
                 let mut e = ViewError::new(ExitClass::Internal, why, "Nothing was started");
                 e.repro = Some(repro(&args));
                 ServiceError::Failed(e)
             })?;
         if !feed.finished {
+            let cut_off = out.code.is_none() && cancel.is_requested();
             let class = out.code.map_or(ExitClass::Internal, ExitClass::from_code);
             let outcome = if class == ExitClass::Ok && spec.dry_run {
                 Outcome::DryRun
+            } else if cut_off && !spec.writes {
+                Outcome::Cancelled
             } else {
                 outcome_of(class)
             };
+            let class = if outcome == Outcome::Cancelled {
+                ExitClass::Ok
+            } else {
+                class
+            };
             feed.start();
             if !feed.streamed {
-                let line = if class == ExitClass::Ok {
+                let line = if cut_off {
+                    cancelled_line(spec)
+                } else if class == ExitClass::Ok {
                     format!("nvmod {} finished", spec.action.command())
                 } else {
                     cause_of(&out.stderr, spec.action.command())
@@ -166,6 +256,14 @@ impl<E: Exec> CliService<E> {
                     id: spec.id,
                     seq,
                     line,
+                });
+            }
+            if cut_off && feed.streamed {
+                let seq = feed.next_seq();
+                feed.emit(JobEvent::Log {
+                    id: spec.id,
+                    seq,
+                    line: cancelled_line(spec),
                 });
             }
             let seq = feed.next_seq();
@@ -185,6 +283,19 @@ impl<E: Exec> CliService<E> {
     /// [`ServiceError::Failed`] with a refusal when another job holds the Instance, or when the process could
     /// not be started.
     pub fn run_job_in(&self, spec: &JobSpec, table: &mut JobTable) -> Result<Output, ServiceError> {
+        self.run_job_in_cancellable(spec, table, &CancelHandle::new())
+    }
+
+    /// [`CliService::run_job_in`] that [`cancel_job`] can stop, given the same `cancel` handle.
+    ///
+    /// # Errors
+    /// As [`CliService::run_job_in`].
+    pub fn run_job_in_cancellable(
+        &self,
+        spec: &JobSpec,
+        table: &mut JobTable,
+        cancel: &CancelHandle,
+    ) -> Result<Output, ServiceError> {
         if spec.writes
             && let Err(busy) = table.check_can_start_writer()
         {
@@ -200,9 +311,13 @@ impl<E: Exec> CliService<E> {
                 "Nothing was started",
             )));
         }
-        self.run_job(spec, &mut |event| {
-            table.apply(event);
-        })
+        self.run_job_cancellable(
+            spec,
+            &mut |event| {
+                table.apply(event);
+            },
+            cancel,
+        )
     }
 }
 
@@ -315,6 +430,90 @@ mod tests {
         assert_eq!(
             table.get(JobId(9)).unwrap().state,
             JobState::Finished(Outcome::DryRun)
+        );
+    }
+
+    /// Starts the run, asks to stop once the plan arrived (through the job table, as a screen does).
+    fn cancel_after_the_plan(svc: &CliService<ScriptedExec>, spec: &JobSpec) -> (JobTable, Output) {
+        let cancel = CancelHandle::new();
+        let mut table = JobTable::default();
+        let mut asked = false;
+        let out = svc
+            .run_job_cancellable(
+                spec,
+                &mut |e| {
+                    table.apply(e);
+                    if !asked {
+                        asked = true;
+                        cancel_job(&mut table, spec.id, &cancel).unwrap();
+                        assert_eq!(table.get(spec.id).unwrap().state, JobState::Cancelling);
+                    }
+                },
+                &cancel,
+            )
+            .unwrap();
+        (table, out)
+    }
+
+    #[test]
+    fn a_stopped_setup_ends_as_the_command_reported_it() {
+        let rolled_back = r#"{"seq":3,"event":"finished","status":"failed","exit_code":4,"rolled_back":true,"resumable":false}"#;
+        let kept = r#"{"seq":3,"event":"finished","status":"failed","exit_code":4,"rolled_back":false,"resumable":true}"#;
+        for (stop, code, want) in [
+            (vec![rolled_back], Some(4), Outcome::RolledBack),
+            (vec![kept], Some(4), Outcome::KeptPartial),
+            (vec![], None, Outcome::Failed),
+        ] {
+            let exec = ScriptedExec::new();
+            exec.on_run(&[PLAN, STEP_STARTED, STEP_DONE, FINISHED], 0, "")
+                .on_cancel(&stop, code, "");
+            let svc = CliService::new(exec);
+            let (table, out) = cancel_after_the_plan(&svc, &setup_spec());
+            assert_eq!(out.code, code);
+            let job = table.get(JobId(1)).unwrap();
+            assert!(job.cancellable, "the plan of a real run offers Cancel");
+            assert_eq!(job.state, JobState::Finished(want), "{stop:?}");
+            if want == Outcome::Failed {
+                assert!(
+                    job.log_tail.iter().any(|l| l.contains("resume")),
+                    "{:?}",
+                    job.log_tail
+                );
+            }
+            assert!(table.writing().is_none(), "the Instance is free again");
+        }
+    }
+
+    #[test]
+    fn a_stopped_job_that_writes_nothing_is_cancelled_and_one_that_cannot_be_stopped_is_refused() {
+        let exec = ScriptedExec::new();
+        exec.on_run(&[PLAN, STEP_STARTED, FINISHED], 0, "")
+            .on_cancel(&[], None, "");
+        let svc = CliService::new(exec);
+        let spec = JobSpec::new(JobId(4), Action::InstallMod, vec![]);
+        assert!(spec.cancellable && !spec.writes);
+        let (table, _) = cancel_after_the_plan(&svc, &spec);
+        let job = table.get(JobId(4)).unwrap();
+        assert_eq!(job.state, JobState::Finished(Outcome::Cancelled));
+        assert_eq!(job.exit, Some(ExitClass::Ok));
+
+        // Sort cannot be stopped, a dry run is not offered Cancel, and a finished job is over.
+        let sort = JobSpec::new(JobId(5), Action::Sort, vec![]);
+        assert!(!sort.cancellable);
+        assert!(
+            !JobSpec::new(JobId(6), Action::Ttw, vec![])
+                .dry()
+                .cancellable
+        );
+        let mut table = JobTable::default();
+        svc.exec().on_run(&["{}"], 0, "");
+        svc.run_job_in(&sort, &mut table).unwrap();
+        let handle = CancelHandle::new();
+        assert!(cancel_job(&mut table, JobId(5), &handle).is_err());
+        assert!(cancel_job(&mut table, JobId(99), &handle).is_err());
+        assert!(
+            !handle.is_requested(),
+            "a refused cancel does not touch the runner"
         );
     }
 

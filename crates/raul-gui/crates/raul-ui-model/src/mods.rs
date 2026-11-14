@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The state of the Mods screen: the list, the search, the selection and the edits staged but not yet applied.
 //!
-//! The command line has no `nvmod mods` yet that applies an edit (ticket 49), so this state only stages edits and
-//! says what they are ([`ModsScreen::pending`]); nothing here changes an Instance.
+//! This state only stages edits and says what they are ([`ModsScreen::pending`]) and which `nvmod mods` steps make
+//! them ([`ModsScreen::plan`]); nothing here changes an Instance. The service crate runs the steps.
 
 use crate::error::{Load, ViewError};
 
@@ -24,6 +24,77 @@ pub enum ModEdit {
     Disable(String),
     /// The whole new priority order.
     Reorder(Vec<String>),
+}
+
+/// One `nvmod mods` call that carries out part of the staged edits.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ModStep {
+    /// `nvmod mods enable <mod>...`.
+    Enable(Vec<String>),
+    /// `nvmod mods disable <mod>...`.
+    Disable(Vec<String>),
+    /// `nvmod mods reorder <mod> --position <n>`: the Mod ends at this 1-based place in the whole list.
+    Move {
+        /// The Mod.
+        name: String,
+        /// Where it ends up, counted from 1 (the highest priority).
+        position: usize,
+    },
+}
+
+/// The moves that turn the order `from` into the order `to` (the same names), each as the Mod and the 1-based
+/// place it is moved to. The Mods of a longest run that already keep their relative order stay where they are,
+/// so moving one Mod is one step.
+fn moves_between(from: &[String], to: &[String]) -> Vec<(String, usize)> {
+    let rank = |name: &String| to.iter().position(|t| t == name).unwrap_or(usize::MAX);
+    let ranks: Vec<usize> = from.iter().map(rank).collect();
+    // Longest increasing subsequence of the ranks (quadratic: Mod lists are a few hundred long at most).
+    let n = ranks.len();
+    let mut len = vec![1_usize; n];
+    let mut prev = vec![usize::MAX; n];
+    for i in 0..n {
+        for j in 0..i {
+            if ranks[j] < ranks[i] && len[j] + 1 > len[i] {
+                len[i] = len[j] + 1;
+                prev[i] = j;
+            }
+        }
+    }
+    let mut keep = vec![false; n];
+    if let Some(mut at) = (0..n).max_by_key(|&i| (len[i], std::cmp::Reverse(i))) {
+        loop {
+            keep[at] = true;
+            if prev[at] == usize::MAX {
+                break;
+            }
+            at = prev[at];
+        }
+    }
+    let stay: Vec<&String> = from
+        .iter()
+        .zip(&keep)
+        .filter(|(_, k)| **k)
+        .map(|(name, _)| name)
+        .collect();
+    let mut current = from.to_vec();
+    let mut moves = Vec::new();
+    for (i, name) in to.iter().enumerate() {
+        if stay.contains(&name) {
+            continue;
+        }
+        current.retain(|c| c != name);
+        let at = if i == 0 {
+            0
+        } else {
+            current
+                .iter()
+                .position(|c| *c == to[i - 1])
+                .map_or(0, |p| p + 1)
+        };
+        current.insert(at, name.clone());
+        moves.push((name.clone(), at + 1));
+    }
+    moves
 }
 
 /// The refusals of the screen.
@@ -223,6 +294,37 @@ impl ModsScreen {
         edits
     }
 
+    /// The `nvmod mods` calls that carry out [`ModsScreen::pending`], in the order to run them: one enable, one
+    /// disable, then the moves. Enabling and disabling do not change places and moving does not change state, so
+    /// the first two are independent of the moves; each move is counted against the list after the moves before it.
+    pub fn plan(&self) -> Vec<ModStep> {
+        let mut steps = Vec::new();
+        let mut order = None;
+        let (mut on, mut off) = (Vec::new(), Vec::new());
+        for edit in self.pending() {
+            match edit {
+                ModEdit::Enable(n) => on.push(n),
+                ModEdit::Disable(n) => off.push(n),
+                ModEdit::Reorder(names) => order = Some(names),
+            }
+        }
+        if !on.is_empty() {
+            steps.push(ModStep::Enable(on));
+        }
+        if !off.is_empty() {
+            steps.push(ModStep::Disable(off));
+        }
+        if let Some(to) = order {
+            let from: Vec<String> = self.baseline.iter().map(|r| r.name.clone()).collect();
+            steps.extend(
+                moves_between(&from, &to)
+                    .into_iter()
+                    .map(|(name, position)| ModStep::Move { name, position }),
+            );
+        }
+        steps
+    }
+
     /// True when there is something to apply or discard.
     pub fn is_dirty(&self) -> bool {
         !self.pending().is_empty()
@@ -338,6 +440,69 @@ mod tests {
             s.set_enabled("Nope", true),
             Err(ModsError::Unknown("Nope".into()))
         );
+    }
+
+    fn apply_moves(from: &[String], moves: &[ModStep]) -> Vec<String> {
+        let mut cur = from.to_vec();
+        for m in moves {
+            let ModStep::Move { name, position } = m else {
+                panic!("not a move")
+            };
+            cur.retain(|c| c != name);
+            cur.insert(position - 1, name.clone());
+        }
+        cur
+    }
+
+    #[test]
+    fn the_plan_is_an_enable_a_disable_and_the_fewest_moves() {
+        let mut s = screen();
+        s.set_enabled("Beta", true).unwrap();
+        s.set_enabled("Alpha", false).unwrap();
+        s.set_enabled("Gamma", false).unwrap();
+        s.move_to("Alpha", 2).unwrap();
+        assert_eq!(
+            s.plan(),
+            [
+                ModStep::Enable(vec!["Beta".into()]),
+                ModStep::Disable(vec!["Gamma".into(), "Alpha".into()]),
+                ModStep::Move {
+                    name: "Alpha".into(),
+                    position: 3
+                },
+            ]
+        );
+        assert!(screen().plan().is_empty());
+    }
+
+    #[test]
+    fn every_reorder_of_five_mods_is_carried_out_by_the_planned_moves() {
+        fn perms(items: &mut Vec<String>, k: usize, out: &mut Vec<Vec<String>>) {
+            if k == items.len() {
+                out.push(items.clone());
+                return;
+            }
+            for i in k..items.len() {
+                items.swap(k, i);
+                perms(items, k + 1, out);
+                items.swap(k, i);
+            }
+        }
+        let base: Vec<String> = ["A", "B", "C", "D", "E"].map(String::from).to_vec();
+        let mut all = Vec::new();
+        perms(&mut base.clone(), 0, &mut all);
+        for target in &all {
+            let moves = moves_between(&base, target);
+            let steps: Vec<ModStep> = moves
+                .into_iter()
+                .map(|(name, position)| ModStep::Move { name, position })
+                .collect();
+            assert_eq!(&apply_moves(&base, &steps), target);
+            assert!(steps.len() < base.len());
+        }
+        // One Mod moved to the end is one step.
+        let target: Vec<String> = ["B", "C", "D", "E", "A"].map(String::from).to_vec();
+        assert_eq!(moves_between(&base, &target).len(), 1);
     }
 
     #[test]

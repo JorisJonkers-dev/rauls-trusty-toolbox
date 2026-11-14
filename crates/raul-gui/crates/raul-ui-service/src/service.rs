@@ -2,12 +2,15 @@
 //! The [`Service`] trait and its real implementation, [`CliService`].
 
 use crate::dto::{
-    DisagreeDoc, DoctorReport, Finding, ImportReport, InstallReport, QuestionsDoc, RollbackReport,
-    SortReport, TargetReport, ToolRow, ToolsReport, TtwReport, VerifyReport,
+    DisagreeDoc, DoctorReport, Finding, ImportReport, InstallReport, ModsReport, QuestionsDoc,
+    RollbackReport, SetupReport, SortReport, TargetReport, ToolRow, ToolsReport, TtwReport,
+    VerifyReport,
 };
 use crate::exec::{Exec, Output};
 use crate::registry::Action;
 use nvmod_ui_model::error::{ExitClass, Retry, ViewError};
+use nvmod_ui_model::mods::ModStep;
+use nvmod_ui_model::setup::{FinishStatus, Phase, SetupWizard};
 use nvmod_ui_model::wizard::FomodQuestion;
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
@@ -88,6 +91,185 @@ pub struct TtwRequest {
     pub lock: Option<String>,
     /// The tool store.
     pub store: Option<String>,
+}
+
+/// How `nvmod setup` is started.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SetupMode {
+    /// A first run from the base copy.
+    #[default]
+    Fresh,
+    /// `--resume`: continue the unfinished setup of the Instance.
+    Resume,
+    /// `--restart`: remove the unfinished Instance. The command removes nothing without `--yes`.
+    Restart {
+        /// Whether the person confirmed the removal (`--yes`).
+        confirmed: bool,
+    },
+}
+
+/// What `nvmod setup` needs. A resume or a restart takes the Instance and nothing else, so [`SetupRequest::args`]
+/// leaves every other field out for them.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[allow(clippy::struct_excessive_bools)] // One bool per flag of the command line.
+pub struct SetupRequest {
+    /// How it is started.
+    pub mode: SetupMode,
+    /// The Instance folder.
+    pub instance: String,
+    /// The base copy of the game.
+    pub base: Option<String>,
+    /// The masterlist file.
+    pub masterlist: Option<String>,
+    /// The profile.
+    pub profile: Option<String>,
+    /// An MO2 instance folder to import.
+    pub import_mo2: Option<String>,
+    /// Mod archives to install, in order.
+    pub mods: Vec<String>,
+    /// The Fallout 3 folder, which adds the TTW step.
+    pub fallout3: Option<String>,
+    /// The TTW package file.
+    pub package: Option<String>,
+    /// The TTW installer to run instead of the fetched one.
+    pub installer: Option<String>,
+    /// Fetch the nv-rs release (`--release`).
+    pub release: bool,
+    /// Build nv-rs from this source folder (`--source`).
+    pub source: Option<String>,
+    /// Leave out the nv-rs step.
+    pub skip_nv_rs: bool,
+    /// Copy every file instead of hard-linking.
+    pub copy_only: bool,
+    /// A failing step leaves the Instance where it is, to be resumed (`--keep-partial`).
+    pub keep_partial: bool,
+    /// Plan only: nothing is written (`--dry-run`).
+    pub dry_run: bool,
+}
+
+impl SetupRequest {
+    /// A first run.
+    pub fn fresh(instance: &str, base: &str, masterlist: &str) -> Self {
+        Self {
+            instance: instance.to_owned(),
+            base: Some(base.to_owned()),
+            masterlist: Some(masterlist.to_owned()),
+            ..Self::default()
+        }
+    }
+
+    /// Continues the unfinished setup of `instance`.
+    pub fn resume(instance: &str) -> Self {
+        Self {
+            mode: SetupMode::Resume,
+            instance: instance.to_owned(),
+            ..Self::default()
+        }
+    }
+
+    /// Removes the unfinished setup of `instance`; `confirmed` is the person's yes.
+    pub fn restart(instance: &str, confirmed: bool) -> Self {
+        Self {
+            mode: SetupMode::Restart { confirmed },
+            instance: instance.to_owned(),
+            ..Self::default()
+        }
+    }
+
+    /// The words after `nvmod setup`, before `--json`.
+    pub fn args(&self) -> Vec<String> {
+        let mut rest = Vec::new();
+        match self.mode {
+            SetupMode::Resume => rest.push("--resume".to_owned()),
+            SetupMode::Restart { confirmed } => {
+                rest.push("--restart".to_owned());
+                push(&mut rest, "instance", &self.instance);
+                if confirmed {
+                    rest.push("--yes".to_owned());
+                }
+                return rest;
+            }
+            SetupMode::Fresh => {}
+        }
+        push(&mut rest, "instance", &self.instance);
+        if self.mode == SetupMode::Resume {
+            return rest;
+        }
+        push_opt(&mut rest, "base", self.base.as_ref());
+        push_opt(&mut rest, "masterlist", self.masterlist.as_ref());
+        push_opt(&mut rest, "profile", self.profile.as_ref());
+        push_opt(&mut rest, "import-mo2", self.import_mo2.as_ref());
+        for archive in &self.mods {
+            push(&mut rest, "mod", archive);
+        }
+        push_opt(&mut rest, "fallout3", self.fallout3.as_ref());
+        push_opt(&mut rest, "package", self.package.as_ref());
+        push_opt(&mut rest, "installer", self.installer.as_ref());
+        push_opt(&mut rest, "source", self.source.as_ref());
+        for (on, flag) in [
+            (self.release, "--release"),
+            (self.skip_nv_rs, "--skip-nv-rs"),
+            (self.copy_only, "--copy"),
+            (self.keep_partial, "--keep-partial"),
+            (self.dry_run, "--dry-run"),
+        ] {
+            if on {
+                rest.push(flag.to_owned());
+            }
+        }
+        rest
+    }
+
+    /// The job that runs this request: it writes unless it only plans, and Cancel is offered for a first run or a
+    /// resume (a restart is a removal that is not stopped half way).
+    pub fn job_spec(&self, id: nvmod_ui_model::job::JobId) -> crate::jobs::JobSpec {
+        let mut spec = crate::jobs::JobSpec::new(id, Action::Setup, self.args());
+        spec.writes = !(self.dry_run && self.mode == SetupMode::Fresh);
+        spec.dry_run = self.dry_run && self.mode == SetupMode::Fresh;
+        spec.cancellable = spec.writes && !matches!(self.mode, SetupMode::Restart { .. });
+        spec
+    }
+}
+
+/// What one `nvmod mods enable|disable|reorder` call needs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModsRequest {
+    /// The Instance folder.
+    pub instance: String,
+    /// The profile, `None` for the default.
+    pub profile: Option<String>,
+    /// What to change.
+    pub step: ModStep,
+    /// Plan only: nothing is written.
+    pub dry_run: bool,
+}
+
+impl ModsRequest {
+    /// The words after `nvmod mods`, before `--json`.
+    pub fn args(&self) -> Vec<String> {
+        let mut rest = Vec::new();
+        match &self.step {
+            ModStep::Enable(names) => {
+                rest.push("enable".to_owned());
+                rest.extend(names.iter().cloned());
+            }
+            ModStep::Disable(names) => {
+                rest.push("disable".to_owned());
+                rest.extend(names.iter().cloned());
+            }
+            ModStep::Move { name, position } => {
+                rest.push("reorder".to_owned());
+                rest.push(name.clone());
+                push(&mut rest, "position", &position.to_string());
+            }
+        }
+        push(&mut rest, "instance", &self.instance);
+        push_opt(&mut rest, "profile", self.profile.as_ref());
+        if self.dry_run {
+            rest.push("--dry-run".to_owned());
+        }
+        rest
+    }
 }
 
 /// What `nvmod doctor --instance` needs.
@@ -305,6 +487,20 @@ pub trait Service {
     /// # Errors
     /// [`ServiceError::Failed`] when there is nothing to undo or the undo failed.
     fn rollback(&self, request: &RollbackRequest) -> Result<RollbackReport, ServiceError>;
+
+    /// One `nvmod mods enable|disable|reorder` call, also as a dry run.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the command refused or failed (a failed change is rolled back).
+    fn mods_change(&self, request: &ModsRequest) -> Result<ModsReport, ServiceError>;
+
+    /// `nvmod setup`, run to its end and read from its event stream. A run that fails is an error carrying the
+    /// card of the setup wizard; a dry run is a report. To follow a run while it goes, use
+    /// [`CliService::run_job`] with [`SetupRequest::job_spec`].
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the run was refused or failed.
+    fn setup(&self, request: &SetupRequest) -> Result<SetupReport, ServiceError>;
 }
 
 fn word(value: &str) -> String {
@@ -624,9 +820,46 @@ impl<E: Exec> Service for CliService<E> {
             _ => Err(failure(&out, "rollback", &args)),
         }
     }
+
+    fn mods_change(&self, r: &ModsRequest) -> Result<ModsReport, ServiceError> {
+        let (out, args) = self.invoke(Action::Mods, r.args())?;
+        match out.code {
+            Some(0) => Self::parse(Action::Mods, &out, &args),
+            _ => Err(failure(&out, "mods", &args)),
+        }
+    }
+
+    fn setup(&self, r: &SetupRequest) -> Result<SetupReport, ServiceError> {
+        self.setup_report(r)
+    }
 }
 
 impl<E: Exec> CliService<E> {
+    fn setup_report(&self, r: &SetupRequest) -> Result<SetupReport, ServiceError> {
+        let (out, args) = self.invoke(Action::Setup, r.args())?;
+        let mut wizard = SetupWizard::new();
+        for line in out.stdout.lines() {
+            let _ = wizard.feed_line(line);
+        }
+        let Phase::Finished(finish) = wizard.phase().clone() else {
+            return Err(failure(&out, "setup", &args));
+        };
+        if let Some(mut card) = wizard.error() {
+            card.repro = Some(repro(&args));
+            return Err(ServiceError::Failed(card));
+        }
+        debug_assert!(matches!(
+            finish.status,
+            FinishStatus::Ok | FinishStatus::DryRun | FinishStatus::Restarted
+        ));
+        Ok(SetupReport {
+            steps: wizard.steps().to_vec(),
+            finish,
+            dry_run: wizard.is_dry_run(),
+            resume: wizard.is_resume(),
+        })
+    }
+
     fn tools(&self, verb: &str, r: &ToolsRequest) -> Result<ToolsReport, ServiceError> {
         let mut rest = vec![verb.to_owned()];
         rest.extend(r.args());

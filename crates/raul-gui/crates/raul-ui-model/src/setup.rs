@@ -548,7 +548,8 @@ pub fn to_job_event(id: JobId, line: &StreamLine) -> Option<JobEvent> {
             id,
             op: "setup".to_owned(),
             writes: !dry_run,
-            cancellable: false,
+            // A dry run is over in an instant; a real run can be stopped.
+            cancellable: !dry_run,
         }),
         SetupEvent::Step {
             step,
@@ -865,6 +866,14 @@ mod tests {
             JobEvent::Started {
                 writes: false,
                 cancellable: false,
+                ..
+            }
+        ));
+        assert!(matches!(
+            map(PLAN).unwrap(),
+            JobEvent::Started {
+                writes: true,
+                cancellable: true,
                 ..
             }
         ));

@@ -23,6 +23,25 @@ pub enum Outcome {
     Refused,
     /// It failed and the state is not known to be clean (needs a decision).
     Failed,
+    /// It was stopped on request before it wrote anything, so nothing is left behind. A stopped job that
+    /// writes ends as what the command reported ([`Outcome::RolledBack`], [`Outcome::KeptPartial`]) or, when it
+    /// was cut off before it could report, as [`Outcome::Failed`].
+    Cancelled,
+}
+
+impl Outcome {
+    /// What a screen says of it.
+    pub fn words(self) -> &'static str {
+        match self {
+            Self::Completed => "Done",
+            Self::DryRun => "Dry run: nothing was written",
+            Self::RolledBack => "Failed and undone: nothing is left behind",
+            Self::KeptPartial => "Stopped part way: the finished steps are kept",
+            Self::Refused => "Refused: nothing was changed",
+            Self::Failed => "Failed: the state is not known, run the Doctor",
+            Self::Cancelled => "Cancelled: nothing was written",
+        }
+    }
 }
 
 /// What a job reports. Events of one job carry a `seq` that grows; a stale or repeated one is dropped.
@@ -327,6 +346,37 @@ mod tests {
             total: Some(5),
             message: Some(format!("step {done}")),
         }
+    }
+
+    #[test]
+    fn a_cancelled_job_finishes_from_cancelling_and_late_events_are_dropped() {
+        let mut t = JobTable::default();
+        started(&mut t, 1);
+        t.request_cancel(JobId(1)).unwrap();
+        assert_eq!(t.writing(), Some(JobId(1)), "still holds the Instance");
+        for (seq, outcome) in [(2, Outcome::Cancelled), (3, Outcome::Failed)] {
+            let applied = t.apply(JobEvent::Finished {
+                id: JobId(1),
+                seq,
+                outcome,
+                exit: ExitClass::Ok,
+            });
+            assert_eq!(
+                applied,
+                if seq == 2 {
+                    Applied::Yes
+                } else {
+                    Applied::Dropped
+                }
+            );
+        }
+        assert_eq!(
+            t.get(JobId(1)).unwrap().state,
+            JobState::Finished(Outcome::Cancelled)
+        );
+        assert!(t.writing().is_none());
+        assert!(Outcome::Cancelled.words().contains("Cancelled"));
+        assert!(Outcome::Failed.words().contains("Doctor"));
     }
 
     #[test]
