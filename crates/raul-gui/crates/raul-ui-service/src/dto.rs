@@ -1,0 +1,188 @@
+// SPDX-License-Identifier: GPL-3.0-only
+//! The JSON the `nvmod` command line prints, as typed values. The shapes are the ones of `nvmod-cli`: a change
+//! there that breaks one of these fails the end-to-end tests of this crate.
+
+use nvmod_ui_model::wizard::{FomodOption, FomodQuestion, GroupRule, OptionKind};
+use serde::Deserialize;
+
+/// One thing a check found (`nvmod_core::Finding`).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Finding {
+    /// Stable identifier, `<area>.<what>`.
+    pub code: String,
+    /// `info`, `warning` or `error`.
+    pub severity: String,
+    /// What it is about.
+    pub subject: String,
+    /// What was found.
+    pub message: String,
+}
+
+/// `nvmod import-mo2 --json` on success.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct ImportReport {
+    /// The new Instance's folder.
+    pub instance: String,
+    /// The profile imported.
+    pub profile: String,
+    /// Enabled Mods, highest priority first.
+    pub enabled_mods: Vec<String>,
+    /// Active plugins in order.
+    pub plugins: Vec<String>,
+    /// All plugins in load order.
+    pub load_order: Vec<String>,
+    /// Mod folders mirrored.
+    pub mods: usize,
+    /// Files hard-linked.
+    pub linked: usize,
+    /// Files copied.
+    pub copied: usize,
+    /// What could not be mapped or was left out.
+    pub unmapped: Vec<Finding>,
+}
+
+/// A FOMOD choice made without asking.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct Inferred {
+    /// The question id it would have had.
+    pub id: String,
+    /// The options chosen.
+    pub selected: Vec<String>,
+    /// Why this was unambiguous.
+    pub reason: String,
+}
+
+/// `nvmod install --json` on success (also a dry run).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct InstallReport {
+    /// `installed` or `dry-run`.
+    pub status: String,
+    /// True for a dry run.
+    pub dry_run: bool,
+    /// The Mod's folder name.
+    #[serde(rename = "mod")]
+    pub mod_name: String,
+    /// The profile.
+    pub profile: String,
+    /// Files of the Mod.
+    pub files: Vec<String>,
+    /// Plugins newly activated.
+    pub plugins: Vec<String>,
+    /// FOMOD choices made without asking.
+    pub inferred: Vec<Inferred>,
+    /// Files in the Staging tree afterwards, none for a dry run.
+    pub staged_files: Option<usize>,
+    /// The journal entry `nvmod rollback` uses, none for a dry run.
+    pub journal: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct QuestionOptionDto {
+    name: String,
+    description: String,
+    #[serde(rename = "type")]
+    kind: Option<OptionKind>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct QuestionDto {
+    id: String,
+    step: String,
+    group: String,
+    kind: GroupRule,
+    min: usize,
+    max: usize,
+    options: Vec<QuestionOptionDto>,
+}
+
+impl From<QuestionDto> for FomodQuestion {
+    fn from(q: QuestionDto) -> Self {
+        FomodQuestion {
+            id: q.id,
+            step: q.step,
+            group: q.group,
+            rule: q.kind,
+            min: q.min,
+            max: q.max,
+            options: q
+                .options
+                .into_iter()
+                .map(|o| FomodOption {
+                    name: o.name,
+                    description: o.description,
+                    kind: o.kind,
+                })
+                .collect(),
+        }
+    }
+}
+
+/// `nvmod install --json` when the FOMOD needs answers (exit 1).
+#[derive(Debug, Deserialize)]
+pub(crate) struct QuestionsDoc {
+    pub(crate) questions: Vec<QuestionDto>,
+}
+
+/// `nvmod import-mo2 --json` when the profile files disagree (exit 1).
+#[derive(Debug, Deserialize)]
+pub(crate) struct DisagreeDoc {
+    pub(crate) disagreements: Vec<Finding>,
+}
+
+/// The installer's own result record inside the TTW report (`ttw-installer-result.v1`).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct TtwRecord {
+    /// `success` or `failed`.
+    pub outcome: String,
+    /// The installer's exit code.
+    pub exit_code: i64,
+    /// Whether the installer verified Fallout 3.
+    pub fallout3_verified: bool,
+    /// Files the installer wrote.
+    pub files_written: u64,
+    /// What the installer said.
+    pub messages: Vec<String>,
+}
+
+/// `nvmod ttw --json` on success.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct TtwReport {
+    /// `installed`.
+    pub status: String,
+    /// The Mod's folder name.
+    #[serde(rename = "mod")]
+    pub mod_name: String,
+    /// The profile.
+    pub profile: String,
+    /// How many files the Mod has.
+    pub files: usize,
+    /// Plugins newly activated.
+    pub plugins: Vec<String>,
+    /// The journal entry `nvmod rollback` uses.
+    pub journal: Option<String>,
+    /// The installer's result record.
+    pub result: TtwRecord,
+}
+
+/// Counts of a Doctor run.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+pub struct DoctorSummary {
+    /// Findings of severity info.
+    pub info: usize,
+    /// Findings of severity warning.
+    pub warnings: usize,
+    /// Findings of severity error.
+    pub errors: usize,
+}
+
+/// `nvmod doctor --instance <dir> --json` (the report of `nvmod_doctor::BaseReport`; the fields the Doctor
+/// screen does not show yet are not read).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct DoctorReport {
+    /// The game folder the Instance runs on.
+    pub base: String,
+    /// What was found.
+    pub findings: Vec<Finding>,
+    /// Counts.
+    pub summary: DoctorSummary,
+}
