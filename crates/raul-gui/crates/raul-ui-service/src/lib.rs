@@ -11,6 +11,7 @@
 //! No GUI toolkit is used here.
 
 #![allow(clippy::must_use_candidate, clippy::module_name_repetitions)]
+#![cfg_attr(test, allow(clippy::assert_is_empty))]
 
 pub mod dto;
 pub mod exec;
@@ -20,11 +21,11 @@ pub mod registry;
 pub mod service;
 pub mod wiring;
 
-pub use exec::{Exec, Output, ProcessExec};
+pub use exec::{CancelHandle, Exec, Output, ProcessExec};
 pub use fake::{FakeService, ScriptedExec};
-pub use jobs::JobSpec;
+pub use jobs::{JobSpec, cancel_job};
 pub use service::{
-    CliService, DoctorRequest, ImportRequest, InstallRequest, InstallResult, RollbackRequest,
-    RuntimeTarget, Service, ServiceError, SortRequest, TargetRequest, ToolsRequest, TtwRequest,
-    VerifyRequest,
+    CliService, DoctorRequest, ImportRequest, InstallRequest, InstallResult, ModsRequest,
+    RollbackRequest, RuntimeTarget, Service, ServiceError, SetupMode, SetupRequest, SortRequest,
+    TargetRequest, ToolsRequest, TtwRequest, VerifyRequest,
 };

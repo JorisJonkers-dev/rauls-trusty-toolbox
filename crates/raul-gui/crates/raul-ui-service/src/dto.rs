@@ -382,3 +382,61 @@ pub struct TargetReport {
     /// What it runs on now.
     pub target: crate::service::RuntimeTarget,
 }
+
+/// One entry of the list `nvmod mods ... --json` prints.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct ModEntry {
+    /// 1 is the highest priority.
+    pub position: usize,
+    /// The folder name.
+    pub name: String,
+    /// `enabled`, `disabled` or `foreign`.
+    pub state: String,
+    /// `mod` or `separator`.
+    pub kind: String,
+    /// Whether the Mod folder exists.
+    pub installed: bool,
+}
+
+impl From<&ModEntry> for nvmod_ui_model::mods::ModRow {
+    fn from(e: &ModEntry) -> Self {
+        Self {
+            name: e.name.clone(),
+            enabled: e.state == "enabled",
+        }
+    }
+}
+
+/// `nvmod mods enable|disable|reorder --json`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct ModsReport {
+    /// `changed`, `unchanged` or `dry-run`.
+    pub status: String,
+    /// True for a dry run.
+    pub dry_run: bool,
+    /// `enable`, `disable` or `reorder`.
+    pub action: String,
+    /// The profile.
+    pub profile: String,
+    /// The entries that changed (or would).
+    pub changed: Vec<String>,
+    /// The list after the change (or as it would be).
+    pub mods: Vec<ModEntry>,
+    /// Files in the Staging tree after the change.
+    pub staged_files: Option<usize>,
+    /// The journal `nvmod rollback` undoes; absent for a dry run or when nothing changed.
+    pub journal: Option<String>,
+}
+
+/// What a run of `nvmod setup --json` came to, read from its event stream.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SetupReport {
+    /// The steps and how each ended.
+    pub steps: Vec<nvmod_ui_model::setup::StepView>,
+    /// How the run ended.
+    pub finish: nvmod_ui_model::setup::Finish,
+    /// Whether it was a dry run.
+    pub dry_run: bool,
+    /// Whether it was a resume.
+    pub resume: bool,
+}
