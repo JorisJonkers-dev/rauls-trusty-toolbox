@@ -1,0 +1,22 @@
+[package]
+name = "nvmod-ui-service"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "The service seam of the nvmod GUI: a trait whose real implementation runs the nvmod command line and parses its --json output, a scripted fake, and the registry that ties every GUI action to a command line equivalent."
+
+[dependencies]
+nvmod-ui-model = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+nvmod-cli = { path = "../nvmod-cli" }
+nvmod-testkit = { workspace = true }
+nvmod-tools = { workspace = true }
+
+[lints]
+workspace = true

@@ -163,6 +163,19 @@ impl Flow {
         Ok(())
     }
 
+    /// The command refused to start because of blocking rows it found only while applying (an exit 1 that wrote
+    /// nothing): back to the review with those rows, which must be seen again.
+    ///
+    /// # Errors
+    /// [`FlowError::WrongStep`] outside the applying step.
+    pub fn apply_blocked(&mut self, blockers: usize) -> Result<(), FlowError> {
+        self.expect(Step::Applying)?;
+        self.blockers = blockers;
+        self.reviewed = false;
+        self.step = Step::Review;
+        Ok(())
+    }
+
     /// Asks the running job to stop.
     ///
     /// # Errors
@@ -424,6 +437,8 @@ pub struct InstallWizard {
     archive: Option<String>,
     fomod: Option<FomodWizard>,
     overwrites: Vec<String>,
+    #[serde(default)]
+    planned: Vec<String>,
 }
 
 impl Default for InstallWizard {
@@ -440,7 +455,18 @@ impl InstallWizard {
             archive: None,
             fomod: None,
             overwrites: Vec::new(),
+            planned: Vec::new(),
         }
+    }
+
+    /// The files the dry run listed (shown in the review).
+    pub fn planned_files(&self) -> &[String] {
+        &self.planned
+    }
+
+    /// Records the files of the dry run.
+    pub fn set_planned_files(&mut self, files: Vec<String>) {
+        self.planned = files;
     }
 
     /// The chosen archive.
@@ -568,6 +594,31 @@ impl ImportWizard {
         self.copy_only = copy_only;
     }
 
+    /// The chosen MO2 folder.
+    pub fn mo2(&self) -> Option<&str> {
+        self.mo2.as_deref()
+    }
+
+    /// The chosen profile, `None` for the MO2 instance's selected one.
+    pub fn profile(&self) -> Option<&str> {
+        self.profile.as_deref()
+    }
+
+    /// Whether every file is copied.
+    pub fn copy_only(&self) -> bool {
+        self.copy_only
+    }
+
+    /// The command found that the profile files disagree and wrote nothing: back to the review with those rows.
+    ///
+    /// # Errors
+    /// [`FlowError::WrongStep`] when not applying.
+    pub fn disagreed(&mut self, blockers: Vec<Blocker>) -> Result<(), FlowError> {
+        self.flow.apply_blocked(blockers.len())?;
+        self.blockers = blockers;
+        Ok(())
+    }
+
     /// The rows that disable Create.
     pub fn blockers(&self) -> &[Blocker] {
         &self.blockers
@@ -649,6 +700,11 @@ impl TtwWizard {
     /// Chooses the Fallout 3 folder.
     pub fn set_fallout3(&mut self, path: impl Into<String>) {
         self.fallout3 = Some(path.into());
+    }
+
+    /// The chosen Fallout 3 folder.
+    pub fn fallout3(&self) -> Option<&str> {
+        self.fallout3.as_deref()
     }
 
     /// Records whether a pinned installer release exists in the lock.
@@ -973,5 +1029,27 @@ mod tests {
             "nvmod ttw --instance <dir> --fallout3 /fo3"
         );
         assert_eq!(TtwWizard::default().needs().len(), 2);
+    }
+
+    #[test]
+    fn rows_found_while_applying_send_the_import_back_to_a_new_review() {
+        let mut w = ImportWizard::new();
+        w.set_mo2("/mo2");
+        w.plan().unwrap();
+        w.plan_ready(Vec::new()).unwrap();
+        w.flow.mark_reviewed().unwrap();
+        assert!(w.disagreed(Vec::new()).is_err(), "only while applying");
+        w.flow.apply(false).unwrap();
+        w.disagreed(vec![Blocker { text: "x".into() }]).unwrap();
+        assert_eq!(w.flow.step(), Step::Review);
+        assert!(!w.flow.can_apply(), "blocked and not reviewed again");
+        assert_eq!(w.blockers().len(), 1);
+    }
+
+    #[test]
+    fn the_install_wizard_keeps_the_files_of_the_dry_run() {
+        let mut w = InstallWizard::new();
+        w.set_planned_files(vec!["a.esp".into()]);
+        assert_eq!(w.planned_files(), ["a.esp"]);
     }
 }

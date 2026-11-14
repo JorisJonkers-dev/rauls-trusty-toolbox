@@ -1,0 +1,391 @@
+// SPDX-License-Identifier: GPL-3.0-only
+//! The [`Service`] trait and its real implementation, [`CliService`].
+
+use crate::dto::{
+    DisagreeDoc, DoctorReport, Finding, ImportReport, InstallReport, QuestionsDoc, TtwReport,
+};
+use crate::exec::{Exec, Output};
+use crate::registry::Action;
+use nvmod_ui_model::error::{ExitClass, Retry, ViewError};
+use nvmod_ui_model::wizard::FomodQuestion;
+use serde::de::DeserializeOwned;
+use std::path::PathBuf;
+
+/// Why a service call did not produce its report.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ServiceError {
+    /// `import-mo2` found that the profile files contradict each other and wrote nothing.
+    Disagree(Vec<Finding>),
+    /// The call failed; the error is what a screen shows.
+    Failed(ViewError),
+}
+
+impl ServiceError {
+    /// The error as a screen shows it. A disagreement becomes a problems-found error with one line per finding.
+    pub fn view_error(&self) -> ViewError {
+        match self {
+            Self::Failed(e) => e.clone(),
+            Self::Disagree(findings) => ViewError::new(
+                ExitClass::ProblemsFound,
+                findings
+                    .iter()
+                    .map(|f| format!("{}: {}", f.subject, f.message))
+                    .collect::<Vec<_>>()
+                    .join("; "),
+                "Nothing was written",
+            ),
+        }
+    }
+}
+
+/// What `nvmod import-mo2` needs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportRequest {
+    /// The MO2 instance folder (only read).
+    pub mo2: String,
+    /// The new Instance folder.
+    pub instance: String,
+    /// The base copy of the game.
+    pub base: String,
+    /// The MO2 profile, `None` for the one MO2 selected.
+    pub profile: Option<String>,
+    /// Copy every file instead of hard-linking.
+    pub copy_only: bool,
+}
+
+/// What `nvmod install` needs.
+#[derive(Debug, Clone, PartialEq)]
+pub struct InstallRequest {
+    /// The archive.
+    pub archive: String,
+    /// The Instance folder.
+    pub instance: String,
+    /// The profile, `None` for the default.
+    pub profile: Option<String>,
+    /// The Mod's folder name, `None` to derive it from the archive.
+    pub name: Option<String>,
+    /// Plan only: nothing is written.
+    pub dry_run: bool,
+    /// The FOMOD answers (question id to chosen option names), as `FomodWizard::answers_json` gives them.
+    pub answers: Option<serde_json::Value>,
+}
+
+/// What `nvmod ttw` needs.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct TtwRequest {
+    /// The Instance folder.
+    pub instance: String,
+    /// The Fallout 3 folder.
+    pub fallout3: String,
+    /// The TTW package file.
+    pub package: Option<String>,
+    /// The installer to run instead of the fetched one.
+    pub installer: Option<String>,
+    /// The profile.
+    pub profile: Option<String>,
+    /// The lock file.
+    pub lock: Option<String>,
+    /// The tool store.
+    pub store: Option<String>,
+}
+
+/// What `nvmod doctor --instance` needs.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct DoctorRequest {
+    /// The Instance folder.
+    pub instance: String,
+    /// The profile.
+    pub profile: Option<String>,
+    /// The masterlist.
+    pub masterlist: Option<String>,
+}
+
+/// The answer of an install call.
+#[derive(Debug, Clone, PartialEq)]
+pub enum InstallResult {
+    /// The install, or its dry run, went through.
+    Report(InstallReport),
+    /// The FOMOD needs answers; nothing was written.
+    Questions(Vec<FomodQuestion>),
+}
+
+/// What the screens and wizards ask of the world. [`CliService`] answers by running the command line,
+/// [`crate::FakeService`] from a script.
+pub trait Service {
+    /// `nvmod import-mo2`.
+    ///
+    /// # Errors
+    /// [`ServiceError::Disagree`] when the profile files disagree, [`ServiceError::Failed`] otherwise.
+    fn import_mo2(&self, request: &ImportRequest) -> Result<ImportReport, ServiceError>;
+
+    /// `nvmod install`, also as a dry run.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the command refused or failed.
+    fn install_mod(&self, request: &InstallRequest) -> Result<InstallResult, ServiceError>;
+
+    /// `nvmod ttw`.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the command refused or failed.
+    fn ttw(&self, request: &TtwRequest) -> Result<TtwReport, ServiceError>;
+
+    /// `nvmod doctor --instance`. Findings of error severity are a report, not an error.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the Doctor could not run.
+    fn doctor(&self, request: &DoctorRequest) -> Result<DoctorReport, ServiceError>;
+}
+
+fn word(value: &str) -> String {
+    if value.is_empty() || value.contains(char::is_whitespace) {
+        format!("'{value}'")
+    } else {
+        value.to_owned()
+    }
+}
+
+/// The command line as a person would type it, for the error's repro.
+fn repro(args: &[String]) -> String {
+    let mut s = String::from("nvmod");
+    for a in args {
+        s.push(' ');
+        s.push_str(&word(a));
+    }
+    s
+}
+
+/// What changed (or did not) for an exit class, in the words of the design.
+fn effect_of(class: ExitClass) -> &'static str {
+    match class {
+        ExitClass::Ok => "Nothing went wrong",
+        ExitClass::Refused | ExitClass::VerificationFailed | ExitClass::Usage => {
+            "Nothing was changed"
+        }
+        ExitClass::StepFailedRolledBack => "The step was rolled back",
+        ExitClass::ProblemsFound => "Problems were found",
+        ExitClass::Internal => "The state is not known; run the Doctor",
+    }
+}
+
+/// The cause from standard error: the first non-empty line without the `nvmod <command>:` and `refused:`
+/// prefixes the command line puts in front.
+fn cause_of(stderr: &str, command: &str) -> String {
+    let line = stderr.lines().map(str::trim).find(|l| !l.is_empty());
+    let Some(line) = line else {
+        return String::from("The command failed without saying why");
+    };
+    let line = line
+        .strip_prefix(&format!("nvmod {command}:"))
+        .map_or(line, str::trim);
+    line.strip_prefix("refused:")
+        .map_or(line, str::trim)
+        .to_owned()
+}
+
+fn failure(out: &Output, command: &str, args: &[String]) -> ServiceError {
+    let class = out.code.map_or(ExitClass::Internal, ExitClass::from_code);
+    let mut cause = cause_of(&out.stderr, command);
+    if out.stderr.trim().is_empty() {
+        // With --json the commands that refuse put the reason on standard output.
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&out.stdout)
+            && let Some(why) = v["reason"].as_str().or_else(|| v["error"].as_str())
+        {
+            why.clone_into(&mut cause);
+        }
+    }
+    let mut e = ViewError::new(class, cause, effect_of(class));
+    e.repro = Some(repro(args));
+    e.retry = match class {
+        ExitClass::StepFailedRolledBack => Retry::Yes,
+        ExitClass::Refused | ExitClass::Usage | ExitClass::ProblemsFound => {
+            Retry::AfterFix(String::from("fix what the message names, then try again"))
+        }
+        _ => Retry::No,
+    };
+    ServiceError::Failed(e)
+}
+
+fn unreadable(what: &str, why: &serde_json::Error, args: &[String]) -> ServiceError {
+    let mut e = ViewError::new(
+        ExitClass::Internal,
+        format!("The output of `nvmod {what}` could not be read: {why}"),
+        effect_of(ExitClass::Internal),
+    );
+    e.repro = Some(repro(args));
+    ServiceError::Failed(e)
+}
+
+/// A scratch file holding the FOMOD answers, removed when dropped.
+struct AnswersFile(PathBuf);
+
+impl AnswersFile {
+    fn write(answers: &serde_json::Value) -> Result<Self, ServiceError> {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_nanos());
+        let path =
+            std::env::temp_dir().join(format!("nvmod-answers-{}-{nanos}.json", std::process::id()));
+        std::fs::write(&path, answers.to_string()).map_err(|e| {
+            ServiceError::Failed(ViewError::new(
+                ExitClass::Internal,
+                format!("could not write the answers file {}: {e}", path.display()),
+                "Nothing was changed",
+            ))
+        })?;
+        Ok(Self(path))
+    }
+}
+
+impl Drop for AnswersFile {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+/// Runs the `nvmod` command line and reads its `--json` output.
+#[derive(Debug, Clone)]
+pub struct CliService<E: Exec> {
+    exec: E,
+}
+
+impl<E: Exec> CliService<E> {
+    /// A service over `exec`.
+    pub fn new(exec: E) -> Self {
+        Self { exec }
+    }
+
+    fn invoke(
+        &self,
+        action: Action,
+        rest: Vec<String>,
+    ) -> Result<(Output, Vec<String>), ServiceError> {
+        let mut args = vec![action.command().to_owned()];
+        args.extend(rest);
+        args.push("--json".to_owned());
+        match self.exec.run(&args) {
+            Ok(out) => Ok((out, args)),
+            Err(why) => {
+                let mut e = ViewError::new(ExitClass::Internal, why, "Nothing was started");
+                e.repro = Some(repro(&args));
+                Err(ServiceError::Failed(e))
+            }
+        }
+    }
+
+    fn parse<T: DeserializeOwned>(
+        action: Action,
+        out: &Output,
+        args: &[String],
+    ) -> Result<T, ServiceError> {
+        serde_json::from_str(&out.stdout).map_err(|e| unreadable(action.command(), &e, args))
+    }
+}
+
+fn push(args: &mut Vec<String>, name: &str, value: &str) {
+    args.push(format!("--{name}"));
+    args.push(value.to_owned());
+}
+
+fn push_opt(args: &mut Vec<String>, name: &str, value: Option<&String>) {
+    if let Some(v) = value {
+        push(args, name, v);
+    }
+}
+
+impl<E: Exec> Service for CliService<E> {
+    fn import_mo2(&self, r: &ImportRequest) -> Result<ImportReport, ServiceError> {
+        let mut rest = Vec::new();
+        push(&mut rest, "mo2", &r.mo2);
+        push(&mut rest, "instance", &r.instance);
+        push(&mut rest, "base", &r.base);
+        push_opt(&mut rest, "profile", r.profile.as_ref());
+        if r.copy_only {
+            rest.push("--copy".to_owned());
+        }
+        let (out, args) = self.invoke(Action::ImportMo2, rest)?;
+        match out.code {
+            Some(0) => Self::parse(Action::ImportMo2, &out, &args),
+            Some(1) => match serde_json::from_str::<DisagreeDoc>(&out.stdout) {
+                Ok(doc) => Err(ServiceError::Disagree(doc.disagreements)),
+                Err(_) => Err(failure(&out, "import-mo2", &args)),
+            },
+            _ => Err(failure(&out, "import-mo2", &args)),
+        }
+    }
+
+    fn install_mod(&self, r: &InstallRequest) -> Result<InstallResult, ServiceError> {
+        let answers = r.answers.as_ref().map(AnswersFile::write).transpose()?;
+        let mut rest = vec![r.archive.clone()];
+        push(&mut rest, "instance", &r.instance);
+        push_opt(&mut rest, "profile", r.profile.as_ref());
+        push_opt(&mut rest, "name", r.name.as_ref());
+        if r.dry_run {
+            rest.push("--dry-run".to_owned());
+        }
+        if let Some(file) = &answers {
+            push(&mut rest, "answers", &file.0.display().to_string());
+        }
+        let (out, args) = self.invoke(Action::InstallMod, rest)?;
+        match out.code {
+            Some(0) => Self::parse::<InstallReport>(Action::InstallMod, &out, &args)
+                .map(InstallResult::Report),
+            Some(1) => match serde_json::from_str::<QuestionsDoc>(&out.stdout) {
+                Ok(doc) => Ok(InstallResult::Questions(
+                    doc.questions.into_iter().map(Into::into).collect(),
+                )),
+                Err(_) => Err(failure(&out, "install", &args)),
+            },
+            _ => Err(failure(&out, "install", &args)),
+        }
+    }
+
+    fn ttw(&self, r: &TtwRequest) -> Result<TtwReport, ServiceError> {
+        let mut rest = Vec::new();
+        push(&mut rest, "instance", &r.instance);
+        push(&mut rest, "fallout3", &r.fallout3);
+        push_opt(&mut rest, "package", r.package.as_ref());
+        push_opt(&mut rest, "installer", r.installer.as_ref());
+        push_opt(&mut rest, "profile", r.profile.as_ref());
+        push_opt(&mut rest, "lock", r.lock.as_ref());
+        push_opt(&mut rest, "store", r.store.as_ref());
+        let (out, args) = self.invoke(Action::Ttw, rest)?;
+        match out.code {
+            Some(0) => Self::parse(Action::Ttw, &out, &args),
+            _ => Err(failure(&out, "ttw", &args)),
+        }
+    }
+
+    fn doctor(&self, r: &DoctorRequest) -> Result<DoctorReport, ServiceError> {
+        let mut rest = Vec::new();
+        push(&mut rest, "instance", &r.instance);
+        push_opt(&mut rest, "profile", r.profile.as_ref());
+        push_opt(&mut rest, "masterlist", r.masterlist.as_ref());
+        let (out, args) = self.invoke(Action::Doctor, rest)?;
+        match out.code {
+            // Exit 1 is "findings at or above the failing severity": the report is on standard output.
+            Some(0 | 1) => match serde_json::from_str::<DoctorReport>(&out.stdout) {
+                Ok(report) => Ok(report),
+                Err(e) if out.code == Some(1) => {
+                    let message = serde_json::from_str::<serde_json::Value>(&out.stdout)
+                        .ok()
+                        .and_then(|v| v["error"].as_str().map(str::to_owned));
+                    match message {
+                        Some(m) => {
+                            let mut v = ViewError::new(
+                                ExitClass::ProblemsFound,
+                                m,
+                                effect_of(ExitClass::ProblemsFound),
+                            );
+                            v.repro = Some(repro(&args));
+                            Err(ServiceError::Failed(v))
+                        }
+                        None => Err(unreadable("doctor", &e, &args)),
+                    }
+                }
+                Err(e) => Err(unreadable("doctor", &e, &args)),
+            },
+            _ => Err(failure(&out, "doctor", &args)),
+        }
+    }
+}
