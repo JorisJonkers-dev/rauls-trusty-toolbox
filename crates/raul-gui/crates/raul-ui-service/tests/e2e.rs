@@ -7,15 +7,18 @@
 use nvmod_testkit::{BaseBuilder, TempDir, ZipBuilder, write_file, write_script};
 use nvmod_tools::{platform, sha256_hex};
 use nvmod_ui_model::error::ExitClass;
+use nvmod_ui_model::job::{JobId, JobState, JobTable, Outcome};
 use nvmod_ui_model::wizard::{ImportWizard, InstallWizard, Step, TtwWizard};
 use nvmod_ui_service::exec::{Exec, Output};
+use nvmod_ui_service::registry::Action;
 use nvmod_ui_service::wiring::{
     ImportContext, InstallContext, TtwContext, apply_import, apply_install, apply_ttw, plan_import,
     plan_install, plan_ttw,
 };
 use nvmod_ui_service::{
-    CliService, DoctorRequest, ImportRequest, InstallRequest, InstallResult, Service, ServiceError,
-    TtwRequest,
+    CliService, DoctorRequest, ImportRequest, InstallRequest, InstallResult, JobSpec,
+    RollbackRequest, RuntimeTarget, Service, ServiceError, SortRequest, TargetRequest,
+    ToolsRequest, TtwRequest, VerifyRequest,
 };
 use std::path::PathBuf;
 
@@ -394,4 +397,243 @@ fn a_process_that_cannot_start_is_an_internal_error() {
         })
         .unwrap_err();
     assert_eq!(err.view_error().exit, ExitClass::Internal);
+}
+
+/// Builds the Staging tree of profile `Default`, which `sort` needs.
+fn stage(inst: &Instance) {
+    let args: Vec<String> = [
+        "stage",
+        "--instance",
+        &s(&inst.root()),
+        "--profile",
+        "Default",
+    ]
+    .iter()
+    .map(|a| (*a).to_owned())
+    .collect();
+    let out = InProcess.run(&args).unwrap();
+    assert_eq!(out.code, Some(0), "{}", out.stderr);
+}
+
+const MASTERLIST: &str =
+    "globals:\n  - {type: say, content: 'Masterlist for tests'}\nplugins: []\n";
+
+#[test]
+fn sort_proposes_without_writing_and_apply_writes_the_order() {
+    let inst = Instance::new();
+    let masterlist = inst.work.path().join("masterlist.yaml");
+    std::fs::write(&masterlist, MASTERLIST).unwrap();
+    stage(&inst);
+    let svc = service();
+    let mut req = SortRequest {
+        instance: s(&inst.root()),
+        masterlist: s(&masterlist),
+        ..SortRequest::default()
+    };
+    let proposal = svc.sort(&req).unwrap();
+    assert_eq!(proposal.profile, "Default");
+    assert!(proposal.applied.is_none());
+    assert_eq!(proposal.order[0].position, 1);
+    assert_eq!(proposal.order[0].name, "FalloutNV.esm");
+
+    req.apply = true;
+    let applied = svc.sort(&req).unwrap();
+    assert!(applied.applied.is_some());
+
+    req.masterlist = s(&inst.work.path().join("missing.yaml"));
+    let ServiceError::Failed(e) = svc.sort(&req).unwrap_err() else {
+        panic!("expected a refusal");
+    };
+    assert_eq!(e.exit, ExitClass::Refused);
+    assert!(e.repro.unwrap().starts_with("nvmod sort "));
+}
+
+#[test]
+fn rollback_undoes_the_last_install_and_refuses_when_there_is_nothing() {
+    let inst = Instance::new();
+    let svc = service();
+    let req = RollbackRequest {
+        instance: s(&inst.root()),
+    };
+    let ServiceError::Failed(e) = svc.rollback(&req).unwrap_err() else {
+        panic!("expected a refusal");
+    };
+    assert_eq!(e.exit, ExitClass::Refused);
+
+    let zip = inst.work.path().join("Plain.zip");
+    ZipBuilder::new().file("P.esp", b"plugin").write(&zip);
+    svc.install_mod(&InstallRequest {
+        archive: s(&zip),
+        instance: s(&inst.root()),
+        profile: None,
+        name: Some("Plain Mod".into()),
+        dry_run: false,
+        answers: None,
+    })
+    .unwrap();
+    let undone = svc.rollback(&req).unwrap();
+    assert_eq!(undone.kind, "install");
+    assert_eq!(undone.mod_name, "Plain Mod");
+    assert!(!inst.root().join("mods/Plain Mod").exists());
+}
+
+#[test]
+fn verify_is_a_report_whether_or_not_it_verified_and_a_missing_instance_is_refused() {
+    let inst = Instance::new();
+    let svc = service();
+    let report = svc
+        .verify(&VerifyRequest {
+            instance: s(&inst.root()),
+            ..VerifyRequest::default()
+        })
+        .unwrap();
+    assert!(!report.doctor.base.is_empty());
+    assert!(!report.nv_rs.installed);
+    assert!(!report.launch_plan.entries.is_empty());
+    let errors = report.doctor.summary.errors;
+    assert_eq!(report.verified, errors == 0, "the default fails on errors");
+
+    let lenient = svc
+        .verify(&VerifyRequest {
+            instance: s(&inst.root()),
+            fail_on: Some("nonsense".into()),
+            ..VerifyRequest::default()
+        })
+        .unwrap_err();
+    assert_eq!(lenient.view_error().exit, ExitClass::Usage);
+
+    let missing = svc
+        .verify(&VerifyRequest {
+            instance: s(&inst.work.path().join("none")),
+            ..VerifyRequest::default()
+        })
+        .unwrap_err();
+    assert_eq!(missing.view_error().exit, ExitClass::Refused);
+}
+
+#[test]
+fn target_is_set_through_the_command_without_a_json_flag() {
+    let inst = Instance::new();
+    let svc = service();
+    let done = svc
+        .set_target(&TargetRequest {
+            instance: s(&inst.root()),
+            target: RuntimeTarget::NvRs,
+        })
+        .unwrap();
+    assert_eq!(done.target, RuntimeTarget::NvRs);
+    let ServiceError::Failed(e) = svc
+        .set_target(&TargetRequest {
+            instance: s(&inst.work.path().join("none")),
+            target: RuntimeTarget::Vanilla,
+        })
+        .unwrap_err()
+    else {
+        panic!("expected a refusal");
+    };
+    assert_eq!(e.exit, ExitClass::Refused);
+    assert_eq!(
+        e.repro.unwrap(),
+        format!(
+            "nvmod target vanilla --instance {}",
+            s(&inst.work.path().join("none"))
+        )
+    );
+}
+
+#[test]
+fn tools_list_and_verify_read_the_pinned_tools() {
+    let inst = Instance::new();
+    let store = inst.work.path().join("store");
+    let svc = service();
+    let req = ToolsRequest {
+        store: Some(s(&store)),
+        instance: Some(s(&inst.root())),
+        ..ToolsRequest::default()
+    };
+    let listed = svc.tools_list(&req).unwrap();
+    assert!(listed.verified);
+    assert!(!listed.rows.is_empty());
+    assert!(
+        listed
+            .rows
+            .iter()
+            .all(|r| !r.name.is_empty() && !r.state.is_empty())
+    );
+    let checked = svc.tools_verify(&req).unwrap();
+    assert!(checked.verified, "an empty store has nothing corrupt");
+    assert_eq!(checked.rows, listed.rows);
+
+    let refused = svc
+        .tools_list(&ToolsRequest {
+            instance: Some(s(&inst.work.path().join("none"))),
+            ..ToolsRequest::default()
+        })
+        .unwrap_err();
+    assert_eq!(refused.view_error().exit, ExitClass::Refused);
+}
+
+#[test]
+fn a_real_process_streams_its_lines_into_the_job_table_as_they_are_printed() {
+    let dir = TempDir::new("svc-stream");
+    // Prints a plan, waits for a marker file the test creates once it saw the first event, then finishes.
+    let marker = dir.path().join("go");
+    let body = format!(
+        "echo '{{\"seq\":1,\"event\":\"plan\",\"dry_run\":false,\"resume\":false,\"instance\":\"/i\",\"steps\":[]}}'\n\
+         while [ ! -e '{}' ]; do sleep 0.05; done\n\
+         echo '{{\"seq\":2,\"event\":\"finished\",\"status\":\"ok\",\"exit_code\":0,\"rolled_back\":false,\"resumable\":false}}'",
+        marker.display()
+    );
+    let program = write_script(dir.path(), "nvmod", &body);
+    let svc = CliService::new(nvmod_ui_service::ProcessExec::new(program));
+    let spec = JobSpec::new(JobId(1), Action::Setup, vec![]).writing();
+    let mut seen_running = false;
+    let mut table = JobTable::default();
+    let out = svc
+        .run_job(&spec, &mut |event| {
+            table.apply(event);
+            if table
+                .get(JobId(1))
+                .is_some_and(|j| j.state == JobState::Running)
+                && !seen_running
+            {
+                seen_running = true;
+                std::fs::write(&marker, b"").unwrap();
+            }
+        })
+        .unwrap();
+    assert!(
+        seen_running,
+        "the plan arrived while the process was still running"
+    );
+    assert_eq!(out.code, Some(0));
+    assert_eq!(
+        table.get(JobId(1)).unwrap().state,
+        JobState::Finished(Outcome::Completed)
+    );
+}
+
+#[test]
+fn a_real_sort_run_as_a_job_ends_with_a_final_record() {
+    let inst = Instance::new();
+    let masterlist = inst.work.path().join("masterlist.yaml");
+    std::fs::write(&masterlist, MASTERLIST).unwrap();
+    stage(&inst);
+    let req = SortRequest {
+        instance: s(&inst.root()),
+        masterlist: s(&masterlist),
+        apply: true,
+        ..SortRequest::default()
+    };
+    let mut table = JobTable::default();
+    service()
+        .run_job_in(
+            &JobSpec::new(JobId(5), Action::Sort, req.args()).writing(),
+            &mut table,
+        )
+        .unwrap();
+    let job = table.get(JobId(5)).unwrap();
+    assert_eq!(job.state, JobState::Finished(Outcome::Completed));
+    assert_eq!(job.exit, Some(ExitClass::Ok));
+    assert!(table.writing().is_none());
 }
