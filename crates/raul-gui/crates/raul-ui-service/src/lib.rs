@@ -22,7 +22,9 @@ pub mod registry;
 pub mod service;
 pub mod wiring;
 
-pub use conflicts::{ConflictsReport, ConflictsRequest, TreeReport, TreeRequest};
+pub use conflicts::{
+    ConflictsReport, ConflictsRequest, PluginsReport, PluginsRequest, TreeReport, TreeRequest,
+};
 pub use exec::{CancelHandle, Exec, Output, ProcessExec};
 pub use fake::{FakeService, ScriptedExec};
 pub use jobs::{JobSpec, cancel_job};

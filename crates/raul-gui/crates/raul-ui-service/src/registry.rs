@@ -38,11 +38,13 @@ pub enum Action {
     Conflicts,
     /// `nvmod tree`: the virtual Data folder (read only).
     Tree,
+    /// `nvmod plugins`: list, enable, disable, move and lock the plugins of a profile.
+    Plugins,
 }
 
 impl Action {
     /// Every action.
-    pub const ALL: [Action; 13] = [
+    pub const ALL: [Action; 14] = [
         Action::Setup,
         Action::ImportMo2,
         Action::InstallMod,
@@ -56,6 +58,7 @@ impl Action {
         Action::Mods,
         Action::Conflicts,
         Action::Tree,
+        Action::Plugins,
     ];
 
     /// The subcommand word of the command line.
@@ -74,6 +77,7 @@ impl Action {
             Self::Mods => "mods",
             Self::Conflicts => "conflicts",
             Self::Tree => "tree",
+            Self::Plugins => "plugins",
         }
     }
 
@@ -98,6 +102,7 @@ impl Action {
             Self::Mods => "Manage the Mods",
             Self::Conflicts => "Show the file conflicts",
             Self::Tree => "Explore the virtual Data folder",
+            Self::Plugins => "Manage the plugins",
         }
     }
 
@@ -125,7 +130,7 @@ pub fn coverage(screen: Screen) -> Coverage {
         Screen::ImportMo2 => Coverage::Cli(Action::ImportMo2),
         Screen::Mods => Coverage::Cli(Action::Mods),
         Screen::Install | Screen::Fomod => Coverage::Cli(Action::InstallMod),
-        Screen::Plugins => Coverage::Planned("a command that lists the plugins and their masters"),
+        Screen::Plugins => Coverage::Cli(Action::Plugins),
         Screen::SortDiff => Coverage::Cli(Action::Sort),
         Screen::Graph => {
             Coverage::Planned("a command that prints the dependency and conflict graph")

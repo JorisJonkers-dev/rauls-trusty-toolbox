@@ -679,3 +679,34 @@ fn conflicts_and_tree_are_typed_reports_and_a_missing_profile_is_a_failure() {
     });
     assert!(matches!(refused, Err(ServiceError::Failed(_))));
 }
+
+#[test]
+fn plugins_list_is_a_typed_read_only_report() {
+    use nvmod_ui_service::PluginsRequest;
+    let inst = Instance::new();
+    let root = inst.root();
+    profile(&root, "+A\r\n", "FalloutNV.esm\r\nA.esp\r\n");
+    write_file(
+        &root,
+        "mods/A/A.esp",
+        &nvmod_testkit::PluginBuilder::new()
+            .requires("Lost.esm")
+            .build(),
+    );
+    let report = service()
+        .plugins_list(&PluginsRequest {
+            instance: s(&root),
+            profile: None,
+        })
+        .unwrap();
+    assert_eq!(report.schema_version, 1);
+    let a = report.plugins.iter().find(|p| p.name == "A.esp").unwrap();
+    assert_eq!((a.position, a.active, a.installed), (2, true, true));
+    assert_eq!(a.provider.as_deref(), Some("A"));
+    assert_eq!(a.masters_missing, 1);
+    let refused = service().plugins_list(&PluginsRequest {
+        instance: s(&root),
+        profile: Some("Nope".to_owned()),
+    });
+    assert!(matches!(refused, Err(ServiceError::Failed(_))));
+}

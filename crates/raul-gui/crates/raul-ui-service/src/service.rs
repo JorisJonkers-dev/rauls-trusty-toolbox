@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The [`Service`] trait and its real implementation, [`CliService`].
 
-use crate::conflicts::{ConflictsReport, ConflictsRequest, TreeReport, TreeRequest};
+use crate::conflicts::{
+    ConflictsReport, ConflictsRequest, PluginsReport, PluginsRequest, TreeReport, TreeRequest,
+};
 use crate::dto::{
     DisagreeDoc, DoctorReport, Finding, ImportReport, InstallReport, ModsReport, QuestionsDoc,
     RollbackReport, SetupReport, SortReport, TargetReport, ToolRow, ToolsReport, TtwReport,
@@ -507,6 +509,12 @@ pub trait Service {
     /// [`ServiceError::Failed`] when the command refused.
     fn tree(&self, request: &TreeRequest) -> Result<TreeReport, ServiceError>;
 
+    /// `nvmod plugins list`: the plugins of a profile in load order (read only).
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the command refused.
+    fn plugins_list(&self, request: &PluginsRequest) -> Result<PluginsReport, ServiceError>;
+
     /// `nvmod setup`, run to its end and read from its event stream. A run that fails is an error carrying the
     /// card of the setup wizard; a dry run is a report. To follow a run while it goes, use
     /// [`CliService::run_job`] with [`SetupRequest::job_spec`].
@@ -855,6 +863,14 @@ impl<E: Exec> Service for CliService<E> {
         match out.code {
             Some(0) => Self::parse(Action::Tree, &out, &args),
             _ => Err(failure(&out, "tree", &args)),
+        }
+    }
+
+    fn plugins_list(&self, r: &PluginsRequest) -> Result<PluginsReport, ServiceError> {
+        let (out, args) = self.invoke(Action::Plugins, r.args())?;
+        match out.code {
+            Some(0) => Self::parse(Action::Plugins, &out, &args),
+            _ => Err(failure(&out, "plugins", &args)),
         }
     }
 

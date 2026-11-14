@@ -130,3 +130,83 @@ pub struct TreeReport {
     /// Every path once.
     pub entries: Vec<TreeEntry>,
 }
+
+/// What `nvmod plugins list` needs.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct PluginsRequest {
+    /// The Instance folder.
+    pub instance: String,
+    /// The profile, `None` for the default.
+    pub profile: Option<String>,
+}
+
+impl PluginsRequest {
+    /// The words after `nvmod plugins`, before `--json`.
+    pub fn args(&self) -> Vec<String> {
+        let mut rest = vec!["list".to_owned()];
+        push(&mut rest, "instance", &self.instance);
+        push_opt(&mut rest, "profile", self.profile.as_ref());
+        rest
+    }
+}
+
+/// One master a plugin declares.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct MasterRow {
+    /// The master's file name.
+    pub name: String,
+    /// A Mod or the base copy provides the file.
+    pub present: bool,
+    /// Listed active.
+    pub active: bool,
+}
+
+/// One plugin of `nvmod plugins list --json`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
+pub struct PluginRow {
+    /// The file name.
+    pub name: String,
+    /// Listed in `plugins.txt`.
+    pub active: bool,
+    /// 1 is the first to load.
+    pub position: usize,
+    /// The 1-based position it is locked at.
+    pub locked: Option<usize>,
+    /// A forced primary plugin.
+    pub forced: bool,
+    /// A Mod or the base copy provides the file.
+    pub installed: bool,
+    /// The providing Mod.
+    pub provider: Option<String>,
+    /// The masters it declares.
+    pub masters: Vec<MasterRow>,
+    /// How many masters are not present.
+    pub masters_missing: usize,
+    /// Why its header could not be read.
+    pub header_error: Option<String>,
+}
+
+/// One entry of `lockedorder.txt`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct LockRow {
+    /// The plugin file name.
+    pub name: String,
+    /// The 1-based position.
+    pub position: usize,
+    /// The plugin is in the list.
+    pub listed: bool,
+}
+
+/// `nvmod plugins list --json` (schema `schemas/plugins-list.v1.json`).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct PluginsReport {
+    /// The version of the layout.
+    pub schema_version: u32,
+    /// The profile.
+    pub profile: String,
+    /// The plugins in load order.
+    pub plugins: Vec<PluginRow>,
+    /// Every lock.
+    pub locks: Vec<LockRow>,
+}
