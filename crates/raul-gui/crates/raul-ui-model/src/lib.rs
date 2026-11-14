@@ -8,6 +8,7 @@
 //! * [`route`]: the screens, the left rail and the `Ctrl+1` to `Ctrl+8` mapping.
 //! * [`error`]: exit classes of the command line and the error shape every screen shows.
 //! * [`job`]: the job events of document 04 and the table that orders and de-duplicates them.
+//! * [`doctor`] and [`mods`]: the state of the Doctor and Mods screens.
 //! * [`setup`]: the real `nvmod setup --json` event stream and the setup wizard it drives.
 //! * [`wizard`]: the install and FOMOD, MO2 import and TTW wizards.
 //! * [`keymap`] and [`palette`]: shortcuts of document 05 and the command palette with CLI equivalents.
@@ -15,9 +16,11 @@
 #![allow(clippy::must_use_candidate, clippy::module_name_repetitions)]
 #![cfg_attr(test, allow(clippy::assert_is_empty))]
 
+pub mod doctor;
 pub mod error;
 pub mod job;
 pub mod keymap;
+pub mod mods;
 pub mod palette;
 pub mod route;
 pub mod setup;

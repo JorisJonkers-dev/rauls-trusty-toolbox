@@ -186,3 +186,199 @@ pub struct DoctorReport {
     /// Counts.
     pub summary: DoctorSummary,
 }
+
+impl From<&DoctorReport> for nvmod_ui_model::doctor::DoctorView {
+    fn from(report: &DoctorReport) -> Self {
+        Self {
+            base: report.base.clone(),
+            findings: report
+                .findings
+                .iter()
+                .map(|f| nvmod_ui_model::doctor::DoctorFinding {
+                    code: f.code.clone(),
+                    severity: nvmod_ui_model::doctor::Severity::parse(&f.severity),
+                    subject: f.subject.clone(),
+                    message: f.message.clone(),
+                })
+                .collect(),
+        }
+    }
+}
+
+/// A message of the masterlist or a finding of the sort (`kind` and `text`).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct SortMessage {
+    /// What kind of message it is (`say`, `warn`, `error`, lowercase).
+    pub kind: String,
+    /// The text.
+    pub text: String,
+}
+
+/// A finding about one plugin in the sort.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct SortFinding {
+    /// What kind of finding it is.
+    pub kind: String,
+    /// The text.
+    pub text: String,
+    /// True when it is a problem rather than a note.
+    pub hard: bool,
+}
+
+/// One plugin in the proposed Load order.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct SortRow {
+    /// 1-based position.
+    pub position: usize,
+    /// The plugin file name.
+    pub name: String,
+    /// Whether the profile has it active.
+    pub active: bool,
+    /// Whether the sorter found the file.
+    pub installed: bool,
+    /// The masterlist group.
+    pub group: Option<String>,
+    /// Masterlist messages.
+    #[serde(default)]
+    pub messages: Vec<SortMessage>,
+    /// Messages the sorter generated.
+    #[serde(default)]
+    pub generated_messages: Vec<SortMessage>,
+    /// Findings about the plugin.
+    #[serde(default)]
+    pub findings: Vec<SortFinding>,
+}
+
+/// What `--apply` wrote.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct SortApplied {
+    /// `plugins.txt` or `loadorder.txt` was rewritten.
+    pub lists_written: bool,
+    /// Plugin files that got a new modification time.
+    pub stamped: usize,
+    /// Of those, files whose hard link was replaced by a copy.
+    pub detached: usize,
+    /// The journal `nvmod rollback` uses, `None` when nothing needed to change.
+    pub journal: Option<String>,
+}
+
+/// `nvmod sort --json`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct SortReport {
+    /// The profile.
+    pub profile: String,
+    /// Whether the proposed order differs from the current one.
+    pub reordered: bool,
+    /// The proposed order.
+    pub order: Vec<SortRow>,
+    /// Messages about the list as a whole.
+    #[serde(default)]
+    pub general_messages: Vec<SortMessage>,
+    /// Plugins the profile names that are not installed.
+    #[serde(default)]
+    pub not_installed: Vec<String>,
+    /// Warnings of the sorter.
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    /// What was written; `None` for a proposal that was not applied.
+    pub applied: Option<SortApplied>,
+}
+
+/// The state of the installed nv-rs in `nvmod verify`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct NvRsCheck {
+    /// Whether an nv-rs is installed.
+    pub installed: bool,
+    /// Whether it matches its install record.
+    pub verified: bool,
+    /// In words.
+    pub message: String,
+}
+
+/// One way to start the game.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct LaunchEntry {
+    /// `linux` or `windows`.
+    pub platform: String,
+    /// The program.
+    pub program: String,
+    /// Its arguments.
+    pub args: Vec<String>,
+    /// Environment variables.
+    pub env: std::collections::BTreeMap<String, String>,
+    /// The folder to run in.
+    pub working_dir: String,
+}
+
+/// How the game is started from the Instance.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct LaunchPlan {
+    /// The name of the path.
+    pub path: String,
+    /// Whether xNVSE starts.
+    pub extender: bool,
+    /// What the plan does and cannot do.
+    pub note: String,
+    /// One per platform.
+    pub entries: Vec<LaunchEntry>,
+    /// Where native nv-rs launch stands.
+    pub nv_rs: String,
+}
+
+/// `nvmod verify --json` (exit 0 verified, exit 3 not verified: both carry this report).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct VerifyReport {
+    /// The overall answer.
+    pub verified: bool,
+    /// The Doctor's report.
+    pub doctor: DoctorReport,
+    /// The nv-rs check.
+    pub nv_rs: NvRsCheck,
+    /// The launch plan.
+    pub launch_plan: LaunchPlan,
+}
+
+/// `nvmod rollback --json`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct RollbackReport {
+    /// The journal undone.
+    pub journal: String,
+    /// What was undone: `install`, `sort` or `migrate`.
+    pub kind: String,
+    /// The Mod removed, empty for a sort.
+    #[serde(rename = "mod")]
+    pub mod_name: String,
+    /// The profile restored.
+    pub profile: String,
+}
+
+/// One pinned tool in `nvmod tools list` and `verify`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct ToolRow {
+    /// The tool.
+    pub name: String,
+    /// The pinned version.
+    pub version: String,
+    /// `verified`, `not fetched`, `corrupt`, `needs-trust`, `no-asset` or `linked`.
+    pub state: String,
+    /// More words about the state.
+    pub detail: String,
+}
+
+/// The rows of `nvmod tools list` or `verify`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToolsReport {
+    /// One row per pinned tool.
+    pub rows: Vec<ToolRow>,
+    /// False when the command exited 3 because a stored tool is corrupt (`verify` only).
+    pub verified: bool,
+}
+
+/// What `nvmod target` did. The command prints a sentence, so this is built from the request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TargetReport {
+    /// The Instance.
+    pub instance: String,
+    /// What it runs on now.
+    pub target: crate::service::RuntimeTarget,
+}

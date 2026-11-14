@@ -263,6 +263,40 @@ impl JobTable {
     }
 }
 
+/// The events of a command that streams nothing: `Started`, one `Log` per line and `Finished`, in order. This is
+/// the fallback for a long command that prints one report at the end, so its job still shows in the table.
+pub fn final_record(
+    id: JobId,
+    op: &str,
+    writes: bool,
+    outcome: Outcome,
+    exit: ExitClass,
+    lines: &[String],
+) -> Vec<JobEvent> {
+    let mut events = vec![JobEvent::Started {
+        id,
+        op: op.to_owned(),
+        writes,
+        cancellable: false,
+    }];
+    let mut seq = 0;
+    for line in lines {
+        seq += 1;
+        events.push(JobEvent::Log {
+            id,
+            seq,
+            line: line.clone(),
+        });
+    }
+    events.push(JobEvent::Finished {
+        id,
+        seq: seq + 1,
+        outcome,
+        exit,
+    });
+    events
+}
+
 fn push_log(job: &mut JobView, line: String) {
     job.log_tail.push(line);
     if job.log_tail.len() > LOG_TAIL {
@@ -362,6 +396,25 @@ mod tests {
             exit: ExitClass::Ok,
         });
         assert!(t.check_can_start_writer().is_ok());
+    }
+
+    #[test]
+    fn a_final_record_runs_a_job_from_start_to_finish() {
+        let mut t = JobTable::default();
+        for e in final_record(
+            JobId(3),
+            "sort",
+            true,
+            Outcome::RolledBack,
+            ExitClass::StepFailedRolledBack,
+            &["a".to_owned(), "b".to_owned()],
+        ) {
+            assert_eq!(t.apply(e), Applied::Yes);
+        }
+        let j = t.get(JobId(3)).unwrap();
+        assert_eq!(j.log_tail, ["a", "b"]);
+        assert_eq!(j.state, JobState::Finished(Outcome::RolledBack));
+        assert!(t.writing().is_none());
     }
 
     #[test]

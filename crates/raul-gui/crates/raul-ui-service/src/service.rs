@@ -2,7 +2,8 @@
 //! The [`Service`] trait and its real implementation, [`CliService`].
 
 use crate::dto::{
-    DisagreeDoc, DoctorReport, Finding, ImportReport, InstallReport, QuestionsDoc, TtwReport,
+    DisagreeDoc, DoctorReport, Finding, ImportReport, InstallReport, QuestionsDoc, RollbackReport,
+    SortReport, TargetReport, ToolRow, ToolsReport, TtwReport, VerifyReport,
 };
 use crate::exec::{Exec, Output};
 use crate::registry::Action;
@@ -100,6 +101,139 @@ pub struct DoctorRequest {
     pub masterlist: Option<String>,
 }
 
+/// What `nvmod sort` needs.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct SortRequest {
+    /// The Instance folder.
+    pub instance: String,
+    /// The profile, `None` for the default.
+    pub profile: Option<String>,
+    /// The masterlist file.
+    pub masterlist: String,
+    /// Write the proposal (`--apply`); without it nothing is written.
+    pub apply: bool,
+}
+
+impl SortRequest {
+    /// The words after `nvmod sort`, before `--json`.
+    pub fn args(&self) -> Vec<String> {
+        let mut rest = Vec::new();
+        push(&mut rest, "instance", &self.instance);
+        push_opt(&mut rest, "profile", self.profile.as_ref());
+        push(&mut rest, "masterlist", &self.masterlist);
+        if self.apply {
+            rest.push("--apply".to_owned());
+        }
+        rest
+    }
+}
+
+/// What `nvmod verify` needs.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct VerifyRequest {
+    /// The Instance folder.
+    pub instance: String,
+    /// The profile.
+    pub profile: Option<String>,
+    /// The masterlist file.
+    pub masterlist: Option<String>,
+    /// The catalogue file.
+    pub catalog: Option<String>,
+    /// The Proton program the launch plan names.
+    pub proton: Option<String>,
+    /// The lowest severity that fails the verification (`info`, `warning`, `error`).
+    pub fail_on: Option<String>,
+}
+
+impl VerifyRequest {
+    /// The words after `nvmod verify`, before `--json`.
+    pub fn args(&self) -> Vec<String> {
+        let mut rest = Vec::new();
+        push(&mut rest, "instance", &self.instance);
+        push_opt(&mut rest, "profile", self.profile.as_ref());
+        push_opt(&mut rest, "masterlist", self.masterlist.as_ref());
+        push_opt(&mut rest, "catalog", self.catalog.as_ref());
+        push_opt(&mut rest, "proton", self.proton.as_ref());
+        push_opt(&mut rest, "fail-on", self.fail_on.as_ref());
+        rest
+    }
+}
+
+/// What an Instance runs on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeTarget {
+    /// The vanilla game with xNVSE.
+    Vanilla,
+    /// The nv-rs engine.
+    NvRs,
+}
+
+impl RuntimeTarget {
+    /// The word of the command line.
+    pub fn word(self) -> &'static str {
+        match self {
+            Self::Vanilla => "vanilla",
+            Self::NvRs => "nv-rs",
+        }
+    }
+}
+
+/// What `nvmod target` needs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TargetRequest {
+    /// The Instance folder.
+    pub instance: String,
+    /// What it should run on.
+    pub target: RuntimeTarget,
+}
+
+impl TargetRequest {
+    /// The words after `nvmod target`. The command has no `--json`.
+    pub fn args(&self) -> Vec<String> {
+        let mut rest = vec![self.target.word().to_owned()];
+        push(&mut rest, "instance", &self.instance);
+        rest
+    }
+}
+
+/// What `nvmod tools list` and `nvmod tools verify` need.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ToolsRequest {
+    /// The lock file, `None` for the built-in one.
+    pub lock: Option<String>,
+    /// The tool store, `None` for the default one.
+    pub store: Option<String>,
+    /// The Instance folder, whose trusted checksums count.
+    pub instance: Option<String>,
+}
+
+impl ToolsRequest {
+    /// The words after `nvmod tools <verb>`, before `--json`.
+    pub fn args(&self) -> Vec<String> {
+        let mut rest = Vec::new();
+        push_opt(&mut rest, "lock", self.lock.as_ref());
+        push_opt(&mut rest, "store", self.store.as_ref());
+        push_opt(&mut rest, "instance", self.instance.as_ref());
+        rest
+    }
+}
+
+/// What `nvmod rollback` needs.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct RollbackRequest {
+    /// The Instance folder.
+    pub instance: String,
+}
+
+impl RollbackRequest {
+    /// The words after `nvmod rollback`, before `--json`.
+    pub fn args(&self) -> Vec<String> {
+        let mut rest = Vec::new();
+        push(&mut rest, "instance", &self.instance);
+        rest
+    }
+}
+
 /// The answer of an install call.
 #[derive(Debug, Clone, PartialEq)]
 pub enum InstallResult {
@@ -135,6 +269,42 @@ pub trait Service {
     /// # Errors
     /// [`ServiceError::Failed`] when the Doctor could not run.
     fn doctor(&self, request: &DoctorRequest) -> Result<DoctorReport, ServiceError>;
+
+    /// `nvmod sort`, a proposal or with `apply` the written order.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the command refused or failed (a failed apply is rolled back).
+    fn sort(&self, request: &SortRequest) -> Result<SortReport, ServiceError>;
+
+    /// `nvmod verify`. A verification that fails is a report with `verified` false, not an error.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the verification could not run.
+    fn verify(&self, request: &VerifyRequest) -> Result<VerifyReport, ServiceError>;
+
+    /// `nvmod target`.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the command refused or failed.
+    fn set_target(&self, request: &TargetRequest) -> Result<TargetReport, ServiceError>;
+
+    /// `nvmod tools list`.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the lock or the Instance could not be read.
+    fn tools_list(&self, request: &ToolsRequest) -> Result<ToolsReport, ServiceError>;
+
+    /// `nvmod tools verify`. A corrupt stored tool is a report with `verified` false, not an error.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the lock or the Instance could not be read.
+    fn tools_verify(&self, request: &ToolsRequest) -> Result<ToolsReport, ServiceError>;
+
+    /// `nvmod rollback`: undoes the last install or sort.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when there is nothing to undo or the undo failed.
+    fn rollback(&self, request: &RollbackRequest) -> Result<RollbackReport, ServiceError>;
 }
 
 fn word(value: &str) -> String {
@@ -146,7 +316,7 @@ fn word(value: &str) -> String {
 }
 
 /// The command line as a person would type it, for the error's repro.
-fn repro(args: &[String]) -> String {
+pub(crate) fn repro(args: &[String]) -> String {
     let mut s = String::from("nvmod");
     for a in args {
         s.push(' ');
@@ -170,7 +340,7 @@ fn effect_of(class: ExitClass) -> &'static str {
 
 /// The cause from standard error: the first non-empty line without the `nvmod <command>:` and `refused:`
 /// prefixes the command line puts in front.
-fn cause_of(stderr: &str, command: &str) -> String {
+pub(crate) fn cause_of(stderr: &str, command: &str) -> String {
     let line = stderr.lines().map(str::trim).find(|l| !l.is_empty());
     let Some(line) = line else {
         return String::from("The command failed without saying why");
@@ -255,14 +425,36 @@ impl<E: Exec> CliService<E> {
         Self { exec }
     }
 
+    /// The `nvmod` words of a call: the command, `rest` and `--json` (commands without a JSON output do not get it).
+    pub(crate) fn words(action: Action, rest: Vec<String>, json: bool) -> Vec<String> {
+        let mut args = vec![action.command().to_owned()];
+        args.extend(rest);
+        if json {
+            args.push("--json".to_owned());
+        }
+        args
+    }
+
+    /// The program runner, for the job runner of this crate.
+    pub(crate) fn exec(&self) -> &E {
+        &self.exec
+    }
+
     fn invoke(
         &self,
         action: Action,
         rest: Vec<String>,
     ) -> Result<(Output, Vec<String>), ServiceError> {
-        let mut args = vec![action.command().to_owned()];
-        args.extend(rest);
-        args.push("--json".to_owned());
+        self.invoke_with(action, rest, true)
+    }
+
+    fn invoke_with(
+        &self,
+        action: Action,
+        rest: Vec<String>,
+        json: bool,
+    ) -> Result<(Output, Vec<String>), ServiceError> {
+        let args = Self::words(action, rest, json);
         match self.exec.run(&args) {
             Ok(out) => Ok((out, args)),
             Err(why) => {
@@ -282,12 +474,12 @@ impl<E: Exec> CliService<E> {
     }
 }
 
-fn push(args: &mut Vec<String>, name: &str, value: &str) {
+pub(crate) fn push(args: &mut Vec<String>, name: &str, value: &str) {
     args.push(format!("--{name}"));
     args.push(value.to_owned());
 }
 
-fn push_opt(args: &mut Vec<String>, name: &str, value: Option<&String>) {
+pub(crate) fn push_opt(args: &mut Vec<String>, name: &str, value: Option<&String>) {
     if let Some(v) = value {
         push(args, name, v);
     }
@@ -386,6 +578,68 @@ impl<E: Exec> Service for CliService<E> {
                 Err(e) => Err(unreadable("doctor", &e, &args)),
             },
             _ => Err(failure(&out, "doctor", &args)),
+        }
+    }
+
+    fn sort(&self, r: &SortRequest) -> Result<SortReport, ServiceError> {
+        let (out, args) = self.invoke(Action::Sort, r.args())?;
+        match out.code {
+            Some(0) => Self::parse(Action::Sort, &out, &args),
+            _ => Err(failure(&out, "sort", &args)),
+        }
+    }
+
+    fn verify(&self, r: &VerifyRequest) -> Result<VerifyReport, ServiceError> {
+        let (out, args) = self.invoke(Action::Verify, r.args())?;
+        match out.code {
+            // Exit 3 is "not verified": the report is on standard output.
+            Some(0 | 3) => Self::parse(Action::Verify, &out, &args),
+            _ => Err(failure(&out, "verify", &args)),
+        }
+    }
+
+    fn set_target(&self, r: &TargetRequest) -> Result<TargetReport, ServiceError> {
+        let (out, args) = self.invoke_with(Action::Target, r.args(), false)?;
+        match out.code {
+            Some(0) => Ok(TargetReport {
+                instance: r.instance.clone(),
+                target: r.target,
+            }),
+            _ => Err(failure(&out, "target", &args)),
+        }
+    }
+
+    fn tools_list(&self, r: &ToolsRequest) -> Result<ToolsReport, ServiceError> {
+        self.tools("list", r)
+    }
+
+    fn tools_verify(&self, r: &ToolsRequest) -> Result<ToolsReport, ServiceError> {
+        self.tools("verify", r)
+    }
+
+    fn rollback(&self, r: &RollbackRequest) -> Result<RollbackReport, ServiceError> {
+        let (out, args) = self.invoke(Action::Rollback, r.args())?;
+        match out.code {
+            Some(0) => Self::parse(Action::Rollback, &out, &args),
+            _ => Err(failure(&out, "rollback", &args)),
+        }
+    }
+}
+
+impl<E: Exec> CliService<E> {
+    fn tools(&self, verb: &str, r: &ToolsRequest) -> Result<ToolsReport, ServiceError> {
+        let mut rest = vec![verb.to_owned()];
+        rest.extend(r.args());
+        let (out, args) = self.invoke(Action::Tools, rest)?;
+        match out.code {
+            Some(code @ (0 | 3)) => {
+                let rows: Vec<ToolRow> = Self::parse(Action::Tools, &out, &args)?;
+                Ok(ToolsReport {
+                    rows,
+                    verified: code == 0,
+                })
+            }
+            _ => Err(failure(&out, "tools", &args)),
         }
     }
 }
