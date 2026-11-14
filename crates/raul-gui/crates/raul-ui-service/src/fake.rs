@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! A [`Service`] that answers from a script, for tests of screens and wizards without a command line.
 
+use crate::conflicts::{ConflictsReport, ConflictsRequest, TreeReport, TreeRequest};
 use crate::dto::{
     DoctorReport, ImportReport, InstallReport, ModsReport, RollbackReport, SetupReport, SortReport,
     TargetReport, ToolsReport, TtwReport, VerifyReport,
@@ -65,6 +66,8 @@ pub struct FakeService {
     rollbacks: Script<RollbackRequest, RollbackReport>,
     mods: Script<ModsRequest, ModsReport>,
     setups: Script<SetupRequest, SetupReport>,
+    conflicts: Script<ConflictsRequest, ConflictsReport>,
+    trees: Script<TreeRequest, TreeReport>,
 }
 
 impl FakeService {
@@ -136,6 +139,18 @@ impl FakeService {
     /// Queues the answer of the next `mods_change` call.
     pub fn on_mods(&self, answer: Result<ModsReport, ServiceError>) -> &Self {
         self.mods.queue(answer);
+        self
+    }
+
+    /// Queues the answer of the next `conflicts` call.
+    pub fn on_conflicts(&self, answer: Result<ConflictsReport, ServiceError>) -> &Self {
+        self.conflicts.queue(answer);
+        self
+    }
+
+    /// Queues the answer of the next `tree` call.
+    pub fn on_tree(&self, answer: Result<TreeReport, ServiceError>) -> &Self {
+        self.trees.queue(answer);
         self
     }
 
@@ -260,6 +275,14 @@ impl Service for FakeService {
 
     fn mods_change(&self, request: &ModsRequest) -> Result<ModsReport, ServiceError> {
         self.mods.call(request, "mods_change")
+    }
+
+    fn conflicts(&self, request: &ConflictsRequest) -> Result<ConflictsReport, ServiceError> {
+        self.conflicts.call(request, "conflicts")
+    }
+
+    fn tree(&self, request: &TreeRequest) -> Result<TreeReport, ServiceError> {
+        self.trees.call(request, "tree")
     }
 
     fn setup(&self, request: &SetupRequest) -> Result<SetupReport, ServiceError> {

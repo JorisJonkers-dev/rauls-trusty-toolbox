@@ -34,11 +34,15 @@ pub enum Action {
     Target,
     /// `nvmod mods`: list, enable, disable and reorder the Mods of a profile.
     Mods,
+    /// `nvmod conflicts`: the file-level conflicts of a profile (read only).
+    Conflicts,
+    /// `nvmod tree`: the virtual Data folder (read only).
+    Tree,
 }
 
 impl Action {
     /// Every action.
-    pub const ALL: [Action; 11] = [
+    pub const ALL: [Action; 13] = [
         Action::Setup,
         Action::ImportMo2,
         Action::InstallMod,
@@ -50,6 +54,8 @@ impl Action {
         Action::Tools,
         Action::Target,
         Action::Mods,
+        Action::Conflicts,
+        Action::Tree,
     ];
 
     /// The subcommand word of the command line.
@@ -66,6 +72,8 @@ impl Action {
             Self::Tools => "tools",
             Self::Target => "target",
             Self::Mods => "mods",
+            Self::Conflicts => "conflicts",
+            Self::Tree => "tree",
         }
     }
 
@@ -88,6 +96,8 @@ impl Action {
             Self::Tools => "Pinned tools",
             Self::Target => "Choose the runtime",
             Self::Mods => "Manage the Mods",
+            Self::Conflicts => "Show the file conflicts",
+            Self::Tree => "Explore the virtual Data folder",
         }
     }
 
