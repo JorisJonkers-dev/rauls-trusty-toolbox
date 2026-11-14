@@ -9,7 +9,7 @@
 //! | `plan` | first, before any step | `dry_run`, `resume`, `instance`, `steps[{step, description}]` |
 //! | `step` | per step | `step`, `status` (`planned`, `started`, `done`, `failed`), `index`, `total`, `description`, `code`, `detail` |
 //! | `resumed` | a resume, after `plan` | `total`, `completed[]`, `next` |
-//! | `skipped` | a resume, per finished step | `step`, `index`, `total`, `reason` |
+//! | `skipped` | a resume, per finished step; a step the run chose not to run (`sort` on an imported Instance) | `step`, `index`, `total`, `reason`, and for `sort` `would_change` (`changed`, `total`: counts only) |
 //! | `finished` | last | `status` (`ok`, `dry-run`, `failed`, `refused`, `restarted`), `exit_code`, `rolled_back`, `resumable`, `failed_step`, `reason` |
 //!
 //! A refusal before the plan (and `--restart`) prints a `finished` event alone, with `seq` 1. One wizard follows
@@ -26,6 +26,15 @@ pub struct PlannedStep {
     pub step: String,
     /// What it does, in words.
     pub description: String,
+}
+
+/// How many positions a sort would change, out of how many (counts only, no plugin names).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+pub struct WouldChange {
+    /// Positions that would change.
+    pub changed: u64,
+    /// Plugins in the order.
+    pub total: u64,
 }
 
 /// The `status` of a `step` event.
@@ -127,6 +136,9 @@ pub enum SetupEvent {
         /// Why it is skipped.
         #[serde(default)]
         reason: String,
+        /// For a skipped sort: how many positions it would change, out of how many (counts only).
+        #[serde(default)]
+        would_change: Option<WouldChange>,
     },
     /// The run is over.
     Finished {
@@ -600,13 +612,20 @@ pub fn to_job_event(id: JobId, line: &StreamLine) -> Option<JobEvent> {
             index,
             total,
             reason,
+            would_change,
         } => Some(JobEvent::Progress {
             id,
             seq,
             phase: step.clone(),
             done: *index,
             total: Some(*total),
-            message: Some(format!("skipped: {reason}")),
+            message: Some(match would_change {
+                Some(w) => format!(
+                    "skipped: {reason} (a sort would change {} of {} positions)",
+                    w.changed, w.total
+                ),
+                None => format!("skipped: {reason}"),
+            }),
         }),
         SetupEvent::Finished {
             status,
@@ -755,6 +774,23 @@ mod tests {
         assert_eq!(
             w.equivalent_command(),
             "nvmod setup --instance /i --dry-run"
+        );
+    }
+
+    #[test]
+    fn a_skipped_sort_carries_counts_and_shows_in_the_progress_line() {
+        let mut w = SetupWizard::new();
+        w.feed_line(PLAN).unwrap();
+        let line = r#"{"seq":2,"event":"skipped","step":"init","index":1,"total":3,"description":"d","reason":"the order is kept","would_change":{"changed":111,"total":133}}"#;
+        w.feed_line(line).unwrap();
+        assert_eq!(w.steps()[0].state, StepState::Skipped);
+        let parsed = parse_line(line).unwrap();
+        let Some(JobEvent::Progress { message, .. }) = to_job_event(JobId(1), &parsed) else {
+            panic!("a skipped event is progress");
+        };
+        assert_eq!(
+            message.as_deref(),
+            Some("skipped: the order is kept (a sort would change 111 of 133 positions)")
         );
     }
 
