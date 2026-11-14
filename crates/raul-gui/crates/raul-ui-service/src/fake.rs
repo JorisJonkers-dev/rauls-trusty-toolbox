@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! A [`Service`] that answers from a script, for tests of screens and wizards without a command line.
 
-use crate::conflicts::{ConflictsReport, ConflictsRequest, TreeReport, TreeRequest};
+use crate::conflicts::{
+    ConflictsReport, ConflictsRequest, PluginsReport, PluginsRequest, TreeReport, TreeRequest,
+};
 use crate::dto::{
     DoctorReport, ImportReport, InstallReport, ModsReport, RollbackReport, SetupReport, SortReport,
     TargetReport, ToolsReport, TtwReport, VerifyReport,
@@ -68,6 +70,7 @@ pub struct FakeService {
     setups: Script<SetupRequest, SetupReport>,
     conflicts: Script<ConflictsRequest, ConflictsReport>,
     trees: Script<TreeRequest, TreeReport>,
+    plugin_lists: Script<PluginsRequest, PluginsReport>,
 }
 
 impl FakeService {
@@ -151,6 +154,12 @@ impl FakeService {
     /// Queues the answer of the next `tree` call.
     pub fn on_tree(&self, answer: Result<TreeReport, ServiceError>) -> &Self {
         self.trees.queue(answer);
+        self
+    }
+
+    /// Queues the answer of the next `plugins_list` call.
+    pub fn on_plugins_list(&self, answer: Result<PluginsReport, ServiceError>) -> &Self {
+        self.plugin_lists.queue(answer);
         self
     }
 
@@ -283,6 +292,10 @@ impl Service for FakeService {
 
     fn tree(&self, request: &TreeRequest) -> Result<TreeReport, ServiceError> {
         self.trees.call(request, "tree")
+    }
+
+    fn plugins_list(&self, request: &PluginsRequest) -> Result<PluginsReport, ServiceError> {
+        self.plugin_lists.call(request, "plugins_list")
     }
 
     fn setup(&self, request: &SetupRequest) -> Result<SetupReport, ServiceError> {
