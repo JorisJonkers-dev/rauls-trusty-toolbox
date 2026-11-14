@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: GPL-3.0-only
+//! The view-model of the nvmod GUI (`docs/design/gui/04-view-model-api.md` in nv-linux).
+//!
+//! Nothing here knows a GUI toolkit, a window or a process: every type is plain data and every transition is a
+//! pure method, so the whole behaviour of the wizards, the command palette and the keymap is tested with
+//! `cargo test`. A toolkit adapter renders these values and forwards user intent as inputs.
+//!
+//! * [`route`]: the screens, the left rail and the `Ctrl+1` to `Ctrl+8` mapping.
+//! * [`error`]: exit classes of the command line and the error shape every screen shows.
+//! * [`job`]: the job events of document 04 and the table that orders and de-duplicates them.
+//! * [`setup`]: the real `nvmod setup --json` event stream and the setup wizard it drives.
+//! * [`wizard`]: the install and FOMOD, MO2 import and TTW wizards.
+//! * [`keymap`] and [`palette`]: shortcuts of document 05 and the command palette with CLI equivalents.
+
+#![allow(clippy::must_use_candidate, clippy::module_name_repetitions)]
+#![cfg_attr(test, allow(clippy::assert_is_empty))]
+
+pub mod error;
+pub mod job;
+pub mod keymap;
+pub mod palette;
+pub mod route;
+pub mod setup;
+pub mod wizard;
+
+pub use error::{ExitClass, Load, ViewError};
+pub use route::{Route, Screen};
