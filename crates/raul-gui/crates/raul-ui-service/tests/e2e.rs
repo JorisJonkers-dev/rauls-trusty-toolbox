@@ -637,3 +637,45 @@ fn a_real_sort_run_as_a_job_ends_with_a_final_record() {
     assert_eq!(job.exit, Some(ExitClass::Ok));
     assert!(table.writing().is_none());
 }
+
+#[test]
+fn conflicts_and_tree_are_typed_reports_and_a_missing_profile_is_a_failure() {
+    use nvmod_ui_service::{ConflictsRequest, TreeRequest};
+    let inst = Instance::new();
+    let root = inst.root();
+    profile(&root, "+A\r\n+B\r\n", "FalloutNV.esm\r\n");
+    write_file(&root, "mods/A/Meshes/x.nif", b"a");
+    write_file(&root, "mods/B/meshes/X.nif", b"b");
+    write_file(&root, "mods/B/only.txt", b"b");
+    let svc = service();
+    let report = svc
+        .conflicts(&ConflictsRequest {
+            instance: s(&root),
+            ..ConflictsRequest::default()
+        })
+        .unwrap();
+    assert_eq!(report.conflicts.len(), 1);
+    assert_eq!(report.conflicts[0].winner.name, "A");
+    assert_eq!(report.conflicts[0].losers[0].path, "meshes/X.nif");
+    assert!(
+        report
+            .mods
+            .iter()
+            .any(|m| m.name == "B" && !m.mixed && m.overwritten)
+    );
+    let tree = svc
+        .tree(&TreeRequest {
+            instance: s(&root),
+            path: Some("meshes".to_owned()),
+            ..TreeRequest::default()
+        })
+        .unwrap();
+    assert_eq!(tree.entries.len(), 1);
+    assert_eq!(tree.entries[0].provider, "A");
+    let refused = svc.conflicts(&ConflictsRequest {
+        instance: s(&root),
+        profile: Some("Nope".to_owned()),
+        mod_name: None,
+    });
+    assert!(matches!(refused, Err(ServiceError::Failed(_))));
+}

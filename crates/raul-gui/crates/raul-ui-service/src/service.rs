@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The [`Service`] trait and its real implementation, [`CliService`].
 
+use crate::conflicts::{ConflictsReport, ConflictsRequest, TreeReport, TreeRequest};
 use crate::dto::{
     DisagreeDoc, DoctorReport, Finding, ImportReport, InstallReport, ModsReport, QuestionsDoc,
     RollbackReport, SetupReport, SortReport, TargetReport, ToolRow, ToolsReport, TtwReport,
@@ -494,6 +495,18 @@ pub trait Service {
     /// [`ServiceError::Failed`] when the command refused or failed (a failed change is rolled back).
     fn mods_change(&self, request: &ModsRequest) -> Result<ModsReport, ServiceError>;
 
+    /// `nvmod conflicts`: the file-level conflicts of a profile (read only).
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the command refused.
+    fn conflicts(&self, request: &ConflictsRequest) -> Result<ConflictsReport, ServiceError>;
+
+    /// `nvmod tree`: the virtual Data folder of a profile (read only).
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the command refused.
+    fn tree(&self, request: &TreeRequest) -> Result<TreeReport, ServiceError>;
+
     /// `nvmod setup`, run to its end and read from its event stream. A run that fails is an error carrying the
     /// card of the setup wizard; a dry run is a report. To follow a run while it goes, use
     /// [`CliService::run_job`] with [`SetupRequest::job_spec`].
@@ -826,6 +839,22 @@ impl<E: Exec> Service for CliService<E> {
         match out.code {
             Some(0) => Self::parse(Action::Mods, &out, &args),
             _ => Err(failure(&out, "mods", &args)),
+        }
+    }
+
+    fn conflicts(&self, r: &ConflictsRequest) -> Result<ConflictsReport, ServiceError> {
+        let (out, args) = self.invoke(Action::Conflicts, r.args())?;
+        match out.code {
+            Some(0) => Self::parse(Action::Conflicts, &out, &args),
+            _ => Err(failure(&out, "conflicts", &args)),
+        }
+    }
+
+    fn tree(&self, r: &TreeRequest) -> Result<TreeReport, ServiceError> {
+        let (out, args) = self.invoke(Action::Tree, r.args())?;
+        match out.code {
+            Some(0) => Self::parse(Action::Tree, &out, &args),
+            _ => Err(failure(&out, "tree", &args)),
         }
     }
 

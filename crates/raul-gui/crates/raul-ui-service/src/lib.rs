@@ -13,6 +13,7 @@
 #![allow(clippy::must_use_candidate, clippy::module_name_repetitions)]
 #![cfg_attr(test, allow(clippy::assert_is_empty))]
 
+pub mod conflicts;
 pub mod dto;
 pub mod exec;
 pub mod fake;
@@ -21,6 +22,7 @@ pub mod registry;
 pub mod service;
 pub mod wiring;
 
+pub use conflicts::{ConflictsReport, ConflictsRequest, TreeReport, TreeRequest};
 pub use exec::{CancelHandle, Exec, Output, ProcessExec};
 pub use fake::{FakeService, ScriptedExec};
 pub use jobs::{JobSpec, cancel_job};
