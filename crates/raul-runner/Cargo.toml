@@ -10,6 +10,8 @@ description = "The one subprocess runner of nvmod: argument vector, timeout, out
 
 [dependencies]
 nvmod-core = { workspace = true }
+nvmod-runlog = { workspace = true }
+tracing = { workspace = true }
 sha2 = "0.10"
 
 [dev-dependencies]

@@ -301,6 +301,22 @@ impl Runner {
     /// # Errors
     /// As [`Runner::run`], except that no exit code is a failure; a program ended by a signal still is.
     pub fn run_any(&self, call: &Call) -> Result<Output, ToolError> {
+        let _span = tracing::info_span!("tool", tool = call.tool).entered();
+        let started = Instant::now();
+        let result = self.run_inner(call);
+        let duration_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+        match &result {
+            Ok(output) => tracing::info!(
+                exit_code = i64::from(output.exit_code),
+                duration_ms,
+                "tool finished"
+            ),
+            Err(e) => tracing::info!(duration_ms, "tool failed: {e}"),
+        }
+        result
+    }
+
+    fn run_inner(&self, call: &Call) -> Result<Output, ToolError> {
         Self::verify(call)?;
         // The one place nvmod starts a program (ADR-0005).
         #[allow(clippy::disallowed_methods)]
@@ -321,6 +337,13 @@ impl Runner {
             && let Some(root) = std::env::var_os("SystemRoot")
         {
             command.env("SystemRoot", root);
+        }
+        // The only extra environment a tool gets from nvmod (ADR-0012): which run it belongs to, and that nvmod
+        // reads JSON log lines. A tool may ignore both. Set only inside a command that keeps a run log.
+        if let Some(id) = nvmod_runlog::run_id() {
+            command
+                .env("NVMOD_RUN_ID", id)
+                .env("NVMOD_LOG_FORMAT", "json");
         }
         command.envs(self.env.iter().map(|(k, v)| (k, v)));
         if let Some(cwd) = call.cwd {
@@ -376,6 +399,13 @@ impl Runner {
         let stdout = out.recv_timeout(PIPE_GRACE).unwrap_or_default();
         let stderr =
             String::from_utf8_lossy(&err.recv_timeout(PIPE_GRACE).unwrap_or_default()).into_owned();
+        if !stderr.is_empty() {
+            // Redacted by the run log's writer like everything else; capped at 64 KiB per call.
+            tracing::info!(
+                stderr = nvmod_runlog::capped_stderr(&stderr),
+                "tool standard error"
+            );
+        }
         let first_line = stderr.lines().next().unwrap_or("").trim();
         if let Some(reason) = stop {
             return Err(failed(
