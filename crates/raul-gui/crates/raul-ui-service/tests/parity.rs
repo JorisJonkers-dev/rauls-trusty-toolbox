@@ -52,7 +52,7 @@ fn a_command_that_the_help_does_not_list_is_not_covered() {
 
 /// Screens that change something and have no command line equivalent yet. The list may only shrink: a new
 /// screen that writes without a command fails the test below, and a gap that gets closed must be removed here.
-const KNOWN_WRITE_GAPS: [Screen; 1] = [Screen::Mods];
+const KNOWN_WRITE_GAPS: [Screen; 0] = [];
 
 #[test]
 fn every_screen_that_changes_something_has_a_command_line_equivalent_or_is_a_known_gap() {

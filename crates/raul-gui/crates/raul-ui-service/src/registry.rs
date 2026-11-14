@@ -18,7 +18,7 @@ pub enum Action {
     ImportMo2,
     /// `nvmod install`: one Mod from an archive, with FOMOD answers.
     InstallMod,
-    /// `nvmod rollback`: undo the last install or sort.
+    /// `nvmod rollback`: undo the last install, sort or mods change.
     Rollback,
     /// `nvmod sort`: the load order.
     Sort,
@@ -32,11 +32,13 @@ pub enum Action {
     Tools,
     /// `nvmod target`: what the Instance runs on.
     Target,
+    /// `nvmod mods`: list, enable, disable and reorder the Mods of a profile.
+    Mods,
 }
 
 impl Action {
     /// Every action.
-    pub const ALL: [Action; 10] = [
+    pub const ALL: [Action; 11] = [
         Action::Setup,
         Action::ImportMo2,
         Action::InstallMod,
@@ -47,6 +49,7 @@ impl Action {
         Action::Verify,
         Action::Tools,
         Action::Target,
+        Action::Mods,
     ];
 
     /// The subcommand word of the command line.
@@ -62,6 +65,7 @@ impl Action {
             Self::Verify => "verify",
             Self::Tools => "tools",
             Self::Target => "target",
+            Self::Mods => "mods",
         }
     }
 
@@ -78,6 +82,7 @@ impl Action {
             Self::Verify => "Verify the install",
             Self::Tools => "Pinned tools",
             Self::Target => "Choose the runtime",
+            Self::Mods => "Manage the Mods",
         }
     }
 
@@ -103,9 +108,7 @@ pub fn coverage(screen: Screen) -> Coverage {
         Screen::Home => Coverage::Planned("a status command that summarises the Instance"),
         Screen::FirstRun => Coverage::Cli(Action::Setup),
         Screen::ImportMo2 => Coverage::Cli(Action::ImportMo2),
-        Screen::Mods => Coverage::Planned(
-            "commands that list, enable, disable and reorder the Mods of a profile",
-        ),
+        Screen::Mods => Coverage::Cli(Action::Mods),
         Screen::Install | Screen::Fomod => Coverage::Cli(Action::InstallMod),
         Screen::Plugins => Coverage::Planned("a command that lists the plugins and their masters"),
         Screen::SortDiff => Coverage::Cli(Action::Sort),
