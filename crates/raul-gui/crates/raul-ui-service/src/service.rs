@@ -142,6 +142,8 @@ pub struct SetupRequest {
     pub source: Option<String>,
     /// Leave out the nv-rs step.
     pub skip_nv_rs: bool,
+    /// Sort an imported MO2 Instance too (`--sort`); by default its order is kept.
+    pub sort: bool,
     /// Copy every file instead of hard-linking.
     pub copy_only: bool,
     /// A failing step leaves the Instance where it is, to be resumed (`--keep-partial`).
@@ -212,6 +214,7 @@ impl SetupRequest {
         for (on, flag) in [
             (self.release, "--release"),
             (self.skip_nv_rs, "--skip-nv-rs"),
+            (self.sort, "--sort"),
             (self.copy_only, "--copy"),
             (self.keep_partial, "--keep-partial"),
             (self.dry_run, "--dry-run"),
