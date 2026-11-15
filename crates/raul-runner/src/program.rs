@@ -37,7 +37,8 @@ impl Started {
 
 /// Start `program` with `args` in `cwd`, with nvmod's environment plus `env`. With `attached` the program shares
 /// the caller's terminal; otherwise its input is closed, its output dropped, and on Unix it runs in its own
-/// process group so the caller's Ctrl+C does not reach it.
+/// process group so the caller's Ctrl+C does not reach it. With `log` the program's output and errors are
+/// appended to that file instead (in both modes).
 ///
 /// # Errors
 /// The program could not be started.
@@ -47,16 +48,27 @@ pub fn start_program(
     env: &BTreeMap<String, String>,
     cwd: &Path,
     attached: bool,
+    log: Option<&Path>,
 ) -> Result<Started, String> {
     // The one place nvmod starts a long-lived program (ADR-0005).
     #[allow(clippy::disallowed_methods)]
     let mut command = Command::new(program);
     command.args(args).envs(env).current_dir(cwd);
+    if let Some(log) = log {
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(log)
+            .map_err(|e| format!("cannot open the log {}: {e}", log.display()))?;
+        let again = file
+            .try_clone()
+            .map_err(|e| format!("cannot open the log {}: {e}", log.display()))?;
+        command.stdout(file).stderr(again);
+    } else if !attached {
+        command.stdout(Stdio::null()).stderr(Stdio::null());
+    }
     if !attached {
-        command
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null());
+        command.stdin(Stdio::null());
         #[cfg(unix)]
         {
             use std::os::unix::process::CommandExt;
