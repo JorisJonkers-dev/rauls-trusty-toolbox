@@ -172,7 +172,11 @@ fn a_profile_that_cannot_give_a_request_is_refused() {
     assert_eq!(f.raul(&["lod", "generate"]).status.code(), Some(2));
     // lodwright refuses an output folder inside a git working tree, so the plan does too.
     std::fs::create_dir_all(f.path(".git")).unwrap();
-    assert!(f.raul(&["stage", "--instance", s(&f.instance()), "--copy"]).status.success());
+    assert!(
+        f.raul(&["stage", "--instance", s(&f.instance()), "--copy"])
+            .status
+            .success()
+    );
     let out = f.raul(&["lod", "plan", "--instance", s(&f.instance())]);
     assert_eq!(out.status.code(), Some(2));
     assert!(
