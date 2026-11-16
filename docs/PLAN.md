@@ -341,6 +341,27 @@ launch step and in-engine benchmarks.
   `Data/NVRS/Extensions/<id>/nvext.toml`); the coverage gate is 70% of
   changed lines on fork-owned crates.
 
+### Policy from nv-linux ADR 0014, points 17 to 33 (2026-11-16)
+
+The engineering policy of the stack is kept in nv-linux `docs/adr/0014-fork-positioning-and-engineering-policy.md`.
+The points that bear on the Toolbox:
+
+| Point | What the Toolbox follows |
+| --- | --- |
+| 17 | Component releases pass a local Release test before their release PR merges (nv-rs#195, nvmod-rs#70, lodwright-rs#82); a bump here waits for that release |
+| 18 | nv-rs blocks merges below 70% coverage of changed lines in fork-owned crates (nv-rs#194) |
+| 21 to 23 | Shader packs: one reviewed seam line in nv-rs, vkd3d-shader loaded at run time; the shader-hash profile never leaves the owner's machine |
+| 24 to 27 | nv-rs performance work (draw thread, render thread A/B, prepared bench saves, fog and reflections) stays in nv-rs; `raul bench` frame-time capture waits for it |
+| 28 | The Nexus milestone comes before the Windows GUI job (nv-linux #328), which moves here with the GUI |
+| 29, 30 | "Engine extension" for native code in nv-rs, template `nv-rs-extension-template`, manifests at `Data/NVRS/Extensions/<id>/nvext.toml`; opcode blocks are fork-only |
+| 31 | Discord presence is nv-rs's, opt-in, through the games' existing applications (nv-rs#187) |
+| 32 | The hardware checklist (nv-linux #302) is the owner's to run |
+| 33 | "Component" means a pinned project; the nv-rs CI split unit is a "CI unit" (as in `GLOSSARY.md`) |
+
+The lodwright result and event Contracts gained `up_to_date` per block (lodwright-rs #84, after v0.2.0); the GUI's
+LOD progress reads it once a set with that release is known-good. Extender readiness shown in the GUI comes from
+nvmod's readiness report (nv-linux #265) and opcode scan (#97).
+
 ## 9. Decisions
 
 Settled with the owner on 2026-11-16. The ones that are hard to reverse are ADRs.
