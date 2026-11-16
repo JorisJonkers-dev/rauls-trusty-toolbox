@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794864690144,
+  "lastUpdate": 1794868668719,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -538,6 +538,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.40585,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "169e4f83fdc4e929af21de9996ca8863c30362fa",
+          "message": "chore(deps): bump ttwright-rs to v0.3.0 (#110)\n\n* chore(deps): bump ttwright-rs to v0.3.0\n\n* test(cli): read the expected set from known-good.toml\n\nThe version tests named the first set and its versions, so every Component\nbump broke them. They now take the latest known-good set from the file the\nbinary is built from.\n\n---------\n\nCo-authored-by: rauls-trusty-toolbox bump <noreply@github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-16T22:36:23Z",
+          "tree_id": "4dc1700d17a67d9c172e1881082aae7e43a8bfa7",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/169e4f83fdc4e929af21de9996ca8863c30362fa"
+        },
+        "date": 1794868668069,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.641251,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 24.724477,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 254.543659,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.40923,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.110106,
             "unit": "ms"
           }
         ]
