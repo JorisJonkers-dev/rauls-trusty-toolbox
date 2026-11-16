@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794868668719,
+  "lastUpdate": 1794869596095,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -587,6 +587,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.110106,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8f5a572b85e8922ec5f585eedb32d0a94928cf6c",
+          "message": "chore(deps): bump nvmod to v0.6.0, with the loot-rs v0.5.0 it links (#118)\n\nnvmod v0.6.0 links loot-rs v0.5.0, so the new set moves both (ADR-0015): the two\nsubmodules, the workspace loot-rs tag and Cargo.lock.",
+          "timestamp": "2026-11-16T23:51:57+01:00",
+          "tree_id": "160bcced7fc6276b35b410f83cbed473990a9f44",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/8f5a572b85e8922ec5f585eedb32d0a94928cf6c"
+        },
+        "date": 1794869595509,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.336387,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.504489000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.347903,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.46687,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.841707000000001,
             "unit": "ms"
           }
         ]
