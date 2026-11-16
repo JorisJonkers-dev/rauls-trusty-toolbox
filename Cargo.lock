@@ -1079,12 +1079,23 @@ dependencies = [
  "nvmod-instance",
  "nvmod-pe",
  "nvmod-testkit",
+ "raul-drivers",
  "raul-runner",
  "schemars",
  "semver",
  "serde",
  "serde_json",
  "toml",
+]
+
+[[package]]
+name = "raul-drivers"
+version = "0.0.0"
+dependencies = [
+ "jsonschema",
+ "schemars",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

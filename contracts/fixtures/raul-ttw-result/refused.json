@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "contract": "raul-ttw-result",
+  "status": "refused",
+  "dry_run": false,
+  "resumed": false,
+  "instance": "/users/player/raul-storage/instance",
+  "profile": "Default",
+  "mod": null,
+  "plugins_enabled": [],
+  "files": null,
+  "staging": null,
+  "resumable": false,
+  "tool": null,
+  "ttwright": null,
+  "error": {
+    "code": "missing_input",
+    "ttwright_code": null,
+    "message": "no Fallout 3 folder: pass --fallout3 <dir> or run `raul config set game.fallout3 <dir>`"
+  }
+}
