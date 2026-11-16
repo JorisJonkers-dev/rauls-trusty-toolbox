@@ -129,7 +129,8 @@ jobs:
           build Cargo.toml raul-cli "raul$exe" "${targets[@]}"
           OUT=target/bundle/components
           build components/lodwright-rs/Cargo.toml lodwright-cli "lodwright$exe" "${targets[@]}"
-          build components/ttwright-rs/Cargo.toml ttw_installer "mpi_installer$exe" "${targets[@]}"
+          # From ttwright-rs v0.3.0 the TTW installer is the package ttwright-cli and the program ttwright.
+          build components/ttwright-rs/Cargo.toml ttwright-cli "ttwright$exe" "${targets[@]}"
           ls -l target/release/raul* target/bundle/components
 
       # nv-rs is not built here: its own release assets for the shipped version are verified against its
@@ -247,15 +248,30 @@ jobs:
           set -euo pipefail
           # Git Bash on Windows has no /dev/stderr, so the output is captured and printed instead of tee'd.
           check() { local out; out="$("$@" --version)"; echo "$out"; head -1 <<<"$out" | grep -qx "raul $VERSION"; }
+          # The bundled ttwright must start, report the version of the shipped set, and speak the ttwright-result
+          # and ttwright-events v1 Contracts raul ttw reads.
+          raul_bin="target/release/raul"; [ "$RUNNER_OS" = Windows ] && raul_bin="$raul_bin.exe"
+          ttwright_version="$("$raul_bin" version --json | jq -r '.components["ttwright-rs"]' | sed 's/^v//')"
+          echo "ttwright-rs of the shipped set: $ttwright_version"
+          check_ttwright() {
+            local out; out="$("$1" --version)"; echo "$out"; grep -qw "$ttwright_version" <<<"$out"
+            out="$("$1" contracts --json)"; echo "$out"
+            jq -e '.contract == "ttwright-contracts" and ([.contracts[] | select(.name == "ttwright-result" or .name == "ttwright-events") | select(.versions | index(1))] | length == 2)' <<<"$out" >/dev/null
+          }
           case "$RUNNER_OS" in
             Linux)
               app="$(ls target/packages/*.AppImage)"; chmod +x "$app"
               check "$app" --appimage-extract-and-run
               dpkg-deb -x target/packages/*.deb "$RUNNER_TEMP/deb" && check "$RUNNER_TEMP/deb/usr/bin/raul"
-              tar -xzf target/packages/*.tar.gz -C "$RUNNER_TEMP" && check "$RUNNER_TEMP/raul-$VERSION-linux-x64/raul" ;;
+              tar -xzf target/packages/*.tar.gz -C "$RUNNER_TEMP" && check "$RUNNER_TEMP/raul-$VERSION-linux-x64/raul"
+              check_ttwright "$RUNNER_TEMP/raul-$VERSION-linux-x64/components/ttwright"
+              # The Linux packages carry it too; raul looks for it in ../lib/<package>/components next to raul.
+              deb_ttwright="$(find "$RUNNER_TEMP/deb/usr/lib" -path '*/components/ttwright' -type f | head -1)"
+              echo "deb: $deb_ttwright"; check_ttwright "$deb_ttwright" ;;
             Windows)
               7z x -bso0 -o"$RUNNER_TEMP/zip" target/packages/*-portable.zip
               check "$RUNNER_TEMP/zip/raul-$VERSION-windows-x64/raul.exe"
+              check_ttwright "$RUNNER_TEMP/zip/raul-$VERSION-windows-x64/components/ttwright.exe"
               setup="$(ls target/packages/*.setup.exe)"
               # The installer must hold the same raul.exe: 7z unpacks an NSIS installer without running it.
               7z x -bso0 -o"$RUNNER_TEMP/nsis" "$setup"; check "$(find "$RUNNER_TEMP/nsis" -iname raul.exe | head -1)"
@@ -274,6 +290,7 @@ jobs:
               check "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul"
               archs="$(lipo -archs "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul")"; echo "$archs"
               grep -qw arm64 <<<"$archs"; grep -qw x86_64 <<<"$archs"
+              check_ttwright "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/Resources/components/ttwright"
               hdiutil detach "$RUNNER_TEMP/dmg" ;;
           esac
 
