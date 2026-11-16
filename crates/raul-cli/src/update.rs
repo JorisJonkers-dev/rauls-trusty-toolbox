@@ -3,10 +3,9 @@
 //! start on or off. Nothing is downloaded or installed, and nothing identifying is sent (nv-linux ADR-0010).
 
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::Path;
 
-use nvmod_tools::{Curl, Fetcher};
-use raul_core::update::{RELEASES_URL, Settings, newer_release};
+use raul_core::update::{self, Settings};
 
 pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let Some(path) = Settings::default_path() else {
@@ -51,14 +50,9 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
 }
 
 fn check(json: bool, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    let curl = Curl {
-        program: PathBuf::from("curl"),
-    };
     let current = env!("CARGO_PKG_VERSION");
-    let result = curl
-        .get(RELEASES_URL)
-        .map_err(|e| format!("{e:?}"))
-        .and_then(|bytes| newer_release(current, &String::from_utf8_lossy(&bytes)));
+    // `curl` is found on the `PATH`; the Runner passes only that, the proxy and certificate variables, and limits.
+    let result = update::check(&update::runner(), Path::new("curl"), current);
     match result {
         Ok(newer) if json => {
             let v = serde_json::json!({ "current": current, "newer": newer });
