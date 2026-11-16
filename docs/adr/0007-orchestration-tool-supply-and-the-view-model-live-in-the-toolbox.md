@@ -24,7 +24,7 @@ moves are in [REORG.md](../REORG.md) sections 3 and 10.
 - Only `raul-runner` may use `std::process::Command` in the Toolbox; a dependency-graph test enforces the crate graph.
 - The GUI reads in process and writes through a `raul` subprocess; every write is observed only through the
   `raul-events` stream and the journal, and the read model reloads from disk after an event that changes state.
-- nvmod's moved commands become stubs that print the `raul` command, for one nvmod release and at least 30 days.
+- nvmod's moved commands are removed when they move; only `raul` has them afterwards.
 
 ## Considered options
 

@@ -107,8 +107,7 @@ the installation check); installing **mods** is `nvmod-modinstall`, which stays.
 | `contracts/`, `tools.lock.toml` | snapshots and pins | `contracts/`, `known-good.toml` plus `supply.toml` | `raul known-good` |
 
 The CLI commands `setup`, `ttw`, `lod`, `install-nv-rs`, `run`, `tools`, `verify` and `contracts` move to `raul`.
-nvmod keeps them as deprecated aliases that print the `raul` command for the window decided in open question 5,
-then removes them. After M2 nvmod starts no subprocess at all: its test that forbids `std::process::Command` keeps
+They are removed from nvmod when they move (section 12, decision 5); only `raul` has them afterwards. After M2 nvmod starts no subprocess at all: its test that forbids `std::process::Command` keeps
 running with no exceptions. If a later need arises, it is decided then; nvmod never depends back on the Toolbox.
 
 ### The Toolbox's own crate graph
@@ -155,7 +154,7 @@ state across a write.
 | The launcher wrapper's features | owner's machine | Toolbox (`raul run`, `raul dev`) | move (section 6.5) |
 | The developer wrapper | owner's machine | nv-rs `scripts/fork/local/` (already there; the machine wrapper becomes a one-line shim) | stays |
 | The build limiter and its slice | owner's machine | workshop `tools/local/` | record, private (machine-specific) |
-| Shared format readers (plugin headers, BSA, executable version) | five repositories | — | stay separate for now; the golden-vector check (#26) runs first; a shared leaf crate in a new repository is decided after it (open question 4) |
+| Shared format readers (plugin headers, BSA, executable version) | five repositories | — | stay separate for now; the golden-vector check (#26) runs first; a shared leaf crate in a new repository is decided after it (section 12, decision 4) |
 
 No repository is renamed or archived by this plan. No new repository is required; one may follow from open
 question 4.
@@ -270,7 +269,7 @@ which upstream does not build; those lead.
 | Ticket | Disposition |
 | --- | --- |
 | #11 | keep; first in the release order (section 8) |
-| #12 | widen into the epic "Move orchestration, tool supply, the Runner, the view model and the GUI from nvmod-rs", with one sub-ticket per row of the crate table (section 3); the view model and service seam move early, toolkit-agnostic; the GUI itself moves only after open question 1 is answered and the design pass is done, so its history is not moved and then thrown away |
+| #12 | widen into the epic "Move orchestration, tool supply, the Runner, the view model and the GUI from nvmod-rs", with one sub-ticket per row of the crate table (section 3); the view model and service seam move early, toolkit-agnostic; the GUI itself moves after the design pass, and only its toolkit-free parts (ADR-0012), so its history is not moved and then thrown away |
 | #13, #15, #16 | keep; depend on the epic's GUI step |
 | #14 | rescope: the service seam moves here; reads in process, risky writes as a `raul` subprocess (ADR-0003 unchanged on this point) |
 | #17, #18, #19, #22, #24, #25 | keep |
@@ -422,12 +421,12 @@ its lock time in the result, so the cost of a gate is visible.
 | --- | --- | --- |
 | **M0 Reorg** | this plan; ticket closes, merges, moves and parks; docs that cite moved tickets; public-safety pass over the fork's docs and scripts | every open piece of work is a ticket in its home with size, acceptance criteria, dependencies and the number it moves (a goal and a measured share, or "enabler"); the public-text check passes on every recreated ticket |
 | **M1 First Known-good set** | Toolbox 0.1.0 (#11) on the current set; nvmod 0.6.0 and lodwright 0.3.0 Release tests and releases; nv-rs 0.5.0 after the walking fix; the bump of the set (#18), written as `candidate` and promoted by the check | each Release test passes and its recorded result is attached to the release pull request; `raul known-good check` passes on the new set |
-| **M2 Toolbox owns orchestration** | see section 10.2 for the order; Runner first with no `Command` exceptions left; one pin file; tool supply; drivers; setup pipeline; `raul-events`, `raul-journal`, `raul-plan`, `raul-doctor`, `raul-detect`; view model and service seam; one `raul` binary (#13); ttwright-rs restructure and first pinned release before the TTW driver moves; nvmod's product commands become stubs | the pre-move baseline (section 10.2) replays with the same results through `raul`; `raul e2e` passes on synthetic fixtures; the crate-graph test passes; the command inventory test shows no command lost; the Toolbox Release test passes on the owner's machine; time box: eight weeks, after which the remaining moves are re-planned rather than left half done |
-| **M3 Hitch-free, unlimited fps native Linux** | in order of measured share: (1) bench and run-options Contracts (nv-rs#231) and the walking fix (nv-rs#324, nv-rs#325); (2) hitch recorder (nv-rs#112) and the hitch hunt (nv-rs#242); (3) loader, mesh and audio updates on the main thread (nv-rs#317) and the asset services pool (nv-rs#254), 20 to 27% plus 7%; (4) typed shader batch and constants (nv-rs#318), 33% in the first room, offered upstream where the file is upstream's; (5) scripts, 11%: a new measuring ticket; (6) the largest main-thread wait (nv-rs#252, nv-rs#253) and the draw and render thread A/Bs (nv-rs#191, nv-rs#192); (7) shader-cache stutter (nv-rs#320), present pacing (nv-rs#248), draw submission (nv-rs#241); prepared bench saves (nv-rs#193); the in-game harness's Rust port | on the quick suite's three scenes and the walking route, at 2560x1440, unlimited, five runs each under the lock: walking succeeds in 5 of 5; no frame over 50 ms after the first 10 s of a scene; p99 at or under the targets of open question 6 (proposed: 8.3 ms in interiors, 16.7 ms in the dense town) |
+| **M2 Toolbox owns orchestration** | see section 10.2 for the order; Runner first with no `Command` exceptions left; one pin file; tool supply; drivers; setup pipeline; `raul-events`, `raul-journal`, `raul-plan`, `raul-doctor`, `raul-detect`; view model and service seam; one `raul` binary (#13); ttwright-rs restructure and first pinned release before the TTW driver moves; nvmod's product commands are removed as they move | the pre-move baseline (section 10.2) replays with the same results through `raul`; `raul e2e` passes on synthetic fixtures; the crate-graph test passes; the command inventory test shows every moved command in `raul`; the Toolbox Release test passes on the owner's machine; time box: eight weeks, after which the remaining moves are re-planned rather than left half done |
+| **M3 Hitch-free, unlimited fps native Linux** | in order of measured share: (1) bench and run-options Contracts (nv-rs#231) and the walking fix (nv-rs#324, nv-rs#325); (2) hitch recorder (nv-rs#112) and the hitch hunt (nv-rs#242); (3) loader, mesh and audio updates on the main thread (nv-rs#317) and the asset services pool (nv-rs#254), 20 to 27% plus 7%; (4) typed shader batch and constants (nv-rs#318), 33% in the first room, offered upstream where the file is upstream's; (5) scripts, 11%: a new measuring ticket; (6) the largest main-thread wait (nv-rs#252, nv-rs#253) and the draw and render thread A/Bs (nv-rs#191, nv-rs#192); (7) shader-cache stutter (nv-rs#320), present pacing (nv-rs#248), draw submission (nv-rs#241); prepared bench saves (nv-rs#193); the in-game harness's Rust port | on the quick suite's three scenes and the walking route, at 2560x1440, unlimited, five runs each under the lock: walking succeeds in 5 of 5; p99 at or under 6.9 ms (144 fps) in interiors and 11.1 ms (90 fps) in the dense town; no frame over 33 ms after the first 10 s of a scene |
 | **M3b Playable on the Linux desktop** | window input gaps (nv-rs#213, nv-rs#214, nv-rs#216, nv-rs#217, nv-rs#218), desktop validation (nv-rs#203, nv-rs#281, nv-rs#283, nv-rs#285), the hardware checklist (nv-rs#287, the owner's) | the hardware checklist passes on the owner's desktop |
 | **M4 Full mod list native** | name table (nv-rs#274), then the scanned commands by call weight (nv-rs#303 first, then nv-rs#304 to nv-rs#313); any first-extender command the scan lists is built by the fork, not left to upstream's pace; the guard that an extender answers "installed" only when its scanned set is built (nv-rs#273, nv-rs#134); loose shaders and name-keyed packs (nv-rs#282, nv-rs#284, nv-rs#302, nv-rs#188, nv-rs#276); modded walking benchmark (nv-rs#239); modded memory census (nv-rs#265); readiness and catalogue classes in nvmod, shown by the Toolbox Doctor; large-list end-to-end gate (nv-rs#172, nv-rs#173) | gate G1: the scanner's missing set for the owner's list is empty (the list and the scan output stay private; the count is published) and a scripted boot of the full list logs no unknown command; the modded walking route meets the M3 frame-time gate |
 | **M6 Complete LOD** | remaining differences (lodwright-rs#86), BSA packing (lodwright-rs#44), provenance tickets, `lodwright-verify` in the handshake, object progress events; the Toolbox's LOD stage and staleness row | gate G5: `lodwright verify` against the reference reports no missing or extra block, every object block exact or listed with a reason, water IoU at least 0.95 per block; in game, the generated folder loads with no error lines and the three reference views show LOD where the reference run does |
-| **M5 One UI: install, run, updates** | the vanilla-style GUI (section 11) on the toolkit of open question 1: setup wizard (#15), Play and run settings, Mods, Load order, LOD, Updates, System (Doctor, Settings, logs, support bundle); MO2-parity remainder in nvmod; the MO2 cut-over check on the owner's instance | a scripted GUI run (`raul e2e --gui`, headless, synthetic fixtures) passes every page and state; the owner goes from a base copy to the modded game running natively using only the GUI; the cut-over check lists every difference between MO2 and nvmod on the owner's instance, and each is fixed or accepted on its ticket |
+| **M5 One UI: install, run, updates** | the GUI of section 11 on egui: setup wizard (#15), Play and run settings, Mods, Load order, LOD, Updates, System (Doctor, Settings, logs, support bundle); MO2-parity remainder in nvmod; the MO2 cut-over check on the owner's instance | a scripted GUI run (`raul e2e --gui`, headless, synthetic fixtures) passes every page and state; the owner goes from a base copy to the modded game running natively using only the GUI; the cut-over check lists every difference between MO2 and nvmod on the owner's instance, and each is fixed or accepted on its ticket |
 | **M7 Windows parity, then macOS** | Windows parity of the Linux work, Windows GUI job, signing; then macOS (Metal through wgpu) | the M3 gate on Windows within 10% of Linux on the same machine |
 
 Parked work (section 5.1) is outside the milestones until its condition is met. Windows CI stays required during
@@ -489,8 +488,8 @@ Small, reviewable steps:
    Toolbox (restates ADR-0002's reason for linking nvmod: its mod-management libraries, not its orchestration; and
    amends ADR-0003's "nvmod keeps the view model"); one pin file (amends ADR-0005: the Toolbox's tool supply, not
    nvmod, verifies checksums and attestations); producer-owned Contracts with a Toolbox registry; one bench front
-   door; the Rolling channel, moved here from nvmod-rs `docs/DECISIONS.md` (which keeps a pointer). ADR-0003's
-   toolkit line and ADR-0004's reason for a nested GUI workspace change only with open question 1.
+   door; the Rolling channel, moved here from nvmod-rs `docs/DECISIONS.md` (which keeps a pointer). ADR-0012
+   (egui) replaces ADR-0003's toolkit line and re-opens ADR-0004's reason for a nested GUI workspace.
 2. nv-rs: close-done, merge and park as in section 5.1, each with its comment; add the `parked` label. Before a
    merge, every ticket the closed one blocks or is blocked by is re-linked to the surviving ticket.
 3. lodwright-rs: close-done and merge as in section 5.2, each close naming the test that proves it.
@@ -513,15 +512,14 @@ The Toolbox pins nvmod-rs by release tag, so each repository builds at every ste
    `--allow-unrelated-histories`, and rename the crate to its `raul-*` name, so the same package name never exists
    twice. The Toolbox switches to its own copy; the replayed transcripts must match.
 4. **Freeze, then remove.** From the copy on, the nvmod path takes bug fixes only, ported to both. The nvmod removal
-   pull request deletes the crate, replaces each moved command with a stub that prints the `raul` command and exits
-   with the usage code, and updates everything else the crate touched: Nix attributes, release jobs, `deny.toml`,
+   pull request deletes the crate and its commands, and updates everything else the crate touched: Nix attributes, release jobs, `deny.toml`,
    the no-`Command` lint's scope, fixtures, benches and docs. Release nvmod; bump it here.
 5. The workshop's matrix, check and gate stay on until the Toolbox's Rust versions have passed on two consecutive
    bumps; nvmod keeps `contracts/` until the Toolbox's snapshots cover every Contract a set names.
 
 Order of the groups: Runner; tool supply and the pin-file fold (with the check retargeted from `tools.lock.toml`);
 drivers and launch; setup pipeline with `raul-journal`; view model and service seam with `raul-events`; GUI after the
-toolkit decision. The deprecated stubs stay for one nvmod release and at least 30 days (open question 5).
+toolkit decision.
 
 ### 10.3 Recreating tickets from the workshop
 
@@ -536,56 +534,62 @@ GitHub cannot transfer between a private and a public repository, so moving tick
    "Moved to <repo>#N".
 5. Update the documents that cite the old numbers; run the public-text check on the public ones in live mode.
 
+
 ## 11. UI direction
 
-The owner asked for one UI, styled after the game's own menus and Pip-Boy, clean and easy to use, fully Rust. The
-rules are `docs/UI-RULES.md`, added with the design pass and an interactive mockup before any GUI code. What they
-must cover, at least:
+Settled with the owner on 2026-11-16 against an interactive mockup. The rules are `docs/UI-RULES.md`, which lands with
+the design pass ticket before any GUI code moves.
 
-- **Look:** monochrome amber on near-black, as the game's default interface, with an optional green theme; thin
-  rules, bracketed panels, uppercase condensed headings (uppercase is a style applied to the text, not how strings
-  are stored), a filled bar for the selected item. Scanlines and glow are subtle and off with Reduce motion or the
-  Plain theme.
-- **Navigation:** at most five bottom tabs, PLAY, MODS, LOAD ORDER, LOD, UPDATES, plus a SYSTEM menu (Doctor,
-  Settings, logs, support bundle). The setup wizard takes over the window on first run. Keyboard first, and a
-  gamepad can reach everything (Steam Deck).
-- **Writes:** every change is plan, review, apply. The review screen renders a `raul-plan` document, names its
-  restore point and says whether it can be undone. Cancel is shown only where the step can stop safely; a long job
-  shows progress from `raul-events` and survives the window closing.
-- **Equivalent command:** every action shows the `raul` command that does the same, which reproduces it in a
-  terminal.
-- **Words:** all text comes from one message catalogue, in Raul's voice, and every error also has a plain detail
-  line (ADR-0003). Destructive actions name what they remove.
-- **Accessibility:** text at least 4.5:1 against its background in every theme; amber and green are never the only
-  difference between two states; visible focus; text scale 100 to 200%; screen-reader names on every control.
+- **Look:** readable first. A neutral dark surface with hairline separators instead of boxes, one teal accent for
+  actions, selection and links, and Raul's amber kept for the brand only, never for a status. A light Fallout
+  flavour comes from hand-drawn line icons (vault door, crate, holotape, radio mast) and short section ticks, not
+  from monochrome amber or scanlines. Status always shows colour, an icon and a word.
+- **Themes:** dark, plus a high-contrast variant. No light theme.
+- **Type:** Inter (OFL) bundled for text; the system monospace for paths and versions.
+- **Navigation:** a left sidebar in two groups. Play: Home, Mods, Load order, LOD. System: Versions, Doctor,
+  Settings. Keys 1 to 7 jump to them; it becomes a wrapping top bar on narrow screens. A command palette (Ctrl K)
+  reaches every action. Every page and dialog works with a gamepad from the first GUI release, Steam Deck included.
+- **Setup:** a first-run wizard on the same shell as the app (step rail, page header, footer actions): New Vegas,
+  TTW (optional), engine, quick check, done.
+- **Where things live:** engine builds, Components and the masterlist on Versions; mod updates on Mods; Home shows
+  what needs attention as chips, each one click from its fix. TTW is set up from Mods in a four-step flow (sources,
+  output, review, install), runs in the background, and ends as one bundle row that can be switched on and off; the
+  Fallout 3 and TTW folders are under Settings, "Game installations".
+- **Writes:** every change is plan, review, apply. The review renders a `raul-plan` document, names its restore point
+  and says whether it can be undone; Load order shows the moves before Apply and keeps Undo after.
+- **Equivalent command:** every action shows the `raul` command that does the same.
+- **Words:** one message catalogue. Raul's voice is light: one short line on Home, the wizard and empty or all-clear
+  states; plain labels and errors elsewhere, each error with a plain detail line (ADR-0003). The window and top bar
+  say "Raul's Toolbox"; About, installers and the README use the full name.
+- **Accessibility:** text at least 4.5:1 against its background; visible focus; text scale 100 to 200%; reduced
+  motion; screen-reader names on every control; colour never the only signal.
 - **Testing:** every page has fixtures for its empty, loading, error, long-text and large-list states, rendered
   headless in CI and compared with reviewed snapshots.
-- **Assets:** only assets with an open licence ship, each listed in the About panel with its licence and
-  attribution. Art from the game, or derived from it, is never shipped. An optional install skin may read the
-  player's own interface files at run time through a Component's archive reader, never shipped or uploaded; when the
-  files are missing, changed or unreadable the bundled set is used and the Doctor says so.
-- **Carried over:** everything in the earlier design that this direction does not contradict stays: the
-  toolkit-free view model with its command-parity registry, the states every page defines (empty, loading, partial,
-  error, read-only, offline), the command palette, shortcuts sheet and glossary, full copyable paths, the Undo
-  drawer and restore points, and the exit-code table.
-- **Toolkit:** open question 1.
+- **Assets:** only our own and openly licensed assets ship, each listed in the About panel. No mod's UI art ships:
+  none found carries a licence that allows it, and most replace the game's own art; mod authors are not asked. Game
+  art is never shipped. An opt-in install skin (off by default, in M5 after the base GUI) may read interface icons and
+  fonts from the player's own install at run time through a Component's archive reader, never shipped or uploaded,
+  falling back to the bundled set.
+- **Toolkit:** egui ([ADR-0012](adr/0012-egui-is-the-gui-toolkit.md)).
+- **Carried over** from the earlier design where not contradicted: the toolkit-free view model with its
+  command-parity registry, the states every page defines, the command palette, shortcuts sheet and glossary, full
+  copyable paths, the Undo drawer and restore points, and the exit-code table.
 
-## 12. Open questions for the owner
+## 12. Decisions taken with the owner (2026-11-16)
 
-1. **GUI toolkit.** ADR-0003 chose GPUI for the earlier glow-heavy design. The vanilla style is flat and monochrome,
-   which removes GPUI's main advantage, while egui is stable, small, already used by the canary and by the TTW
-   installer, and testable without a GPU. Recommendation: make egui the product toolkit and drop GPUI. With egui the
-   nested GUI workspace of ADR-0004 may no longer be needed; that is decided with this question. Needed before the GUI
-   moves in M2.
-2. **Asset attribution versus the public-text rule.** An open-licence asset from a mod must be credited by its
-   author and source, which may name the mod. Allow mod and author names in the About panel and `NOTICE` only?
-3. **Install skin.** May `raul` read interface icons and fonts from the player's own install and their own UI mods
-   at run time (never shipped, never uploaded)?
-4. **Shared format crate.** After the golden-vector check (#26), extract plugin-header, BSA and executable-version
-   reading into one permissively licensed leaf crate in a new repository, used by nvmod, lodwright-rs, ttwright-rs
-   and the Toolbox (nv-rs and loot-rs unchanged)? Recommendation: decide on the check's results.
-5. **Deprecation window.** Keep nvmod's product commands as aliases for one release after M2, or remove them at once?
-   Needed before M2 starts. Recommendation: one release.
-6. **p99 targets for the M3 gate.** Proposed: at or under 8.3 ms (120 fps) in interiors and 16.7 ms (60 fps) in the
-   dense town at 2560x1440, no frame over 50 ms after a scene's first 10 s. Accept, or set others? Needed before M3's
-   gate is run.
+1. **GUI toolkit:** egui; GPUI and the canary are dropped ([ADR-0012](adr/0012-egui-is-the-gui-toolkit.md)).
+2. **Assets:** no mod assets ship and no authors are asked; only our own and open-licence assets, credited in About.
+3. **Install skin:** built in M5, opt-in and off by default.
+4. **Shared format crate:** decided after the golden-vector check (#26); extracted only if it shows divergence or
+   drift.
+5. **Moved nvmod commands:** removed at once when they move; no stubs.
+6. **M3 gate:** p99 at or under 6.9 ms in interiors and 11.1 ms in the dense town at 2560x1440, unlimited; no frame
+   over 33 ms after a scene's first 10 s.
+7. **Look, themes, type, navigation, gamepad and voice:** as section 11.
+8. **Signing:** unsigned with a clear note; apply to SignPath Foundation for Windows; Apple with macOS in M7.
+9. **One loot-rs:** the Toolbox patches nvmod's loot-rs git dependency to its `components/loot-rs` (#24); loot-rs
+   itself is not changed.
+10. **Icon:** Raul's amber wrench crossing a cog, flat and readable at 16 px, drawn by us (#25).
+11. **First release:** Toolbox 0.1.0 is published once this plan is merged.
+12. **Public docs** may name the bench GPU model and driver, never a host name, serial or path.
+13. **ToggleDisableSaves:** nv-rs accepts both the older one-argument and the newer two-argument form.
