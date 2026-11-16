@@ -2,6 +2,7 @@
 //! The `raul` command line. The Toolbox's own commands are handled here; every other command is nvmod's and is run
 //! by `nvmod_cli` in this process (ADR-0002), so everything the GUI does is reachable from a shell.
 
+mod detect;
 mod known_good;
 mod version;
 
@@ -15,7 +16,7 @@ pub const FOUND: u8 = nvmod_cli::FOUND;
 pub const USAGE: u8 = nvmod_cli::USAGE;
 
 /// The commands `raul` owns; anything else goes to nvmod. The GUI build exposes the same list (ADR-0004).
-pub const OWN_COMMANDS: &[&str] = &["version", "known-good", "help"];
+pub const OWN_COMMANDS: &[&str] = &["version", "known-good", "detect", "help"];
 
 const HELP: &str = "raul: Raul's tRusty Toolbox
 
@@ -24,6 +25,8 @@ usage:
                               the Toolbox version and the Known-good set it ships
   raul known-good check [--repo <dir>] [--json]
                               check known-good.toml against the submodule pins and nvmod's tools.lock.toml
+  raul detect [--folder <dir>] [--json]
+                              find Fallout: New Vegas and Fallout 3 copies (Steam, GOG, Epic), or check one folder
   raul <nvmod command> ...    every nvmod command (install, sort, lod, ttw, run, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";
@@ -35,6 +38,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("--version" | "-V") => version::run(&[], out, err),
         Some("version") => version::run(&args[1..], out, err),
         Some("known-good") => known_good::run(&args[1..], out, err),
+        Some("detect") => detect::run(&args[1..], out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
         Some(_) => nvmod_cli::run_logged(args, out, err),
     }

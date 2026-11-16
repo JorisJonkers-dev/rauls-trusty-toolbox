@@ -82,3 +82,27 @@ fn the_known_good_check_passes_on_this_repository() {
         String::from_utf8_lossy(&out.stderr)
     );
 }
+
+#[test]
+fn detect_on_a_picked_folder_reports_the_copy_as_json() {
+    let dir = nvmod_testkit::TempDir::new("raul-cli-detect");
+    nvmod_testkit::BaseBuilder::steam()
+        .exe_version([1, 4, 0, 525])
+        .write(dir.path());
+    let out = raul(&["detect", "--folder", dir.path().to_str().unwrap(), "--json"]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(v[0]["game"], "new-vegas");
+    assert_eq!(v[0]["version"], "1.4.0.525");
+}
+
+#[test]
+fn detect_on_a_folder_without_the_game_exits_with_found() {
+    let dir = nvmod_testkit::TempDir::new("raul-cli-nogame");
+    let out = raul(&["detect", "--folder", dir.path().to_str().unwrap()]);
+    assert_eq!(out.status.code(), Some(1));
+}

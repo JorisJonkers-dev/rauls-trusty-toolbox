@@ -11,6 +11,12 @@ description = "Orchestration of the Toolbox: Known-good sets, game detection, be
 [dependencies]
 serde = { workspace = true }
 toml = { workspace = true }
+serde_json = { workspace = true }
+nvmod-instance = { workspace = true }
+nvmod-pe = { workspace = true }
+
+[dev-dependencies]
+nvmod-testkit = { workspace = true }
 
 [lints]
 workspace = true
