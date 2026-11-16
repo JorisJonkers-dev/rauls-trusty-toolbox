@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "contract": "raul-config",
-  "file": "/home/player/.config/raul/config.toml",
+  "file": "/users/player/config/raul/config.toml",
   "entries": [
-    { "key": "ttw.package", "value": "/home/player/Downloads/TTW/TTW.mpi", "read_only": false }
+    { "key": "ttw.package", "value": "/users/player/Downloads/TTW/TTW.mpi", "read_only": false }
   ],
   "error": null
 }

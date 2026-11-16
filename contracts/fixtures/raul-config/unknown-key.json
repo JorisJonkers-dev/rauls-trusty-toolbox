@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "raul-config",
-  "file": "/home/player/.config/raul/config.toml",
+  "file": "/users/player/config/raul/config.toml",
   "entries": [],
   "error": {
     "code": "unknown_key",

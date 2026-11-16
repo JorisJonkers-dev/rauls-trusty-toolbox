@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "contract": "raul-config",
-  "file": "/home/player/.config/raul/config.toml",
+  "file": "/users/player/config/raul/config.toml",
   "entries": [
     { "key": "game.newvegas", "value": null, "read_only": false },
     { "key": "game.fallout3", "value": null, "read_only": false },
