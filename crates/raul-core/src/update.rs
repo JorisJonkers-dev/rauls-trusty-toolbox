@@ -4,12 +4,21 @@
 //! published release that is newer than the running one; drafts and pre-releases are never offered.
 
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
+use raul_runner::{Call, NETWORK_ENV, Runner};
+use semver::Version;
 use serde::{Deserialize, Serialize};
 
 /// Where the Toolbox's releases are listed.
 pub const RELEASES_URL: &str =
     "https://api.github.com/repos/JorisJonkers-dev/rauls-trusty-toolbox/releases?per_page=20";
+
+/// How long `curl` may take for the release list (its own `--max-time`); the Runner's timeout backs it up.
+pub const FETCH_TIMEOUT_SECS: u64 = 30;
+
+/// The largest release list accepted, in bytes; `curl` stops at it and the Runner kills a program that writes more.
+pub const MAX_LIST_BYTES: usize = 4 * 1024 * 1024;
 
 /// A release newer than the running one.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -97,22 +106,21 @@ impl Settings {
     }
 }
 
-/// The numeric release part of a version: `v0.2.0` and `0.2.0-dev.7` both give `[0, 2, 0]`.
-fn parse(version: &str) -> Option<Vec<u64>> {
-    version
-        .trim_start_matches('v')
-        .split(['-', '+'])
-        .next()?
-        .split('.')
-        .map(|p| p.parse().ok())
-        .collect()
+/// A version as semver, with or without a leading `v`: `v0.2.0`, `0.3.0-rc.1`, `0.2.0+linux.5`.
+fn parse(version: &str) -> Option<Version> {
+    Version::parse(version.strip_prefix('v').unwrap_or(version)).ok()
 }
 
 /// The newest published release in `releases_json` (the GitHub Releases API list) that is newer than `current`.
 ///
+/// Versions compare by semver precedence: a pre-release comes before its release (`0.2.0-dev.7` is older than
+/// `0.2.0`), and build metadata is ignored (`0.2.0+linux.5` is the same release as `0.2.0`). A release whose tag
+/// has a pre-release part is never offered, even when GitHub does not mark it as a pre-release; a tag that is not
+/// semver is skipped.
+///
 /// # Errors
 ///
-/// When `releases_json` is not that list.
+/// When `releases_json` is not that list, or `current` is not a semver version.
 pub fn newer_release(current: &str, releases_json: &str) -> Result<Option<Release>, String> {
     let releases: Vec<GithubRelease> =
         serde_json::from_str(releases_json).map_err(|e| format!("release list: {e}"))?;
@@ -121,10 +129,63 @@ pub fn newer_release(current: &str, releases_json: &str) -> Result<Option<Releas
         .into_iter()
         .filter(|r| !r.draft && !r.prerelease)
         .filter_map(|r| parse(&r.tag_name).map(|v| (v, r)))
-        .filter(|(v, _)| *v > running)
-        .max_by(|a, b| a.0.cmp(&b.0))
+        .filter(|(v, _)| v.pre.is_empty())
+        .filter(|(v, _)| v.cmp_precedence(&running).is_gt())
+        .max_by(|a, b| a.0.cmp_precedence(&b.0))
         .map(|(_, r)| Release {
             version: r.tag_name.trim_start_matches('v').to_string(),
             url: r.html_url,
         }))
+}
+
+/// The `curl` arguments that fetch `url`: HTTPS only (redirects too), no `.curlrc`, a time and size limit, and
+/// nothing that identifies the person beyond what any `curl` sends.
+#[must_use]
+pub fn curl_args(url: &str) -> Vec<String> {
+    [
+        // Must come first: ignore the person's `.curlrc`.
+        "--disable",
+        "--silent",
+        "--show-error",
+        "--fail",
+        "--location",
+        "--proto",
+        "=https",
+        "--proto-redir",
+        "=https",
+        "--max-time",
+        &FETCH_TIMEOUT_SECS.to_string(),
+        "--max-filesize",
+        &MAX_LIST_BYTES.to_string(),
+        "--header",
+        "Accept: application/vnd.github+json",
+        url,
+    ]
+    .map(str::to_owned)
+    .to_vec()
+}
+
+/// The Runner the update check uses: the default scrubbed environment plus the proxy and certificate variables
+/// a network client needs, a timeout a little past `curl`'s own, and output capped at [`MAX_LIST_BYTES`].
+#[must_use]
+pub fn runner() -> Runner {
+    Runner {
+        timeout: Duration::from_secs(FETCH_TIMEOUT_SECS + 15),
+        max_output: MAX_LIST_BYTES,
+        ..Runner::default()
+    }
+    .inherit(NETWORK_ENV)
+}
+
+/// Fetch the release list with `curl` through `runner` and return the newest release newer than `current`.
+///
+/// # Errors
+///
+/// When `curl` cannot be started, fails, runs too long or writes too much, or its answer is not a release list.
+pub fn check(runner: &Runner, curl: &Path, current: &str) -> Result<Option<Release>, String> {
+    let args = curl_args(RELEASES_URL);
+    let out = runner
+        .run(&Call::new("curl", curl, &args))
+        .map_err(|e| e.to_string())?;
+    newer_release(current, &String::from_utf8_lossy(&out.stdout))
 }
