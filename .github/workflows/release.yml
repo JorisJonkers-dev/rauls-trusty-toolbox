@@ -260,7 +260,7 @@ jobs:
               sleep 5; check "$RUNNER_TEMP/installed/raul.exe" ;;
             macOS)
               # The dmg shows the licence as an agreement; `yes` accepts it so attach does not wait.
-              dmg="$(ls target/packages/*.dmg)"; yes | PAGER=cat hdiutil attach -nobrowse -mountpoint "$RUNNER_TEMP/dmg" "$dmg" >/dev/null
+              dmg="$(ls target/packages/*.dmg)"; yes | env PAGER=cat hdiutil attach -nobrowse -mountpoint "$RUNNER_TEMP/dmg" "$dmg" >/dev/null
               check "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul"
               lipo -archs "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul" | grep -q arm64
               lipo -archs "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul" | grep -q x86_64
