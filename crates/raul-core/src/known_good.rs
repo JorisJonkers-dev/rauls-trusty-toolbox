@@ -4,6 +4,7 @@
 //! a release pins the latest set whose status is `known-good`.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 
 use serde::{Deserialize, Serialize};
 
@@ -213,4 +214,59 @@ pub fn component_dir(name: &str) -> &str {
         "nvmod" => "nvmod-rs",
         other => other,
     }
+}
+
+/// `text` with one more set appended that copies the latest Known-good set and moves only `component` to
+/// `version`. The new set's id is the first free `<month>-<letter>` (`month` is `YYYY-MM`). It is written as
+/// `known-good`: the bump pull request's required check is what makes that true before it can merge.
+///
+/// # Errors
+///
+/// When `text` is not a valid file, `component` is not a Component, it is already at `version`, or the month has
+/// no free letter.
+pub fn bump(text: &str, component: &str, version: &str, month: &str) -> Result<String, String> {
+    if !COMPONENTS.contains(&component) {
+        return Err(format!("{component} is not a Component"));
+    }
+    let kg = KnownGood::parse(text).map_err(|p| p.join("; "))?;
+    let latest = kg
+        .latest_known_good()
+        .ok_or("known-good.toml has no known-good set")?;
+    let current = &latest.components[component];
+    if bare(&current.version) == bare(version) {
+        return Err(format!(
+            "{component} is already at {version} in set {}",
+            latest.id
+        ));
+    }
+    let id = ('a'..='z')
+        .map(|c| format!("{month}-{c}"))
+        .find(|id| kg.sets.iter().all(|s| &s.id != id))
+        .ok_or_else(|| format!("no free set id left in {month}"))?;
+    let mut out = text.trim_end().to_string();
+    let _ = write!(
+        out,
+        "\n\n# {component} {} -> {version}\n[[set]]\nid = \"{id}\"\nstatus = \"known-good\"\n",
+        current.version
+    );
+    for name in COMPONENTS {
+        let mut entry = latest.components[name].clone();
+        if name == component {
+            entry.version = version.to_string();
+        }
+        let _ = write!(
+            out,
+            "\n[set.components.{name}]\nversion = \"{}\"\n",
+            entry.version
+        );
+        if !entry.contracts.is_empty() {
+            let contracts: Vec<String> = entry
+                .contracts
+                .iter()
+                .map(|(k, v)| format!("{k} = {v}"))
+                .collect();
+            let _ = writeln!(out, "contracts = {{ {} }}", contracts.join(", "));
+        }
+    }
+    Ok(out)
 }

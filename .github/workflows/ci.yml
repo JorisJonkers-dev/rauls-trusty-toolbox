@@ -1,11 +1,11 @@
 # One pipeline ending in "Pipeline Complete", the only required check (estate convention, repo-template ci.yml).
 #
-# The checks are steps of that one job; the quarantine check is a reusable workflow, so it is its own job and the
-# last step gates on its result. Until the umbrella Cargo workspace lands (docs/PLAN.md, Phase 1) the Rust steps
-# are skipped because there is no Cargo.toml; they start running in the pull request that adds one.
+# Pipeline Complete runs every Linux check as steps of one job. The Windows and macOS (arm64) builds and the
+# quarantine check cannot be steps of a Linux job, so they are jobs that its last step gates on; the required check
+# keeps its name when jobs change. Each step carries `if: !cancelled()` so one failure still shows the rest.
 #
-# The three-OS build matrix of docs/PLAN.md (Phase 3) is added as further jobs gated from this one with `needs:`,
-# so the required check keeps its name.
+# Pull-request time: the umbrella workspace builds nvmod and loot-rs but never nv-rs (ADR-0002), which keeps a warm
+# run well under ten minutes. nv-rs is built only in the release workflow.
 name: CI
 
 on:
@@ -24,6 +24,7 @@ permissions:
 
 env:
   CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -32,16 +33,53 @@ jobs:
   quarantine:
     uses: JorisJonkers-dev/github-workflows/.github/workflows/quarantine-check.yml@b14d5e031f1abd5bec45e50c898e9e73f3ffc534 # v0.50.4
 
-  pipeline-complete:
-    name: Pipeline Complete
-    needs: [quarantine]
-    if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  platforms:
+    name: Build and test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-14]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5
+      - name: Fetch Component tags
+        shell: bash
+        run: git submodule foreach --quiet 'git fetch --quiet --tags --depth=1 origin'
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Test
+        if: ${{ !cancelled() }}
+        run: mise exec -- cargo nextest run --workspace --locked
+      - name: Doc tests
+        if: ${{ !cancelled() }}
+        run: cargo test --workspace --doc --locked
+
+  pipeline-complete:
+    name: Pipeline Complete
+    needs: [quarantine, platforms]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5
+
+      - name: Submodules on a tag or their default branch
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/check-submodules.sh
 
       # actions/checkout fetches submodules shallow and without tags; the Known-good check needs the release tags.
       - name: Fetch Component tags
@@ -49,34 +87,49 @@ jobs:
         run: git submodule foreach --quiet 'git fetch --quiet --tags --depth=1 origin'
 
       - name: Known-good set
-        if: ${{ !cancelled() && hashFiles('Cargo.toml') != '' }}
+        if: ${{ !cancelled() }}
         run: cargo run --quiet --locked -p raul-cli -- known-good check
 
       - name: Format
-        if: ${{ !cancelled() && hashFiles('Cargo.toml') != '' }}
+        if: ${{ !cancelled() }}
         run: cargo fmt --all --check
 
       - name: Lint
-        if: ${{ !cancelled() && hashFiles('Cargo.toml') != '' }}
+        if: ${{ !cancelled() }}
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Test
-        if: ${{ !cancelled() && hashFiles('Cargo.toml') != '' }}
-        run: cargo test --workspace --locked
-
-      - name: Download actionlint
-        id: actionlint
         if: ${{ !cancelled() }}
-        shell: bash
+        run: mise exec -- cargo nextest run --workspace --locked
+
+      - name: Doc tests
+        if: ${{ !cancelled() }}
+        run: cargo test --workspace --doc --locked
+
+      # rust-version equals the pinned toolchain (1.100), so building with rust-toolchain.toml is the MSRV check;
+      # this step fails if a crate of this workspace declares a different one.
+      - name: MSRV
+        if: ${{ !cancelled() }}
         run: |
-          bash <(curl --fail --silent --show-error --location https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          test "$(cargo metadata --format-version 1 --no-deps | jq -r '[.packages[].rust_version] | unique | join(",")')" = "1.100"
+
+      - name: Licences, bans, sources and advisories
+        if: ${{ !cancelled() }}
+        run: mise exec -- cargo deny --locked check
+
+      - name: Advisories (cargo audit)
+        if: ${{ !cancelled() }}
+        run: mise exec -- cargo audit
 
       - name: Lint GitHub Actions workflows
         if: ${{ !cancelled() }}
-        shell: bash
-        run: |
-          "${{ steps.actionlint.outputs.executable }}" -color .github/workflows/*.yml
+        run: mise exec -- actionlint -color .github/workflows/*.yml
 
-      - name: Quarantine check passed
+      - name: Gated jobs passed
         if: ${{ !cancelled() }}
-        run: test "${{ needs.quarantine.result }}" = success
+        env:
+          QUARANTINE: ${{ needs.quarantine.result }}
+          PLATFORMS: ${{ needs.platforms.result }}
+        run: |
+          test "$QUARANTINE" = success
+          test "$PLATFORMS" = success

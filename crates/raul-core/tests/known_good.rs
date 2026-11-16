@@ -135,3 +135,24 @@ fn a_loot_rs_version_other_than_nvmods_lock_is_reported() {
         "{problems:?}"
     );
 }
+
+#[test]
+fn a_bump_adds_a_set_that_moves_only_that_component() {
+    let text = raul_core::known_good::bump(ONE_SET, "lodwright-rs", "v0.3.0", "2026-11").unwrap();
+    let kg = KnownGood::parse(&text).unwrap();
+    let latest = kg.latest_known_good().unwrap();
+    assert_eq!(latest.id, "2026-11-b");
+    assert_eq!(latest.components["lodwright-rs"].version, "v0.3.0");
+    assert_eq!(latest.components["nv-rs"].version, "v0.4.0");
+    assert_eq!(latest.components["loot-rs"].contracts["loot-sort"], 1);
+}
+
+#[test]
+fn a_bump_to_the_version_already_pinned_is_refused() {
+    assert!(raul_core::known_good::bump(ONE_SET, "nv-rs", "v0.4.0", "2026-11").is_err());
+}
+
+#[test]
+fn a_bump_of_something_that_is_not_a_component_is_refused() {
+    assert!(raul_core::known_good::bump(ONE_SET, "xnvse", "v1.0.0", "2026-11").is_err());
+}
