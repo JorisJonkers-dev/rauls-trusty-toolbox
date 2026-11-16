@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794848036132,
+  "lastUpdate": 1794848532387,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -342,6 +342,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.047341,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "info@jorisjonkers.dev",
+            "name": "J.W. Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "distinct": true,
+          "id": "35d50723be28d55438160ebd7a576490c8d0ddff",
+          "message": "feat(update): run the update check through raul-runner and compare versions as semver\n\nraul update check starts curl through the Runner with a scrubbed environment (plus proxy and certificate variables), a timeout and an output cap, HTTPS only and without the person's .curlrc. Versions compare by semver precedence: a pre-release comes before its release, build metadata is ignored, and a tag with a pre-release part is never offered. raul-cli no longer links nvmod-tools for this.\n\nCloses #48",
+          "timestamp": "2026-11-16T18:00:46+01:00",
+          "tree_id": "520233a69f908907210b790701cf21ff276f9334",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/35d50723be28d55438160ebd7a576490c8d0ddff"
+        },
+        "date": 1794848531620,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 4.573745,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 57.502814,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 525.431045,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.879741,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.156897,
             "unit": "ms"
           }
         ]
