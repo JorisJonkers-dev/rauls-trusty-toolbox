@@ -40,7 +40,7 @@ _Avoid_: Package, addon
 
 **Plugin**:
 An `.esm` or `.esp` data file that the game loads in order. Nothing else is called a Plugin.
-_Avoid_: Mod (for the file), ESP (for both kinds), Plugin (for native code in nv-rs: that is an Engine extension)
+_Avoid_: Mod (for the file), ESP (for both kinds)
 
 **NVSE plugin**:
 A DLL that xNVSE loads into the game process.
