@@ -4,9 +4,10 @@
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::time::Duration;
 
 use raul_core::known_good::{COMPONENTS, KnownGood, Pin, component_dir};
+use raul_runner::{Call, Runner};
 
 pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let mut repo = PathBuf::from(".");
@@ -117,16 +118,18 @@ fn check(repo: &Path) -> Vec<String> {
     kg.check(&pins, &lock)
 }
 
+/// Run `git` in `dir` through the Runner and return its trimmed standard output, or `None` when it fails.
 fn git(dir: &Path, args: &[&str]) -> Option<String> {
-    let out = Command::new("git")
-        .arg("-C")
-        .arg(dir)
-        .args(args)
-        .output()
-        .ok()?;
-    out.status
-        .success()
-        .then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())
+    let args: Vec<String> = args.iter().map(|a| (*a).to_owned()).collect();
+    let mut call = Call::new("git", Path::new("git"), &args);
+    call.cwd = Some(dir);
+    let runner = Runner {
+        timeout: Duration::from_secs(30),
+        max_output: 64 * 1024,
+        ..Runner::default()
+    };
+    let out = runner.run(&call).ok()?;
+    Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
 /// The release tag (`v*`) at the submodule's HEAD, or its short commit when it has none.

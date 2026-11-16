@@ -21,6 +21,7 @@ flowchart LR
     sup["raul-supply<br/>pins, store, fetch, verify"]
     run["raul-runner"]
     bench["raul-bench"]
+    runner["raul-runner<br/>the only crate that starts a process"]
   end
   subgraph linked["linked libraries (GPL-3.0-only)"]
     nvmod["nvmod crates<br/>mod management"]
@@ -57,6 +58,7 @@ flowchart LR
     cli["raul-cli<br/>raul commands + every nvmod command"]
     core["raul-core<br/>detection, Known-good sets, update check"]
     bench["raul-bench"]
+    runner["raul-runner<br/>the only crate that starts a process"]
   end
   subgraph linked["linked in process (GPL-3.0-only)"]
     nvmod["nvmod crates"]
@@ -74,6 +76,8 @@ flowchart LR
   bench --> nvmod
   bench --> loot
   core --> nvmod
+  core --> runner
+  cli --> runner
   nvmod --> loot
   nvmod -- Runner --> nvrs
   nvmod -- Runner --> lod
@@ -88,8 +92,13 @@ flowchart LR
 - **raul-gui** (after the GUI moves from nvmod-rs, ADR-0003) reads through raul-core in process and runs
   long or risky work as a `raul` subprocess that streams progress events, so a crash in an install never closes
   the window.
-- **Components** that run as separate programs are started only by nvmod's Runner (argument vector, no shell,
-  scrubbed environment, timeout, output cap) and speak versioned JSON Contracts.
+- **raul-runner** is the Toolbox's one subprocess Runner (argument vector, no shell, scrubbed environment,
+  timeout, output cap), copied with its history from nvmod-rs. It is the only Toolbox crate that may use
+  `std::process::Command`: `clippy.toml` forbids `Command::new` elsewhere and the guard test
+  `crates/raul-runner/tests/no_command_elsewhere.rs` catches the other ways in. `raul update check` (`curl`) and
+  `raul known-good check` (`git`) go through it.
+- **Components** that run as separate programs are started by nvmod's own copy of the Runner until those drivers
+  move here (`docs/REORG.md` section 10.2), and speak versioned JSON Contracts.
 
 ## Data flow: from a game copy to a running game
 
@@ -119,6 +128,6 @@ that set.
 
 | Workspace | Lock file | Builds |
 | --- | --- | --- |
-| root `Cargo.toml` | `Cargo.lock` | raul-core, raul-cli (CLI-only `raul`), raul-bench, and the nvmod and loot-rs crates they link |
+| root `Cargo.toml` | `Cargo.lock` | raul-core, raul-cli (CLI-only `raul`), raul-bench, raul-runner, and the nvmod and loot-rs crates they link |
 | `crates/raul-gui` (to come) | its own | the release `raul`: the same CLI plus the GPUI GUI (ADR-0004) |
 | each Component | its own | built from `components/<name>` with `--manifest-path`, never as a member here |

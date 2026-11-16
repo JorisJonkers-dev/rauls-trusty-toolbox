@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The `raul` program as a person or script runs it.
+// These tests start the built binary, which is not a tool call (see clippy.toml).
+#![allow(clippy::disallowed_methods)]
 
 use std::path::PathBuf;
 use std::process::{Command, Output};
@@ -169,4 +171,53 @@ fn turning_update_checks_on_is_remembered() {
     assert!(stdout(&run(&["update", "auto"])).contains("off"));
     assert!(run(&["update", "auto", "on"]).status.success());
     assert!(stdout(&run(&["update", "auto"])).contains("on"));
+}
+
+/// `raul update check` finds `curl` on the `PATH` and runs it through the Runner; a fake one answers here.
+#[cfg(unix)]
+#[test]
+fn the_update_check_runs_curl_from_the_path_through_the_runner() {
+    let home = nvmod_testkit::TempDir::new("raul-cli-update-check");
+    let bin = home.path().join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    let releases = r#"[{"tag_name": "v999.0.0", "prerelease": false, "draft": false, "html_url": "https://example.invalid/999"},{"tag_name": "v1000.0.0-rc.1", "prerelease": false, "draft": false, "html_url": "https://example.invalid/rc"}]"#;
+    nvmod_testkit::write_script(&bin, "curl", &format!("echo '{releases}'"));
+    let out = Command::new(env!("CARGO_BIN_EXE_raul"))
+        .args(["update", "check", "--json"])
+        .env("PATH", &bin)
+        .env("HOME", home.path())
+        .env("XDG_CONFIG_HOME", home.path().join(".config"))
+        .output()
+        .unwrap();
+    assert!(out.status.success(), "{out:?}");
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(v["newer"]["version"], "999.0.0", "{v}");
+    assert_eq!(v["current"], env!("CARGO_PKG_VERSION"));
+}
+
+/// A `curl` that fails gives a message and a failing exit code, not a wrong answer.
+#[cfg(unix)]
+#[test]
+fn a_failing_update_check_says_why() {
+    let home = nvmod_testkit::TempDir::new("raul-cli-update-fail");
+    let bin = home.path().join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    nvmod_testkit::write_script(
+        &bin,
+        "curl",
+        "echo 'curl: (6) Could not resolve host' >&2\nexit 6",
+    );
+    let out = Command::new(env!("CARGO_BIN_EXE_raul"))
+        .args(["update", "check"])
+        .env("PATH", &bin)
+        .env("HOME", home.path())
+        .env("XDG_CONFIG_HOME", home.path().join(".config"))
+        .output()
+        .unwrap();
+    assert!(!out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("raul update check") && err.contains("Could not resolve host"),
+        "{err}"
+    );
 }

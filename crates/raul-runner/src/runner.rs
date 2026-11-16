@@ -318,7 +318,7 @@ impl Runner {
 
     fn run_inner(&self, call: &Call) -> Result<Output, ToolError> {
         Self::verify(call)?;
-        // The one place nvmod starts a program (ADR-0005).
+        // The one place the Toolbox starts a program (ADR-0007).
         #[allow(clippy::disallowed_methods)]
         let mut command = Command::new(call.program);
         command
