@@ -1,6 +1,8 @@
 # Plan: Raul's tRusty Toolbox
 
-Status: **Phase 0 reviewed; decisions recorded 2026-11-16** (section 9, and ADRs 0001 to 0006 in
+Status: **superseded in part by [REORG.md](REORG.md) (2026-11-16).** Where the two differ (who owns orchestration, tool
+supply, the Runner and the view model; the order of work; the release order), REORG.md and ADRs 0007 to 0011 win.
+Original status: **Phase 0 reviewed; decisions recorded 2026-11-16** (section 9, and ADRs 0001 to 0006 in
 [`docs/adr`](adr)). Terms follow [`GLOSSARY.md`](../GLOSSARY.md). Phase 1 starts after this plan is
 merged, in the order of section 8.
 

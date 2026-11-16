@@ -4,6 +4,9 @@ date: 2026-11-16
 ---
 # The GUI lives in the Toolbox, on GPUI, and calls the core in process for reads and as a subprocess for writes
 
+Amended by [ADR-0007](0007-orchestration-tool-supply-and-the-view-model-live-in-the-toolbox.md): the view model and
+service seam move here too. The toolkit is reopened in [REORG.md](../REORG.md) open question 1.
+
 nvmod-rs's `gui/` (the GPUI binary, the egui canary and the toolkit-free shell) moves to the Toolbox; nvmod-rs keeps
 `nvmod-ui-model` and `nvmod-ui-service`. GPUI stays the product toolkit, with the egui canary painting the same view.
 Reads (detection, load order view, conflicts) go through `raul-core` in process; long or risky writes (mod installs,

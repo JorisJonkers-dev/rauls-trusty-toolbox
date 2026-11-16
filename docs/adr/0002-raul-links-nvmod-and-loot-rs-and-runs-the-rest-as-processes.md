@@ -4,6 +4,9 @@ date: 2026-11-16
 ---
 # `raul` links nvmod and loot-rs; nv-rs, lodwright-rs and ttwright-rs run as processes
 
+Amended by [ADR-0007](0007-orchestration-tool-supply-and-the-view-model-live-in-the-toolbox.md): `raul` links nvmod's
+mod-management libraries; the orchestration that nvmod held, and the Runner, now live in the Toolbox.
+
 `raul` depends on nvmod's library crates (and through them loot-rs) by path into the submodules, because nvmod
 already holds the orchestration and a second copy here would drift. nv-rs, lodwright-rs and ttwright-rs are started
 as separate programs through nvmod's Runner and speak versioned Contracts: their work is long-running over untrusted
