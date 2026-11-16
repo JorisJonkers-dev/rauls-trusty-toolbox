@@ -1075,6 +1075,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "raul-runner"
+version = "0.0.0"
+dependencies = [
+ "nvmod-core",
+ "nvmod-runlog",
+ "nvmod-testkit",
+ "sha2",
+ "tracing",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
