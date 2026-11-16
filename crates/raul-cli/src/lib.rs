@@ -5,6 +5,7 @@
 mod bench;
 mod detect;
 mod known_good;
+mod update;
 mod version;
 
 use std::io::Write;
@@ -17,7 +18,7 @@ pub const FOUND: u8 = nvmod_cli::FOUND;
 pub const USAGE: u8 = nvmod_cli::USAGE;
 
 /// The commands `raul` owns; anything else goes to nvmod. The GUI build exposes the same list (ADR-0004).
-pub const OWN_COMMANDS: &[&str] = &["version", "known-good", "detect", "bench", "help"];
+pub const OWN_COMMANDS: &[&str] = &["version", "known-good", "detect", "bench", "update", "help"];
 
 const HELP: &str = "raul: Raul's tRusty Toolbox
 
@@ -34,6 +35,8 @@ usage:
                               run the benchmark suite on synthetic fixtures; writes bench.json and bench.md
   raul bench compare <base.json> <head.json> [--threshold <percent>]
                               compare two reports; slower cases are warnings, never failures
+  raul update check [--json]  look for a newer Toolbox release on GitHub (nothing is downloaded or sent)
+  raul update auto [on|off]   show or set the GUI's update check at start (off until turned on)
   raul <nvmod command> ...    every nvmod command (install, sort, lod, ttw, run, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";
@@ -47,6 +50,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("known-good") => known_good::run(&args[1..], out, err),
         Some("detect") => detect::run(&args[1..], out, err),
         Some("bench") => bench::run(&args[1..], out, err),
+        Some("update") => update::run(&args[1..], out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
         Some(_) => nvmod_cli::run_logged(args, out, err),
     }

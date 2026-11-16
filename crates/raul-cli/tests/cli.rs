@@ -153,3 +153,20 @@ fn bench_compare_warns_but_succeeds_on_a_regression() {
         stdout(&out)
     );
 }
+
+#[test]
+fn turning_update_checks_on_is_remembered() {
+    let home = nvmod_testkit::TempDir::new("raul-cli-update");
+    let run = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_raul"))
+            .args(args)
+            .env("HOME", home.path())
+            .env("XDG_CONFIG_HOME", home.path().join(".config"))
+            .env("APPDATA", home.path().join("AppData"))
+            .output()
+            .unwrap()
+    };
+    assert!(stdout(&run(&["update", "auto"])).contains("off"));
+    assert!(run(&["update", "auto", "on"]).status.success());
+    assert!(stdout(&run(&["update", "auto"])).contains("on"));
+}

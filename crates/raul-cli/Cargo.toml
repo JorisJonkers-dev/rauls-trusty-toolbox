@@ -20,6 +20,7 @@ path = "src/main.rs"
 raul-core = { workspace = true }
 raul-bench = { workspace = true }
 nvmod-cli = { workspace = true }
+nvmod-tools = { workspace = true }
 serde_json = { workspace = true }
 
 [lints]
@@ -27,3 +28,30 @@ workspace = true
 
 [dev-dependencies]
 nvmod-testkit = { workspace = true }
+
+# Installers (docs/PLAN.md, Phase 5): `cargo packager --release -p raul-cli --formats <list>` from the repository
+# root, after the release binary and the bundled Component programs are built (.github/workflows/release.yml).
+[package.metadata.packager]
+product-name = "Raul's tRusty Toolbox"
+identifier = "dev.jorisjonkers.raul"
+description = "Installer, setup wizard and mod manager for Fallout: New Vegas"
+long-description = "One all-Rust installer, setup wizard and mod manager for Fallout: New Vegas, built on nv-rs, nvmod, loot-rs, lodwright-rs and ttwright-rs. You need your own copy of the game; no game files are included."
+homepage = "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox"
+publisher = "JorisJonkers-dev"
+copyright = "Copyright (c) Joris Jonkers and the authors of the Components"
+category = "Game"
+license-file = "../../LICENSE"
+icons = ["../../packaging/icons/raul.png"]
+out-dir = "../../target/packages"
+binaries-dir = "../../target/release"
+binaries = [{ path = "raul", main = true }]
+resources = ["../../target/bundle/components", "../../target/bundle/THIRD-PARTY-NOTICES.md"]
+
+[package.metadata.packager.nsis]
+installer-mode = "currentUser"
+
+[package.metadata.packager.macos]
+minimum-system-version = "13.0"
+
+[package.metadata.packager.deb]
+section = "games"
