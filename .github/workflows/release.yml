@@ -251,22 +251,28 @@ jobs:
           # The bundled ttwright must start, report the version of the shipped set, and speak the ttwright-result
           # and ttwright-events v1 Contracts raul ttw reads.
           raul_bin="target/release/raul"; [ "$RUNNER_OS" = Windows ] && raul_bin="$raul_bin.exe"
-          ttwright_version="$("$raul_bin" version --json | jq -r '.components["ttwright-rs"]' | sed 's/^v//')"
+          ttwright_version="$("$raul_bin" version --json | jq -r '.components["ttwright-rs"] | sub("^v"; "")')"
           echo "ttwright-rs of the shipped set: $ttwright_version"
           check_ttwright() {
-            local out; out="$("$1" --version)"; echo "$out"; grep -qw "$ttwright_version" <<<"$out"
+            [ -n "$1" ] && [ -f "$1" ] || { echo "::error::no bundled ttwright at '$1'"; return 1; }
+            local out; out="$("$1" --version)"; echo "$out"
+            [ "$(head -1 <<<"$out" | tr -d '\r')" = "ttwright $ttwright_version" ]
             out="$("$1" contracts --json)"; echo "$out"
-            jq -e '.contract == "ttwright-contracts" and ([.contracts[] | select(.name == "ttwright-result" or .name == "ttwright-events") | select(.versions | index(1))] | length == 2)' <<<"$out" >/dev/null
+            jq -e '.schema_version == 1 and .contract == "ttwright-contracts" and .tool.name == "ttwright"
+              and ([.contracts[] | select(.name == "ttwright-result" or .name == "ttwright-events")] as $c
+                   | ($c | length) == 2 and ($c | all(.versions | index(1) != null)))' <<<"$out" >/dev/null
           }
           case "$RUNNER_OS" in
             Linux)
-              app="$(ls target/packages/*.AppImage)"; chmod +x "$app"
+              app="$(realpath target/packages/*.AppImage)"; chmod +x "$app"
               check "$app" --appimage-extract-and-run
+              (cd "$RUNNER_TEMP" && "$app" --appimage-extract >/dev/null)
+              check_ttwright "$(find "$RUNNER_TEMP/squashfs-root" -path '*/components/ttwright' -print -quit)"
               dpkg-deb -x target/packages/*.deb "$RUNNER_TEMP/deb" && check "$RUNNER_TEMP/deb/usr/bin/raul"
               tar -xzf target/packages/*.tar.gz -C "$RUNNER_TEMP" && check "$RUNNER_TEMP/raul-$VERSION-linux-x64/raul"
               check_ttwright "$RUNNER_TEMP/raul-$VERSION-linux-x64/components/ttwright"
               # The Linux packages carry it too; raul looks for it in ../lib/<package>/components next to raul.
-              deb_ttwright="$(find "$RUNNER_TEMP/deb/usr/lib" -path '*/components/ttwright' -type f | head -1)"
+              deb_ttwright="$(find "$RUNNER_TEMP/deb/usr/lib" -path '*/components/ttwright' -print -quit)"
               echo "deb: $deb_ttwright"; check_ttwright "$deb_ttwright" ;;
             Windows)
               7z x -bso0 -o"$RUNNER_TEMP/zip" target/packages/*-portable.zip
@@ -274,7 +280,8 @@ jobs:
               check_ttwright "$RUNNER_TEMP/zip/raul-$VERSION-windows-x64/components/ttwright.exe"
               setup="$(ls target/packages/*.setup.exe)"
               # The installer must hold the same raul.exe: 7z unpacks an NSIS installer without running it.
-              7z x -bso0 -o"$RUNNER_TEMP/nsis" "$setup"; check "$(find "$RUNNER_TEMP/nsis" -iname raul.exe | head -1)"
+              7z x -bso0 -o"$RUNNER_TEMP/nsis" "$setup"; check "$(find "$RUNNER_TEMP/nsis" -iname raul.exe -print -quit)"
+              check_ttwright "$(find "$RUNNER_TEMP/nsis" -iname ttwright.exe -print -quit)"
               # A silent install is tried under a time limit; it hung in CI before, so a hang is a warning, not a stuck job.
               if timeout 180 "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"; then
                 sleep 5; check "$RUNNER_TEMP/installed/raul.exe"
