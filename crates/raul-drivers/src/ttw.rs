@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! `raul ttw`: Tale of Two Wastelands through ttwright-rs. This module holds the `raul-ttw-result` v1 Contract, the
-//! document the `result` event of `raul ttw --json` carries.
+//! document the `result` event of `raul ttw --json` carries, and the driver that produces it.
+
+mod driver;
 
 use std::path::PathBuf;
+
+pub use driver::{
+    DEFAULT_TIMEOUT, Outcome, TTWRIGHT, TTWRIGHT_EVENTS_VERSION, TTWRIGHT_RESULT_VERSIONS,
+    TtwRequest, WORK_DIR, bundled, exit_code, install, refused,
+};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

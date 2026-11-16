@@ -6,6 +6,7 @@ mod bench;
 mod config;
 mod detect;
 mod known_good;
+mod ttw;
 mod update;
 mod version;
 
@@ -31,6 +32,7 @@ pub const OWN_COMMANDS: &[&str] = &[
     "bench",
     "update",
     "config",
+    "ttw",
     "help",
 ];
 
@@ -73,7 +75,11 @@ usage:
   raul config list|get <key>|set <key> <path>|unset <key> [--json]
                               the game folders, the TTW package and the storage folder (game.newvegas,
                               game.fallout3, ttw.package, storage.root; instance is derived)
-  raul <nvmod command> ...    every nvmod command (install, sort, lod, ttw, run, profile, doctor, ...);
+  raul ttw [--instance <dir>] [--profile <name>] [--fallout3 <dir>] [--newvegas <dir>] [--package <file>]
+           [--ttwright <path>] [--dry-run] [--resume] [--json]
+                              install TTW with the bundled ttwright and add it to the Instance as one Mod; what
+                              the flags leave open comes from `raul config`; --json streams raul-events lines
+  raul <nvmod command> ...    every nvmod command (install, sort, lod, run, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";
 
@@ -88,6 +94,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("bench") => bench::run(&args[1..], out, err),
         Some("update") => update::run(&args[1..], out, err),
         Some("config") => config::run(&args[1..], out, err),
+        Some("ttw") => ttw::run(&args[1..], out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
         Some(_) if route(args) == Route::Own => {
             let _ = writeln!(err, "raul: {} has no handler", args[0]);
@@ -134,6 +141,8 @@ mod tests {
 
     #[test]
     fn the_commands_that_moved_from_nvmod_are_own_commands() {
-        assert!(OWN_COMMANDS.contains(&"config"));
+        for command in ["config", "ttw"] {
+            assert!(OWN_COMMANDS.contains(&command), "{command}");
+        }
     }
 }

@@ -1063,11 +1063,14 @@ dependencies = [
 name = "raul-cli"
 version = "0.0.0"
 dependencies = [
+ "ctrlc",
  "jsonschema",
  "nvmod-cli",
+ "nvmod-core",
  "nvmod-testkit",
  "raul-bench",
  "raul-core",
+ "raul-drivers",
  "raul-runner",
  "serde_json",
  "toml",
@@ -1095,6 +1098,11 @@ name = "raul-drivers"
 version = "0.0.0"
 dependencies = [
  "jsonschema",
+ "nvmod-core",
+ "nvmod-instance",
+ "nvmod-modinstall",
+ "nvmod-testkit",
+ "raul-runner",
  "schemars",
  "serde",
  "serde_json",
