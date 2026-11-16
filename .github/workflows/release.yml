@@ -92,7 +92,7 @@ jobs:
           if [ -z "$version" ]; then version="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
           perl -0pi -e "s/^version = \".*?\"$/version = \"$version\"/m" Cargo.toml
-          cargo update --workspace --offline
+          cargo update --workspace
           grep -m1 '^version' Cargo.toml
 
       - name: Linux packaging tools
