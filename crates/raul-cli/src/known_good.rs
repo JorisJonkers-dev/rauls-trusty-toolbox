@@ -11,21 +11,45 @@ use raul_core::known_good::{COMPONENTS, KnownGood, Pin, component_dir};
 pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let mut repo = PathBuf::from(".");
     let mut json = false;
+    let mut month = None;
+    let mut positional = Vec::new();
     let mut rest = args.iter();
-    if rest.next().map(String::as_str) != Some("check") {
-        return crate::usage(err, "known-good takes the subcommand `check`");
-    }
     while let Some(a) = rest.next() {
         match a.as_str() {
             "--json" => json = true,
-            "--repo" => match rest.next() {
-                Some(dir) => repo = PathBuf::from(dir),
-                None => return crate::usage(err, "--repo needs a folder"),
-            },
-            other => return crate::usage(err, &format!("unknown option {other}")),
+            "--repo" | "--month" => {
+                let Some(value) = rest.next() else {
+                    return crate::usage(err, &format!("{a} needs a value"));
+                };
+                if a == "--repo" {
+                    repo = PathBuf::from(value);
+                } else {
+                    month = Some(value.clone());
+                }
+            }
+            other if other.starts_with("--") => {
+                return crate::usage(err, &format!("unknown option {other}"));
+            }
+            other => positional.push(other.to_string()),
         }
     }
-    let problems = check(&repo);
+    match positional.as_slice() {
+        [cmd] if cmd == "check" => check_command(&repo, json, out, err),
+        [cmd, component, version] if cmd == "bump" => {
+            let Some(month) = month else {
+                return crate::usage(err, "bump needs --month YYYY-MM");
+            };
+            bump_command(&repo, component, version, &month, out, err)
+        }
+        _ => crate::usage(
+            err,
+            "known-good takes `check` or `bump <component> <version> --month YYYY-MM`",
+        ),
+    }
+}
+
+fn check_command(repo: &Path, json: bool, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    let problems = check(repo);
     if json {
         let v = serde_json::json!({ "ok": problems.is_empty(), "problems": problems });
         crate::write_or_fail(out, err, &format!("{v}\n"));
@@ -44,6 +68,32 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
         crate::OK
     } else {
         crate::FOUND
+    }
+}
+
+fn bump_command(
+    repo: &Path,
+    component: &str,
+    version: &str,
+    month: &str,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> u8 {
+    let path = repo.join("known-good.toml");
+    let result = std::fs::read_to_string(&path)
+        .map_err(|e| format!("known-good.toml: {e}"))
+        .and_then(|text| raul_core::known_good::bump(&text, component, version, month))
+        .and_then(|text| std::fs::write(&path, text).map_err(|e| format!("known-good.toml: {e}")));
+    match result {
+        Ok(()) => crate::write_or_fail(
+            out,
+            err,
+            &format!("known-good.toml: added a set with {component} {version}\n"),
+        ),
+        Err(e) => {
+            let _ = writeln!(err, "{e}");
+            crate::FOUND
+        }
     }
 }
 

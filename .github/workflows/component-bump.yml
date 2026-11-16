@@ -1,0 +1,101 @@
+# Opens a pull request that moves one Component's submodule to a new release tag and adds a Known-good set for it
+# (docs/PLAN.md section 7, nv-linux ADR-0007 chain rule: one Component per pull request).
+#
+# Triggered by a Component's release workflow with
+#   gh api repos/JorisJonkers-dev/rauls-trusty-toolbox/dispatches \
+#     -f event_type=component-release -f 'client_payload[component]=<name>' -f 'client_payload[tag]=vX.Y.Z'
+# (token from the estate release App), or by hand from the Actions tab. The pull request is opened with the App token
+# so CI runs on it; full CI decides whether the set may merge, and auto-merge lands it when CI is green.
+name: Component bump
+
+on:
+  repository_dispatch:
+    types: [component-release]
+  workflow_dispatch:
+    inputs:
+      component:
+        description: "Component (nv-rs, nvmod, loot-rs, lodwright-rs, ttwright-rs)"
+        required: true
+      tag:
+        description: "Release tag, vX.Y.Z"
+        required: true
+
+concurrency:
+  group: component-bump-${{ github.event.client_payload.component || inputs.component }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # The payload is attacker-controllable in principle, so it is validated against fixed patterns before use.
+      - name: Validate input
+        id: input
+        env:
+          COMPONENT: ${{ github.event.client_payload.component || inputs.component }}
+          TAG: ${{ github.event.client_payload.tag || inputs.tag }}
+        run: |
+          set -euo pipefail
+          case "$COMPONENT" in
+            nv-rs) dir=nv-rs ;;
+            nvmod) dir=nvmod-rs ;;
+            loot-rs|lodwright-rs|ttwright-rs) dir="$COMPONENT" ;;
+            *) echo "unknown component"; exit 1 ;;
+          esac
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "tag must be vX.Y.Z"; exit 1; }
+          {
+            echo "component=$COMPONENT"
+            echo "dir=$dir"
+            echo "tag=$TAG"
+            echo "branch=chore/bump-$COMPONENT-$TAG"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app-token
+        continue-on-error: true
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          token: ${{ steps.app-token.outputs.token || github.token }}
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Move the submodule and add the set
+        env:
+          DIR: ${{ steps.input.outputs.dir }}
+          COMPONENT: ${{ steps.input.outputs.component }}
+          TAG: ${{ steps.input.outputs.tag }}
+          BRANCH: ${{ steps.input.outputs.branch }}
+        run: |
+          set -euo pipefail
+          git -C "components/$DIR" fetch --quiet --tags origin
+          git -C "components/$DIR" checkout --quiet "refs/tags/$TAG"
+          git submodule foreach --quiet 'git fetch --quiet --tags --depth=1 origin'
+          cargo run --quiet --locked -p raul-cli -- known-good bump "$COMPONENT" "$TAG" --month "$(date -u +%Y-%m)"
+          git config user.name "rauls-trusty-toolbox bump"
+          git config user.email "noreply@github.com"
+          git switch -c "$BRANCH"
+          git add "components/$DIR" known-good.toml
+          git commit -m "chore(deps): bump $COMPONENT to $TAG"
+          git push origin "$BRANCH"
+
+      - name: Open the pull request with auto-merge
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token || github.token }}
+          COMPONENT: ${{ steps.input.outputs.component }}
+          TAG: ${{ steps.input.outputs.tag }}
+          BRANCH: ${{ steps.input.outputs.branch }}
+        run: |
+          set -euo pipefail
+          body="Moves \`$COMPONENT\` to \`$TAG\` and adds a Known-good set that moves only it. Pipeline Complete (Known-good check, the three-OS build and tests) decides whether it merges."
+          gh pr create --base main --head "$BRANCH" --title "chore(deps): bump $COMPONENT to $TAG" --body "$body"
+          gh pr merge "$BRANCH" --auto --squash

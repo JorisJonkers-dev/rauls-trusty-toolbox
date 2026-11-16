@@ -25,6 +25,8 @@ usage:
                               the Toolbox version and the Known-good set it ships
   raul known-good check [--repo <dir>] [--json]
                               check known-good.toml against the submodule pins and nvmod's tools.lock.toml
+  raul known-good bump <component> <version> --month YYYY-MM [--repo <dir>]
+                              add a set that moves one Component (the bump workflow runs this)
   raul detect [--folder <dir>] [--json]
                               find Fallout: New Vegas and Fallout 3 copies (Steam, GOG, Epic), or check one folder
   raul <nvmod command> ...    every nvmod command (install, sort, lod, ttw, run, profile, doctor, ...);
