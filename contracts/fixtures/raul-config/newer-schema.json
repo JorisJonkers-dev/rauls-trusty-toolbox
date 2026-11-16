@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "contract": "raul-config",
+  "file": "/home/player/.config/raul/config.toml",
+  "entries": [],
+  "error": {
+    "code": "newer_schema",
+    "key": null,
+    "message": "/home/player/.config/raul/config.toml has schema_version 2; this raul reads 1. Update raul; the file was left as it is"
+  }
+}

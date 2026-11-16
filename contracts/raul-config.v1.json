@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ConfigDoc",
+  "description": "The document `raul config list|get|set --json` prints (Contract `raul-config`, version 1).\n\n`list` prints every key, in the order `game.newvegas`, `game.fallout3`, `ttw.package`, `storage.root`, `instance`;\n`get` and `set` print the one key they were about. When the command fails, `entries` is empty and `error` says\nwhy.",
+  "type": "object",
+  "properties": {
+    "contract": {
+      "description": "Always `raul-config`.",
+      "type": "string",
+      "const": "raul-config"
+    },
+    "entries": {
+      "description": "The keys, with their values.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Entry"
+      }
+    },
+    "error": {
+      "description": "Set when the command failed.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ErrorInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "file": {
+      "description": "The configuration file (`config.toml` in the Toolbox's configuration folder), or `null` when there is no\nconfiguration folder. The file need not exist: a missing file means every key is unset.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "description": "The document version; 1.",
+      "type": "integer",
+      "format": "uint32",
+      "const": 1,
+      "minimum": 0
+    }
+  },
+  "required": [
+    "schema_version",
+    "contract",
+    "entries"
+  ],
+  "$defs": {
+    "Entry": {
+      "description": "One key and its value.",
+      "type": "object",
+      "properties": {
+        "key": {
+          "description": "The key.",
+          "$ref": "#/$defs/Key"
+        },
+        "read_only": {
+          "description": "Whether the key is derived and `raul config set` refuses it.",
+          "type": "boolean"
+        },
+        "value": {
+          "description": "The value: an absolute path, or `null` when it is not set.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "read_only"
+      ]
+    },
+    "ErrorCode": {
+      "description": "Why a `raul config` command did not do what it was asked.",
+      "oneOf": [
+        {
+          "description": "The key is not one of the keys this build knows (exit code 5).",
+          "type": "string",
+          "const": "unknown_key"
+        },
+        {
+          "description": "The key is derived and cannot be set (exit code 2).",
+          "type": "string",
+          "const": "read_only"
+        },
+        {
+          "description": "The value is not an acceptable path for the key: not a game copy of that game, not a file, or not a folder\nthat can hold the storage (exit code 2). Nothing was written.",
+          "type": "string",
+          "const": "invalid_value"
+        },
+        {
+          "description": "The file has a `schema_version` newer than this build reads (exit code 2). Nothing was written.",
+          "type": "string",
+          "const": "newer_schema"
+        },
+        {
+          "description": "The file cannot be read or is not a valid configuration file (exit code 2). Nothing was written.",
+          "type": "string",
+          "const": "unreadable"
+        },
+        {
+          "description": "No configuration folder could be found: `HOME`, `XDG_CONFIG_HOME` or `APPDATA` is not set (exit code 2).",
+          "type": "string",
+          "const": "no_config_folder"
+        },
+        {
+          "description": "The file could not be written (exit code 4); the old file is left as it was.",
+          "type": "string",
+          "const": "write_failed"
+        }
+      ]
+    },
+    "ErrorInfo": {
+      "description": "The error of a `raul config` command.",
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "The stable code callers match on.",
+          "$ref": "#/$defs/ErrorCode"
+        },
+        "key": {
+          "description": "The key the command was about, when there was one.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "message": {
+          "description": "Prose for people; never matched on.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "Key": {
+      "description": "One configuration key.",
+      "oneOf": [
+        {
+          "description": "The Fallout: New Vegas folder (the one holding `FalloutNV.exe`).",
+          "type": "string",
+          "const": "game.newvegas"
+        },
+        {
+          "description": "The Fallout 3 folder (the one holding `Fallout3.exe`); TTW needs it.",
+          "type": "string",
+          "const": "game.fallout3"
+        },
+        {
+          "description": "The TTW installer package the player downloaded (the `.mpi` file).",
+          "type": "string",
+          "const": "ttw.package"
+        },
+        {
+          "description": "The Toolbox storage folder, which holds the Instance.",
+          "type": "string",
+          "const": "storage.root"
+        },
+        {
+          "description": "The Instance folder: `<storage.root>/instance`. Derived, read only.",
+          "type": "string",
+          "const": "instance"
+        }
+      ]
+    }
+  }
+}

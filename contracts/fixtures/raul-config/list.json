@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "contract": "raul-config",
+  "file": "/home/player/.config/raul/config.toml",
+  "entries": [
+    { "key": "game.newvegas", "value": "/games/steamapps/common/Fallout New Vegas", "read_only": false },
+    { "key": "game.fallout3", "value": "/games/steamapps/common/Fallout 3 goty", "read_only": false },
+    { "key": "ttw.package", "value": null, "read_only": false },
+    { "key": "storage.root", "value": "/home/player/.local/share/raul", "read_only": false },
+    { "key": "instance", "value": "/home/player/.local/share/raul/instance", "read_only": true }
+  ],
+  "error": null
+}
