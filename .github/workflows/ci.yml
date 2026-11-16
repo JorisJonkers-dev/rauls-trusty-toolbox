@@ -1,6 +1,6 @@
 # One pipeline ending in "Pipeline Complete", the only required check (estate convention, repo-template ci.yml).
 #
-# Pipeline Complete runs every Linux check as steps of one job. The Windows and macOS (arm64) builds and the
+# Pipeline Complete runs every Linux check as steps of one job. The Windows and macOS (macos-latest, arm64) builds and the
 # quarantine check cannot be steps of a Linux job, so they are jobs that its last step gates on; the required check
 # keeps its name when jobs change. Each step carries `if: !cancelled()` so one failure still shows the rest.
 #
@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-14]
+        os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
