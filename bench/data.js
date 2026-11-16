@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794832950687,
+  "lastUpdate": 1794833408651,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -146,6 +146,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.428833,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bee895e0682b26bc6d1bed4f261791d831dd0973",
+          "message": "fix(release): make the Windows and macOS smoke tests run unattended (#28)\n\n* fix(release): make the Windows and macOS smoke tests run unattended\n\nGit Bash on Windows has no /dev/stderr, and the dmg's licence agreement made hdiutil attach wait for an answer.\n\n* fix(release): set the pager through env for hdiutil",
+          "timestamp": "2026-11-16T12:48:48Z",
+          "tree_id": "d94df8ee5ee14e1f7e052c64af6c33abfb9f2298",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/bee895e0682b26bc6d1bed4f261791d831dd0973"
+        },
+        "date": 1794833407998,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.6020400000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 24.412291999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 253.07869,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.408798,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.901101,
             "unit": "ms"
           }
         ]
