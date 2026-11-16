@@ -143,9 +143,10 @@ jobs:
             Windows) pattern='nv-rs-preview-*-windows-x64.zip' ;;
           esac
           dir="$RUNNER_TEMP/nv-rs"; mkdir -p "$dir"
-          gh release download "$nvrs" --repo JorisJonkers-dev/nv-rs --pattern "$pattern" --pattern SHA256SUMS --dir "$dir"
+          # nv-rs lists its Windows files in SHA256SUMS-windows and the rest in SHA256SUMS.
+          gh release download "$nvrs" --repo JorisJonkers-dev/nv-rs --pattern "$pattern" --pattern 'SHA256SUMS*' --dir "$dir"
           asset="$(cd "$dir" && find . -maxdepth 1 -name "$pattern" -printf '%f\n' | head -1)"
-          (cd "$dir" && grep -F "$asset" SHA256SUMS | sha256sum -c -)
+          (cd "$dir" && cat SHA256SUMS* | grep -E "[ *]$asset\$" | sha256sum -c -)
           mkdir -p target/bundle/components/nv-rs
           case "$RUNNER_OS" in
             Linux) tar -xzf "$dir/$asset" -C target/bundle/components/nv-rs ;;
