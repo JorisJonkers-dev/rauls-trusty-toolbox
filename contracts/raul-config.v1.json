@@ -74,7 +74,6 @@
           "description": "The stable code callers match on."
         },
         "key": {
-          "default": null,
           "description": "The key the command was about, when there was one.",
           "type": [
             "string",
@@ -148,7 +147,6 @@
           "type": "null"
         }
       ],
-      "default": null,
       "description": "Set when the command failed."
     },
     "file": {

@@ -109,7 +109,6 @@ pub struct ErrorInfo {
     /// The stable code callers match on.
     pub code: ErrorCode,
     /// The key the command was about, when there was one.
-    #[serde(default)]
     pub key: Option<String>,
     /// Prose for people; never matched on.
     pub message: String,
@@ -134,7 +133,6 @@ pub struct ConfigDoc {
     /// The keys, with their values.
     pub entries: Vec<Entry>,
     /// Set when the command failed.
-    #[serde(default)]
     pub error: Option<ErrorInfo>,
 }
 

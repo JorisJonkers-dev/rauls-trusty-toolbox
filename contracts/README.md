@@ -44,4 +44,8 @@ When a command fails, `entries` is empty and `error` holds a stable `code` and a
 | `no_config_folder` | 2 | no configuration folder (`HOME`, `XDG_CONFIG_HOME` or `APPDATA` is not set) |
 | `write_failed` | 4 | the file could not be written; the old file is left as it was |
 
-The file itself is an on-disk document with `schema_version = 1`. Keys this build does not know survive a `set`.
+A command line `raul config` cannot read exits 5 with a usage line on standard error and prints no document.
+
+The file itself is an on-disk document with `schema_version = 1` (the first version: a file without one is read as
+version 1). Keys this build does not know survive a `set`. `raul config` is the file's only writer: the GUI and
+scripts run one `set` at a time.
