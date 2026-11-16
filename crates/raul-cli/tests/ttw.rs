@@ -524,6 +524,10 @@ fn missing_inputs_are_refused_before_ttwright_starts() {
     );
     assert!(f.args().is_empty(), "ttwright was started");
     assert_eq!(f.raul(&["ttw", "--bogus"]).status.code(), Some(5));
+    assert_eq!(
+        f.raul(&["ttw", "--timeout-secs", "0"]).status.code(),
+        Some(5)
+    );
 }
 
 #[test]

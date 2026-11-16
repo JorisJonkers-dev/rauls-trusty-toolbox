@@ -395,16 +395,34 @@ fn run_streaming(
     })
 }
 
+/// Files under `dir`, not following links (a link counts as one file, so a loop of links cannot recurse).
 fn count_files(dir: &Path) -> u64 {
     std::fs::read_dir(dir)
         .into_iter()
         .flatten()
         .flatten()
-        .map(|e| {
-            let path = e.path();
-            if path.is_dir() { count_files(&path) } else { 1 }
+        .map(|e| match e.file_type() {
+            Ok(t) if t.is_dir() => count_files(&e.path()),
+            _ => 1,
         })
         .sum()
+}
+
+fn is_link(path: &Path) -> bool {
+    std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink())
+}
+
+/// Remove the work folder: a link is removed as a link, never followed; a missing folder is fine.
+fn clear(path: &Path) -> std::io::Result<()> {
+    let result = if is_link(path) {
+        std::fs::remove_file(path)
+    } else {
+        std::fs::remove_dir_all(path)
+    };
+    match result {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        other => other,
+    }
 }
 
 /// The `ttwright-result` on standard output: refused when its version is newer than this build reads.
@@ -457,15 +475,25 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
     let work = ready.instance.root.join(WORK_DIR);
     let dest = work.join("out");
     let events = work.join("events.ndjson");
-    if !req.resume {
-        let _ = std::fs::remove_dir_all(&work);
-    }
-    let _ = std::fs::remove_file(&events);
-    if let Err(e) = std::fs::create_dir_all(&dest) {
+    let prepared = (|| {
+        if !req.resume {
+            clear(&work)?;
+        } else if is_link(&work) {
+            return Err(std::io::Error::other(
+                "it is a link, not a folder; run without --resume to start again",
+            ));
+        }
+        match std::fs::remove_file(&events) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e),
+            _ => {}
+        }
+        std::fs::create_dir_all(&dest)
+    })();
+    if let Err(e) = prepared {
         return draft.fail(
             Status::Failed,
             TtwErrorCode::ToolFailed,
-            format!("{}: {e}", dest.display()),
+            format!("{}: {e}", work.display()),
         );
     }
     let tool = ToolInfo {
@@ -495,6 +523,8 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
     let output = match output {
         Ok(o) => o,
         Err(ToolError::Unverifiable { reason, .. }) => {
+            let _ = clear(&work);
+            draft.result.staging = None;
             return draft.fail(Status::Unverifiable, TtwErrorCode::ToolUnverifiable, reason);
         }
         Err(e) if nvmod_core::cancel::requested() => {
@@ -542,7 +572,7 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
             );
         }
         3 => {
-            let _ = std::fs::remove_dir_all(&work);
+            let _ = clear(&work);
             draft.result.staging = None;
             return draft.fail_ttwright(
                 Status::Unsupported,
@@ -587,7 +617,7 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         );
     }
     if req.dry_run {
-        let _ = std::fs::remove_dir_all(&work);
+        let _ = clear(&work);
         draft.result.staging = None;
         return Outcome {
             exit_code: 0,
@@ -601,6 +631,8 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
     });
     let files = count_files(&dest);
     if files == 0 {
+        let _ = clear(&work);
+        draft.result.staging = None;
         return draft.fail(
             Status::Failed,
             TtwErrorCode::ToolFailed,
@@ -619,7 +651,7 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
     };
     let why = match nvmod_modinstall::install(&request) {
         Ok(report) => {
-            let _ = std::fs::remove_dir_all(&work);
+            let _ = clear(&work);
             draft.result.staging = None;
             draft.result.mod_name = Some(report.r#mod);
             draft.result.plugins_enabled = report.plugins;
@@ -765,5 +797,31 @@ mod tests {
             (Status::Refused, TtwErrorCode::ContractRefused)
         );
         assert!(read_result(b"{\"contract\":\"ttwright-result\",\"schema_version\":1}").is_ok());
+    }
+}
+
+#[cfg(all(test, unix))]
+mod unix_tests {
+    use super::*;
+    use nvmod_testkit::{TempDir, write_file};
+
+    #[test]
+    fn clearing_a_linked_work_folder_removes_the_link_and_keeps_its_target() {
+        let dir = TempDir::new("raul-clear");
+        write_file(dir.path(), "target/keep", b"x");
+        let link = dir.path().join("work");
+        std::os::unix::fs::symlink(dir.path().join("target"), &link).unwrap();
+        assert!(is_link(&link));
+        clear(&link).unwrap();
+        assert!(!link.exists() && dir.path().join("target/keep").is_file());
+        clear(&link).unwrap();
+    }
+
+    #[test]
+    fn a_loop_of_links_is_counted_without_following_it() {
+        let dir = TempDir::new("raul-count");
+        write_file(dir.path(), "a/file", b"x");
+        std::os::unix::fs::symlink(dir.path().join("a"), dir.path().join("a/loop")).unwrap();
+        assert_eq!(count_files(dir.path()), 2);
     }
 }
