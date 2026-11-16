@@ -3,6 +3,7 @@
 // These tests start the built binary, which is not a tool call (see clippy.toml).
 #![allow(clippy::disallowed_methods)]
 
+use raul_core::known_good::{COMPONENTS, KnownGood, Set};
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
@@ -17,6 +18,17 @@ fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
+/// The set `raul` ships, read from `known-good.toml` itself, so a bump does not have to edit these tests.
+fn shipped_set() -> Set {
+    let text =
+        std::fs::read_to_string(repo_root().join("known-good.toml")).expect("read known-good.toml");
+    KnownGood::parse(&text)
+        .expect("known-good.toml parses")
+        .latest_known_good()
+        .expect("a known-good set")
+        .clone()
+}
+
 fn stdout(o: &Output) -> String {
     String::from_utf8_lossy(&o.stdout).into_owned()
 }
@@ -27,16 +39,13 @@ fn version_names_the_toolbox_and_every_component_of_the_shipped_set() {
     assert!(out.status.success());
     let text = stdout(&out);
     assert!(text.starts_with("raul "), "{text}");
-    for (name, version) in [
-        ("nv-rs", "v0.4.0"),
-        ("nvmod", "v0.5.0"),
-        ("loot-rs", "v0.2.0"),
-        ("lodwright-rs", "v0.2.0"),
-        ("ttwright-rs", "unreleased"),
-    ] {
+    let set = shipped_set();
+    assert!(text.contains(&set.id), "set {} missing:\n{text}", set.id);
+    for name in COMPONENTS {
+        let version = &set.components[name].version;
         assert!(
             text.lines()
-                .any(|l| l.contains(name) && l.contains(version)),
+                .any(|l| l.contains(name) && l.contains(version.as_str())),
             "{name} {version} missing:\n{text}"
         );
     }
@@ -47,8 +56,16 @@ fn version_as_json_carries_the_set_id_and_the_components() {
     let out = raul(&["version", "--json"]);
     assert!(out.status.success());
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert_eq!(v["known_good_set"], "2026-11-a");
-    assert_eq!(v["components"]["nv-rs"], "v0.4.0");
+    let set = shipped_set();
+    assert_eq!(v["known_good_set"], set.id.as_str());
+    assert_eq!(v["components"].as_object().unwrap().len(), COMPONENTS.len());
+    for name in COMPONENTS {
+        assert_eq!(
+            v["components"][name],
+            set.components[name].version.as_str(),
+            "{name}"
+        );
+    }
 }
 
 #[test]
