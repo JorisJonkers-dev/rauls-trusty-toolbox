@@ -90,7 +90,10 @@ fn a_result_slower_than_the_threshold_is_a_regression() {
 fn a_result_slower_by_less_than_the_threshold_is_not_a_regression() {
     let base = report(vec![measurement("sort/small", 100.0)]);
     let head = report(vec![measurement("sort/small", 105.0)]);
-    assert!(compare(&base, &head, 10.0).regressions.is_empty());
+    assert_eq!(
+        compare(&base, &head, 10.0).regressions,
+        Vec::<String>::new()
+    );
 }
 
 #[test]
