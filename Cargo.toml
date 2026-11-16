@@ -1,0 +1,30 @@
+# The umbrella workspace (docs/PLAN.md section 4.3). Components are submodules under components/ with their own
+# workspaces, so they are excluded here and used by path; Cargo finds each one's own workspace root for `workspace =
+# true` inheritance. crates/raul-gui is a nested workspace with its own lock file (ADR-0004).
+[workspace]
+resolver = "3"
+members = ["crates/raul-core", "crates/raul-cli"]
+exclude = ["components", "crates/raul-gui"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.100"
+license = "GPL-3.0-only"
+repository = "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox"
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+[workspace.dependencies]
+raul-core = { path = "crates/raul-core" }
+nvmod-cli = { path = "components/nvmod-rs/crates/nvmod-cli" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.9"

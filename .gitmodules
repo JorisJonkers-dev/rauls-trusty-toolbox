@@ -1,0 +1,20 @@
+[submodule "components/nv-rs"]
+	path = components/nv-rs
+	url = https://github.com/JorisJonkers-dev/nv-rs.git
+	branch = fork
+[submodule "components/nvmod-rs"]
+	path = components/nvmod-rs
+	url = https://github.com/JorisJonkers-dev/nvmod-rs.git
+	branch = main
+[submodule "components/loot-rs"]
+	path = components/loot-rs
+	url = https://github.com/JorisJonkers-dev/loot-rs.git
+	branch = main
+[submodule "components/lodwright-rs"]
+	path = components/lodwright-rs
+	url = https://github.com/JorisJonkers-dev/lodwright-rs.git
+	branch = main
+[submodule "components/ttwright-rs"]
+	path = components/ttwright-rs
+	url = https://github.com/JorisJonkers-dev/ttwright-rs.git
+	branch = main
