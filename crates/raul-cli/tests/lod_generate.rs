@@ -238,6 +238,18 @@ fn a_new_output_replaces_the_lod_mod_and_leaves_one() {
     let modlist =
         std::fs::read_to_string(f.instance().join("profiles/Default/modlist.txt")).unwrap();
     assert_eq!(modlist.matches("LOD (lodwright)").count(), 1, "{modlist}");
+    // A backup an interrupted run left behind is removed by the next run.
+    let out = f.raul(&[
+        "mods",
+        "create",
+        "LOD (lodwright) previous",
+        "--instance",
+        s(&f.instance()),
+    ]);
+    assert!(out.status.success(), "{out:?}");
+    std::fs::remove_file(f.instance().join(".raul/lod/out/manifest.json")).unwrap();
+    assert_eq!(f.generate(&[]).0, Some(0));
+    assert!(!f.instance().join("mods/LOD (lodwright) previous").exists());
 }
 
 #[test]

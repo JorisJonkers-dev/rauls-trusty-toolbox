@@ -197,6 +197,14 @@ fn replace_mod(
         nvmod_modinstall::mods::ModsError::Refused(w)
         | nvmod_modinstall::mods::ModsError::Failed(w) => w,
     };
+    let remove = Action::Remove {
+        force: true,
+        dependants: Vec::new(),
+    };
+    // A backup an interrupted run left behind is this command's own; it goes first.
+    if find_ci(&instance.root.join("mods"), &previous).is_some() {
+        lifecycle::apply(instance, profile, &previous, &remove, false).map_err(lifecycle_error)?;
+    }
     if had {
         lifecycle::apply(
             instance,
@@ -222,16 +230,7 @@ fn replace_mod(
     match nvmod_modinstall::install(&request) {
         Ok(report) => {
             if had {
-                let removed = lifecycle::apply(
-                    instance,
-                    profile,
-                    &previous,
-                    &Action::Remove {
-                        force: true,
-                        dependants: Vec::new(),
-                    },
-                    false,
-                );
+                let removed = lifecycle::apply(instance, profile, &previous, &remove, false);
                 if let Err(e) = removed {
                     let warning = format!(
                         "the new LOD Mod is in, but the old one, `{previous}`, could not be removed: {}; remove it with `raul mods remove`",
@@ -250,7 +249,7 @@ fn replace_mod(
                 }
             };
             if had {
-                let _ = lifecycle::apply(
+                let back = lifecycle::apply(
                     instance,
                     profile,
                     &previous,
@@ -259,6 +258,12 @@ fn replace_mod(
                     },
                     false,
                 );
+                if let Err(e) = back {
+                    return Err(format!(
+                        "{why}; the old LOD Mod stays as `{previous}`, because renaming it back failed too: {}",
+                        lifecycle_error(e)
+                    ));
+                }
             }
             Err(why)
         }
@@ -500,6 +505,10 @@ pub fn generate(req: &LodRequest, emit: &mut dyn FnMut(Event)) -> LodOutcome {
             r.mod_name = Some(MOD_NAME.to_owned());
             r.files = Some(files);
             done(r, true)
+        }
+        Err(why) if nvmod_core::cancel::requested() => {
+            let why = format!("cancelled while the Mod was replaced; it was rolled back ({why})");
+            fail(r, Status::Cancelled, LodErrorCode::Cancelled, None, why)
         }
         Err(why) => {
             let why =
