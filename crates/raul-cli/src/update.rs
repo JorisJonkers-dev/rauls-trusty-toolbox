@@ -9,7 +9,13 @@ use nvmod_tools::{Curl, Fetcher};
 use raul_core::update::{RELEASES_URL, Settings, newer_release};
 
 pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    let path = Settings::default_path();
+    let Some(path) = Settings::default_path() else {
+        let _ = writeln!(
+            err,
+            "raul update: no configuration folder (HOME, XDG_CONFIG_HOME or APPDATA is not set)"
+        );
+        return crate::FOUND;
+    };
     match args
         .iter()
         .map(String::as_str)

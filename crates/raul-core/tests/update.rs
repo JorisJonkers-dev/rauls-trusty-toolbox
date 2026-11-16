@@ -54,3 +54,46 @@ fn a_saved_setting_is_read_back() {
     .unwrap();
     assert!(Settings::load(&path).check_for_updates);
 }
+
+#[test]
+fn saving_the_update_setting_keeps_the_other_settings() {
+    let dir = nvmod_testkit::TempDir::new("raul-settings-keep");
+    let path = dir.path().join("settings.toml");
+    std::fs::write(&path, "theme = \"bleach\"\ncheck_for_updates = false\n").unwrap();
+    Settings {
+        check_for_updates: true,
+    }
+    .save(&path)
+    .unwrap();
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains("theme = \"bleach\""), "{text}");
+    assert!(Settings::load(&path).check_for_updates);
+}
+
+#[test]
+fn a_settings_file_that_does_not_parse_is_not_overwritten() {
+    let dir = nvmod_testkit::TempDir::new("raul-settings-bad");
+    let path = dir.path().join("settings.toml");
+    std::fs::write(&path, "check_for_updates = [oops").unwrap();
+    assert!(
+        Settings {
+            check_for_updates: true
+        }
+        .save(&path)
+        .is_err()
+    );
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        "check_for_updates = [oops"
+    );
+}
+
+#[test]
+fn a_development_build_compares_by_its_release_numbers() {
+    let json = r#"[{"tag_name": "v0.2.0", "prerelease": false, "draft": false, "html_url": "u"}]"#;
+    assert_eq!(
+        newer_release("0.1.0-dev.7", json).unwrap().unwrap().version,
+        "0.2.0"
+    );
+    assert_eq!(newer_release("0.2.0-dev.7", json).unwrap(), None);
+}

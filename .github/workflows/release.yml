@@ -137,7 +137,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          nvrs="$(cargo run --quiet --locked -p raul-cli -- version --json | jq -r '.components["nv-rs"]')"
+          nvrs="$(target/release/raul version --json | jq -r '.components["nv-rs"]')"
           case "$RUNNER_OS" in
             Linux) pattern='nv-rs-linux-x86_64-*.tar.gz' ;;
             Windows) pattern='nv-rs-preview-*-windows-x64.zip' ;;
@@ -199,6 +199,25 @@ jobs:
       - name: Package
         run: cargo packager --release -p raul-cli --formats "${{ matrix.formats }}"
 
+      # cargo-packager names files after the product name, which has spaces and an apostrophe; GitHub rewrites
+      # those in asset names, which would break `sha256sum -c SHA256SUMS` after download. Plain names instead.
+      - name: Name the packages
+        run: |
+          set -euo pipefail
+          cd target/packages
+          for f in *; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              *-setup.exe) ext="setup.exe" ;;
+              *.AppImage) ext="AppImage" ;;
+              *.deb) ext="deb" ;;
+              *.dmg) ext="dmg" ;;
+              *) continue ;;
+            esac
+            mv -- "$f" "raul-$VERSION-${{ matrix.name }}.$ext"
+          done
+          ls -l
+
       - name: Portable archive
         run: |
           set -euo pipefail
@@ -231,7 +250,7 @@ jobs:
             Windows)
               7z x -bso0 -o"$RUNNER_TEMP/zip" target/packages/*-portable.zip
               check "$RUNNER_TEMP/zip/raul-$VERSION-windows-x64/raul.exe"
-              setup="$(ls target/packages/*-setup.exe)"; "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"
+              setup="$(ls target/packages/*.setup.exe)"; "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"
               sleep 5; check "$RUNNER_TEMP/installed/raul.exe" ;;
             macOS)
               dmg="$(ls target/packages/*.dmg)"; hdiutil attach -nobrowse -mountpoint "$RUNNER_TEMP/dmg" "$dmg"
@@ -248,7 +267,7 @@ jobs:
             target/packages/*.AppImage
             target/packages/*.deb
             target/packages/*.tar.gz
-            target/packages/*-setup.exe
+            target/packages/*.setup.exe
             target/packages/*-portable.zip
             target/packages/*.dmg
           if-no-files-found: error
@@ -276,6 +295,14 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Version from the tag
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          if [ -z "$version" ]; then version="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
+          perl -0pi -e "s/^version = \".*?\"$/version = \"$version\"/m" Cargo.toml
+          cargo update --workspace
+
       - name: SBOM
         run: |
           set -euo pipefail
@@ -300,7 +327,7 @@ jobs:
         run: |
           set -euo pipefail
           gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
-          components="$(cargo run --quiet --locked -p raul-cli -- version)"
+          components="$(python3 scripts/known-good-summary.py)"
           if [ -n "$APPLE_CERTIFICATE" ]; then mac="signed and notarised"; else mac="**unsigned**: macOS will ask you to allow it in System Settings, Privacy & Security"; fi
           notes="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)"
           {
