@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ResultDoc",
+  "description": "Result v1. Result and error documents go to stdout; stderr carries events and human text only.",
+  "type": "object",
+  "properties": {
+    "arguments_digest": {
+      "description": "SHA-256 of the normalised arguments (`request_digest` once a request document exists); omitted when no\narguments were given.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blocks": {
+      "description": "Terrain blocks of a `generate` run: how many were built and how many were kept from the earlier run\nbecause their inputs did not change; omitted when no terrain was generated.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BlockCounts"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "code": {
+      "description": "A stable machine-readable string that callers match on.",
+      "type": "string"
+    },
+    "contract": {
+      "description": "The contract name, `lodwright-result`: a reader refuses a document that names another.",
+      "type": "string",
+      "const": "lodwright-result"
+    },
+    "inputs_digest": {
+      "description": "SHA-256 over the plugins' sizes and contents; omitted when they were not read.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "manifest": {
+      "description": "Relative name of the manifest, when one was written.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "missing_capabilities": {
+      "description": "For `unsupported`: the capabilities that are missing.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "peak_memory_mib": {
+      "description": "Peak resident memory in MiB; omitted when the platform cannot say.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0
+    },
+    "reason": {
+      "description": "Prose for people; never matched on.",
+      "type": "string"
+    },
+    "schema_version": {
+      "description": "The document version; 1.",
+      "type": "integer",
+      "format": "uint32",
+      "const": 1,
+      "minimum": 0
+    },
+    "status": {
+      "description": "How the run ended.",
+      "$ref": "#/$defs/Status"
+    },
+    "tool": {
+      "description": "The tool that printed this document.",
+      "$ref": "#/$defs/ToolInfo"
+    },
+    "warnings": {
+      "description": "Things that did not go in and why, at most twenty lines (a missing texture, a model without LOD).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "written": {
+      "description": "What was written.",
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Written"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "contract",
+    "tool",
+    "status",
+    "code",
+    "reason"
+  ],
+  "$defs": {
+    "BlockCounts": {
+      "description": "Terrain blocks built and kept.",
+      "type": "object",
+      "properties": {
+        "generated": {
+          "description": "Blocks built in this run.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "up_to_date": {
+          "description": "Blocks whose files were kept from the earlier run.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "generated",
+        "up_to_date"
+      ]
+    },
+    "Status": {
+      "description": "How a run ended.",
+      "oneOf": [
+        {
+          "description": "Finished; exit code 0.",
+          "type": "string",
+          "const": "ok"
+        },
+        {
+          "description": "A capability is not built yet; exit code 3.",
+          "type": "string",
+          "const": "unsupported"
+        },
+        {
+          "description": "Failed; exit code 1.",
+          "type": "string",
+          "const": "failed"
+        }
+      ]
+    },
+    "ToolInfo": {
+      "description": "The tool that produced a document.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Always `lodwright`.",
+          "type": "string"
+        },
+        "version": {
+          "description": "The tool version (`SemVer`, see `VERSIONING.md`).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ]
+    },
+    "Written": {
+      "description": "What was written for one world and kind.",
+      "type": "object",
+      "properties": {
+        "bytes": {
+          "description": "Bytes written.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "files": {
+          "description": "Files written.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "kind": {
+          "description": "`terrain_mesh`, `terrain_texture`, `settings`, `object_lod` or `tree_lod`.",
+          "type": "string"
+        },
+        "world": {
+          "description": "World editor id.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "world",
+        "kind",
+        "files",
+        "bytes"
+      ]
+    }
+  }
+}

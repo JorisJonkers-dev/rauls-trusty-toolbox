@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "contract": "lodwright-request",
+  "data_folder": "<data>",
+  "plugins": ["FalloutNV.esm"],
+  "worlds": ["WastelandNV"],
+  "output_dir": "<output>",
+  "terrain": { "enabled": true, "levels": [], "land_textures": true, "water": true },
+  "objects": { "enabled": true },
+  "trees": { "enabled": false },
+  "inclusion": {
+    "exclude_plugins": ["Noisy.esp"],
+    "only_plugins": [],
+    "exclude_records": [],
+    "exclude_models": ["clutter/*"]
+  },
+  "limits": { "threads": 2 }
+}

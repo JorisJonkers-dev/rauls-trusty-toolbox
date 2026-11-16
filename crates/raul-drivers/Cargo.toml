@@ -11,14 +11,16 @@ description = "Drivers of the process Components (TTW through ttwright, LOD thro
 [dependencies]
 nvmod-core = { workspace = true }
 nvmod-instance = { workspace = true }
+nvmod-loadorder = { workspace = true }
 nvmod-modinstall = { workspace = true }
 raul-runner = { workspace = true }
+jsonschema = { workspace = true }
+toml = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
-jsonschema = { workspace = true }
 nvmod-testkit = { workspace = true }
 
 [lints]
