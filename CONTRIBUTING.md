@@ -15,8 +15,53 @@ If you were invited to contribute:
 5. use Conventional Commits for every commit and pull request title, with impersonal,
    professional wording
 
-A change to a component (nv-rs, nvmod-rs, loot-rs, lodwright-rs) is made in that component's
-repository first and reaches this repository as a submodule pointer bump. The full submodule
-workflow is documented here once the submodules land (Phase 1 of the plan).
+## Components are submodules
+
+The five Components live under `components/` as git submodules pinned to the versions of the
+latest Known-good set in `known-good.toml`. Each keeps its own repository, history, issues, CI and
+releases. A change to a Component is a pull request in that Component's repository; it reaches
+this repository only as a pointer bump.
+
+| Component | Folder | Branch the pointer must be on |
+| --- | --- | --- |
+| nv-rs | `components/nv-rs` | `fork` (or a release tag) |
+| nvmod | `components/nvmod-rs` | `main` (or a release tag) |
+| loot-rs | `components/loot-rs` | `main` (or a release tag) |
+| lodwright-rs | `components/lodwright-rs` | `main` (or a release tag) |
+| ttwright-rs | `components/ttwright-rs` | `main` (or a release tag) |
+
+### Clone
+
+```sh
+git clone --recursive git@github.com:JorisJonkers-dev/rauls-trusty-toolbox.git
+# or, in an existing clone:
+git submodule update --init --recursive
+```
+
+### Work on a Component
+
+A submodule is checked out at a commit, not on a branch (a detached HEAD). Never commit there:
+the commit belongs to no branch and is lost on the next `git submodule update`. Work in the
+Component's own clone instead (`~/Projects/JorisJonkers-dev/<repo>`), on a branch, through a pull
+request in that repository. If you must work inside `components/<repo>`, first run
+`git switch -c <type>/<topic>` there.
+
+### Bump a pointer
+
+After the Component's release is out:
+
+```sh
+cd components/<repo>
+git fetch --tags origin
+git checkout vX.Y.Z
+cd ../..
+# add a new [[set]] to known-good.toml that moves only this Component (status "candidate")
+raul known-good check
+git add components/<repo> known-good.toml
+git commit -m "chore(deps): bump <repo> to vX.Y.Z"
+```
+
+One pull request moves one Component. The set becomes `known-good` in the same pull request once
+the full pipeline and the end-to-end run pass on it.
 
 Security vulnerabilities must be reported privately as described in `SECURITY.md`.

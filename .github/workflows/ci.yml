@@ -43,6 +43,15 @@ jobs:
         with:
           submodules: recursive
 
+      # actions/checkout fetches submodules shallow and without tags; the Known-good check needs the release tags.
+      - name: Fetch Component tags
+        if: ${{ !cancelled() }}
+        run: git submodule foreach --quiet 'git fetch --quiet --tags --depth=1 origin'
+
+      - name: Known-good set
+        if: ${{ !cancelled() && hashFiles('Cargo.toml') != '' }}
+        run: cargo run --quiet --locked -p raul-cli -- known-good check
+
       - name: Format
         if: ${{ !cancelled() && hashFiles('Cargo.toml') != '' }}
         run: cargo fmt --all --check

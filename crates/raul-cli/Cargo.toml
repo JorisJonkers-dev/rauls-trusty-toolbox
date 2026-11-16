@@ -1,0 +1,25 @@
+[package]
+name = "raul-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "The `raul` command line: the Toolbox's own commands plus every nvmod command."
+
+[lib]
+name = "raul_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "raul"
+path = "src/main.rs"
+
+[dependencies]
+raul-core = { workspace = true }
+nvmod-cli = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,32 @@
+# Known-good sets (GLOSSARY.md, ADR-0001, ADR-0005): Component versions that passed the contract and end-to-end
+# tests together. A chain, not a grid (nv-linux ADR-0007): oldest first, each later set moves one Component, and a
+# release ships the last set whose status is "known-good". `raul known-good check` keeps the latest set equal to the
+# submodule pins under components/ and loot-rs equal to nvmod's tools.lock.toml.
+#
+#   version = a release tag of the Component's repository, or "unreleased" while it has no tag
+#   status  = "known-good", or "candidate" only in a bump pull request
+schema_version = 1
+
+# The first set of the Toolbox: the latest release of each Component on 2026-11-16, except loot-rs, which is the
+# v0.2.0 that nvmod v0.5.0 links (its Cargo.toml and tools.lock.toml). ttwright-rs has no release yet.
+[[set]]
+id = "2026-11-a"
+status = "known-good"
+
+[set.components.nv-rs]
+version = "v0.4.0"
+contracts = { nv-rs-release-manifest = 1, nv-rs-capabilities = 1 }
+
+[set.components.nvmod]
+version = "v0.5.0"
+
+[set.components.loot-rs]
+version = "v0.2.0"
+contracts = { loot-sort = 1 }
+
+[set.components.lodwright-rs]
+version = "v0.2.0"
+contracts = { lodwright-plan = 1 }
+
+[set.components.ttwright-rs]
+version = "unreleased"
