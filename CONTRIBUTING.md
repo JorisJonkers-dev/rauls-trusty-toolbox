@@ -1,6 +1,6 @@
 # Contributing
 
-This project is owned by Joris Jonkers. Its licence is not chosen yet (see `docs/PLAN.md`).
+This project is owned by Joris Jonkers. It is licensed GPL-3.0-only (see `LICENSE`).
 
 External contributions are not accepted unless Joris Jonkers explicitly asks for them. Public
 pull requests may be closed without review.

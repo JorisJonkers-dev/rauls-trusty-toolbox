@@ -1,7 +1,8 @@
 # Plan: Raul's tRusty Toolbox
 
-Status: **Phase 0, for review.** Nothing in Phases 1 to 6 starts until the owner has reviewed
-this plan and answered the questions in section 9.
+Status: **Phase 0 reviewed; decisions recorded 2026-11-16** (section 9, and ADRs 0001 to 0006 in
+[`docs/adr`](adr)). Terms follow [`GLOSSARY.md`](../GLOSSARY.md). Phase 1 starts after this plan is
+merged, in the order of section 8.
 
 Findings were read on 2026-11-16 from the component repositories (`origin` default branches and
 release pages) and from the proposed ADRs and architecture review in `JorisJonkers-dev/nv-linux`
@@ -26,8 +27,7 @@ document rather than from code, it says so.
   binaries from the pinned submodules and ships them beside `raul`. Linking nv-rs would also drop
   its `[patch.crates-io]` for `wgpu-hal` and its build profiles, which Cargo only honours at the
   workspace root (section 4.3).
-- **Licence: the `raul` binary must be GPL-3.0-only** if it links nvmod-rs or loot-rs (section 3).
-  This is the owner's decision; until then the repository has no `LICENSE`.
+- **Licence: GPL-3.0-only**, because `raul` links nvmod-rs and loot-rs (section 3, ADR-0002).
 - **macOS is a native target**, at the owner's instruction (2026-11-16): Linux, Windows and macOS
   all native, no compatibility layers where avoidable. This supersedes the "macOS is not
   supported" line of ADR-0009 and needs work in nv-rs and in the GUI toolkit choice.
@@ -42,7 +42,7 @@ document rather than from code, it says so.
   The toolbox and ttwright-rs use it from their first commit; the four older components are on
   1.99.1 and get the bump as their own pull requests.
 - Several requests in the brief conflict with proposed nv-linux ADRs. Section 5 lists each one with
-  a recommendation; none is overridden silently.
+  the decision taken; none is overridden silently.
 
 ## 2. Findings per component
 
@@ -79,7 +79,7 @@ Other facts that shape the plan:
   upstream file (for example its `rust-version`) except as a pull request to upstream.
 - **nv-linux already has the umbrella machinery:** submodules under `projects/`,
   `compat/matrix.toml` (known-good sets with contract versions), `compat/release_gate.py`,
-  `e2e/run.py` and `release-gate.yml`. The brief's `compat.toml` is the same idea.
+  `e2e/run.py` and `release-gate.yml`. The brief's `compat.toml` is the same idea; here it is `known-good.toml`.
 - **The current nv-linux submodule pointers are stale** (nv-rs at `v0.1.0~7`, lodwright at
   `v0.1.0~3`), so the first toolbox pin is a fresh known-good set, not a copy of nv-linux's.
 
@@ -124,11 +124,12 @@ rauls-trusty-toolbox/
 │   └── ttwright-rs/
 ├── crates/
 │   ├── raul-core/         thin orchestration over nvmod's library crates: game detection, profiles, pipeline
-│   ├── raul-cli/          binary `raul`: every GUI action, `--json` everywhere
-│   ├── raul-gui/          the GUI (moved from nvmod-rs/gui), nested workspace, own Cargo.lock
+│   ├── raul-cli/          CLI-only `raul`: every GUI action, `--json` everywhere
+│   ├── raul-gui/          nested workspace, own Cargo.lock: the GUI (moved from nvmod-rs/gui) and the
+│   │                      release `raul` = same CLI + GUI (ADR-0004)
 │   └── raul-bench/        `raul bench`: suite runner and JSON + Markdown report
 ├── packaging/             cargo-packager config, icons, .desktop, Info.plist, NSIS/WiX
-├── compat.toml            known-good sets (same schema as nv-linux compat/matrix.toml)
+├── known-good.toml        the chain of Known-good sets (schema of nv-linux compat/matrix.toml)
 ├── rust-toolchain.toml    1.100.0 (+ .cargo/config.toml: 7-day registry cooldown)
 └── Cargo.toml             workspace of crates/* (raul-gui excluded, see 4.4)
 ```
@@ -136,17 +137,17 @@ rauls-trusty-toolbox/
 ### 4.2 What links what
 
 ```
-raul-gui ──(Service trait, in process)──► raul-core ──► nvmod-* crates ──► loot-rs
+raul-gui ──(Service: reads in process)──► raul-core ──► nvmod-* crates ──► loot-rs
+raul-gui ──(Service: writes as `raul` subprocess, progress events)──► raul-cli
 raul-cli ───────────────────────────────► raul-core
 raul-core ──(process + versioned contract)──► lodwright, nv-rs, ttwright
 ```
 
 - `raul-core` depends on nvmod's crates (`nvmod-core`, `nvmod-instance`, `nvmod-loadorder`,
   `nvmod-tools`, `nvmod-ui-model`, `nvmod-ui-service`, …) by path into `components/nvmod-rs`.
-- The GUI keeps nvmod's `Service` seam. Today its real implementation runs `nvmod` as a
-  subprocess (ADR-0005); the toolbox can either keep that or add an in-process implementation.
-  Recommendation: keep the subprocess service, so a crash or a hostile mod archive in an install
-  step cannot take down the window, and it matches ADR-0011's sandbox profiles.
+- The GUI keeps nvmod's `Service` seam with a hybrid implementation (ADR-0003): reads in
+  process through `raul-core`; mod installs, TTW, LOD and applying a sort as a `raul` subprocess,
+  so a crash or a hostile mod archive in an install cannot take down the window.
 - ttwright runs as a process like lodwright, through nvmod's existing TTW adapter
   (`nvmod-tools/src/ttw.rs`): a TTW install runs for a long time over untrusted archives, so crash
   isolation and resume belong at the process boundary. The rewrite adds a versioned result
@@ -178,9 +179,9 @@ raul-core ──(process + versioned contract)──► lodwright, nv-rs, ttwrig
 
 ### 4.4 GUI
 
-Keep GPUI, the framework already chosen and measured in nv-linux's
+Decided (ADR-0003): GPUI, the framework already chosen and measured in nv-linux's
 `docs/research/gui-toolkit-spike.md`, with the egui canary still painting the same view model.
-Trade-offs to weigh now that macOS is required and CI smoke tests are wanted:
+The trade-offs that were weighed:
 
 | | GPUI (current) | egui (current canary) | Slint / iced |
 |---|---|---|---|
@@ -191,14 +192,18 @@ Trade-offs to weigh now that macOS is required and CI smoke tests are wanted:
 | Supply chain | ~560 crates, weekly breaking `gpui-pre` snapshots, one maintainer | small, stable | medium |
 | Look | best fit for the Mojave Dusk design | plainer | good |
 
-Recommendation: stay on GPUI for the product, keep the egui canary, and run the GUI smoke test on
-Linux with Mesa lavapipe under xvfb; if lavapipe cannot start GPUI, the smoke test runs the egui
+The GUI smoke test runs on Linux with Mesa lavapipe under xvfb; if lavapipe cannot start GPUI, the smoke test runs the egui
 canary and the GPUI build is a compile-only check. The GUI stays a nested workspace with its own
-lock file and `cargo deny` allow-list, as in nvmod-rs today.
+lock file and `cargo deny` allow-list, as in nvmod-rs today. All on-screen text is written in
+Raul's voice; every error also carries a plain detail line.
 
 ### 4.5 Native on all three platforms
 
-- **Linux:** nv-rs native (Vulkan through wgpu) instead of Proton; Proton prefixes remain a
+Decided (ADR-0006). Baselines: macOS 13+ universal, Windows 10 22H2 or 11 x64, Linux glibc 2.35+
+on Wayland and X11. Until nv-rs runs natively on a platform, Launch is disabled there with a plain
+message; setup, mods, sorting and LOD still work.
+
+- **Linux:** nv-rs native (Vulkan through wgpu), never Proton; Proton prefixes remain a
   detection source for the game files only (Steam Deck included).
 - **Windows:** native.
 - **macOS:** nv-rs has no macOS build today. Its renderer is `d3d9-wgpu`, so Metal through wgpu
@@ -211,19 +216,19 @@ lock file and `cargo deny` allow-list, as in nvmod-rs today.
 
 ## 5. Conflicts with the proposed nv-linux ADRs
 
-| Brief asks | ADR says (proposed) | Recommendation |
+| Brief asks | ADR says (proposed) | Decided (2026-11-16) |
 |---|---|---|
-| Umbrella owns the product release (`raul`) | ADR-0007: the only user-facing release is nvmod | Supersede ADR-0007 rule 1: the user-facing release is `raul`; nvmod stays a released component |
-| GUI in the umbrella | ADR-0004: GUI is `nvmod-rs/gui/` | Move it (section 4.4); write the superseding ADR |
-| Components as path dependencies | ADR-0003/0005: tools meet over contracts and pinned releases, one runner for subprocesses | Link only nvmod and loot-rs (already linked today); run nv-rs and lodwright as processes |
-| Ship nv-rs and lodwright in the installer | ADR-0009: tools are never bundled, fetched by lock | Bundle: the submodule pins are the known-good set, so the installer is that set. Keep fetch-by-lock for updates between toolbox releases (question 4) |
-| macOS universal DMG | ADR-0009: macOS not supported | Superseded by the owner, 2026-11-16 |
-| `compat.toml` in the umbrella | `compat/matrix.toml` in nv-linux | Move `compat/`, `e2e/` and `release-gate.yml` here; nv-linux keeps the workshop (ADR-0004 already proposed splitting the workshop out) |
+| Umbrella owns the product release (`raul`) | ADR-0007: the only user-facing release is nvmod | Superseded by ADR-0001: the user-facing release is `raul`; nvmod stays a released Component. The Rolling channel amendment to ADR-0007 (nvmod-rs `docs/DECISIONS.md`) is kept |
+| GUI in the umbrella | ADR-0004: GUI is `nvmod-rs/gui/` | Moved (ADR-0003) |
+| Components as path dependencies | ADR-0003/0005: tools meet over contracts and pinned releases, one runner for subprocesses | Link only nvmod and loot-rs; run nv-rs, lodwright-rs and ttwright-rs as processes (ADR-0002) |
+| Ship nv-rs and lodwright in the installer | ADR-0009: tools are never bundled, fetched by lock | Bundle the Known-good set; opt-in fetch of newer known-good sets between releases (ADR-0005) |
+| macOS universal DMG | ADR-0009: macOS not supported | Superseded by ADR-0006 |
+| `compat.toml` in the umbrella | `compat/matrix.toml` in nv-linux | `known-good.toml` here; `compat/`, `e2e/` and `release-gate.yml` move here; nv-linux stays the workshop (ADR-0001) |
 | Shared crate for duplicated parsing | ADR-0004: no shared format crate yet; golden vectors by copy | Agree with ADR-0004 for now (section 6) |
 | Built-in update check | ADR-0010: pull-only, explicit, no identifier | Follow ADR-0010: opt-in, GitHub Releases API, no identifier sent |
 
-These ADRs are in nv-linux. The toolbox gets its own `docs/adr/` and the first ADRs record the
-superseding decisions, with a pull request to nv-linux marking the old ones superseded.
+The superseding decisions are ADRs 0001 to 0006 here; a pull request to nv-linux marks its 0004,
+0007 and 0009 superseded (coordinated with the nv-linux ticket move, section 8).
 
 ## 6. Overlap and dependency alignment
 
@@ -250,10 +255,10 @@ superseding decisions, with a pull request to nv-linux marking the old ones supe
   if nv-rs is built on every pull request**: nv-rs is 41 crates and its release build is several
   minutes per OS even when warm. So nv-rs and lodwright are built only when their pointer
   changes, in submodule-bump pull requests and in releases; ordinary pull requests use the release
-  binaries named by `compat.toml`.
+  binaries named by `known-good.toml`.
 - **Component sync.** Recommended: each component's release workflow sends a `repository_dispatch`
   to the toolbox (token from the estate release GitHub App), and a workflow here opens a pull
-  request bumping that submodule to the new tag and adding a candidate set to `compat.toml`; full
+  request bumping that submodule to the new tag and adding a candidate set to `known-good.toml`; full
   CI and the end-to-end run decide whether it becomes known-good. A `workflow_dispatch` input does
   the same by hand. Renovate's git-submodules manager is not chosen: it follows branch heads, not
   release tags, and estate crons fire unreliably. One pull request moves one component (ADR-0007
@@ -270,7 +275,8 @@ superseding decisions, with a pull request to nv-linux marking the old ones supe
 - **Releases:** `cargo-packager` for AppImage, `.tar.gz`, `.deb`, NSIS `.exe`, portable `.zip`
   and the universal `.app` in a `.dmg`. `SHA256SUMS`, CycloneDX SBOM (`cargo cyclonedx`),
   `actions/attest-build-provenance`. Signing only when the secrets exist; otherwise unsigned, and
-  the release notes say so. Release notes list the component versions from `compat.toml`. Each
+  the release notes say so; Windows signing is applied for through SignPath Foundation, Apple
+  signing is decided later. Release notes list the component versions from `known-good.toml`. Each
   artefact is smoke-tested (`raul --version`, GUI start under xvfb on Linux).
 
 ## 8. Migration plan
@@ -282,7 +288,7 @@ Each step is one pull request with one concern. Steps in a component repository 
    and `CONTRIBUTING.md`'s submodule workflow.
 2. Add the root `Cargo.toml` with an empty `raul-cli` printing `--version` plus the component
    versions; prove no "multiple workspace roots" error; add the loot-rs `[patch]`.
-3. Add `compat.toml` with the first known-good set and its check (ported from nv-linux `compat/`).
+3. Add `known-good.toml` with the first known-good set and its check (ported from nv-linux `compat/`).
 4. *(nvmod-rs, loot-rs, lodwright-rs, nv-rs)* Rust 1.100.0 and the 7-day registry cooldown, one
    pull request each.
 5. *(ttwright-rs)* Restructure into a workspace (`ttwright-core`, `ttwright-cli`, `ttwright-contract`,
@@ -317,19 +323,51 @@ Each step is one pull request with one concern. Steps in a component repository 
 frame-time log. These are the long poles; everything above works without them except the macOS
 launch step and in-engine benchmarks.
 
-## 9. Questions for the owner
+### Order across repositories (agreed with the nv-rs program coordinator, 2026-11-16)
 
-1. **Licence.** GPL-3.0-only for the toolbox (recommended, required if `raul` links nvmod or
-   loot-rs), or a permissive licence with subprocess-only integration?
-2. **GUI move.** Move `nvmod-rs/gui` here (recommended), or leave it in nvmod-rs and depend on it?
-3. **GUI toolkit.** Stay on GPUI with the egui canary (recommended), or switch to egui as the
-   product toolkit for simpler cross-platform builds and headless tests?
-4. **Bundling.** Ship nv-rs and lodwright binaries inside the installers (recommended), or keep
-   ADR-0009's fetch-by-lock only?
-5. **nv-linux.** Move `compat/`, `e2e/` and the release gate here and leave nv-linux as the
-   private workshop (recommended)?
-6. **Signing.** Apple Developer ID (about 99 USD a year) and Windows signing (paid certificate,
-   or the SignPath Foundation programme for open source, availability unverified) are paid or
-   application-based services. Spend, apply, or ship unsigned for now?
-7. **Benchmark history.** `github-action-benchmark` on `gh-pages` (free, recommended) or Bencher?
-8. **Name check.** Crate and binary names `raul`, `raul-*`: confirm before anything is published.
+- **nvmod-rs** (step 7, the `gui/` move in step 8, the toolchain in step 4): only after the nvmod-rs
+  0.6.0 Release test passes and nvmod-rs #65 is merged; nvmod-rs `main` is frozen for structural changes
+  from this side until then.
+- **nv-rs and lodwright-rs** (toolchain, `divan` benches): only after their 0.5.0 and 0.3.0 Release
+  tests. In nv-rs, every change to an upstream-owned file needs an allowed-divergence entry and a
+  `DIVERGENCE.md` row, or Verify sync fails; the default branch is `fork`.
+- **nv-linux moves** (`compat/`, `e2e/`, release gate, glossary pointer, superseding ADRs): agreed
+  with the coordinator first, because its ticket-move pull request rewrites the same documents.
+- **loot-rs** is owned by the owner's own agent: the toolchain step and the `[patch]` to
+  `components/loot-rs` wait for the owner.
+- No benchmark runs from this side while the coordinator holds the nv-rs bench lock.
+- Owner decisions carried over: the Nexus milestone comes before the Windows GUI job; the Engine
+  extension template repository is `JorisJonkers-dev/nv-rs-extension-template` (manifests at
+  `Data/NVRS/Extensions/<id>/nvext.toml`); the coverage gate is 70% of
+  changed lines on fork-owned crates.
+
+## 9. Decisions
+
+Settled with the owner on 2026-11-16. The ones that are hard to reverse are ADRs.
+
+| # | Decision | Record |
+|---|---|---|
+| 1 | `raul` links nvmod and loot-rs; nv-rs, lodwright-rs, ttwright-rs run as processes | ADR-0002 |
+| 2 | The GUI moves from nvmod-rs into the Toolbox; nvmod-rs keeps `nvmod-ui-model` and `nvmod-ui-service` | ADR-0003 |
+| 3 | `compat/`, `e2e/` and the release gate move here; nv-linux stays the private workshop | ADR-0001 |
+| 4 | Installers bundle the Known-good set | ADR-0005 |
+| 5 | Licence GPL-3.0-only | `LICENSE`, ADR-0002 |
+| 6 | GPUI with the egui canary; Linux smoke test under xvfb + lavapipe, egui as fallback | ADR-0003 |
+| 7 | Hybrid service seam: reads in process, risky writes as a `raul` subprocess | ADR-0003 |
+| 8 | Unsigned for now with a clear note; apply to SignPath Foundation; Apple later | ADR-0006 |
+| 9 | Decisions and glossary live in the Toolbox; nv-linux 0004, 0007, 0009 marked superseded | ADR-0001 |
+| 10 | Newer sets between releases: opt-in, known-good only, verified; nv-rs Rolling channel kept | ADR-0005 |
+| 11 | Launch only where nv-rs is native; no Proton, Wine or CrossOver | ADR-0006 |
+| 12 | Benchmark history: `github-action-benchmark` on `gh-pages`, warnings only | section 7 |
+| 13 | One `raul` binary: no arguments opens the GUI, a command runs the CLI | ADR-0004 |
+| 14 | The glossary moves here and is canonical; "Component" means one of the five pinned projects | `GLOSSARY.md` |
+| 15 | Releases on demand; only the latest is supported | ADR-0001 |
+| 16 | Raul's voice across the whole GUI, plain detail under every error; CLI and logs plain | ADR-0003 |
+| 17 | macOS 13+ universal, Windows 10 22H2/11 x64, Linux glibc 2.35+ (Wayland and X11) | ADR-0006 |
+| 18 | CLI-only `raul` from the main workspace for CI, benches and headless use | ADR-0004 |
+| 19 | The set file is `known-good.toml` | `GLOSSARY.md` |
+| 20 | Two workspaces build the same `raul`; a test keeps their commands equal | ADR-0004 |
+
+Still open: whether nvmod-rs `docs/DECISIONS.md`'s 2026-11-16 row "the GUI shells out to the nvmod
+CLI with `--json`" is amended to point at ADR-0003 once the GUI has moved (an nvmod-rs pull request,
+after 0.6.0).
