@@ -308,3 +308,97 @@ mod tests {
         assert!(toml::from_str::<Settings>("[output]\nsky = true\n").is_err());
     }
 }
+
+/// The Contract name of the result of `raul lod generate`.
+pub const CONTRACT: &str = "raul-lod-result";
+
+/// The version of that result this build prints.
+pub const SCHEMA_VERSION: u32 = 1;
+
+/// The Mod the LOD output becomes.
+pub const MOD_NAME: &str = "LOD (lodwright)";
+
+/// The result of `raul lod generate` (Contract `raul-lod-result`, version 1), carried by the `result` event.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct LodResult {
+    /// The document version; 1.
+    #[schemars(extend("const" = 1))]
+    pub schema_version: u32,
+    /// Always `raul-lod-result`.
+    #[schemars(extend("const" = "raul-lod-result"))]
+    pub contract: String,
+    /// How the run ended; the same as the `finished` event's.
+    pub status: crate::events::Status,
+    /// lodwright found its earlier output current for the same request and inputs and wrote nothing, and the Mod
+    /// was already there: nothing changed.
+    pub up_to_date: bool,
+    /// A dry run: the request was built and checked, and nothing was run or written.
+    pub dry_run: bool,
+    /// The Instance.
+    pub instance: PathBuf,
+    /// The Profile.
+    pub profile: String,
+    /// The LOD Mod (`LOD (lodwright)`), or `null` when the run did not get that far.
+    #[serde(rename = "mod")]
+    pub mod_name: Option<String>,
+    /// Files in the Mod, or `null` when no Mod was written.
+    pub files: Option<u64>,
+    /// The worlds the request names; empty for every world with terrain.
+    pub worlds: Vec<String>,
+    /// The request file passed to lodwright, or `null` when none was written.
+    pub request: Option<PathBuf>,
+    /// The lodwright program that ran, or `null` when none did.
+    pub tool: Option<crate::events::ToolInfo>,
+    /// The `lodwright-result` document lodwright printed, as it printed it, or `null` when it printed none.
+    pub lodwright: Option<Value>,
+    /// Set unless the status is `success`.
+    pub error: Option<LodError>,
+}
+
+/// Why `raul lod generate` did not succeed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct LodError {
+    /// The stable code callers match on.
+    pub code: LodErrorCode,
+    /// For `lodwright_failed` and `unsupported`: lodwright's own `code`, for example `output_not_empty`.
+    pub lodwright_code: Option<String>,
+    /// Prose for people; never matched on.
+    pub message: String,
+}
+
+/// The stable error codes of `raul lod generate`. The exit code of each is in `contracts/README.md`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum LodErrorCode {
+    /// The Instance does not exist or cannot be opened (exit code 2).
+    InstanceInvalid,
+    /// The Profile does not exist (exit code 2).
+    ProfileMissing,
+    /// No request can be built from the Profile: no Load order, no Staging tree, settings that cannot be read, or
+    /// an output folder lodwright refuses (exit code 2).
+    PlanRefused,
+    /// No lodwright program: none is bundled next to `raul` and `--lodwright` was not given (exit code 2).
+    ToolMissing,
+    /// The lodwright program changed between its checksum and its start (exit code 3); it was not started.
+    ToolUnverifiable,
+    /// lodwright could not be started, ended without a result, or printed one that is not a `lodwright-result`
+    /// (exit code 4).
+    ToolFailed,
+    /// lodwright printed a `lodwright-result` or left a manifest of a version this build does not read (exit
+    /// code 2).
+    ContractRefused,
+    /// lodwright ran and failed (its exit code 1 or 2; exit code 4); `lodwright_code` says why.
+    LodwrightFailed,
+    /// lodwright cannot do what the request asks yet (its exit code 3; exit code 2). Nothing was written.
+    Unsupported,
+    /// The run was cancelled (exit code 4); the Instance is as it was.
+    Cancelled,
+    /// lodwright succeeded but putting its output into the Instance failed and was rolled back (exit code 4).
+    AddModFailed,
+}
+
+/// The JSON Schema of [`LodResult`], as `contracts/raul-lod-result.v1.json` holds it.
+#[must_use]
+pub fn schema() -> String {
+    crate::schema_text(&schemars::schema_for!(LodResult))
+}

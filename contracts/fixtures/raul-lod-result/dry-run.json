@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "contract": "raul-lod-result",
+  "status": "success",
+  "up_to_date": false,
+  "dry_run": true,
+  "instance": "/users/player/raul-storage/instance",
+  "profile": "Default",
+  "mod": null,
+  "files": null,
+  "worlds": [
+    "SyntheticWorld"
+  ],
+  "request": "/users/player/raul-storage/instance/.raul/lod/request.json",
+  "tool": null,
+  "lodwright": null,
+  "error": null
+}
