@@ -1,0 +1,5 @@
+# ADR-0007: every process the Toolbox starts goes through raul-runner, the only crate that may start one. The guard
+# test crates/raul-runner/tests/no_command_elsewhere.rs catches the ways around this lint.
+disallowed-methods = [
+    { path = "std::process::Command::new", reason = "start programs through raul_runner::Runner (ADR-0007); integration tests that run the built binary allow this lint" },
+]

@@ -50,7 +50,7 @@ pub fn start_program(
     attached: bool,
     log: Option<&Path>,
 ) -> Result<Started, String> {
-    // The one place nvmod starts a long-lived program (ADR-0005).
+    // The one place the Toolbox starts a long-lived program (ADR-0007).
     #[allow(clippy::disallowed_methods)]
     let mut command = Command::new(program);
     command.args(args).envs(env).current_dir(cwd);
