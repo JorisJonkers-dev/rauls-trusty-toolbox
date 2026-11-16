@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794845958806,
+  "lastUpdate": 1794848036132,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -293,6 +293,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.918813999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9275a2de97497ffc93391a31e0638857a98ace07",
+          "message": "docs(adr): lodwright-rs moves to GPL-3.0-only from its next release (#104)",
+          "timestamp": "2026-11-16T17:52:37+01:00",
+          "tree_id": "81a42cd06e6b29fecd7fbb3b6d266e94870ac390",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/9275a2de97497ffc93391a31e0638857a98ace07"
+        },
+        "date": 1794848035474,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.601858,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 24.494054000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 253.94218600000002,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.403058,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.047341,
             "unit": "ms"
           }
         ]
