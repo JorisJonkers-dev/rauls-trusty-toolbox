@@ -3,7 +3,7 @@
 # true` inheritance. crates/raul-gui is a nested workspace with its own lock file (ADR-0004).
 [workspace]
 resolver = "3"
-members = ["crates/raul-core", "crates/raul-cli"]
+members = ["crates/raul-core", "crates/raul-cli", "crates/raul-bench"]
 exclude = ["components", "crates/raul-gui"]
 
 [workspace.package]
@@ -24,6 +24,9 @@ pedantic = { level = "warn", priority = -1 }
 
 [workspace.dependencies]
 raul-core = { path = "crates/raul-core" }
+raul-bench = { path = "crates/raul-bench" }
+# The same source and tag nvmod v0.5.0 links, so Cargo builds one copy (known-good.toml checks the version).
+loot-rs = { git = "https://github.com/JorisJonkers-dev/loot-rs", tag = "v0.2.0" }
 nvmod-cli = { path = "components/nvmod-rs/crates/nvmod-cli" }
 nvmod-instance = { path = "components/nvmod-rs/crates/nvmod-instance" }
 nvmod-pe = { path = "components/nvmod-rs/crates/nvmod-pe" }

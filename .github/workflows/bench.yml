@@ -1,0 +1,104 @@
+# Benchmarks (docs/PLAN.md, Phase 4; decision 12). On a pull request labelled `bench` it runs `raul bench` on main
+# and on the head in the same job, so both numbers come from one machine, and posts the comparison as a comment.
+# On main it adds the run to the history on the gh-pages branch (github-action-benchmark). Shared runners are
+# noisy, so a slower case is a warning in the comment and in the history, never a failed check.
+#
+# This is the one workflow that reacts to a label: adding `bench` is how a person asks for a run. It is not a
+# required check and does not touch CI.
+name: Bench
+
+on:
+  pull_request:
+    types: [labeled]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  compare:
+    if: ${{ github.event_name == 'pull_request' && github.event.label.name == 'bench' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          path: base
+          submodules: recursive
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: head
+          submodules: recursive
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: |
+            base
+            head
+      - name: Bench main
+        working-directory: base
+        run: cargo run --release --locked -p raul-cli -- bench --out "$RUNNER_TEMP/base"
+      - name: Bench head
+        working-directory: head
+        run: cargo run --release --locked -p raul-cli -- bench --out "$RUNNER_TEMP/head"
+      - name: Compare
+        working-directory: head
+        run: |
+          {
+            echo "## raul bench: main vs this pull request"
+            echo
+            cargo run --release --locked -p raul-cli -- bench compare "$RUNNER_TEMP/base/bench.json" "$RUNNER_TEMP/head/bench.json" --threshold 10
+            echo
+            echo "<details><summary>Full report (head)</summary>"
+            echo
+            cat "$RUNNER_TEMP/head/bench.md"
+            echo
+            echo "</details>"
+          } > "$RUNNER_TEMP/comment.md"
+      - name: Post the comparison
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/comment.md"
+
+  history:
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Bench
+        run: cargo run --release --locked -p raul-cli -- bench --out "$RUNNER_TEMP/bench"
+      - name: Convert for github-action-benchmark
+        run: |
+          jq '[.results[] | {name, unit: "ms", value: .median_ms}]' "$RUNNER_TEMP/bench/bench.json" > "$RUNNER_TEMP/history.json"
+      - uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
+        with:
+          name: raul bench
+          tool: customSmallerIsBetter
+          output-file-path: ${{ runner.temp }}/history.json
+          gh-pages-branch: gh-pages
+          benchmark-data-dir-path: bench
+          github-token: ${{ github.token }}
+          auto-push: true
+          alert-threshold: "125%"
+          comment-on-alert: false
+          fail-on-alert: false
