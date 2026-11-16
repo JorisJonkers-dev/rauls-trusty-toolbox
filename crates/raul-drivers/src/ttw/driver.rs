@@ -655,3 +655,106 @@ pub fn bundled(exe_dir: &Path, name: &str) -> Option<PathBuf> {
     }
     candidates.into_iter().find(|c| c.is_file())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nvmod_testkit::{TempDir, write_file};
+
+    #[test]
+    fn a_bundled_program_is_found_in_each_package_layout() {
+        let file = format!("{TTWRIGHT}{}", std::env::consts::EXE_SUFFIX);
+        for layout in [
+            "app/components",
+            "Contents/Resources/components",
+            "usr/lib/raul/components",
+        ] {
+            let root = TempDir::new("raul-bundled");
+            write_file(root.path(), &format!("{layout}/{file}"), b"x");
+            let exe_dir = match layout {
+                "app/components" => root.path().join("app"),
+                "Contents/Resources/components" => root.path().join("Contents/MacOS"),
+                _ => root.path().join("usr/bin"),
+            };
+            std::fs::create_dir_all(&exe_dir).unwrap();
+            let found = bundled(&exe_dir, TTWRIGHT).expect(layout);
+            assert!(found.ends_with(format!("components/{file}")), "{layout}");
+        }
+        let empty = TempDir::new("raul-bundled-none");
+        assert_eq!(bundled(empty.path(), TTWRIGHT), None);
+    }
+
+    #[test]
+    fn every_status_has_its_exit_code() {
+        for (status, code) in [
+            (Status::Success, 0),
+            (Status::Refused, 2),
+            (Status::Unsupported, 2),
+            (Status::Unverifiable, 3),
+            (Status::Failed, 4),
+            (Status::Cancelled, 4),
+        ] {
+            assert_eq!(exit_code(status), code, "{status:?}");
+        }
+    }
+
+    #[test]
+    fn the_event_tail_reads_whole_lines_and_warns_once_about_a_newer_version() {
+        let dir = TempDir::new("raul-tail");
+        let file = dir.path().join("events.ndjson");
+        let mut tail = EventTail::new(file.clone());
+        let mut seen = Vec::new();
+        tail.drain(&mut |e| seen.push(e), false);
+        assert!(seen.is_empty(), "no file yet");
+        std::fs::write(
+            &file,
+            concat!(
+                "{\"schema_version\":1,\"event\":\"phase\",\"phase\":\"assets\"}\n",
+                "not json\n",
+                "{\"schema_version\":2,\"event\":\"phase\",\"phase\":\"x\"}\n",
+                "{\"schema_version\":3,\"event\":\"phase\",\"phase\":\"y\"}\n",
+                "{\"schema_version\":1,\"event\":\"progress\",\"phase\":\"assets\",\"done\":1,\"of\":2}\n",
+                "{\"schema_version\":1,\"event\":\"warning\",\"message\":\"w\"}\n",
+                "{\"schema_version\":1,\"event\":\"phase\",\"pha",
+            ),
+        )
+        .unwrap();
+        tail.drain(&mut |e| seen.push(e), false);
+        assert_eq!(seen.len(), 4, "{seen:?}");
+        assert!(matches!(&seen[0], Event::Phase { phase } if phase == "assets"));
+        assert!(matches!(&seen[1], Event::Warning { message } if message.contains("version 2")));
+        assert!(matches!(&seen[2], Event::Progress { done: 1, of: 2, .. }));
+        assert!(matches!(&seen[3], Event::Warning { message } if message == "w"));
+        // The unfinished line is completed by a later write.
+        let mut f = std::fs::OpenOptions::new()
+            .append(true)
+            .open(&file)
+            .unwrap();
+        std::io::Write::write_all(&mut f, b"se\":\"post_install\"}").unwrap();
+        tail.drain(&mut |e| seen.push(e), true);
+        assert!(matches!(&seen[4], Event::Phase { phase } if phase == "post_install"));
+    }
+
+    #[test]
+    fn a_result_of_another_contract_or_without_a_version_is_a_tool_failure() {
+        for doc in [
+            "{\"contract\":\"lodwright-result\",\"schema_version\":1}",
+            "{\"contract\":\"ttwright-result\"}",
+            "{\"contract\":\"ttwright-result\",\"schema_version\":0}",
+        ] {
+            let (status, code, _) = read_result(doc.as_bytes()).unwrap_err();
+            assert_eq!(
+                (status, code),
+                (Status::Failed, TtwErrorCode::ToolFailed),
+                "{doc}"
+            );
+        }
+        let (status, code, _) =
+            read_result(b"{\"contract\":\"ttwright-result\",\"schema_version\":2}").unwrap_err();
+        assert_eq!(
+            (status, code),
+            (Status::Refused, TtwErrorCode::ContractRefused)
+        );
+        assert!(read_result(b"{\"contract\":\"ttwright-result\",\"schema_version\":1}").is_ok());
+    }
+}

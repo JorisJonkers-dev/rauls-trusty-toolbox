@@ -165,9 +165,19 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
         seq: 0,
         last_percent: None,
     };
+    // Paths in the result are absolute, whatever the working folder was.
+    let absolute = |p: PathBuf| std::path::absolute(&p).unwrap_or(p);
+    for path in [
+        &mut req.fallout3,
+        &mut req.newvegas,
+        &mut req.package,
+        &mut req.ttwright,
+    ] {
+        *path = path.take().map(absolute);
+    }
     let outcome = match instance.or_else(|| from_config(Key::Instance)) {
         Some(dir) => {
-            req.instance = dir;
+            req.instance = absolute(dir);
             ttw::install(&req, &mut |e| printer.emit(e))
         }
         None => ttw::refused(
