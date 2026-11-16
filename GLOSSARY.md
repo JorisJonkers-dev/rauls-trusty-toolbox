@@ -140,6 +140,20 @@ _Avoid_: Launcher (that word is for starting the game), executor
 A ticket kept open but outside every milestone until the condition written on it is met.
 _Avoid_: Backlog, wontfix, someday
 
+### Interface
+
+**Install skin**:
+The opt-in setting that reads interface icons and fonts from the player's own game install at run time, never shipped or uploaded (ADR-0014).
+_Avoid_: Theme (themes are the Toolbox's own: dark and high contrast), mod skin
+
+**TTW bundle**:
+The one row in Mods that stands for an installed TTW, which can be switched on and off as a whole.
+_Avoid_: TTW mod (it is many files from the player's own games, not one downloaded mod)
+
+**Attention chip**:
+A small count with an icon that says a page needs a look; the sidebar, Home and Doctor show the same ones.
+_Avoid_: Badge, notification (notifications are transient messages)
+
 ### Observability
 
 **Run log**:

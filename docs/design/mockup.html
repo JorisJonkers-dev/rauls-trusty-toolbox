@@ -1,0 +1,777 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<!-- Raul's Trusty Toolbox: GUI mockup. Information architecture:
+     Play group (Home, Mods incl. TTW, Load order, LOD) and System group (Versions, Doctor, Settings).
+     One continuous dark surface, hairline separators, hand-drawn Fallout-style line icons, notification chips.
+     Self-contained: no network, no bundled fonts, no game or mod files. All data is invented.
+     Deep links: #home #mods #order #lod #versions #doctor #prefs ; no hash = first-run setup. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Raul's Trusty Toolbox</title>
+<style>
+:root{
+  /* every text colour is at least 4.5:1 on --bg, --raise and --sel (checked) */
+  --bg:#101215; --raise:#171A1F; --sel:#1F2530; --hover:#1A1D23;
+  --line:#2F353F;          /* hairline separators */
+  --ctl:#5C6570;           /* input and button borders, 3.2:1 */
+  --text:#E6E8EB; --muted:#98A1AC;
+  --accent:#3DD6C6; --on-accent:#101215;   /* primary actions, active nav, links */
+  --brand:#F59E3B;         /* Raul's amber: logo, Raul's name, section ticks. Never a status. */
+  --ok:#4CC38A; --warn:#F2A93B; --err:#F26B6B; --info:#6EA8FE;
+  --ui:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif;
+  --mono:ui-monospace,"JetBrains Mono","Cascadia Mono","DejaVu Sans Mono",monospace;
+  --fs:14px; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:400 var(--fs)/1.55 var(--ui);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:8px;top:-40px;z-index:20;background:var(--accent);color:var(--on-accent);padding:6px 10px;border-radius:6px}
+.skip:focus{top:8px}
+.mono,.ver{font-family:var(--mono);font-size:.92em;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+:focus:not(:focus-visible){outline:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.ico{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-columns:224px minmax(0,1fr);grid-template-rows:auto 1fr auto;min-height:100vh}
+.top{grid-column:1/-1;display:flex;align-items:center;gap:16px;padding:0 20px;height:52px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:9px;margin:0;font-weight:650;font-size:.98rem;white-space:nowrap}
+.brand .ico{color:var(--brand);width:20px;height:20px}
+.brand small{color:var(--muted);font-weight:500}
+.setup{display:flex;align-items:center;min-width:0;flex:1;gap:2px}
+.setup button{display:flex;align-items:center;gap:7px;background:none;border:0;padding:6px 10px;border-radius:6px;cursor:pointer;color:var(--muted);min-width:0}
+.setup button:hover{background:var(--hover);color:var(--text)}
+.setup button .v{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.setup button .ico{width:16px;height:16px}
+.setup button .k{font-size:.8rem}
+.setup .sep{width:1px;height:18px;background:var(--line)}
+.caret{width:12px!important;height:12px!important}
+.search{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:5px 10px;background:none;color:var(--muted);cursor:pointer;min-width:190px}
+.search:hover{border-color:var(--ctl);color:var(--text)}
+.search kbd{margin-left:auto}
+.side{border-right:1px solid var(--line);padding:12px 10px;display:flex;flex-direction:column}
+.grp{margin:12px 10px 4px;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.grp:first-child{margin-top:2px}
+.nav{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+.nav a{position:relative;display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:6px;color:var(--muted);text-decoration:none}
+.nav a:hover{background:var(--hover);color:var(--text)}
+.nav a[aria-current="page"]{background:var(--sel);color:var(--text);font-weight:550}
+.nav a[aria-current="page"]::before{content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.nav .chipn{margin-left:auto}
+.side .ver-foot{margin-top:auto;padding:10px;color:var(--muted);font-size:.8rem}
+main{padding:22px 32px 32px;min-width:0}
+.foot{grid-column:1/-1;display:flex;gap:16px;align-items:center;padding:0 20px;height:32px;border-top:1px solid var(--line);font-size:.84rem;color:var(--muted)}
+.foot .msg{color:var(--text);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+kbd{font-family:var(--mono);font-size:.8em;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--text)}
+/* ---------- notification chips ---------- */
+.chipn{display:inline-flex;align-items:center;gap:4px;font-size:.78rem;font-weight:600;line-height:1;padding:3px 6px;border-radius:999px;font-variant-numeric:tabular-nums;background:color-mix(in srgb,currentColor 16%,transparent)}
+.chipn .ico{width:12px;height:12px;stroke-width:2.2}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)} .info{color:var(--info)} .mut{color:var(--muted)}
+.alerts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px;padding:0;list-style:none}
+.alerts button{display:inline-flex;align-items:center;gap:7px;border:0;cursor:pointer;padding:6px 12px;border-radius:999px;font-weight:550;background:color-mix(in srgb,currentColor 13%,transparent)}
+.alerts button:hover{background:color-mix(in srgb,currentColor 22%,transparent)}
+.alerts .ico{width:15px;height:15px;stroke-width:2}
+.alerts .lbl{color:var(--text)}
+/* ---------- page header ---------- */
+.ph{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.ph .t{display:flex;align-items:center;gap:12px}
+.ph .t>.ico{width:28px;height:28px;color:var(--brand);stroke-width:1.4}
+.ph h1{margin:0;font-size:1.4rem;font-weight:650;letter-spacing:-.01em}
+.ph p{margin:0;color:var(--muted)}
+.tools{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* retro callback 1 of 3: bracket-tick section labels */
+.sec{display:flex;align-items:center;gap:10px;margin:28px 0 6px;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.sec::before{content:"";width:9px;height:6px;border-left:2px solid var(--brand);border-top:2px solid var(--brand)}
+.sec .more{margin-left:auto;letter-spacing:0;text-transform:none;font-weight:500}
+.sec:first-child{margin-top:0}
+/* ---------- controls ---------- */
+.btn{border:1px solid var(--ctl);background:transparent;border-radius:6px;padding:6px 12px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;font-weight:500}
+.btn:hover{background:var(--sel)}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:600}
+.btn.primary:hover{background:color-mix(in srgb,var(--accent) 85%,#fff)}
+.btn.ghost{border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--text)}
+.btn.danger{color:var(--err);border-color:color-mix(in srgb,var(--err) 55%,var(--ctl))}
+.btn.sm{padding:3px 10px;font-size:.88rem}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.4;cursor:not-allowed}
+.btn .ico{width:16px;height:16px}
+input[type=text],input[type=search],select{background:var(--raise);border:1px solid var(--ctl);border-radius:6px;padding:6px 10px;min-width:0}
+input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px;margin:0;vertical-align:middle}
+label.inl{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--muted)}
+/* ---------- lists (hairlines, no boxes) ---------- */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:.78rem;color:var(--muted);font-weight:500;padding:8px 12px;border-bottom:1px solid var(--line)}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tbody tr.sel-able{cursor:pointer}
+.tbl tbody tr.sel-able:hover td{background:var(--hover)}
+.tbl tbody tr[aria-selected="true"] td{background:var(--sel)}
+.tbl tbody tr[aria-selected="true"] td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.tbl .num{text-align:right;font-variant-numeric:tabular-nums}
+.tbl .act{text-align:right;white-space:nowrap}
+.tbl .sub{display:block;color:var(--muted);font-size:.86rem}
+.tbl .sub.err{color:var(--err)}
+.st{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.st .ico{width:15px;height:15px;stroke-width:2}
+.split{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);align-items:start}
+.split>.detail{border-left:1px solid var(--line);padding:4px 0 0 24px;margin-left:24px;position:sticky;top:12px}
+.detail h2{margin:0 0 4px;font-size:1.12rem;font-weight:600}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;margin:12px 0}
+.facts dt{color:var(--muted)} .facts dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.note{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.note:last-child{border-bottom:0}
+.note .ico{width:16px;height:16px;margin-top:2px;stroke-width:2}
+.note .d{display:block;color:var(--muted);font-size:.9rem}
+.raul{display:flex;gap:10px;align-items:baseline;color:var(--muted);margin:0 0 4px}
+.raul b{color:var(--brand);font-weight:600;font-size:.76rem;letter-spacing:.1em;text-transform:uppercase}
+.meter{height:6px;background:var(--sel);border-radius:3px;overflow:hidden;min-width:80px;flex:1}
+.meter i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s linear;border-radius:3px}
+.reduce .meter i{transition:none}
+.prog{display:flex;align-items:center;gap:10px}
+.prog .pct{font-family:var(--mono);font-size:.85rem;color:var(--muted);min-width:3.5ch;text-align:right}
+.empty{color:var(--muted);padding:20px;text-align:center}
+.rows{list-style:none;margin:0;padding:0}
+.rows li{display:flex;gap:14px;align-items:center;padding:11px 2px;border-bottom:1px solid var(--line)}
+.rows .ico.s{width:18px;height:18px;stroke-width:2}
+.rows .what{flex:1;min-width:0}
+.rows .st{min-width:104px}
+.rows .rowact{min-width:86px;text-align:right}
+.rows .what span{display:block;color:var(--muted);font-size:.9rem;overflow-wrap:anywhere}
+/* home */
+.home{display:grid;grid-template-columns:minmax(0,1fr) 300px}
+.home>.launch{border-left:1px solid var(--line);margin-left:28px;padding-left:28px}
+.bigplay{width:100%;justify-content:center;padding:12px 18px;font-size:1.05rem;margin:14px 0 6px}
+.why{font-size:.88rem;color:var(--err);display:flex;gap:6px;align-items:center}
+/* TTW band on Mods */
+.ttw{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.ttw .ico.big{width:26px;height:26px;color:var(--brand);stroke-width:1.4}
+.ttw .what{flex:1;min-width:220px}
+.ttw .what span{display:block;color:var(--muted);font-size:.9rem}
+.ttw .prog{min-width:220px;flex:1}
+.pin td:first-child{box-shadow:inset 3px 0 0 var(--brand)}
+/* settings */
+.form{display:grid;grid-template-columns:220px minmax(0,1fr)}
+.form>div{padding:12px 0;border-bottom:1px solid var(--line);min-width:0}
+.form .lbl{font-weight:550;padding-right:16px}
+.form .lbl small{display:block;font-weight:400;color:var(--muted)}
+.field{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.field input[type=text]{flex:1;min-width:180px}
+.field .st{min-width:92px}
+.seg{display:inline-flex;border:1px solid var(--ctl);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:5px 12px;cursor:pointer;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--sel);color:var(--text);font-weight:550;box-shadow:inset 0 -2px 0 var(--accent)}
+.tag{font-size:.75rem;font-weight:600;padding:1px 6px;border-radius:4px;background:var(--sel);color:var(--muted);margin-left:8px;font-family:var(--ui)}
+.mv-up{color:var(--ok);display:inline-flex;align-items:center;gap:4px} .mv-down{color:var(--warn);display:inline-flex;align-items:center;gap:4px}
+/* dialogs */
+.scrim{position:fixed;inset:0;background:rgba(5,6,8,.72);display:none;align-items:flex-start;justify-content:center;padding:8vh 16px;z-index:10}
+.scrim.open{display:flex}
+.dlg{background:var(--raise);border:1px solid var(--line);border-radius:12px;width:min(640px,100%);padding:20px 22px;max-height:84vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.dlg h2{margin:0 0 14px;font-size:1.1rem;font-weight:600;display:flex;align-items:center;gap:10px}
+.dlg h2 .ico{color:var(--brand)}
+.steps{display:flex;list-style:none;margin:0 0 18px;padding:0;gap:6px}
+.steps li{flex:1;padding:6px 2px 8px;font-size:.86rem;color:var(--muted);border-bottom:2px solid var(--line);display:flex;gap:6px;align-items:center}
+.steps li[aria-current="step"]{color:var(--text);font-weight:550;border-bottom-color:var(--accent)}
+.steps li.done{color:var(--text);border-bottom-color:var(--ok)}
+.steps li .ico{width:14px;height:14px;color:var(--ok);stroke-width:2.2}
+.dlg-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.dlg .form{grid-template-columns:150px minmax(0,1fr)}
+.pal input{width:100%;margin-bottom:8px;padding:9px 12px}
+.pal ul{list-style:none;margin:0;padding:0}
+.pal li{padding:7px 10px;border-radius:6px;cursor:pointer}
+.pal li[aria-selected="true"]{background:var(--sel);box-shadow:inset 3px 0 0 var(--accent)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;align-items:center}
+pre.diff{font-family:var(--mono);font-size:.86rem;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px 12px;overflow:auto;margin:8px 0}
+/* wizard: same shell as the app (top bar, rail, content, foot bar) */
+.wz{display:grid;grid-template-columns:224px minmax(0,1fr);grid-template-rows:auto 1fr auto;min-height:100vh}
+.wz .top{gap:14px}
+.wz .top .where{color:var(--muted);display:flex;align-items:center;gap:10px;min-width:0}
+.wz .top .where b{color:var(--text);font-weight:550}
+.wz .top .skip-w{margin-left:auto}
+.wrail{border-right:1px solid var(--line);padding:18px 10px;display:flex;flex-direction:column;gap:2px}
+.wrail ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.wrail li{position:relative;display:flex;gap:11px;align-items:flex-start;padding:9px 10px;border-radius:6px;color:var(--muted)}
+.wrail li .ico{margin-top:1px}
+.wrail li .lbl{display:flex;flex-direction:column;min-width:0}
+.wrail li .lbl small{font-size:.8rem;color:var(--muted)}
+.wrail li .tick{margin-left:auto;margin-top:2px}
+.wrail li.done{color:var(--text)}
+.wrail li.done .tick{color:var(--ok)}
+.wrail li[aria-current="step"]{background:var(--sel);color:var(--text);font-weight:550}
+.wrail li[aria-current="step"]::before{content:"";position:absolute;left:-10px;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.wrail li[aria-current="step"] .ico:first-child{color:var(--brand)}
+.wrail .hint{margin-top:auto;padding:10px;font-size:.8rem;color:var(--muted)}
+.wmain{padding:28px 36px 32px;min-width:0;max-width:820px}
+.wmain .card{border-top:1px solid var(--line);padding-top:18px;margin-top:4px}
+.wmain .field{margin:4px 0 12px}
+.wmain .field input[type=text]{flex:1;min-width:220px}
+.wopt{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:6px 0 14px}
+.wopt label{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:8px;cursor:pointer;color:var(--text)}
+.wopt label:hover{border-color:var(--ctl)}
+.wopt label:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.wopt input{margin-top:3px}
+.wopt small{display:block;color:var(--muted);font-size:.86rem}
+.wfoot{grid-column:1/-1;display:flex;gap:10px;align-items:center;padding:10px 20px;border-top:1px solid var(--line)}
+.wfoot .count{color:var(--muted);font-size:.86rem;display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.wfoot .count .meter{max-width:180px}
+.demo-tools{margin-top:22px;font-size:.84rem;color:var(--muted);display:flex;gap:6px;align-items:center}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .top{height:auto;flex-wrap:wrap;padding:8px 14px;gap:8px}
+  .setup{order:3;flex-basis:100%;flex-wrap:wrap}
+  .setup .sep,.search{display:none}
+  .setup button .v{max-width:200px}
+  .side{border-right:0;border-bottom:1px solid var(--line);padding:6px 8px;flex-direction:row;flex-wrap:wrap}
+  .grp,.side .ver-foot{display:none}
+  .nav{flex-direction:row;flex-wrap:wrap}
+  .nav a{padding:6px 8px;gap:7px}
+  .nav a[aria-current="page"]::before{left:8px;right:8px;top:auto;bottom:0;width:auto;height:2px;border-radius:2px}
+  .split,.home{grid-template-columns:minmax(0,1fr)}
+  .split>.detail,.home>.launch{border-left:0;margin-left:0;padding-left:0;border-top:1px solid var(--line);margin-top:18px;padding-top:18px;position:static}
+  .form,.dlg .form{grid-template-columns:minmax(0,1fr)}
+  .form>div.lbl{border-bottom:0;padding-bottom:0}
+  .hide-s{display:none}
+  main{padding:16px 16px 24px}
+  .wz{grid-template-columns:minmax(0,1fr)}
+  .wz .top{height:auto;flex-wrap:wrap;padding:8px 16px}
+  .wrail{border-right:0;border-bottom:1px solid var(--line);padding:8px 16px}
+  .wrail ol{flex-direction:row;gap:4px}
+  .wrail li{flex:1;padding:6px 4px;justify-content:center}
+  .wrail li .lbl,.wrail li .tick,.wrail .hint{display:none}
+  .wrail li[aria-current="step"]::before{left:6px;right:6px;top:auto;bottom:0;width:auto;height:2px;border-radius:2px}
+  .wmain{padding:18px 16px 24px}
+  .wopt{grid-template-columns:minmax(0,1fr)}
+  .wfoot{padding:10px 16px;flex-wrap:wrap}
+  .foot .k{display:none}
+  .tbl td,.tbl th{padding:8px 8px}
+  .tbl .act{white-space:normal;text-align:right}
+  .tbl .act .btn{margin:2px 0}
+  .tbl .ver{white-space:nowrap}
+}
+@media (prefers-reduced-motion:reduce){.meter i{transition:none}}
+@media (forced-colors:active){.ico{stroke:CanvasText}.chipn,.alerts button{border:1px solid CanvasText}}
+</style>
+</head>
+<body>
+<a class="skip" href="#view">Skip to content</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- Fallout-style line icons, hand-drawn for this demo from generic shapes (no game art). GPL-3.0-only. -->
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.5 3.5a5 5 0 0 0 6 6.5L10 20.5a2.1 2.1 0 0 1-3-3L17.5 7a5 5 0 0 0-3-3.5z"/><path d="M15.5 3.5l-1 3 3 3 3-1"/></symbol>
+  <symbol id="i-vault" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"/><path d="M11 10.2l3 1.8-3 1.8z"/></symbol>
+  <symbol id="i-crate" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="1"/><path d="M3 11h18 M8 11v9 M16 11v9 M6 7l2-3h8l2 3"/></symbol>
+  <symbol id="i-tape" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5" rx="1"/><rect x="3" y="10" width="18" height="5" rx="1"/><rect x="3" y="16" width="18" height="5" rx="1"/><path d="M6 6.5h4 M6 12.5h4 M6 18.5h4"/></symbol>
+  <symbol id="i-mojave" viewBox="0 0 24 24"><circle cx="17" cy="7" r="2.5"/><path d="M2 20l6-9 4 5 3-3 7 7z"/></symbol>
+  <symbol id="i-radio" viewBox="0 0 24 24"><path d="M12 10l-4 11 M12 10l4 11 M9.5 17h5"/><circle cx="12" cy="8" r="1.6"/><path d="M8.5 4.5a5 5 0 0 0 0 7 M15.5 4.5a5 5 0 0 1 0 7 M6 2.5a8.5 8.5 0 0 0 0 11 M18 2.5a8.5 8.5 0 0 1 0 11"/></symbol>
+  <symbol id="i-stim" viewBox="0 0 24 24"><path d="M14 4l6 6 M17 7l-9 9-3 1 1-3 9-9 M11 7l6 6 M3 21l3-3 M19 2l3 3"/></symbol>
+  <symbol id="i-tools" viewBox="0 0 24 24"><path d="M10.5 6.5a4 4 0 0 1-5 5L3 14l7 7 2.5-2.5a4 4 0 0 1 5-5"/><path d="M14 10l7-7 M18 3h3v3"/></symbol>
+  <symbol id="i-cap" viewBox="0 0 24 24"><path d="M12 2.5l1.6 1.5 2.1-.6.7 2.1 2.1.6-.6 2.1 1.5 1.6-1.5 1.6.6 2.1-2.1.6-.7 2.1-2.1-.6L12 18.1l-1.6-1.5-2.1.6-.7-2.1-2.1-.6.6-2.1L4.6 10.8l1.5-1.6-.6-2.1 2.1-.6.7-2.1 2.1.6z"/><path d="M12 7.5v4 M12 14v.2"/></symbol>
+  <symbol id="i-worlds" viewBox="0 0 24 24"><circle cx="8.5" cy="12" r="5.5"/><circle cx="15.5" cy="12" r="5.5"/><path d="M12 7.8v8.4"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></symbol>
+  <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/><path d="M9 2v4 M15 2v4 M9 18v4 M15 18v4 M2 9h4 M2 15h4 M18 9h4 M18 15h4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5h-19z M12 10v4.5 M12 17.2v.2"/></symbol>
+  <symbol id="i-err" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/><path d="M12 7v6 M12 16.2v.2"/></symbol>
+  <symbol id="i-new" viewBox="0 0 24 24"><path d="M12 4v11 M7 10l5 5 5-5 M5 20h14"/></symbol>
+  <symbol id="i-dash" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5 M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-dn" viewBox="0 0 24 24"><path d="M12 5v14 M6 13l6 6 6-6"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z"/></symbol>
+</svg>
+
+<div class="app" id="app">
+  <header class="top">
+    <p class="brand"><svg class="ico" aria-hidden="true"><use href="#i-wrench"/></svg>Raul's Toolbox</p>
+    <div class="setup" id="setup" role="group" aria-label="Current setup"></div>
+    <button class="search" data-act="palette" aria-label="Search and commands (Ctrl K)"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg>Search or run<kbd>Ctrl K</kbd></button>
+    <button class="btn primary" data-act="launch" id="topPlay" aria-describedby="topWhy"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg>Play</button>
+    <span class="sr" id="topWhy"></span>
+  </header>
+  <aside class="side"><nav aria-label="Main" id="nav"></nav><div class="ver-foot">Toolbox 0.4.0 · demo</div></aside>
+  <main id="view" tabindex="-1"></main>
+  <footer class="foot">
+    <span class="msg" id="status" role="status" aria-live="polite"></span>
+    <span class="k"><kbd>?</kbd> keys</span>
+  </footer>
+</div>
+
+<div class="scrim" id="dlgScrim"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" id="dlg"></div></div>
+
+<script>
+"use strict";
+/* ============ invented data ============ */
+const MODS=[
+ {id:1,name:"Sample Desert Textures",ver:"2.1",files:412,size:"610 MB",on:true,desc:"Sharper ground and rock textures.",conf:[]},
+ {id:2,name:"Sample Lighting Pack",ver:"1.4",files:38,size:"12 MB",on:true,desc:"Warmer interiors, softer nights.",conf:[{with:4,files:12,wins:true}]},
+ {id:3,name:"Sample Weapon Set A",ver:"3.0",files:96,size:"140 MB",on:true,desc:"Six new sidearms.",conf:[],upd:"3.1"},
+ {id:4,name:"Sample Interior Rework",ver:"0.9",files:205,size:"88 MB",on:true,desc:"Rebuilt shop and bar interiors.",conf:[{with:2,files:12,wins:false},{with:7,files:3,wins:true}]},
+ {id:5,name:"Sample HUD Tweaks",ver:"1.1",files:14,size:"1 MB",on:false,desc:"Moves the compass.",conf:[]},
+ {id:6,name:"Sample Radio Station",ver:"1.0",files:61,size:"220 MB",on:true,desc:"A new radio station.",conf:[]},
+ {id:7,name:"Sample Quest Pack",ver:"2.3",files:130,size:"75 MB",on:true,desc:"Three side quests.",conf:[{with:4,files:3,wins:false}]},
+ {id:8,name:"Sample Creature Fixes",ver:"1.7",files:22,size:"3 MB",on:false,desc:"Animation fixes for two creatures.",conf:[]}
+];
+const modName=id=>id==="ttw"?"TTW":(MODS.find(m=>m.id===id)||{}).name||"(removed mod)";
+let ORDER=["BaseGame.esm","BaseDLC_A.esm","SampleQuestPack.esp","SampleLighting.esp","SampleInterior.esp","SampleWeaponsA.esp","SampleRadio.esp"];
+const SORTED=["BaseGame.esm","BaseDLC_A.esm","SampleWeaponsA.esp","SampleInterior.esp","SampleLighting.esp","SampleQuestPack.esp","SampleRadio.esp"];
+const WHY={"SampleInterior.esp":"Before SampleLighting.esp (it patches these cells)","SampleWeaponsA.esp":"Masterlist: early items","SampleQuestPack.esp":"Masterlist: late quests","SampleLighting.esp":"Follows the moves above"};
+const LOD=[{n:"North ridge",p:100,old:false,t:"2 days ago"},{n:"Old highway",p:100,old:false,t:"2 days ago"},{n:"River basin",p:100,old:false,t:"2 days ago"},
+           {n:"South flats",p:0,old:true,t:"9 days ago"},{n:"City core",p:0,old:true,t:"9 days ago"},{n:"East quarry",p:0,old:true,t:"9 days ago"}];
+let BUILDS=[
+ {v:"0.15.0",ch:"Stable",date:"2026-11-12",size:"38 MB",inst:false,notes:"Faster cell loading; two crash fixes."},
+ {v:"0.14.2",ch:"Stable",date:"2026-10-20",size:"37 MB",inst:true,notes:"Audio fix."},
+ {v:"0.13.0",ch:"Stable",date:"2026-09-02",size:"35 MB",inst:true,notes:"First native renderer."},
+ {v:"0.16.0-pre.2",ch:"Preview",date:"2026-11-15",size:"39 MB",inst:false,notes:"New shader cache. May be unstable."}
+];
+let COMPS=[
+ {id:"cmp",name:"Plugin sorter",have:"1.2.0",latest:"1.3.0",prev:"1.1.4",st:"new"},
+ {id:"lodgen",name:"LOD generator",have:"2.0.1",latest:"2.0.1",prev:"1.9.0",st:"cur"},
+ {id:"ttwi",name:"TTW installer support",have:"1.0.3",latest:"1.0.3",prev:null,st:"cur"},
+ {id:"ml",name:"Sorting masterlist",have:"2026-10-30",latest:"2026-11-14",prev:"2026-10-02",st:"new",fail:true}
+];
+let CHECKS=[
+ {id:"game",name:"New Vegas folder",st:"ok",d:"Found. Version matches."},
+ {id:"eng",name:"Engine",st:"ok",d:""},
+ {id:"cfg",name:"Engine config",st:"err",d:"Points to build 0.13.0, not the active 0.14.2.",fix:"Use 0.14.2"},
+ {id:"order",name:"Load order",st:"warn",d:"",fix:"Review sort"},
+ {id:"lod",name:"LOD",st:"warn",d:"",fix:"Generate"},
+ {id:"ttw",name:"TTW",st:"ok",d:""},
+ {id:"disk",name:"Disk space",st:"ok",d:"48 GB free on D:."}
+];
+const chk=id=>CHECKS.find(c=>c.id===id);
+/* ============ state ============ */
+const S={page:"home",selMod:1,filter:"",onlyOn:false,
+  cfg:{game:"D:\\Example\\Games\\NewVegas",fo3:"",ttw:"",mods:"D:\\Example\\Toolbox\\mods",dl:"D:\\Example\\Toolbox\\downloads",builds:"D:\\Example\\Toolbox\\engine",lodout:"D:\\Example\\Toolbox\\lod",logs:"D:\\Example\\Toolbox\\logs",engine:"0.14.2",profile:"Default",channel:"Stable",reduce:false,size:100,checkStart:true},
+  ttw:{want:false,state:"none",p:0,stage:0,ver:"3.4 (demo)",on:true},
+  order:"idle",orderPrev:null,lodRun:false,launched:false,wiz:0,w:{game:"",found:null,ttw:false,fo3:"",eng:0,checked:0}};
+try{const p=JSON.parse(localStorage.getItem("raul-demo-v7")||"{}");Object.assign(S.cfg,p)}catch(e){}
+if(matchMedia("(prefers-reduced-motion: reduce)").matches)S.cfg.reduce=true;
+function save(){try{localStorage.setItem("raul-demo-v7",JSON.stringify({reduce:S.cfg.reduce,size:S.cfg.size}))}catch(e){}}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ico=(n,cls)=>`<svg class="ico${cls?" "+cls:""}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+/* status vocabulary: colour + icon + word, never colour alone */
+const ST={ok:["ok","ok","OK"],warn:["warn","warn","Warning"],err:["err","err","Problem"],new:["info","new","Update"],cur:["mut","ok","Current"],done:["ok","ok","Updated"],busy:["info","radio","Working"],fail:["err","err","Failed"],old:["warn","warn","Out of date"],run:["info","mojave","Building"],unset:["mut","dash","Not set"]};
+const st=(k,txt)=>{const [c,i,w]=ST[k];return `<span class="st ${c}">${ico(i)}<span>${esc(txt||w)}</span></span>`};
+const prog=(id,p,label)=>`<div class="prog"><div class="meter" role="progressbar" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p}" aria-valuetext="${p}%" id="${id}"><i style="width:${p}%"></i></div><span class="pct" id="${id}p">${p}%</span></div>`;
+function setProg(id,p){const m=document.getElementById(id);if(!m)return;m.firstChild.style.width=p+"%";m.setAttribute("aria-valuenow",p);m.setAttribute("aria-valuetext",p+"%");const t=document.getElementById(id+"p");if(t)t.textContent=p+"%"}
+function status(t){$("#status").textContent=t||""}
+/* ============ derived ============ */
+const lodOld=()=>LOD.filter(b=>b.old).length;
+const orderMoves=()=>SORTED.filter((p,i)=>ORDER.indexOf(p)!==i).length;
+const latestStable=()=>BUILDS.find(b=>b.ch==="Stable");
+const engineNew=()=>{const l=latestStable();return l.v!==S.cfg.engine&&!l.inst?1:0};
+const compUpd=()=>COMPS.filter(c=>c.st==="new"||c.st==="fail").length;
+const modUpd=()=>MODS.filter(m=>m.upd).length;
+const healthBad=()=>CHECKS.filter(c=>c.st!=="ok");
+const ttwInstalled=()=>S.ttw.state==="installed";
+function syncChecks(){
+  const o=chk("order"),l=chk("lod"),t=chk("ttw");
+  if(orderMoves()){o.st="warn";o.d=orderMoves()+" plugins out of place."}else{o.st="ok";o.d="Sorted. All masters load first."}
+  if(lodOld()){l.st="warn";l.d=lodOld()+" of 6 blocks older than your mods."}else{l.st="ok";l.d="All 6 blocks current."}
+  chk("eng").d="nv-rs "+S.cfg.engine+" active.";
+  const c=chk("cfg");if(c.st==="ok")c.d="Points to nv-rs "+S.cfg.engine+".";
+  if(ttwInstalled()){t.st="ok";t.d="Installed, "+S.ttw.ver+"."}
+  else if(S.ttw.want&&!S.cfg.fo3){t.st="warn";t.d="Fallout 3 folder not set.";t.fix="Set up TTW"}
+  else{t.st="ok";t.d="Not used.";delete t.fix}
+}
+/* one source for nav chips, Home chips and Doctor */
+function alerts(){
+  const a=[];
+  if(chk("cfg").st==="err")a.push({k:"err",page:"doctor",n:1,t:"Engine config",i:"err"});
+  if(chk("ttw").st==="warn")a.push({k:"warn",page:"mods",n:1,t:"TTW needs Fallout 3",i:"warn"});
+  if(orderMoves())a.push({k:"warn",page:"order",n:orderMoves(),t:"Load order",i:"warn"});
+  if(lodOld())a.push({k:"warn",page:"lod",n:lodOld(),t:"LOD out of date",i:"warn"});
+  if(engineNew()+compUpd())a.push({k:"info",page:"versions",n:engineNew()+compUpd(),t:"Version updates",i:"new"});
+  if(modUpd())a.push({k:"info",page:"mods",n:modUpd(),t:"Mod updates",i:"new"});
+  return a;
+}
+/* ============ chrome ============ */
+const GROUPS=[["Play",[["home","Home","vault"],["mods","Mods","crate"],["order","Load order","tape"],["lod","LOD","mojave"]]],
+              ["System",[["versions","Versions","radio"],["doctor","Doctor","stim"],["prefs","Settings","tools"]]]];
+const PG=GROUPS.flatMap(g=>g[1]);
+function navChip(id){
+  const chip=(k,i,n,label)=>`<span class="chipn ${k}">${ico(i)}<span aria-hidden="true">${n}</span><span class="sr">, ${label}</span></span>`;
+  if(id==="mods"){const n=modUpd()+(chk("ttw").st==="warn"?1:0);if(n)return chip(chk("ttw").st==="warn"?"warn":"info",chk("ttw").st==="warn"?"warn":"new",n,n+" need attention")}
+  if(id==="order"&&orderMoves())return chip("warn","warn",orderMoves(),orderMoves()+" to sort");
+  if(id==="lod"&&lodOld())return chip("warn","warn",lodOld(),lodOld()+" out of date");
+  if(id==="versions"&&engineNew()+compUpd())return chip("info","new",engineNew()+compUpd(),(engineNew()+compUpd())+" updates");
+  if(id==="doctor"){const b=healthBad();if(b.length){const e=b.some(c=>c.st==="err");return chip(e?"err":"warn",e?"err":"warn",b.length,b.length+" problems")}}
+  if(id==="prefs"&&S.ttw.want&&!S.cfg.fo3)return chip("warn","warn",1,"1 location not set");
+  return "";
+}
+function chrome(){
+  document.body.classList.toggle("reduce",S.cfg.reduce);
+  document.documentElement.style.fontSize=S.cfg.size+"%";
+  $("#nav").innerHTML=GROUPS.map(g=>`<p class="grp" id="g-${g[0]}">${g[0]}</p><ul class="nav" aria-labelledby="g-${g[0]}">${g[1].map(p=>`<li><a href="#${p[0]}" data-page="${p[0]}" ${S.page===p[0]?'aria-current="page"':""}>${ico(p[2])}<span>${p[1]}</span>${navChip(p[0])}</a></li>`).join("")}</ul>`).join("");
+  $("#setup").innerHTML=`<button data-act="edit-game" title="${esc(S.cfg.game)}" aria-label="Change New Vegas folder, now ${esc(S.cfg.game)}">${ico("folder")}<span class="k hide-s">Game</span><span class="v mono">${esc(S.cfg.game)}</span></button><span class="sep" aria-hidden="true"></span>
+   <button data-act="edit-engine" aria-label="Manage engine versions, now nv-rs ${esc(S.cfg.engine)}">${ico("chip")}<span class="k hide-s">Engine</span><span class="v mono">nv-rs ${esc(S.cfg.engine)}</span>${engineNew()?`<span class="chipn info">${ico("new")}<span class="sr">update available</span></span>`:""}${ico("down","caret")}</button><span class="sep" aria-hidden="true"></span>
+   <button data-act="edit-profile" aria-label="Switch profile, now ${esc(S.cfg.profile)}">${ico("user")}<span class="k hide-s">Profile</span><span class="v">${esc(S.cfg.profile)}</span>${ico("down","caret")}</button>`;
+  const blocked=chk("cfg").st==="err";
+  $("#topPlay").disabled=S.launched;$("#topPlay").setAttribute("aria-disabled",String(blocked));
+  $("#topWhy").textContent=blocked?"Blocked: engine config points to another build.":S.launched?"Game is running.":"";
+}
+/* ============ pages ============ */
+const V={};
+const icoOf=id=>(PG.find(p=>p[0]===id)||[])[2];
+const header=(id,t,sub,tools)=>`<div class="ph"><div class="t">${ico(icoOf(id))}<div><h1 id="pgh" tabindex="-1">${t}</h1>${sub?`<p>${sub}</p>`:""}</div></div>${tools?`<div class="tools">${tools}</div>`:""}</div>`;
+const alertChips=()=>{const a=alerts();return a.length?`<ul class="alerts" aria-label="Needs attention">${a.map(x=>`<li><button class="${x.k}" data-act="go" data-to="${x.page}">${ico(x.i)}<span class="lbl">${x.t}</span>${x.n>1?`<b>${x.n}</b>`:""}</button></li>`).join("")}</ul>`:""};
+V.home=()=>{
+  const c=chk("cfg"), blocking=c.st==="err", warns=alerts().some(a=>a.k==="warn");
+  const rows=[
+   ["New Vegas","ok",S.cfg.game,""],
+   ["Engine","ok","nv-rs "+S.cfg.engine+(engineNew()?" · "+latestStable().v+" available":""),engineNew()?`<button class="btn sm" data-act="go" data-to="versions">Versions</button>`:""],
+   ["Engine config",c.st,c.d,blocking?`<button class="btn sm primary" data-act="fix" data-id="cfg">Fix</button>`:""],
+   (()=>{const need=S.ttw.want&&!S.cfg.fo3;return ["TTW",ttwInstalled()?"ok":need?"warn":"unset",ttwInstalled()?(S.ttw.on?"Installed · enabled":"Installed · off"):S.ttw.state==="installing"?"Installing · "+S.ttw.p+"%":need?"Fallout 3 folder not set":S.ttw.want?"Ready to install":"Not set up",ttwInstalled()||S.ttw.state==="installing"?"":`<button class="btn sm${S.ttw.want?" primary":""}" data-act="ttw-setup">${S.ttw.want&&!need?"Install":"Set up"}</button>`]})(),
+   ["Load order",orderMoves()?"warn":"ok",orderMoves()?orderMoves()+" plugins out of place":"Sorted",orderMoves()?`<button class="btn sm" data-act="go" data-to="order">Review</button>`:""],
+   ["LOD",lodOld()?"warn":"ok",lodOld()?lodOld()+" of 6 blocks out of date":"Up to date",lodOld()?`<button class="btn sm" data-act="go" data-to="lod">Generate</button>`:""]
+  ];
+  const say=S.launched?"Game's running. I'll be here.":blocking?null:warns?"Ready. Couple of things could be better.":"All set. Go on.";
+  return header("home","Home",null,"")+alertChips()+`<div class="home"><section aria-labelledby="rd"><h2 class="sec" id="rd">Readiness</h2>
+   <ul class="rows">${rows.map(r=>`<li><span class="what"><b>${r[0]}</b><span>${esc(r[2])}</span></span>${st(r[1])}${r[3]?`<span class="rowact">${r[3]}</span>`:'<span class="rowact"></span>'}</li>`).join("")}</ul></section>
+   <section class="launch" aria-labelledby="pl"><h2 class="sec" id="pl">Launch</h2>
+   ${say?`<p class="raul"><b>Raul</b>${esc(say)}</p>`:""}
+   ${S.launched?`<button class="btn danger bigplay" data-act="unlaunch">Stop game</button>`:`<button class="btn primary bigplay" data-act="launch" ${blocking?'aria-disabled="true" aria-describedby="whyBlocked"':""}>${ico("play")}Play</button>`}
+   ${blocking&&!S.launched?`<p class="why" id="whyBlocked">${ico("err")}Blocked: engine config points to another build. <button class="btn sm" data-act="fix" data-id="cfg">Fix</button></p>`:""}
+   <dl class="facts"><dt>Profile</dt><dd>${esc(S.cfg.profile)}</dd><dt>Engine</dt><dd class="mono">nv-rs ${esc(S.cfg.engine)}</dd><dt>Mods</dt><dd>${MODS.filter(m=>m.on).length} enabled${ttwInstalled()&&S.ttw.on?" + TTW":""}</dd><dt>Last played</dt><dd>2 days ago</dd></dl></section></div>`;
+};
+function ttwBand(){
+  const t=S.ttw;
+  if(t.state==="installing")return `<div class="ttw" aria-label="TTW">${ico("worlds","big")}<span class="what"><b>TTW</b><span>Installing · ${["Checking sources","Extracting","Patching","Building archives","Registering"][t.stage]}</span></span>${prog("ttwM",t.p,"TTW install")}</div>`;
+  if(t.state==="installed")return "";
+  const need=t.want&&!S.cfg.fo3;
+  return `<div class="ttw" aria-label="TTW">${ico("worlds","big")}<span class="what"><b>TTW</b><span>${need?"Wanted, but the Fallout 3 folder is not set.":"Play both worlds as one. Needs a Fallout 3 install and the TTW installer."}</span></span>${need?st("warn","Needs Fallout 3"):st("unset","Not set up")}<button class="btn ${need?"primary":""}" data-act="ttw-setup">Set up TTW</button></div>`;
+}
+V.mods=()=>{
+  const list=MODS.filter(m=>(!S.onlyOn||m.on)&&m.name.toLowerCase().includes(S.filter.toLowerCase()));
+  const showTtw=ttwInstalled()&&(!S.onlyOn||S.ttw.on)&&"ttw".includes(S.filter.toLowerCase());
+  if(S.selMod!=="ttw"&&!list.some(m=>m.id===S.selMod))S.selMod=list[0]?list[0].id:(showTtw?"ttw":0);
+  if(S.selMod==="ttw"&&!showTtw)S.selMod=list[0]?list[0].id:0;
+  const m=S.selMod==="ttw"?null:MODS.find(x=>x.id===S.selMod);
+  const on=MODS.filter(x=>x.on).length;
+  const row=x=>`<tr class="sel-able" data-mod="${x.id}" aria-selected="${x.id===S.selMod}" tabindex="${x.id===S.selMod?0:-1}"><td><input type="checkbox" data-act="toggle" data-id="${x.id}" ${x.on?"checked":""} aria-label="Enabled: ${esc(x.name)}"></td><td>${esc(x.name)}</td><td class="hide-s ver">${esc(x.ver)}</td><td class="hide-s num muted">${esc(x.size)}</td><td>${x.upd?st("new","Update"):x.conf.length?st("warn",x.conf.length+" conflict"+(x.conf.length>1?"s":"")):st("ok","OK")}</td></tr>`;
+  const ttwRow=showTtw?`<tr class="sel-able pin" data-mod="ttw" aria-selected="${S.selMod==="ttw"}" tabindex="${S.selMod==="ttw"?0:-1}"><td><input type="checkbox" data-act="ttw-toggle" ${S.ttw.on?"checked":""} aria-label="Enabled: TTW"></td><td>TTW <span class="tag">Bundle</span></td><td class="hide-s ver">${esc(S.ttw.ver)}</td><td class="hide-s num muted">26 GB</td><td>${st("ok","Installed")}</td></tr>`:"";
+  const filtered=S.filter||S.onlyOn;
+  return header("mods","Mods",`${filtered?`Showing ${list.length} of ${MODS.length} · `:""}${on} of ${MODS.length} enabled${ttwInstalled()?" · TTW "+(S.ttw.on?"on":"off"):""}`,
+   `<label class="sr" for="fProfM">Profile</label><select id="fProfM">${["Default","Test run"].map(p=>`<option ${p===S.cfg.profile?"selected":""}>${p}</option>`).join("")}</select><input type="search" id="modFilter" placeholder="Filter" aria-label="Filter mods" value="${esc(S.filter)}"><label class="inl"><input type="checkbox" id="onlyOn" ${S.onlyOn?"checked":""}>Enabled only</label><button class="btn primary" data-act="install">Install…</button>`)+
+  ttwBand()+
+  `<div class="split" style="margin-top:8px"><div><table class="tbl" aria-label="Installed mods"><thead><tr><th scope="col" style="width:40px"><span class="sr">Enabled</span></th><th scope="col">Name</th><th scope="col" class="hide-s">Version</th><th scope="col" class="hide-s num">Size</th><th scope="col">Status</th></tr></thead><tbody>
+   ${ttwRow}${list.map(row).join("")}${!list.length&&!showTtw?`<tr><td colspan="5" class="empty">No mods match. Check the spelling or turn off "Enabled only". <button class="btn sm ghost" data-act="clear-filter">Clear filter</button></td></tr>`:""}
+   </tbody></table></div>
+   ${S.selMod==="ttw"?`<section class="detail" aria-labelledby="mdh"><h2 id="mdh">TTW</h2><div class="muted">Both worlds in one game. Managed as a bundle.</div>
+    <dl class="facts"><dt>State</dt><dd>${S.ttw.on?st("ok","Enabled"):st("cur","Disabled")}</dd><dt>Version</dt><dd class="ver">${esc(S.ttw.ver)}</dd><dt>Fallout 3</dt><dd class="mono">${esc(S.cfg.fo3)}</dd><dt>Installed to</dt><dd class="mono">${esc(S.cfg.ttw)}</dd></dl>
+    <div class="acts"><button class="btn" data-act="ttw-toggle">${S.ttw.on?"Disable":"Enable"}</button><button class="btn" data-act="ttw-setup">Reinstall</button><button class="btn danger" data-act="ttw-remove">Remove</button></div></section>`
+   :m?`<section class="detail" aria-labelledby="mdh"><h2 id="mdh">${esc(m.name)}</h2><div class="muted">${esc(m.desc)}</div>
+    <dl class="facts"><dt>State</dt><dd>${m.on?st("ok","Enabled"):st("cur","Disabled")}</dd><dt>Version</dt><dd class="ver">${esc(m.ver)}${m.upd?`<span class="tag">${esc(m.upd)} available</span>`:""}</dd><dt>Files</dt><dd>${m.files}</dd><dt>Size</dt><dd>${esc(m.size)}</dd></dl>
+    <h3 class="sec">Conflicts</h3>${m.conf.length?m.conf.map(c=>`<div class="note"><span class="${c.wins?"ok":"warn"}">${ico(c.wins?"ok":"warn")}</span><span><span>${c.files} files shared with ${esc(modName(c.with))}</span><span class="d">${c.wins?"This mod wins (loads later).":"The other mod wins. Move this one later to swap."}</span></span></div>`).join(""):`<div class="muted">None</div>`}
+    <div class="acts"><button class="btn ${m.on?"":"primary"}" data-act="toggle" data-id="${m.id}">${m.on?"Disable":"Enable"}</button>${m.upd?`<button class="btn" data-act="mod-upd" data-id="${m.id}">Update</button>`:""}<button class="btn danger" data-act="remove" data-id="${m.id}">Remove</button></div></section>`:""}</div>`;
+};
+V.order=()=>{
+  const moves=orderMoves();
+  const tools=S.order==="preview"?`<button class="btn" data-act="order-cancel">Cancel</button><button class="btn primary" data-act="order-apply">Apply ${moves} moves</button>`:
+    `${S.orderPrev?`<button class="btn" data-act="order-undo">Undo</button>`:""}<button class="btn ${moves?"primary":""}" data-act="order-sort" ${moves?"":"disabled"}>${moves?"Sort":"Sorted"}</button>`;
+  const show=S.order==="preview"?SORTED:ORDER;
+  const ml=COMPS.find(c=>c.id==="ml");
+  const sub=S.order==="preview"?`Preview · ${moves} moves · nothing changes until Apply`:S.orderPrev?"Applied · Undo restores the old order":moves?`${moves} plugins out of place`:"Sorted";
+  return header("order","Load order",sub,tools)+(S.order==="preview"?`<div class="note"><span class="warn">${ico("warn")}</span><span>Preview: ${moves} moves pending<span class="d">Nothing changes until Apply. Undo stays available after.</span></span></div>`:"")+
+  `<table class="tbl" aria-label="Plugins"><thead><tr><th scope="col" class="num" style="width:50px">#</th><th scope="col">Plugin</th>${S.order==="preview"?`<th scope="col">Move</th><th scope="col" class="hide-s">Why</th>`:""}</tr></thead><tbody>
+  ${show.map((p,i)=>{const from=ORDER.indexOf(p);const mv=S.order==="preview"&&from!==i;
+    return `<tr><td class="num muted">${i+1}</td><td class="mono">${mv?"<b>"+esc(p)+"</b>":esc(p)}</td>${S.order==="preview"?`<td>${mv?`<span class="${from>i?"mv-up":"mv-down"}">${ico(from>i?"up":"dn")}${from+1} → ${i+1}</span>`:`<span class="muted">—</span>`}</td><td class="hide-s muted">${mv?esc(WHY[p]||""):""}</td>`:""}</tr>`}).join("")}
+  </tbody></table>
+  <p class="muted" style="font-size:.88rem;margin-top:12px">Masterlist <span class="mono">${esc(ml.have)}</span>${ml.st==="new"||ml.st==="fail"?` · newer available · <button class="btn sm ghost" data-act="go" data-to="versions">Versions</button>`:""}</p>`;
+};
+const lodSt=b=>b.p>0&&b.p<100?st("run","Building"):b.old?st("old"):st("ok","Up to date");
+V.lod=()=>{
+  const old=lodOld(), gen=COMPS.find(c=>c.id==="lodgen");
+  const tools=S.lodRun?`<button class="btn" data-act="lod-stop">Stop</button>`:`<button class="btn ghost" data-act="lod-all">Rebuild all</button><button class="btn primary" data-act="lod-run" ${old?"":"disabled"}>${old?`Generate ${old}`:"Up to date"}</button>`;
+  return header("lod","LOD",S.lodRun?"Generating · you can leave this page":old?`${old} of 6 blocks out of date`:"All blocks up to date",tools)+
+  `<table class="tbl" aria-label="LOD blocks"><thead><tr><th scope="col">Block</th><th scope="col">Status</th><th scope="col" style="width:36%">Progress</th><th scope="col" class="hide-s">Built</th></tr></thead><tbody>
+  ${LOD.map((b,i)=>`<tr><td>${esc(b.n)}</td><td id="lodb${i}">${lodSt(b)}</td><td>${prog("lodm"+i,b.p,b.n)}</td><td class="hide-s muted">${esc(b.t)}</td></tr>`).join("")}
+  </tbody></table>
+  <p class="muted" style="font-size:.88rem;margin-top:12px">Generator <span class="mono">${esc(gen.have)}</span> · output <span class="mono">${esc(S.cfg.lodout)}</span></p>`;
+};
+V.versions=()=>{
+  const builds=BUILDS.filter(b=>S.cfg.channel==="Preview"||b.ch==="Stable");
+  const n=engineNew()+compUpd();
+  return header("versions","Versions",n?`${n} updates`:"Everything current",`<button class="btn" data-act="u-check">Check now</button><button class="btn primary" data-act="u-all" ${n&&!COMPS.some(c=>c.st==="busy")?"":"disabled"}>Update all</button>`)+
+  `<h2 class="sec">Engine · nv-rs<span class="more"><span class="muted">Channel</span> ${seg("channel","Update channel",[["Stable","Stable"],["Preview","Preview"]])}</span></h2>
+  <table class="tbl" aria-label="Engine builds"><thead><tr><th scope="col">Build</th><th scope="col" class="hide-s">Released</th><th scope="col" class="hide-s">Notes</th><th scope="col">State</th><th scope="col" class="act"><span class="sr">Actions</span></th></tr></thead><tbody>
+  ${builds.map(b=>{const act=b.v===S.cfg.engine;return `<tr${act?' class="pin"':""}><td class="ver">${esc(b.v)}${b.ch==="Preview"?'<span class="tag">Preview</span>':""}</td><td class="hide-s muted">${b.date}</td><td class="hide-s muted">${esc(b.notes)}</td>
+   <td>${act?st("ok","Active"):b.inst?st("cur","Installed"):st("new","Available")}</td>
+   <td class="act">${act?"":b.inst?`<button class="btn sm" data-act="eng-use" data-id="${b.v}">Activate</button> <button class="btn sm ghost" data-act="eng-rm" data-id="${b.v}" aria-label="Remove ${b.v}">Remove</button>`:`<button class="btn sm" data-act="eng-get" data-id="${b.v}">Install</button>`}</td></tr>`}).join("")}
+  </tbody></table>
+  <h2 class="sec">Components</h2>
+  <table class="tbl" aria-label="Components"><thead><tr><th scope="col">Name</th><th scope="col">Installed</th><th scope="col" class="hide-s">Latest</th><th scope="col">State</th><th scope="col" class="act"><span class="sr">Actions</span></th></tr></thead><tbody>
+  ${COMPS.map(c=>`<tr><td>${esc(c.name)}${c.st==="fail"?`<span class="sub err">Download damaged (checksum). Nothing changed.</span>`:""}</td><td class="ver">${esc(c.have)}</td><td class="hide-s ver muted">${esc(c.latest)}</td><td>${st(c.st)}</td>
+   <td class="act">${c.st==="new"?`<button class="btn sm" data-act="c-upd" data-id="${c.id}">Update</button>`:c.st==="fail"?`<button class="btn sm" data-act="c-upd" data-id="${c.id}">Retry</button>`:""}${c.prev&&c.st!=="busy"?` <button class="btn sm ghost" data-act="c-roll" data-id="${c.id}" aria-label="Roll back ${esc(c.name)} to ${esc(c.prev)}">Roll back</button>`:""}</td></tr>`).join("")}
+  </tbody></table>
+  ${modUpd()?`<p class="muted" style="margin-top:14px">${st("new",modUpd()+" mod update"+(modUpd()>1?"s":""))} <button class="btn sm ghost" data-act="go" data-to="mods">Open Mods</button></p>`:""}`;
+};
+V.doctor=()=>{
+  const bad=healthBad();
+  return header("doctor","Doctor",bad.length?`${bad.length} to look at`:"All checks pass",`<button class="btn" data-act="recheck">Run checks</button>`)+
+  (bad.length?"":`<p class="raul"><b>Raul</b>Clean bill of health. Rare thing out here.</p>`)+
+  `<table class="tbl" aria-label="Health checks"><thead><tr><th scope="col">Check</th><th scope="col">Status</th><th scope="col" class="hide-s">Detail</th><th scope="col" class="act"><span class="sr">Fix</span></th></tr></thead><tbody>
+  ${CHECKS.map(c=>`<tr><td>${esc(c.name)}<span class="sub" style="display:none"></span></td><td>${st(c.st)}</td><td class="hide-s muted">${esc(c.d)}</td><td class="act">${c.st!=="ok"&&c.fix?`<button class="btn sm ${c.st==="err"?"primary":""}" data-act="fix" data-id="${c.id}">${esc(c.fix)}</button>`:""}</td></tr>`).join("")}
+  </tbody></table>`;
+};
+const seg=(key,label,opts)=>`<span class="seg" role="group" aria-label="${esc(label)}">${opts.map(([v,l])=>`<button type="button" data-act="setcfg" data-k="${key}" data-v="${v}" aria-pressed="${String(S.cfg[key])===String(v)}">${l}</button>`).join("")}</span>`;
+const pathOk=k=>!!S.cfg[k];
+const pathRow=(id,key,label,hint,opt)=>`<div class="lbl"><label for="${id}">${label}${hint?`<small>${hint}</small>`:""}</label></div><div class="field"><input type="text" id="${id}" class="mono" value="${esc(S.cfg[key])}" placeholder="Not set" data-key="${key}" title="${esc(S.cfg[key])}">${pathOk(key)?st("ok","Found"):st(opt?"unset":"warn","Not set")}<button class="btn" data-act="browse" data-for="${id}">Browse</button></div>`;
+V.prefs=()=>header("prefs","Settings","Changes save when you leave a field","")+
+ `<h2 class="sec">Game installations</h2><div class="form">
+  ${pathRow("fGame","game","Fallout: New Vegas","Required")}
+  ${pathRow("fFo3","fo3","Fallout 3",S.ttw.want?"Needed for TTW":"Only for TTW",!S.ttw.want)}
+  ${pathRow("fTtw","ttw","TTW","Filled in by Set up TTW",true)}
+ </div>
+ <div class="acts" style="margin-top:10px">${ttwInstalled()?"":`<button class="btn" data-act="ttw-setup">${ico("worlds")}Set up TTW</button>`}</div>
+ <h2 class="sec">Toolbox storage</h2><div class="form">
+  ${pathRow("fMods","mods","Mods")}
+  ${pathRow("fDl","dl","Downloads","Archives and installers")}
+  ${pathRow("fBuilds","builds","Engine builds")}
+  ${pathRow("fLod","lodout","LOD output")}
+  ${pathRow("fLogs","logs","Logs")}
+ </div>
+ <h2 class="sec">Behaviour</h2><div class="form">
+  <div class="lbl">Update channel</div><div class="field">${seg("channel","Update channel",[["Stable","Stable"],["Preview","Preview"]])}</div>
+  <div class="lbl">Check on start</div><div class="field">${seg("checkStart","Check on start",[["true","On"],["false","Off"]])}</div>
+ </div>
+ <h2 class="sec">Appearance</h2><div class="form">
+  <div class="lbl">Text size</div><div class="field">${seg("size","Text size",[["100","100%"],["115","115%"],["130","130%"]])}</div>
+  <div class="lbl">Reduce motion</div><div class="field">${seg("reduce","Reduce motion",[["false","Off"],["true","On"]])}</div>
+  <div class="lbl">Game interface art<small>Icons and fonts read from your own install</small></div><div class="field muted">Coming later</div>
+ </div>
+ <h2 class="sec">Setup</h2><div class="acts" style="margin-top:4px"><button class="btn" data-act="wizard">Run setup again</button></div>
+ <h2 class="sec">About and notices</h2>
+ <dl class="facts">
+  <dt>Icons</dt><dd>Hand-drawn inline SVG line icons for this demo, from generic shapes (wrench, vault door, crate, holotape stack, desert, radio mast, syringe, tools, two circles, folder, chip, person, search, status marks). No game art. GPL-3.0-only.</dd>
+  <dt>Layout and colours</dt><dd>CSS only. GPL-3.0-only.</dd>
+  <dt>Fonts</dt><dd>None bundled. Inter if installed, else your system UI font; system monospace for paths and versions.</dd>
+  <dt>Images, sounds, game or mod files</dt><dd>None. Every name, path and number in this demo is invented.</dd></dl>
+ <p class="muted">Raul's Trusty Toolbox is free software under the GNU GPL v3.0 only. Fallout: New Vegas and Fallout 3 are trademarks of their owners; this project is not affiliated with them.</p>`;
+/* ============ first-run wizard ============ */
+const WSTEPS=[["New Vegas","Find your game","vault"],["TTW","Optional","worlds"],["Engine","Install nv-rs","chip"],["Check","Quick health check","stim"],["Done","Open the toolbox","ok"]];
+function wizView(){
+  const s=S.wiz,w=S.w;let b="",title="",sub="",say="";
+  const ok=(t,d)=>`<div class="note"><span class="ok">${ico("ok")}</span><span>${t}<span class="d">${d}</span></span></div>`;
+  if(s===1){title="Where's New Vegas?";sub="Point the toolbox at your game folder. Nothing is changed.";say="Let's find your game. I won't touch anything yet.";
+   b=`<label class="sec" for="wGame">Game folder</label>
+   <div class="field"><input type="text" id="wGame" class="mono" value="${esc(w.game)}" placeholder="Fallout: New Vegas folder">${w.found==="ok"?st("ok","Found"):w.found==="miss"?st("err","Not found"):st("unset","Not set")}<button class="btn" data-act="w-find">Find</button><button class="btn" data-act="browse" data-for="wGame">Browse</button></div>
+   ${w.found==="ok"?ok("Game found","Version matches. Nothing changed."):w.found==="miss"?`<div class="note"><span class="err">${ico("err")}</span><span>No game in that folder<span class="d">Pick the folder that holds the game's executable.</span></span></div>`:`<p class="muted">Find looks in Steam, GOG and Epic libraries. Browse picks a folder by hand.</p>`}
+   <p class="demo-tools">Demo only: <button class="btn sm ghost" data-act="w-miss">Show the not-found state</button></p>`}
+  else if(s===2){title="Tale of Two Wastelands";sub="Optional. Plays both worlds as one game. You can add it later from Mods.";say="Both worlds as one? Needs Fallout 3 too. Skip if unsure.";
+   b=`<div class="wopt" role="radiogroup" aria-label="TTW">
+     <label><input type="radio" name="wTtwR" id="wTtwNo" value="no" ${w.ttw?"":"checked"}><span><b>Not now</b><small>Plain New Vegas. Add TTW any time.</small></span></label>
+     <label><input type="radio" name="wTtwR" id="wTtw" value="yes" ${w.ttw?"checked":""}><span><b>I want TTW</b><small>Needs your Fallout 3 install. The install itself runs later, about 40 min.</small></span></label></div>
+   ${w.ttw?`<label class="sec" for="wFo3">Fallout 3 folder</label><div class="field"><input type="text" id="wFo3" class="mono" placeholder="Fallout 3 folder" value="${esc(w.fo3)}">${w.fo3?st("ok","Found"):st("unset","Not set")}<button class="btn" data-act="w-fo3">Find</button><button class="btn" data-act="browse" data-for="wFo3">Browse</button></div>
+     ${w.fo3?ok("Fallout 3 found","TTW installs from Mods when you're ready."):`<p class="muted">You can also set this later in Settings.</p>`}`:""}`}
+  else if(s===3){title="Engine";sub="nv-rs runs the game natively. Your game folder stays as it is.";say="This is the bit that makes it run on Linux. No Proton.";
+   b=`<label class="sec" for="wEng">Build</label>
+   <div class="field"><select id="wEng"><option>nv-rs 0.14.2 · stable</option><option>nv-rs 0.15.0 · stable, newest</option></select><button class="btn ${w.eng>=100?"":"primary"}" data-act="w-eng" ${w.eng>0?"disabled":""}>${w.eng>=100?"Installed":w.eng>0?"Installing":"Install"}</button></div>
+   ${prog("wEngM",w.eng,"Engine install")}
+   ${w.eng>=100?ok("Installed","37 MB, checksum verified."):`<p class="muted">You can switch or add builds later on Versions.</p>`}`}
+  else if(s===4){title="Quick check";sub="Read-only checks of the game, the engine and your settings.";say="Kicking the tyres.";
+   b=`<ul class="rows">${CHECKS.map((c,i)=>i<w.checked?`<li>${st(c.st)}<span class="what"><b>${esc(c.name)}</b><span>${esc(c.d)}</span></span></li>`:`<li><span class="st mut">${ico("dash")}<span>Waiting</span></span><span class="what"><b>${esc(c.name)}</b><span>&nbsp;</span></span></li>`).join("")}</ul>`}
+  else{title="Ready";sub="Setup is done. Home shows anything that still needs a look, one click from its fix.";say="Set up. A couple of things to look at later.";
+   b=`<dl class="facts"><dt>Game</dt><dd class="mono">${esc(w.game||S.cfg.game)}</dd><dt>TTW</dt><dd>${w.ttw?(w.fo3?"Wanted · install from Mods":"Wanted · Fallout 3 folder not set"):"Not now"}</dd><dt>Engine</dt><dd class="mono">nv-rs 0.14.2</dd><dt>Checks</dt><dd>${CHECKS.filter(c=>c.st!=="ok").length} to look at</dd></dl>`}
+  const can=(s===1&&w.found==="ok")||s===2||(s===3&&w.eng>=100)||(s===4&&w.checked>=CHECKS.length)||s===5;
+  const pct=Math.round((s-1)/(WSTEPS.length-1)*100);
+  return `<div class="wz">
+  <header class="top"><p class="brand">${ico("wrench")}Raul's Toolbox</p><span class="where">Setup <span aria-hidden="true">·</span> <b>${WSTEPS[s-1][0]}</b></span><button class="btn ghost skip-w" data-act="w-skip">Skip setup</button></header>
+  <aside class="wrail"><ol aria-label="Setup steps">${WSTEPS.map((x,i)=>`<li class="${i+1<s?"done":""}" ${i+1===s?'aria-current="step"':""}>${ico(x[2])}<span class="lbl"><span>${x[0]}</span><small>${x[1]}</small></span>${i+1<s?`<span class="tick">${ico("ok")}<span class="sr">Done</span></span>`:""}</li>`).join("")}</ol><p class="hint">Nothing in your game folder changes during setup.</p></aside>
+  <section class="wmain"><div class="ph"><div class="t">${ico(WSTEPS[s-1][2])}<div><h1 id="wzh" tabindex="-1">${esc(title)}</h1><p>${esc(sub)}</p></div></div></div>
+   <p class="raul"><b>Raul</b>${esc(say)}</p><div class="card">${b}</div></section>
+  <footer class="wfoot"><span class="count">Step ${s} of ${WSTEPS.length}<span class="meter" aria-hidden="true"><i style="width:${pct}%"></i></span></span>${s>1&&s<5?`<button class="btn" data-act="w-back">Back</button>`:""}<button class="btn primary" data-act="${s===5?"w-finish":"w-next"}" ${can?"":"disabled"}>${s===5?"Open toolbox":"Next"}</button></footer></div>`;
+}
+/* ============ render ============ */
+function focusKey(){const a=document.activeElement;if(!a||a===document.body)return null;
+  if(a.id)return "#"+a.id;
+  if(a.dataset.act)return `[data-act="${a.dataset.act}"]${a.dataset.id?`[data-id="${a.dataset.id}"]`:""}${a.dataset.k?`[data-k="${a.dataset.k}"][data-v="${a.dataset.v}"]`:""}${a.dataset.to?`[data-to="${a.dataset.to}"]`:""}`;
+  if(a.dataset.mod)return `tr[data-mod="${a.dataset.mod}"]`;
+  if(a.dataset.page)return `[data-page="${a.dataset.page}"]`;
+  return null}
+function render(focus){
+  if(focus===undefined)focus=focusKey();
+  syncChecks();
+  const app=$("#app");
+  if(S.wiz){app.hidden=true;let w=$("#wizRoot");if(!w){w=document.createElement("div");w.id="wizRoot";document.body.insertBefore(w,app)}w.innerHTML=wizView()}
+  else{const w=$("#wizRoot");if(w)w.remove();app.hidden=false;chrome();$("#view").innerHTML=V[S.page]()}
+  if(focus){let el=document.querySelector(focus);if(!el||el.disabled)el=$("#pgh")||$("#wzh");if(el){el.focus();if(el.tagName==="INPUT"&&/text|search/.test(el.type)){const n=el.value.length;try{el.setSelectionRange(n,n)}catch(e){}}}}
+}
+function go(p,focus){S.page=p;status("");try{history.replaceState(null,"","#"+p)}catch(e){}render(focus===undefined?"#pgh":focus)}
+/* ============ actions ============ */
+const DEMO_PATH={fGame:"D:\\Example\\Games\\NewVegas",wGame:"D:\\Example\\Games\\NewVegas",fFo3:"D:\\Example\\Games\\Fallout3",wFo3:"D:\\Example\\Games\\Fallout3",tFo3:"D:\\Example\\Games\\Fallout3",fTtw:"D:\\Example\\Games\\TTW",tOut:"D:\\Example\\Games\\TTW",tPkg:"D:\\Example\\Downloads\\ttw-installer-demo.pkg",tNv:"D:\\Example\\Games\\NewVegas",fMods:"D:\\Example\\Toolbox\\mods",fDl:"D:\\Example\\Toolbox\\downloads",fBuilds:"D:\\Example\\Toolbox\\engine",fLod:"D:\\Example\\Toolbox\\lod",fLogs:"D:\\Example\\Toolbox\\logs"};
+const A={
+ go:el=>go(el.dataset.to),
+ palette(){openPal()},
+ "clear-filter"(){S.filter="";S.onlyOn=false;render("#modFilter")},
+ launch(){if(chk("cfg").st==="err"){go("home");status("Can't start: engine config points to another build. Press Fix.");return}S.launched=true;status("Game started on nv-rs "+S.cfg.engine+".");render()},
+ unlaunch(){openConfirm("Stop the game?","Unsaved progress is lost. Save in game first if you can.","Stop game",()=>{S.launched=false;status("Game closed.");render()})},
+ "edit-game"(){go("prefs","#fGame")},
+ "edit-engine"(){go("versions")},
+ "edit-profile"(){go("mods","#fProfM")},
+ browse(el){const f=el.dataset.for&&document.getElementById(el.dataset.for);if(f){f.value=DEMO_PATH[f.id]||"D:\\Example\\Folder";f.focus();if(f.dataset.key)savePath(f);else if(D.kind==="ttw")D[f.id]=f.value}status("Folder picked (demo).")},
+ setcfg(el){const k=el.dataset.k,v=el.dataset.v;S.cfg[k]=v==="true"?true:v==="false"?false:/^\d+$/.test(v)?+v:v;save();render()},
+ toggle(el){const m=MODS.find(x=>x.id===+el.dataset.id);m.on=!m.on;status(`${m.name} ${m.on?"enabled":"disabled"}.`);render()},
+ "ttw-toggle"(){S.ttw.on=!S.ttw.on;status("TTW "+(S.ttw.on?"enabled":"disabled")+".");render()},
+ "ttw-setup"(){openTtw()},
+ "ttw-remove"(){openConfirm("Remove TTW?","Deletes the TTW output folder (26 GB). Your Fallout 3 and New Vegas folders are not touched.","Remove",()=>{S.ttw.state="none";S.cfg.ttw="";S.selMod=1;status("TTW removed.");render("#pgh")})},
+ remove(el){const i=MODS.findIndex(x=>x.id===+el.dataset.id);const m=MODS[i];openConfirm("Remove mod?",`${m.name} is uninstalled. A restore point is saved first, so Undo brings it back.`,"Remove",()=>{MODS.splice(i,1);status(`Removed ${m.name}.`);render("#pgh")})},
+ "mod-upd"(el){const m=MODS.find(x=>x.id===+el.dataset.id);m.ver=m.upd;delete m.upd;status(`${m.name} updated to ${m.ver}.`);render()},
+ install(){openInstall()},
+ "order-sort"(){S.order="preview";render('[data-act="order-apply"]')},
+ "order-cancel"(){S.order="idle";render('[data-act="order-sort"]')},
+ "order-apply"(){S.orderPrev=ORDER.slice();ORDER=SORTED.slice();S.order="idle";status("Load order applied. Undo restores the old one.");render('[data-act="order-undo"]')},
+ "order-undo"(){ORDER=S.orderPrev;S.orderPrev=null;S.order="idle";status("Previous order restored.");render('[data-act="order-sort"]')},
+ "lod-run"(){runLod(LOD.map((b,i)=>b.old?i:-1).filter(i=>i>=0))},
+ "lod-all"(){openConfirm("Rebuild all LOD?","All 6 blocks, about 20 minutes. Current blocks stay until each new one is done.","Rebuild",()=>runLod(LOD.map((b,i)=>i)))},
+ "lod-stop"(){clearInterval(lodTimer);S.lodRun=false;LOD.forEach(b=>{if(b.p<100){b.p=0;b.old=true}});status("Stopped. Finished blocks kept.");render('[data-act="lod-run"]')},
+ "eng-use"(el){const v=el.dataset.id;S.cfg.engine=v;const c=chk("cfg");if(c.st==="err"&&v==="0.13.0"){c.st="ok"}status("Now using nv-rs "+v+".");render()},
+ "eng-get"(el){const b=BUILDS.find(x=>x.v===el.dataset.id);openConfirm("Install nv-rs "+b.v+"?",`${b.size} download. Your current build stays active until you press Activate.`,"Install",()=>{b.inst=true;status("nv-rs "+b.v+" installed. Press Activate to switch.");render(`[data-act="eng-use"][data-id="${b.v}"]`)})},
+ "eng-rm"(el){const b=BUILDS.find(x=>x.v===el.dataset.id);openConfirm("Remove nv-rs "+b.v+"?","Frees "+b.size+". You can install it again later.","Remove",()=>{b.inst=false;status("Removed nv-rs "+b.v+".");render()})},
+ "c-upd"(el){const c=COMPS.find(x=>x.id===el.dataset.id);if(c.st==="busy")return;c.st="busy";render();setTimeout(()=>{if(c.fail){c.fail=false;c.st="fail";status(c.name+": download damaged. Nothing changed.")}else{c.prev=c.have;c.have=c.latest;c.st="done";status(c.name+" updated to "+c.have+".")}render()},S.cfg.reduce?100:700)},
+ "c-roll"(el){const c=COMPS.find(x=>x.id===el.dataset.id);const was=c.have;c.have=c.prev;c.prev=null;c.st=c.have===c.latest?"cur":"new";status(`${c.name} rolled back to ${c.have} (was ${was}).`);render()},
+ "u-all"(){const l=latestStable();if(engineNew())l.inst=true;COMPS.filter(c=>c.st==="new").forEach(c=>A["c-upd"]({dataset:{id:c.id}}));status("Updating. nv-rs "+l.v+" installed; press Activate to switch.");render()},
+ "u-check"(){status("Checked: "+(engineNew()+compUpd())+" version updates, "+modUpd()+" mod updates.")},
+ fix(el){const id=el.dataset.id;if(id==="lod"){go("lod");return}if(id==="order"){go("order");A["order-sort"]();return}if(id==="ttw"){openTtw();return}
+   const c=chk(id);c.st="ok";status("Fixed: engine config now points to nv-rs "+S.cfg.engine+".");render()},
+ recheck(){status("Checks done: "+healthBad().length+" to look at.")},
+ wizard(){S.wiz=1;S.w={game:"",found:null,ttw:false,fo3:"",eng:0,checked:0};render("#wGame")},
+ "w-find"(){S.w.game=$("#wGame").value||DEMO_PATH.wGame;S.w.found="ok";render('[data-act="w-next"]')},
+ "w-fo3"(){S.w.fo3=$("#wFo3").value||DEMO_PATH.wFo3;render('[data-act="w-next"]')},
+ "w-miss"(){S.w.game="D:\\Example\\Empty";S.w.found="miss";render("#wGame")},
+ "w-eng"(){const t=setInterval(()=>{S.w.eng=Math.min(100,S.w.eng+(S.cfg.reduce?50:10));setProg("wEngM",S.w.eng);if(S.w.eng>=100){clearInterval(t);render('[data-act="w-next"]')}},150);render("#wEngM")},
+ "w-next"(){S.wiz++;if(S.wiz===4){S.w.checked=0;const t=setInterval(()=>{S.w.checked++;render('[data-act="w-next"]');if(S.w.checked>=CHECKS.length)clearInterval(t)},S.cfg.reduce?30:160)}render(S.wiz===2?(S.w.ttw?"#wTtw":"#wTtwNo"):S.wiz===3?'[data-act="w-eng"]':"#wzh")},
+ "w-back"(){S.wiz--;render("#wzh")},
+ "w-skip"(){S.wiz=0;go("home")},
+ "w-finish"(){S.wiz=0;if(S.w.game)S.cfg.game=S.w.game;S.ttw.want=S.w.ttw;if(S.w.fo3)S.cfg.fo3=S.w.fo3;go("home")}
+};
+function savePath(f){const k=f.dataset.key,v=f.value.trim();if(k==="game"&&!v){status("New Vegas folder can't be empty.");f.value=S.cfg.game;return}if(S.cfg[k]!==v){S.cfg[k]=v;status(f.labels[0].firstChild.textContent.trim()+" saved.");render()}}
+let lodTimer=null;
+function runLod(idx){
+  idx.forEach(i=>{LOD[i].p=0});S.lodRun=true;render('[data-act="lod-stop"]');clearInterval(lodTimer);
+  lodTimer=setInterval(()=>{const i=idx.find(j=>LOD[j].p<100);
+    if(i===undefined){clearInterval(lodTimer);S.lodRun=false;idx.forEach(j=>{LOD[j].old=false;LOD[j].t="Just now"});status("LOD done: all blocks current.");render();return}
+    const b=LOD[i];b.p=Math.min(100,b.p+(S.cfg.reduce?25:7));if(b.p>=100)b.old=false;
+    setProg("lodm"+i,b.p);const cell=document.getElementById("lodb"+i);if(cell)cell.innerHTML=lodSt(b);   /* in place: no re-render */
+  },120);
+}
+/* ---------- dialogs ---------- */
+let lastFocus=null,D={};
+function openDlg(html){lastFocus=focusKey();$("#dlg").innerHTML=html;$("#dlgScrim").classList.add("open");$("#app").inert=true;const f=$("#dlg input")||$("#dlg .btn.primary:not([disabled])")||$("#dlg .btn");if(f)f.focus()}
+function closeDlg(){$("#dlgScrim").classList.remove("open");$("#app").inert=false;D={};render(lastFocus||"#pgh")}
+function openConfirm(title,body,yes,fn){D={kind:"confirm",fn};openDlg(`<h2 id="dlgTitle">${esc(title)}</h2><p class="muted">${esc(body)}</p><div class="dlg-foot"><button class="btn" data-dlg="close">Cancel</button><button class="btn ${/Remove|Stop/.test(yes)?"danger":"primary"}" data-dlg="yes">${esc(yes)}</button></div>`);$('#dlg [data-dlg="close"]').focus()}
+function stepsHtml(names,cur){return `<ol class="steps" aria-label="Steps">${names.map((l,i)=>`<li class="${i+1<cur?"done":""}" ${i+1===cur?'aria-current="step"':""}>${i+1<cur?ico("ok")+'<span class="sr">Done: </span>':""}${l}</li>`).join("")}</ol>`}
+/* install mod: plan / review / install */
+function openInstall(){D={kind:"install",step:1,p:0};openDlg(installHtml())}
+function installHtml(){
+  let b="";
+  if(D.step===1)b=`<p><b>sample-armor-set-b.7z</b> <span class="muted">54 files · 32 MB</span></p><pre class="diff">+ 48  textures/armor/sample_b/…
++  5  meshes/armor/sample_b/…
++  1  SampleArmorB.esp  (after SampleWeaponsA.esp)</pre>`;
+  else if(D.step===2)b=`<div class="note"><span class="warn">${ico("warn")}</span><span>2 files shared with Sample Weapon Set A<span class="d">The new mod wins. Nothing is deleted.</span></span></div><dl class="facts"><dt>Disk</dt><dd>+32 MB</dd><dt>Plugins</dt><dd>+1</dd><dt>Undo</dt><dd>Restore point saved first</dd></dl>`;
+  else b=`${prog("insM",D.p,"Installing")}${D.p>=100?`<div class="note"><span class="ok">${ico("ok")}</span><span>Installed and enabled<span class="d">Restore point saved.</span></span></div>`:`<p class="muted">Copying files · can't cancel mid-copy</p>`}`;
+  return `<h2 id="dlgTitle">${ico("crate")}Install mod</h2>${stepsHtml(["Plan","Review","Install"],D.step)}${b}
+  <div class="dlg-foot">${D.step<3?`<button class="btn" data-dlg="close">Cancel</button>${D.step>1?`<button class="btn" data-dlg="back">Back</button>`:""}<button class="btn primary" data-dlg="next">${D.step===2?"Install":"Next"}</button>`:`<button class="btn primary" data-dlg="done" ${D.p>=100?"":"disabled"}>Done</button>`}</div>`;
+}
+/* set up TTW: sources / output / review / install */
+function openTtw(){D={kind:"ttw",step:1,tNv:S.cfg.game,tFo3:S.cfg.fo3,tPkg:"",tOut:S.cfg.ttw||"D:\\Example\\Games\\TTW"};openDlg(ttwHtml())}
+function ttwHtml(){
+  let b="";const found=v=>v?st("ok","Found"):st("unset","Not set");
+  if(D.step===1)b=`<p class="muted" style="margin-top:0">TTW is built from your own Fallout 3 and New Vegas installs. Both stay untouched.</p><div class="form">
+    <div class="lbl"><label for="tFo3">Fallout 3</label></div><div class="field"><input type="text" id="tFo3" class="mono" value="${esc(D.tFo3)}" placeholder="Fallout 3 folder">${found(D.tFo3)}<button class="btn" data-act="browse" data-for="tFo3">Browse</button></div>
+    <div class="lbl"><label for="tNv">New Vegas</label></div><div class="field"><input type="text" id="tNv" class="mono" value="${esc(D.tNv)}">${found(D.tNv)}<button class="btn" data-act="browse" data-for="tNv">Browse</button></div>
+    <div class="lbl"><label for="tPkg">TTW installer</label></div><div class="field"><input type="text" id="tPkg" class="mono" value="${esc(D.tPkg)}" placeholder="Installer package">${found(D.tPkg)}<button class="btn" data-act="browse" data-for="tPkg">Browse</button></div></div>`;
+  else if(D.step===2)b=`<div class="form"><div class="lbl"><label for="tOut">Install to</label></div><div class="field"><input type="text" id="tOut" class="mono" value="${esc(D.tOut)}"><button class="btn" data-act="browse" data-for="tOut">Browse</button></div>
+    <div class="lbl">Space</div><div class="field">26 GB needed · 48 GB free ${st("ok","Enough")}</div></div>`;
+  else if(D.step===3)b=`<div class="note"><span class="ok">${ico("ok")}</span><span>Fallout 3 checked<span class="d">${esc(D.tFo3)}</span></span></div><div class="note"><span class="ok">${ico("ok")}</span><span>New Vegas checked<span class="d">${esc(D.tNv)}</span></span></div><div class="note"><span class="ok">${ico("ok")}</span><span>Installer checked<span class="d">TTW ${esc(S.ttw.ver)}</span></span></div><dl class="facts"><dt>Output</dt><dd class="mono">${esc(D.tOut)}</dd><dt>Time</dt><dd>About 40 minutes</dd><dt>Afterwards</dt><dd>TTW appears in Mods as a bundle you can enable or disable</dd></dl>`;
+  else b=`${prog("ttwD",S.ttw.p,"TTW install")}<p class="muted">${S.ttw.p>=100?"Done.":["Checking sources","Extracting","Patching","Building archives","Registering"][S.ttw.stage]+" · you can close this; it keeps going"}</p>`;
+  const can=D.step!==1||(D.tFo3&&D.tPkg&&D.tNv);
+  if(D.step===1&&!can)b+=`<p class="muted" style="font-size:.9rem">To continue, set ${[!D.tFo3&&"the Fallout 3 folder",!D.tNv&&"the New Vegas folder",!D.tPkg&&"the TTW installer"].filter(Boolean).join(" and ")}.</p>`;
+  return `<h2 id="dlgTitle">${ico("worlds")}Set up TTW</h2>${stepsHtml(["Sources","Output","Review","Install"],D.step)}${b}
+   <div class="dlg-foot">${D.step<4?`<button class="btn" data-dlg="close">Cancel</button>${D.step>1?`<button class="btn" data-dlg="back">Back</button>`:""}<button class="btn primary" data-dlg="next" ${can?"":"disabled"}>${D.step===3?"Install":"Next"}</button>`:`<button class="btn ${S.ttw.p>=100?"primary":""}" data-dlg="close">${S.ttw.p>=100?"Done":"Hide"}</button>`}</div>`;
+}
+let ttwTimer=null;
+function runTtw(){S.ttw.state="installing";S.ttw.p=0;S.ttw.stage=0;clearInterval(ttwTimer);
+  ttwTimer=setInterval(()=>{S.ttw.p=Math.min(100,S.ttw.p+(S.cfg.reduce?20:4));S.ttw.stage=Math.min(4,Math.floor(S.ttw.p/20));
+    setProg("ttwD",S.ttw.p);setProg("ttwM",S.ttw.p);
+    if(S.ttw.p>=100){clearInterval(ttwTimer);S.ttw.state="installed";S.ttw.on=true;S.ttw.want=true;status("TTW installed and enabled.");if(D.kind==="ttw"){$("#dlg").innerHTML=ttwHtml();$('#dlg [data-dlg="close"]').focus()}else render()}},200)}
+$("#dlg").addEventListener("input",e=>{if(D.kind==="ttw"&&e.target.id){D[e.target.id]=e.target.value;const n=$('#dlg [data-dlg="next"]');if(n&&D.step===1)n.disabled=!(D.tFo3&&D.tPkg&&D.tNv)}});
+$("#dlg").addEventListener("click",e=>{
+  const br=e.target.closest('[data-act="browse"]');if(br){A.browse(br);const n=$('#dlg [data-dlg="next"]');if(D.kind==="ttw"&&D.step===1){$("#dlg").innerHTML=ttwHtml();$("#"+br.dataset.for).focus()}return}
+  const b=e.target.closest("[data-dlg]");if(!b)return;const a=b.dataset.dlg;
+  if(a==="close"){closeDlg();return}
+  if(a==="yes"){const f=D.fn;closeDlg();f();return}
+  if(D.kind==="install"){
+    if(a==="done"){if(!MODS.some(m=>m.id===9))MODS.push({id:9,name:"Sample Armor Set B",ver:"1.0",files:54,size:"32 MB",on:true,desc:"Invented armour set.",conf:[{with:3,files:2,wins:true}]});S.selMod=9;closeDlg();status("Installed Sample Armor Set B.");return}
+    if(a==="back"){D.step--;$("#dlg").innerHTML=installHtml();$("#dlg .btn.primary").focus();return}
+    if(a==="next"){D.step++;$("#dlg").innerHTML=installHtml();
+      if(D.step===3){const t=setInterval(()=>{D.p=Math.min(100,D.p+(S.cfg.reduce?50:15));if(D.p>=100){clearInterval(t);$("#dlg").innerHTML=installHtml();$("#dlg .btn.primary").focus();status("Installed. Press Done.")}else setProg("insM",D.p)},150);$("#dlg .btn").focus()}
+      else $("#dlg .btn.primary").focus()}
+  }
+  if(D.kind==="ttw"){
+    if(a==="back"){D.step--;$("#dlg").innerHTML=ttwHtml();$("#dlg .btn.primary").focus();return}
+    if(a==="next"){if(D.step===1){S.cfg.fo3=D.tFo3;S.cfg.game=D.tNv}if(D.step===2){S.cfg.ttw=D.tOut}D.step++;if(D.step===4)runTtw();$("#dlg").innerHTML=ttwHtml();($("#dlg .btn.primary")||$('#dlg [data-dlg="close"]')).focus()}
+  }
+});
+$("#dlgScrim").addEventListener("click",e=>{if(e.target.id==="dlgScrim"&&!(D.kind==="install"&&D.step===3))closeDlg()});
+/* ---------- command palette and key help ---------- */
+const CMDS=()=>[
+ ...PG.map(p=>({l:"Go to "+p[1],f:()=>go(p[0])})),
+ {l:"Play",f:()=>A.launch()},{l:"Install mod",f:()=>openInstall()},{l:"Set up TTW",f:()=>openTtw()},{l:"Sort load order",f:()=>{go("order");A["order-sort"]()}},
+ {l:"Generate LOD",f:()=>{go("lod");A["lod-run"]()}},{l:"Update all versions",f:()=>{go("versions");A["u-all"]()}},{l:"Run health checks",f:()=>{go("doctor");A.recheck()}},
+ {l:"Change New Vegas folder",f:()=>go("prefs","#fGame")},{l:"Change Fallout 3 folder",f:()=>go("prefs","#fFo3")},{l:"Manage engine versions",f:()=>go("versions")},
+ ...MODS.map(m=>({l:"Mod: "+m.name,f:()=>{S.selMod=m.id;go("mods",`tr[data-mod="${m.id}"]`)}})),
+ {l:"Reduce motion on / off",f:()=>{S.cfg.reduce=!S.cfg.reduce;save();render()}},{l:"Run setup again",f:()=>A.wizard()}];
+let palSel=0,palItems=[];
+function openPal(){D={kind:"pal"};openDlg(`<div class="pal"><h2 id="dlgTitle">${ico("search")}Search or run</h2><input type="text" id="palIn" autocomplete="off" role="combobox" aria-expanded="true" aria-controls="palList" aria-autocomplete="list" aria-label="Command or mod"><ul id="palList" role="listbox" aria-label="Results"></ul><p class="sr" id="palCount" aria-live="polite"></p></div>`);palSel=0;palRender();
+  $("#palIn").addEventListener("input",()=>{palSel=0;palRender()});
+  $("#palIn").addEventListener("keydown",e=>{if(e.key==="ArrowDown"||e.key==="ArrowUp"){palSel=Math.max(0,Math.min(palItems.length-1,palSel+(e.key==="ArrowDown"?1:-1)));palRender();e.preventDefault()}else if(e.key==="Enter"&&palItems[palSel]){const c=palItems[palSel];closeDlg();c.f();e.preventDefault()}});
+  $("#palList").addEventListener("click",e=>{const r=e.target.closest("[data-pi]");if(r){const c=palItems[+r.dataset.pi];closeDlg();c.f()}})}
+function palRender(){const q=$("#palIn").value.toLowerCase().trim();palItems=CMDS().filter(c=>!q||q.split(/\s+/).every(w=>c.l.toLowerCase().includes(w))).slice(0,12);
+  $("#palList").innerHTML=palItems.length?palItems.map((c,i)=>`<li role="option" id="pal${i}" data-pi="${i}" aria-selected="${i===palSel}">${esc(c.l)}</li>`).join(""):`<li role="option" aria-disabled="true">No match</li>`;
+  $("#palIn").setAttribute("aria-activedescendant",palItems.length?"pal"+palSel:"");$("#palCount").textContent=palItems.length+" results"}
+function openKeys(){D={kind:"keys"};openDlg(`<h2 id="dlgTitle">Keys</h2><div class="keys">
+  <kbd>Ctrl K</kbd><span>Search or run</span><kbd>1–7</kbd><span>Home, Mods, Load order, LOD, Versions, Doctor, Settings</span><kbd>↑ ↓</kbd><span>Move in the mod list</span><kbd>Space</kbd><span>Enable / disable mod</span>
+  <kbd>Enter</kbd><span>Run button · jump to mod actions</span><kbd>Esc</kbd><span>Close dialog</span><kbd>?</kbd><span>This list</span></div><div class="dlg-foot"><button class="btn primary" data-dlg="close">Close</button></div>`)}
+/* ============ input ============ */
+document.addEventListener("click",e=>{
+  if(e.target.closest("#dlg"))return;
+  const nav=e.target.closest("[data-page]");if(nav){e.preventDefault();go(nav.dataset.page);return}
+  const t=e.target.closest("[data-act]");
+  if(t){A[t.dataset.act]&&A[t.dataset.act](t);return}
+  const r=e.target.closest("tr[data-mod]");if(r){S.selMod=r.dataset.mod==="ttw"?"ttw":+r.dataset.mod;render(`tr[data-mod="${r.dataset.mod}"]`)}
+});
+document.addEventListener("change",e=>{const t=e.target;if(t.closest("#dlg"))return;
+  if(t.dataset.key){savePath(t);return}
+  if(t.id==="fProfM"){S.cfg.profile=t.value;status("Profile: "+t.value+".");render("#fProfM")}
+  if(t.id==="onlyOn"){S.onlyOn=t.checked;render("#onlyOn")}
+  if(t.name==="wTtwR"){S.w.ttw=t.value==="yes";render(S.w.ttw?"#wFo3":"#wTtwNo")}
+});
+document.addEventListener("input",e=>{if(e.target.id==="modFilter"){S.filter=e.target.value;render("#modFilter")}});
+document.addEventListener("keydown",e=>{
+  const open=$("#dlgScrim").classList.contains("open");
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if(open&&D.kind==="pal")closeDlg();else if(!open&&!S.wiz)openPal();return}
+  if(e.key==="Escape"){if(open){if(D.kind==="install"&&D.step===3&&D.p<100)status("Can't cancel mid-copy.");else closeDlg()}return}
+  if(open){if(e.key==="Tab"){const f=[...$("#dlg").querySelectorAll('a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])')];if(!f.length){e.preventDefault();return}const i=f.indexOf(document.activeElement);if(e.shiftKey&&i<=0){f[f.length-1].focus();e.preventDefault()}else if(!e.shiftKey&&i===f.length-1){f[0].focus();e.preventDefault()}}return}
+  const a=document.activeElement;if(a&&a.closest&&a.closest("input:not([type=checkbox]),select,textarea"))return;
+  if(S.wiz)return;
+  if(e.key==="?"){openKeys();return}
+  const row=a&&a.closest&&a.closest("tr[data-mod]");
+  if(row){const rows=[...document.querySelectorAll("tr[data-mod]")];const i=rows.indexOf(row);
+    if(e.key==="ArrowDown"||e.key==="ArrowUp"){const n=rows[Math.max(0,Math.min(rows.length-1,i+(e.key==="ArrowDown"?1:-1)))];S.selMod=n.dataset.mod==="ttw"?"ttw":+n.dataset.mod;render(`tr[data-mod="${n.dataset.mod}"]`);e.preventDefault();return}
+    if(e.key===" "&&a===row){row.dataset.mod==="ttw"?A["ttw-toggle"]():A.toggle({dataset:{id:row.dataset.mod}});e.preventDefault();return}
+    if(e.key==="Enter"&&a===row){const b=$('#view .detail .acts .btn');if(b)b.focus();e.preventDefault();return}}
+  if(!e.ctrlKey&&!e.altKey&&!e.metaKey&&/^[1-7]$/.test(e.key)&&!(a&&a.type==="checkbox")){go(PG[+e.key-1][0]);return}
+});
+/* ============ boot ============ */
+(function(){const h=location.hash.slice(1);if(PG.some(p=>p[0]===h)){S.page=h;render("#pgh")}else{S.wiz=1;render("#wGame")}})();
+</script>
+</body>
+</html>
