@@ -7,9 +7,50 @@ Fallout: New Vegas, running natively on Linux, Windows and macOS. It finds your 
 Tale of Two Wastelands if you want it, installs and sorts your mods, builds distant LOD and
 launches the game through the nv-rs engine port, all from one window or one command line.
 
-**Status: planning.** Nothing here builds yet. The findings, the architecture, the decisions
-and the migration plan are in [`docs/PLAN.md`](docs/PLAN.md); decisions are in [`docs/adr`](docs/adr)
-and terms in [`GLOSSARY.md`](GLOSSARY.md).
+**Status: early.** `raul` runs from the command line today: it finds your game, checks the pinned
+Components and runs every nvmod command. The GUI arrives when it moves here from nvmod-rs. The plan is in
+[`docs/PLAN.md`](docs/PLAN.md), the design in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), decisions in
+[`docs/adr`](docs/adr) and terms in [`GLOSSARY.md`](GLOSSARY.md).
+
+<!-- Screenshots go here once the GUI ships. -->
+
+## Install
+
+Download the package for your system from the
+[latest release](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/latest) and check it against
+`SHA256SUMS` (or `gh attestation verify <file> --repo JorisJonkers-dev/rauls-trusty-toolbox`).
+
+| System | Package | Notes |
+| --- | --- | --- |
+| Linux (x64, glibc 2.35+, Steam Deck) | `.AppImage`, `.deb` or `.tar.gz` | `chmod +x` the AppImage and run it |
+| Windows 10 22H2 / 11 (x64) | `-setup.exe` or `-portable.zip` | installs for your user only; unsigned for now, so SmartScreen may warn |
+| macOS 13+ (Apple silicon and Intel) | `.dmg` | unsigned until signing is set up: allow it under System Settings, Privacy & Security |
+
+### From source
+
+```sh
+git clone --recursive https://github.com/JorisJonkers-dev/rauls-trusty-toolbox.git
+cd rauls-trusty-toolbox
+cargo run -p raul-cli -- --version
+```
+
+The toolchain (Rust 1.100.0) comes from `rust-toolchain.toml`. Building the bundled ttwright-rs needs `make`, a C
+compiler and `pkg-config`.
+
+## Quickstart
+
+```sh
+raul detect                                   # find your game copies
+raul init --base "<game folder>" --instance ~/raul/fnv
+raul profile create --instance ~/raul/fnv
+raul install <mod archive> --instance ~/raul/fnv
+raul sort --instance ~/raul/fnv --fetch-masterlist --apply
+raul install-nv-rs --instance ~/raul/fnv --release
+raul lod generate --instance ~/raul/fnv
+raul run nv-rs --instance ~/raul/fnv
+```
+
+`raul help` lists the Toolbox's own commands, `raul nvmod-help` every nvmod command; add `--json` for scripts.
 
 ## Components
 
