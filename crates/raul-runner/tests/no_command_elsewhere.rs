@@ -34,7 +34,7 @@ fn only_the_runner_crate_uses_process_command() {
     let mut offenders = Vec::new();
     for krate in std::fs::read_dir(crates).unwrap().flatten() {
         let name = krate.file_name().to_string_lossy().into_owned();
-        if name == "nvmod-runner" {
+        if name == "raul-runner" {
             continue;
         }
         let mut files = Vec::new();
