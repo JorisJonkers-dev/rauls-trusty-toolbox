@@ -429,6 +429,19 @@ its lock time in the result, so the cost of a gate is visible.
 | **M5 One UI: install, run, updates** | the GUI of section 11 on egui: setup wizard (#15), Play and run settings, Mods, Load order, LOD, Updates, System (Doctor, Settings, logs, support bundle); MO2-parity remainder in nvmod; the MO2 cut-over check on the owner's instance | a scripted GUI run (`raul e2e --gui`, headless, synthetic fixtures) passes every page and state; the owner goes from a base copy to the modded game running natively using only the GUI; the cut-over check lists every difference between MO2 and nvmod on the owner's instance, and each is fixed or accepted on its ticket |
 | **M7 Windows parity, then macOS** | Windows parity of the Linux work, Windows GUI job, signing; then macOS (Metal through wgpu) | the M3 gate on Windows within 10% of Linux on the same machine |
 
+### Epics
+
+The spec (#30) holds the milestones; large milestones hold epics; every ticket sits under one of them.
+
+| Milestone | Epics |
+| --- | --- |
+| M2 (#33) | orchestration moves (#12), Runner hardening (#84), Contracts and the registry (#85) |
+| M3 (#34) | main-thread cost (#78), hitches and stutter (#79), measurement (#80) |
+| M4 (#36) | extender coverage (#81), loose shaders and effect packs (#82), modded validation and readiness (#83) |
+| M5 (#37) | GUI foundation on egui (#74), GUI pages (#75), runs, updates and support (#76), leaving MO2 (#77) |
+
+M0, M1, M3b, M6 and M7 are small enough to hold their tickets directly.
+
 Parked work (section 5.1) is outside the milestones until its condition is met. Windows CI stays required during
 every move, so Windows is kept green while it is not yet a target.
 
