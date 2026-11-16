@@ -1,0 +1,73 @@
+# One pipeline ending in "Pipeline Complete", the only required check (estate convention, repo-template ci.yml).
+#
+# The checks are steps of that one job; the quarantine check is a reusable workflow, so it is its own job and the
+# last step gates on its result. Until the umbrella Cargo workspace lands (docs/PLAN.md, Phase 1) the Rust steps
+# are skipped because there is no Cargo.toml; they start running in the pull request that adds one.
+#
+# The three-OS build matrix of docs/PLAN.md (Phase 3) is added as further jobs gated from this one with `needs:`,
+# so the required check keeps its name.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new commit on a branch cancels the older run; main is never cancelled, so every main commit has a finished run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # A skipped test whose quarantine ran out, names no issue, or lasts over 14 days fails the build
+  # (workspace docs/testing-standards.md, section 7).
+  quarantine:
+    uses: JorisJonkers-dev/github-workflows/.github/workflows/quarantine-check.yml@b14d5e031f1abd5bec45e50c898e9e73f3ffc534 # v0.50.4
+
+  pipeline-complete:
+    name: Pipeline Complete
+    needs: [quarantine]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+
+      - name: Format
+        if: ${{ !cancelled() && hashFiles('Cargo.toml') != '' }}
+        run: cargo fmt --all --check
+
+      - name: Lint
+        if: ${{ !cancelled() && hashFiles('Cargo.toml') != '' }}
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Test
+        if: ${{ !cancelled() && hashFiles('Cargo.toml') != '' }}
+        run: cargo test --workspace --locked
+
+      - name: Download actionlint
+        id: actionlint
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          bash <(curl --fail --silent --show-error --location https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+
+      - name: Lint GitHub Actions workflows
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          "${{ steps.actionlint.outputs.executable }}" -color .github/workflows/*.yml
+
+      - name: Quarantine check passed
+        if: ${{ !cancelled() }}
+        run: test "${{ needs.quarantine.result }}" = success
