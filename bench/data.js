@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794855984956,
+  "lastUpdate": 1794856368152,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -440,6 +440,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.946287,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d0d3a0af9448f0e6ea339f1844e0932b8cebc01b",
+          "message": "chore(main): release 0.1.0 (#5)\n\n* chore(main): release 0.1.0\n\n* chore: list the Runner move as one change in the 0.1.0 changelog\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-16T20:11:36+01:00",
+          "tree_id": "106b36820f93892ef563aef03dabff1377b7194b",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d0d3a0af9448f0e6ea339f1844e0932b8cebc01b"
+        },
+        "date": 1794856367844,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.617221,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 24.594880999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 254.867746,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.4586009999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.780435,
             "unit": "ms"
           }
         ]
