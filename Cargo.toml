@@ -32,6 +32,7 @@ loot-rs = { git = "https://github.com/JorisJonkers-dev/loot-rs", tag = "v0.5.0" 
 nvmod-cli = { path = "components/nvmod-rs/crates/nvmod-cli" }
 nvmod-core = { path = "components/nvmod-rs/crates/nvmod-core" }
 nvmod-instance = { path = "components/nvmod-rs/crates/nvmod-instance" }
+nvmod-loadorder = { path = "components/nvmod-rs/crates/nvmod-loadorder" }
 nvmod-modinstall = { path = "components/nvmod-rs/crates/nvmod-modinstall" }
 nvmod-pe = { path = "components/nvmod-rs/crates/nvmod-pe" }
 nvmod-runlog = { path = "components/nvmod-rs/crates/nvmod-runlog" }
