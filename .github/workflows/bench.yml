@@ -4,7 +4,8 @@
 # noisy, so a slower case is a warning in the comment and in the history, never a failed check.
 #
 # This is the one workflow that reacts to a label: adding `bench` is how a person asks for a run. It is not a
-# required check and does not touch CI.
+# required check and does not touch CI. On a pull request from a fork the token cannot comment; the comparison is
+# then only in the job log.
 name: Bench
 
 on:
@@ -75,7 +76,8 @@ jobs:
         run: gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/comment.md"
 
   history:
-    if: ${{ github.event_name != 'pull_request' }}
+    # Only main writes the history, so a dispatch from a feature branch cannot skew the baseline.
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

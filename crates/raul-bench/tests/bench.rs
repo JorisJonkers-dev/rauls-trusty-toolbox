@@ -103,3 +103,16 @@ fn the_comparison_shows_the_change_in_percent() {
     let md = compare(&base, &head, 10.0).to_markdown();
     assert!(md.contains("-20.0%"), "{md}");
 }
+
+#[test]
+fn every_sort_case_sorts_successfully_before_it_is_timed() {
+    let r = run_suite(&Options {
+        quick: true,
+        lodwright: None,
+    });
+    assert!(
+        !r.skipped.iter().any(|s| s.name.starts_with("sort/")),
+        "{:?}",
+        r.skipped
+    );
+}
