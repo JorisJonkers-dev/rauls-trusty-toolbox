@@ -4,7 +4,8 @@
 # noisy, so a slower case is a warning in the comment and in the history, never a failed check.
 #
 # This is the one workflow that reacts to a label: adding `bench` is how a person asks for a run. It is not a
-# required check and does not touch CI.
+# required check and does not touch CI. On a pull request from a fork the token cannot comment; the comparison is
+# then only in the job log.
 name: Bench
 
 on:
@@ -43,6 +44,10 @@ jobs:
         with:
           path: head
           submodules: recursive
+      # Crates come through the estate packages proxy (7-day minimum age); the hygiene guard requires it.
+      - uses: JorisJonkers-dev/github-workflows/actions/setup-package-proxy@b14d5e031f1abd5bec45e50c898e9e73f3ffc534 # v0.50.4
+        with:
+          token: ${{ secrets.PACKAGES_PROXY_TOKEN }}
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: |
@@ -75,7 +80,8 @@ jobs:
         run: gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/comment.md"
 
   history:
-    if: ${{ github.event_name != 'pull_request' }}
+    # Only main writes the history, so a dispatch from a feature branch cannot skew the baseline.
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -84,6 +90,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+      # Crates come through the estate packages proxy (7-day minimum age); the hygiene guard requires it.
+      - uses: JorisJonkers-dev/github-workflows/actions/setup-package-proxy@b14d5e031f1abd5bec45e50c898e9e73f3ffc534 # v0.50.4
+        with:
+          token: ${{ secrets.PACKAGES_PROXY_TOKEN }}
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Bench
         run: cargo run --release --locked -p raul-cli -- bench --out "$RUNNER_TEMP/bench"

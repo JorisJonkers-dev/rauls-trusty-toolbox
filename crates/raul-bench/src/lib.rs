@@ -94,6 +94,14 @@ pub fn run_suite(options: &Options) -> Report {
     for (label, count) in SIZES {
         let data = TempDir::new(&format!("raul-bench-{label}"));
         let slots = write_plugins(data.path(), count);
+        // A sort that fails returns early, and timing it would report a false speed-up.
+        if let Err(e) = sort(&slots, &masterlist, data.path(), &SortOptions::default()) {
+            skipped.push(Skipped {
+                name: format!("sort/{label}"),
+                reason: format!("loot-rs refused the synthetic load order: {e}"),
+            });
+            continue;
+        }
         let mut m = time(&format!("sort/{label}"), iterations, || {
             let _ = sort(&slots, &masterlist, data.path(), &SortOptions::default());
         });

@@ -3,3 +3,4 @@
 
 pub mod detect;
 pub mod known_good;
+pub mod update;
