@@ -86,9 +86,10 @@ usage:
   raul lod plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]
                               the lodwright request a LOD run would send for the Profile (its active plugins,
                               its Staging tree and its raul-lod.toml); nothing is run
-  raul run <title|path|game|nv-rs> --instance <dir> [nvmod run options] [--dry-run] [--json]
+  raul run <title|path|game|nv-rs> --instance <dir> [nvmod run options] [--dry-run] [--json] [--guard <path>]
                               a game run, only with the engine's memory-capped run guard; without it the run
-                              is refused (exit 2) and nothing starts; --dry-run names the guard's caps
+                              is refused (exit 2) and nothing starts; --dry-run names the guard's caps;
+                              --guard names another guard program for development (it is still required)
   raul <nvmod command> ...    every nvmod command (install, sort, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";

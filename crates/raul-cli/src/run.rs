@@ -42,6 +42,8 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
                 Some(p) => guard = Some(PathBuf::from(p)),
                 None => return crate::usage(err, "--guard needs a path"),
             }
+        } else if let Some(p) = a.strip_prefix("--guard=") {
+            guard = Some(PathBuf::from(p));
         } else {
             nvmod.push(a.clone());
         }
@@ -111,5 +113,6 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
             caps.gtt_mib
         ),
     );
-    if json { crate::OK } else { code }
+    let _ = code;
+    crate::OK
 }

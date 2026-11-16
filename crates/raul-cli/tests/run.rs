@@ -176,7 +176,8 @@ fn with_the_guard_on_a_dry_run_names_its_caps_and_a_real_run_still_starts_nothin
     assert_eq!(v["guard"]["sha256"].as_str().unwrap().len(), 64);
     // nvmod planned the run (and refused this one: there is no Instance), read only.
     assert!(v["plan_error"].is_string(), "{v}");
-    let out = env.raul(&[&GAME[..], &["--guard", &guard, "--dry-run"]].concat());
+    let out = env.raul(&[&GAME[..], &[&format!("--guard={guard}")[..], "--dry-run"]].concat());
+    assert_eq!(out.status.code(), Some(0));
     assert!(String::from_utf8_lossy(&out.stderr).contains("12280 MiB of VRAM"));
 
     let logs = env.path("state/logs");
