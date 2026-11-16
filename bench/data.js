@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794856368152,
+  "lastUpdate": 1794864690144,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -489,6 +489,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.780435,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e3b8f10eb5ffadabc9963bcf36eef49fe15865ab",
+          "message": "ci: gate 70% of changed lines on tests, as the Components do (#109)\n\nPipeline Complete runs the workspace tests once under cargo llvm-cov (nextest) and then\ntools/coverage-gate, which fails a change when fewer than 70% of the executable lines it adds or\nedits in the raul crates ran in a test. The tool is the one ttwright-rs uses (Rust, no\ndependencies, its own workspace); docs/COVERAGE.md describes it.\n\nRefs #19.",
+          "timestamp": "2026-11-16T22:30:00+01:00",
+          "tree_id": "53f3780e90040084855be7b846b4ebf0418b8e6c",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e3b8f10eb5ffadabc9963bcf36eef49fe15865ab"
+        },
+        "date": 1794864689423,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.6079350000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 24.519617,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 253.928784,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.411826,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.40585,
             "unit": "ms"
           }
         ]
