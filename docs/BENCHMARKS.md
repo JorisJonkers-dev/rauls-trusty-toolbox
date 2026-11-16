@@ -44,5 +44,12 @@ A case slower than the threshold is printed as a warning. The command never fail
 Shared runners are noisy: treat a single slower run as a reason to rerun, not as a regression. A dedicated runner
 would allow hard thresholds; none is configured.
 
+## Real game measurements
+
+`raul bench` never starts the game or nv-viewer: every case is synthetic, and `frame-time/camera-path` is
+skipped. When that case is added, it runs through `nv-rs-dev bench run` (or takes the machine-wide lock
+`~/.cache/nv-rs/bench.lock` the same way), refuses to run in a window on the desktop (nested headless sway only,
+VRAM watchdog on), runs with unlimited frame rate, and marks the run noisy when another viewer is running.
+
 Micro-benchmarks inside the Components (plugin parsing, BSA reads, LOD steps) are proposed as Component pull
 requests and wait for the agreed order (docs/PLAN.md, section 8).
