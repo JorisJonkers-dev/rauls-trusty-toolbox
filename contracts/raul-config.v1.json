@@ -1,61 +1,11 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "ConfigDoc",
-  "description": "The document `raul config list|get|set --json` prints (Contract `raul-config`, version 1).\n\n`list` prints every key, in the order `game.newvegas`, `game.fallout3`, `ttw.package`, `storage.root`, `instance`;\n`get` and `set` print the one key they were about. When the command fails, `entries` is empty and `error` says\nwhy.",
-  "type": "object",
-  "properties": {
-    "contract": {
-      "description": "Always `raul-config`.",
-      "type": "string",
-      "const": "raul-config"
-    },
-    "entries": {
-      "description": "The keys, with their values.",
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/Entry"
-      }
-    },
-    "error": {
-      "description": "Set when the command failed.",
-      "anyOf": [
-        {
-          "$ref": "#/$defs/ErrorInfo"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
-    },
-    "file": {
-      "description": "The configuration file (`config.toml` in the Toolbox's configuration folder), or `null` when there is no\nconfiguration folder. The file need not exist: a missing file means every key is unset.",
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "schema_version": {
-      "description": "The document version; 1.",
-      "type": "integer",
-      "format": "uint32",
-      "const": 1,
-      "minimum": 0
-    }
-  },
-  "required": [
-    "schema_version",
-    "contract",
-    "entries"
-  ],
   "$defs": {
     "Entry": {
       "description": "One key and its value.",
-      "type": "object",
       "properties": {
         "key": {
-          "description": "The key.",
-          "$ref": "#/$defs/Key"
+          "$ref": "#/$defs/Key",
+          "description": "The key."
         },
         "read_only": {
           "description": "Whether the key is derived and `raul config set` refuses it.",
@@ -71,64 +21,65 @@
       },
       "required": [
         "key",
-        "read_only"
-      ]
+        "read_only",
+        "value"
+      ],
+      "type": "object"
     },
     "ErrorCode": {
       "description": "Why a `raul config` command did not do what it was asked.",
       "oneOf": [
         {
+          "const": "unknown_key",
           "description": "The key is not one of the keys this build knows (exit code 5).",
-          "type": "string",
-          "const": "unknown_key"
+          "type": "string"
         },
         {
+          "const": "read_only",
           "description": "The key is derived and cannot be set (exit code 2).",
-          "type": "string",
-          "const": "read_only"
+          "type": "string"
         },
         {
+          "const": "invalid_value",
           "description": "The value is not an acceptable path for the key: not a game copy of that game, not a file, or not a folder\nthat can hold the storage (exit code 2). Nothing was written.",
-          "type": "string",
-          "const": "invalid_value"
+          "type": "string"
         },
         {
+          "const": "newer_schema",
           "description": "The file has a `schema_version` newer than this build reads (exit code 2). Nothing was written.",
-          "type": "string",
-          "const": "newer_schema"
+          "type": "string"
         },
         {
+          "const": "unreadable",
           "description": "The file cannot be read or is not a valid configuration file (exit code 2). Nothing was written.",
-          "type": "string",
-          "const": "unreadable"
+          "type": "string"
         },
         {
+          "const": "no_config_folder",
           "description": "No configuration folder could be found: `HOME`, `XDG_CONFIG_HOME` or `APPDATA` is not set (exit code 2).",
-          "type": "string",
-          "const": "no_config_folder"
+          "type": "string"
         },
         {
+          "const": "write_failed",
           "description": "The file could not be written (exit code 4); the old file is left as it was.",
-          "type": "string",
-          "const": "write_failed"
+          "type": "string"
         }
       ]
     },
     "ErrorInfo": {
       "description": "The error of a `raul config` command.",
-      "type": "object",
       "properties": {
         "code": {
-          "description": "The stable code callers match on.",
-          "$ref": "#/$defs/ErrorCode"
+          "$ref": "#/$defs/ErrorCode",
+          "description": "The stable code callers match on."
         },
         "key": {
+          "default": null,
           "description": "The key the command was about, when there was one.",
           "type": [
             "string",
             "null"
-          ],
-          "default": null
+          ]
         },
         "message": {
           "description": "Prose for people; never matched on.",
@@ -137,38 +88,91 @@
       },
       "required": [
         "code",
+        "key",
         "message"
-      ]
+      ],
+      "type": "object"
     },
     "Key": {
       "description": "One configuration key.",
       "oneOf": [
         {
+          "const": "game.newvegas",
           "description": "The Fallout: New Vegas folder (the one holding `FalloutNV.exe`).",
-          "type": "string",
-          "const": "game.newvegas"
+          "type": "string"
         },
         {
+          "const": "game.fallout3",
           "description": "The Fallout 3 folder (the one holding `Fallout3.exe`); TTW needs it.",
-          "type": "string",
-          "const": "game.fallout3"
+          "type": "string"
         },
         {
+          "const": "ttw.package",
           "description": "The TTW installer package the player downloaded (the `.mpi` file).",
-          "type": "string",
-          "const": "ttw.package"
+          "type": "string"
         },
         {
+          "const": "storage.root",
           "description": "The Toolbox storage folder, which holds the Instance.",
-          "type": "string",
-          "const": "storage.root"
+          "type": "string"
         },
         {
+          "const": "instance",
           "description": "The Instance folder: `<storage.root>/instance`. Derived, read only.",
-          "type": "string",
-          "const": "instance"
+          "type": "string"
         }
       ]
     }
-  }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The document `raul config list|get|set --json` prints (Contract `raul-config`, version 1).\n\n`list` prints every key, in the order `game.newvegas`, `game.fallout3`, `ttw.package`, `storage.root`, `instance`;\n`get` and `set` print the one key they were about. When the command fails, `entries` is empty and `error` says\nwhy.",
+  "properties": {
+    "contract": {
+      "const": "raul-config",
+      "description": "Always `raul-config`.",
+      "type": "string"
+    },
+    "entries": {
+      "description": "The keys, with their values.",
+      "items": {
+        "$ref": "#/$defs/Entry"
+      },
+      "type": "array"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ErrorInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Set when the command failed."
+    },
+    "file": {
+      "description": "The configuration file (`config.toml` in the Toolbox's configuration folder), or `null` when there is no\nconfiguration folder. The file need not exist: a missing file means every key is unset.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "const": 1,
+      "description": "The document version; 1.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "contract",
+    "entries",
+    "error",
+    "file",
+    "schema_version"
+  ],
+  "title": "ConfigDoc",
+  "type": "object"
 }

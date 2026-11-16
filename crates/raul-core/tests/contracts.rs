@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use raul_core::config::ConfigDoc;
+use raul_core::config::{ConfigDoc, Key};
 use raul_core::contracts::OWN;
 use serde_json::Value;
 
@@ -79,7 +79,33 @@ fn config_fixtures_read_back_unchanged() {
             "{}",
             path.display()
         );
+        for entry in &doc.entries {
+            assert_eq!(entry.read_only, entry.key.read_only(), "{}", path.display());
+        }
+        if path
+            .file_name()
+            .is_some_and(|n| n.to_string_lossy().starts_with("list"))
+        {
+            let keys: Vec<Key> = doc.entries.iter().map(|e| e.key).collect();
+            assert_eq!(keys, Key::ALL, "{}", path.display());
+        }
     }
+}
+
+#[test]
+fn a_config_document_without_file_or_value_is_not_valid() {
+    let schema: Value = serde_json::from_str(&raul_core::config::schema()).unwrap();
+    let validator = jsonschema::validator_for(&schema).unwrap();
+    let (_, good) = fixtures("raul-config").remove(0);
+    let mut no_file = good.clone();
+    no_file.as_object_mut().unwrap().remove("file");
+    assert!(!validator.is_valid(&no_file));
+    let mut no_value = good;
+    no_value["entries"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("value");
+    assert!(!validator.is_valid(&no_value));
 }
 
 #[test]
