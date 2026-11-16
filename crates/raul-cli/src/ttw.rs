@@ -11,6 +11,9 @@ use raul_core::config::{Config, Key};
 use raul_drivers::events::{CONTRACT, Event, EventLine, SCHEMA_VERSION};
 use raul_drivers::ttw::{self, TtwErrorCode, TtwRequest};
 
+/// The longest `--timeout-secs` taken: a week.
+const MAX_TIMEOUT_SECS: u64 = 7 * 24 * 60 * 60;
+
 const USAGE_LINE: &str = "ttw takes [--instance <dir>] [--profile <name>] [--fallout3 <dir>] [--newvegas <dir>] [--package <file>] [--ttwright <path>] [--dry-run] [--resume] [--timeout-secs <n>] [--json]";
 
 /// Prints events as `raul-events` lines or as text for people.
@@ -112,8 +115,12 @@ fn parse(args: &[String]) -> Result<Flags, String> {
                 let secs = value(&mut rest, a)?
                     .parse::<u64>()
                     .ok()
-                    .filter(|s| *s > 0)
-                    .ok_or_else(|| "--timeout-secs needs a number of seconds above 0".to_owned())?;
+                    .filter(|s| (1..=MAX_TIMEOUT_SECS).contains(s))
+                    .ok_or_else(|| {
+                        format!(
+                            "--timeout-secs needs a number of seconds from 1 to {MAX_TIMEOUT_SECS}"
+                        )
+                    })?;
                 req.timeout = Duration::from_secs(secs);
             }
             other => return Err(format!("unknown option {other}")),
