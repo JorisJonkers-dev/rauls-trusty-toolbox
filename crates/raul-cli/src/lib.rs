@@ -7,6 +7,7 @@ mod config;
 mod detect;
 mod known_good;
 mod lod;
+mod run;
 mod ttw;
 mod update;
 mod version;
@@ -35,6 +36,7 @@ pub const OWN_COMMANDS: &[&str] = &[
     "config",
     "ttw",
     "lod",
+    "run",
     "help",
 ];
 
@@ -84,7 +86,10 @@ usage:
   raul lod plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]
                               the lodwright request a LOD run would send for the Profile (its active plugins,
                               its Staging tree and its raul-lod.toml); nothing is run
-  raul <nvmod command> ...    every nvmod command (install, sort, run, profile, doctor, ...);
+  raul run <title|path|game|nv-rs> --instance <dir> [nvmod run options] [--dry-run] [--json]
+                              a game run, only with the engine's memory-capped run guard; without it the run
+                              is refused (exit 2) and nothing starts; --dry-run names the guard's caps
+  raul <nvmod command> ...    every nvmod command (install, sort, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";
 
@@ -101,6 +106,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("config") => config::run(&args[1..], out, err),
         Some("ttw") => ttw::run(&args[1..], out, err),
         Some("lod") => lod::run(&args[1..], out, err),
+        Some("run") => run::run(&args[1..], out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
         Some(_) if route(args) == Route::Own => {
             let _ = writeln!(err, "raul: {} has no handler", args[0]);
@@ -147,7 +153,7 @@ mod tests {
 
     #[test]
     fn the_commands_that_moved_from_nvmod_are_own_commands() {
-        for command in ["config", "ttw", "lod"] {
+        for command in ["config", "ttw", "lod", "run"] {
             assert!(OWN_COMMANDS.contains(&command), "{command}");
         }
     }

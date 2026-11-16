@@ -6,6 +6,7 @@
 
 pub mod events;
 pub mod lod;
+pub mod run;
 pub mod ttw;
 
 /// A schema as pretty JSON with a final newline, the form the files in `contracts/` have. Every property of every
