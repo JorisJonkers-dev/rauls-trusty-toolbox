@@ -577,6 +577,15 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
             format!("ttwright exited 0 but its result says {}", doc["status"]),
         );
     }
+    // A stop asked for while ttwright was finishing: its work is kept and nothing is added.
+    if nvmod_core::cancel::requested() {
+        draft.result.resumable = true;
+        return draft.fail(
+            Status::Cancelled,
+            TtwErrorCode::Cancelled,
+            "cancelled before the Mod was added; `raul ttw --resume` continues",
+        );
+    }
     if req.dry_run {
         let _ = std::fs::remove_dir_all(&work);
         draft.result.staging = None;
