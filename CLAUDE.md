@@ -18,4 +18,5 @@ detached submodule HEADs.
   in that component's repository, then a pointer bump here. Never commit on a detached
   submodule HEAD.
 - No game data, mod archives or Windows binaries enter this repository. Fixtures are synthetic.
-- Terms follow the `GLOSSARY.md` of `JorisJonkers-dev/nv-linux`.
+- Terms follow `GLOSSARY.md`; decisions are in `docs/adr`. New source files carry
+  `SPDX-License-Identifier: GPL-3.0-only`.

@@ -7,9 +7,9 @@ Fallout: New Vegas, running natively on Linux, Windows and macOS. It finds your 
 Tale of Two Wastelands if you want it, installs and sorts your mods, builds distant LOD and
 launches the game through the nv-rs engine port, all from one window or one command line.
 
-**Status: planning.** Nothing here builds yet. The findings, the proposed architecture, the
-open questions and the migration plan are in [`docs/PLAN.md`](docs/PLAN.md), which is under
-review before any code lands.
+**Status: planning.** Nothing here builds yet. The findings, the architecture, the decisions
+and the migration plan are in [`docs/PLAN.md`](docs/PLAN.md); decisions are in [`docs/adr`](docs/adr)
+and terms in [`GLOSSARY.md`](GLOSSARY.md).
 
 ## Components
 
@@ -39,5 +39,5 @@ Obsidian Entertainment; Fallout and related names are trademarks of their respec
 
 ## Licence
 
-Not chosen yet; see the licence section of [`docs/PLAN.md`](docs/PLAN.md). Until a `LICENSE`
-file is added, no licence is granted.
+GPL-3.0-only (see [`LICENSE`](LICENSE)), because `raul` links nvmod-rs and loot-rs, which are
+GPL-3.0-only ([ADR-0002](docs/adr/0002-raul-links-nvmod-and-loot-rs-and-runs-the-rest-as-processes.md)).
