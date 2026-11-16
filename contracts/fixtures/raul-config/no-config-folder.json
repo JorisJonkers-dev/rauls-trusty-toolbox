@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "contract": "raul-config",
+  "file": null,
+  "entries": [],
+  "error": {
+    "code": "no_config_folder",
+    "key": null,
+    "message": "no configuration folder: HOME, XDG_CONFIG_HOME or APPDATA is not set"
+  }
+}
