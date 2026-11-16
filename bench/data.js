@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794833408651,
+  "lastUpdate": 1794845595213,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -195,6 +195,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.901101,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b9c393eebe1ebd5937ab915b7065892806e15b6a",
+          "message": "docs: reorganise the stack around the Toolbox (plan and ADRs 0007 to 0011) (#29)\n\n* docs: reorganise the stack around the Toolbox (plan and ADRs 0007 to 0011)\n\nThe Toolbox now owns orchestration, tool supply, the Runner, the view model and\nthe GUI; nvmod-rs keeps mod management. docs/REORG.md records the division,\nevery ticket's disposition, the milestones with their gates, the order of the\nmoves and the open questions. ADRs 0007 to 0011 record the decisions; ADRs\n0002, 0003 and 0005 point to them.\n\n* docs: record the owner's UI and plan decisions (ADR-0012: egui)\n\nSettle the UI direction against the mockup (readable dark, teal accent, Inter,\nsidebar of seven pages, gamepad from the first GUI release, light voice),\nchoose egui over GPUI, remove moved nvmod commands at once, tighten the M3\nframe-time gate to 6.9 and 11.1 ms, and list the other decisions taken.\n\n* docs: list the epics under each milestone",
+          "timestamp": "2026-11-16T17:11:42+01:00",
+          "tree_id": "3b4330e5eca7f84e3a6df466f40800fabe8b46ba",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b9c393eebe1ebd5937ab915b7065892806e15b6a"
+        },
+        "date": 1794845594497,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.6111140000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 24.541303,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 255.16560900000002,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.402518,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.223546,
             "unit": "ms"
           }
         ]
