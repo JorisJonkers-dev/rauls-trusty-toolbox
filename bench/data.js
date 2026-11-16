@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794845595213,
+  "lastUpdate": 1794845958806,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -244,6 +244,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.223546,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7b7935c3fa596dc6a8974ebb1158dcaa77f24701",
+          "message": "docs: GUI rules, the interactive mockup and ADRs 0013 to 0015 (#73)\n\nAdd docs/UI-RULES.md and docs/design/mockup.html for the settled GUI design\n(readable dark, sidebar of seven pages, gamepad, light voice), ADR-0013 for\nthe look and navigation, ADR-0014 for the asset policy and the opt-in install\nskin, ADR-0015 for one loot-rs through a patch, an asset notice file and\nthree glossary terms.",
+          "timestamp": "2026-11-16T17:17:51+01:00",
+          "tree_id": "767c28a90a1cd3b18e68aacd2086f473fd5fc12a",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7b7935c3fa596dc6a8974ebb1158dcaa77f24701"
+        },
+        "date": 1794845958082,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.60795,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 24.484762,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 253.77519900000001,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.427042,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.918813999999999,
             "unit": "ms"
           }
         ]
