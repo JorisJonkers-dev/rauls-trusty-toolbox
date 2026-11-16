@@ -3,7 +3,7 @@
   "contract": "lodwright-request",
   "data_folder": "<data>",
   "plugins": ["FalloutNV.esm"],
-  "worlds": ["WastelandNV"],
+  "worlds": ["SyntheticWorld"],
   "output_dir": "<output>",
   "terrain": { "enabled": true, "levels": [], "land_textures": true, "water": true },
   "objects": { "enabled": true },

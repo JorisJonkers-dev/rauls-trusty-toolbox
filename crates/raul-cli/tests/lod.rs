@@ -88,7 +88,7 @@ fn a_profile_with_settings_gives_the_request_in_the_fixture() {
     std::fs::write(
         f.instance().join("profiles/Default/raul-lod.toml"),
         r#"
-worlds = ["WastelandNV"]
+worlds = ["SyntheticWorld"]
 threads = 2
 
 [inclusion]

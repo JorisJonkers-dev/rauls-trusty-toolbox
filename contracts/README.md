@@ -111,7 +111,7 @@ checks every request against the snapshot before it prints or passes it. The req
 The settings are `raul-lod.toml` in the Profile's folder; every key is optional:
 
 ```toml
-worlds = ["WastelandNV"]
+worlds = ["SyntheticWorld"]
 threads = 2            # unset: lodwright decides
 memory_mib = 4096      # advisory
 
