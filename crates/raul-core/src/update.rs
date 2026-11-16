@@ -41,10 +41,15 @@ pub struct Settings {
 
 impl Settings {
     /// The settings file under the platform's configuration folder (`$XDG_CONFIG_HOME`, `~/.config`,
-    /// `%APPDATA%` or `~/Library/Application Support`).
+    /// `%APPDATA%` or `~/Library/Application Support`), or `None` when the environment names no such folder
+    /// (a relative fallback would scatter settings files across working folders).
     #[must_use]
-    pub fn default_path() -> PathBuf {
-        let env = |k| std::env::var_os(k).map(PathBuf::from);
+    pub fn default_path() -> Option<PathBuf> {
+        let env = |k| {
+            std::env::var_os(k)
+                .filter(|v| !v.is_empty())
+                .map(PathBuf::from)
+        };
         let base = if cfg!(windows) {
             env("APPDATA")
         } else if cfg!(target_os = "macos") {
@@ -52,7 +57,8 @@ impl Settings {
         } else {
             env("XDG_CONFIG_HOME").or_else(|| env("HOME").map(|h| h.join(".config")))
         };
-        base.unwrap_or_default().join("raul/settings.toml")
+        base.filter(|b| b.is_absolute())
+            .map(|b| b.join("raul/settings.toml"))
     }
 
     /// Reads `path`; a missing or unreadable file gives the defaults (checks off).
@@ -64,23 +70,39 @@ impl Settings {
             .unwrap_or_default()
     }
 
-    /// Writes the settings to `path`, creating its folder.
+    /// Writes these settings into `path`, keeping every other key the file holds, and creating its folder.
     ///
     /// # Errors
     ///
-    /// When the folder or the file cannot be written.
+    /// When the existing file does not parse (it is left as it is), or the folder or file cannot be written.
     pub fn save(&self, path: &Path) -> std::io::Result<()> {
+        let mut table = match std::fs::read_to_string(path) {
+            Ok(text) => text
+                .parse::<toml::Table>()
+                .map_err(|e| std::io::Error::other(format!("{}: {e}", path.display())))?,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => toml::Table::new(),
+            Err(e) => return Err(e),
+        };
+        table.insert(
+            "check_for_updates".into(),
+            toml::Value::Boolean(self.check_for_updates),
+        );
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;
         }
-        let text = toml::to_string(self).map_err(std::io::Error::other)?;
-        std::fs::write(path, text)
+        std::fs::write(
+            path,
+            toml::to_string(&table).map_err(std::io::Error::other)?,
+        )
     }
 }
 
+/// The numeric release part of a version: `v0.2.0` and `0.2.0-dev.7` both give `[0, 2, 0]`.
 fn parse(version: &str) -> Option<Vec<u64>> {
     version
         .trim_start_matches('v')
+        .split(['-', '+'])
+        .next()?
         .split('.')
         .map(|p| p.parse().ok())
         .collect()

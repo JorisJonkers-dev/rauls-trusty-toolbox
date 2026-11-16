@@ -45,7 +45,7 @@ icons = ["../../packaging/icons/raul.png"]
 out-dir = "../../target/packages"
 binaries-dir = "../../target/release"
 binaries = [{ path = "raul", main = true }]
-resources = ["../../target/bundle/components", "../../target/bundle/THIRD-PARTY-NOTICES.md"]
+resources = ["../../target/bundle/components", "../../target/bundle/THIRD-PARTY-NOTICES.md", "../../target/bundle/LICENSE"]
 
 [package.metadata.packager.nsis]
 installer-mode = "currentUser"

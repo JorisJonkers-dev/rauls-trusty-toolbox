@@ -80,6 +80,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+      # Crates come through the estate packages proxy (7-day minimum age); the hygiene guard requires it.
+      - uses: JorisJonkers-dev/github-workflows/actions/setup-package-proxy@b14d5e031f1abd5bec45e50c898e9e73f3ffc534 # v0.50.4
+        with:
+          token: ${{ secrets.PACKAGES_PROXY_TOKEN }}
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
@@ -92,7 +96,7 @@ jobs:
           if [ -z "$version" ]; then version="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
           perl -0pi -e "s/^version = \".*?\"$/version = \"$version\"/m" Cargo.toml
-          cargo update --workspace --offline
+          cargo update --workspace
           grep -m1 '^version' Cargo.toml
 
       - name: Linux packaging tools
@@ -137,15 +141,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          nvrs="$(cargo run --quiet --locked -p raul-cli -- version --json | jq -r '.components["nv-rs"]')"
+          nvrs="$(target/release/raul version --json | jq -r '.components["nv-rs"]')"
           case "$RUNNER_OS" in
             Linux) pattern='nv-rs-linux-x86_64-*.tar.gz' ;;
             Windows) pattern='nv-rs-preview-*-windows-x64.zip' ;;
           esac
           dir="$RUNNER_TEMP/nv-rs"; mkdir -p "$dir"
-          gh release download "$nvrs" --repo JorisJonkers-dev/nv-rs --pattern "$pattern" --pattern SHA256SUMS --dir "$dir"
+          # nv-rs lists its Windows files in SHA256SUMS-windows and the rest in SHA256SUMS.
+          gh release download "$nvrs" --repo JorisJonkers-dev/nv-rs --pattern "$pattern" --pattern 'SHA256SUMS*' --dir "$dir"
           asset="$(cd "$dir" && find . -maxdepth 1 -name "$pattern" -printf '%f\n' | head -1)"
-          (cd "$dir" && grep -F "$asset" SHA256SUMS | sha256sum -c -)
+          (cd "$dir" && cat SHA256SUMS* | grep -E "[ *]$asset\$" | sha256sum -c -)
           mkdir -p target/bundle/components/nv-rs
           case "$RUNNER_OS" in
             Linux) tar -xzf "$dir/$asset" -C target/bundle/components/nv-rs ;;
@@ -199,6 +204,25 @@ jobs:
       - name: Package
         run: cargo packager --release -p raul-cli --formats "${{ matrix.formats }}"
 
+      # cargo-packager names files after the product name, which has spaces and an apostrophe; GitHub rewrites
+      # those in asset names, which would break `sha256sum -c SHA256SUMS` after download. Plain names instead.
+      - name: Name the packages
+        run: |
+          set -euo pipefail
+          cd target/packages
+          for f in *; do
+            [ -f "$f" ] || continue
+            case "$f" in
+              *-setup.exe) ext="setup.exe" ;;
+              *.AppImage) ext="AppImage" ;;
+              *.deb) ext="deb" ;;
+              *.dmg) ext="dmg" ;;
+              *) continue ;;
+            esac
+            mv -- "$f" "raul-$VERSION-${{ matrix.name }}.$ext"
+          done
+          ls -l
+
       - name: Portable archive
         run: |
           set -euo pipefail
@@ -231,7 +255,7 @@ jobs:
             Windows)
               7z x -bso0 -o"$RUNNER_TEMP/zip" target/packages/*-portable.zip
               check "$RUNNER_TEMP/zip/raul-$VERSION-windows-x64/raul.exe"
-              setup="$(ls target/packages/*-setup.exe)"; "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"
+              setup="$(ls target/packages/*.setup.exe)"; "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"
               sleep 5; check "$RUNNER_TEMP/installed/raul.exe" ;;
             macOS)
               dmg="$(ls target/packages/*.dmg)"; hdiutil attach -nobrowse -mountpoint "$RUNNER_TEMP/dmg" "$dmg"
@@ -248,7 +272,7 @@ jobs:
             target/packages/*.AppImage
             target/packages/*.deb
             target/packages/*.tar.gz
-            target/packages/*-setup.exe
+            target/packages/*.setup.exe
             target/packages/*-portable.zip
             target/packages/*.dmg
           if-no-files-found: error
@@ -269,12 +293,24 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+      # Crates come through the estate packages proxy (7-day minimum age); the hygiene guard requires it.
+      - uses: JorisJonkers-dev/github-workflows/actions/setup-package-proxy@b14d5e031f1abd5bec45e50c898e9e73f3ffc534 # v0.50.4
+        with:
+          token: ${{ secrets.PACKAGES_PROXY_TOKEN }}
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: packages-*
           path: dist
           merge-multiple: true
+
+      - name: Version from the tag
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          if [ -z "$version" ]; then version="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
+          perl -0pi -e "s/^version = \".*?\"$/version = \"$version\"/m" Cargo.toml
+          cargo update --workspace
 
       - name: SBOM
         run: |
@@ -300,7 +336,7 @@ jobs:
         run: |
           set -euo pipefail
           gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
-          components="$(cargo run --quiet --locked -p raul-cli -- version)"
+          components="$(python3 scripts/known-good-summary.py)"
           if [ -n "$APPLE_CERTIFICATE" ]; then mac="signed and notarised"; else mac="**unsigned**: macOS will ask you to allow it in System Settings, Privacy & Security"; fi
           notes="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)"
           {
