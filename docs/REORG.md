@@ -456,7 +456,7 @@ every move, so Windows is kept green while it is not yet a target.
 | nvmod 0.6.0 (nvmod-rs#65, Release test nvmod-rs#70) | **finish second:** its test (Doctor, then `nvmod run` starts nv-rs) runs against the nv-rs build of the current set and needs no new engine release; it unfreezes nvmod for M2 |
 | lodwright 0.3.0 (lodwright-rs#65, Release test lodwright-rs#82) | **finish third:** generate, verify, in-game load; the in-game part takes one bench-lock slot |
 | nv-rs 0.5.0 (nv-rs#103, Release test nv-rs#195) | **finish after nv-rs#325:** the quick suite is part of its test |
-| ttwright-rs 0.2.1 (ttwright-rs#2) | **re-home into M2:** restructure (ttwright-rs#5) and its Contracts before its first pinned release, ahead of the TTW driver move; until the Toolbox GUI has a TTW screen, ttwright-rs keeps its own window, so TTW always has a UI |
+| ttwright-rs 0.2.1 (ttwright-rs#2) | **re-home into M2:** restructure (ttwright-rs#5) and its Contracts before its first pinned release, ahead of the TTW driver move; its own GUI is removed now (owner decision, 2026-11-16); until the Toolbox has its TTW screen, TTW is installed with `ttwright` or `raul ttw` on the command line; ttwright-rs is also brought up to the current TTW release |
 
 The previous order (nv-rs, then nvmod, then lodwright) was not an owner decision. The new order runs the releases
 that do not wait on the walking fix first, so nvmod's freeze ends sooner and M2 can start.
@@ -606,3 +606,5 @@ the design pass ticket before any GUI code moves.
 11. **First release:** Toolbox 0.1.0 is published once this plan is merged.
 12. **Public docs** may name the bench GPU model and driver, never a host name, serial or path.
 13. **ToggleDisableSaves:** nv-rs accepts both the older one-argument and the newer two-argument form.
+14. **ttwright-rs has no GUI:** its eframe window is removed now; the Toolbox is the only UI. ttwright-rs supports the
+    current TTW release.
