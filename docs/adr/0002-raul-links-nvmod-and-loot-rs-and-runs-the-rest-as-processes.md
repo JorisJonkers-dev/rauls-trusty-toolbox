@@ -16,7 +16,8 @@ own workspace root, so linking it would silently change what gets built.
 ## Consequences
 
 - The `raul` binary is GPL-3.0-only (nvmod and loot-rs are), so the repository is GPL-3.0-only.
-- Shipping nv-rs (GPL-3.0-or-later) and lodwright-rs (MPL-2.0) beside it is an aggregate: each package carries every
+- Shipping nv-rs (GPL-3.0-or-later) and lodwright-rs (MPL-2.0 up to 0.2.x; GPL-3.0-only from its next release, with two
+  files translated from xEdit still MPL-2.0) beside it is an aggregate: each package carries every
   licence text and links each Component's exact source tag.
 
 ## Considered options
