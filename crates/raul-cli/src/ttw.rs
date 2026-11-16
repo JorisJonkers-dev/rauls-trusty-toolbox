@@ -111,7 +111,9 @@ fn parse(args: &[String]) -> Result<Flags, String> {
             "--timeout-secs" => {
                 let secs = value(&mut rest, a)?
                     .parse::<u64>()
-                    .map_err(|_| "--timeout-secs needs a number of seconds".to_owned())?;
+                    .ok()
+                    .filter(|s| *s > 0)
+                    .ok_or_else(|| "--timeout-secs needs a number of seconds above 0".to_owned())?;
                 req.timeout = Duration::from_secs(secs);
             }
             other => return Err(format!("unknown option {other}")),
