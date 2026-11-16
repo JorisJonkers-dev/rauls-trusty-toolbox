@@ -254,7 +254,7 @@ jobs:
           ttwright_version="$("$raul_bin" version --json | jq -r '.components["ttwright-rs"] | sub("^v"; "")')"
           echo "ttwright-rs of the shipped set: $ttwright_version"
           check_ttwright() {
-            [ -n "$1" ] && [ -f "$1" ] || { echo "::error::no bundled ttwright at '$1'"; return 1; }
+            if [ -z "$1" ] || [ ! -f "$1" ]; then echo "::error::no bundled ttwright at '$1'"; return 1; fi
             local out; out="$("$1" --version)"; echo "$out"
             [ "$(head -1 <<<"$out" | tr -d '\r')" = "ttwright $ttwright_version" ]
             out="$("$1" contracts --json)"; echo "$out"
