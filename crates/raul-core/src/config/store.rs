@@ -162,6 +162,8 @@ impl Config {
         let table: toml::Table = text
             .parse()
             .map_err(|e| ConfigError::Unreadable(format!("{}: {e}", file.display())))?;
+        // Version 1 is the first: a file without a version is read as version 1, a newer one is refused, and
+        // anything else (0, a negative number, a string) is not a file this raul wrote.
         match table.get("schema_version") {
             None => {}
             Some(toml::Value::Integer(v)) if *v == i64::from(SCHEMA_VERSION) => {}
@@ -208,7 +210,9 @@ impl Config {
                 key.name()
             ))
         };
-        let section = section.as_table().ok_or_else(not_a_path)?;
+        let section = section.as_table().ok_or_else(|| {
+            ConfigError::Unreadable(format!("{}: [{table}] is not a table", self.file.display()))
+        })?;
         match section.get(field) {
             None => Ok(None),
             Some(toml::Value::String(s)) => Ok(Some(PathBuf::from(s))),
@@ -263,9 +267,13 @@ impl Config {
             .table
             .entry(table)
             .or_insert_with(|| toml::Value::Table(toml::Table::new()));
-        if let toml::Value::Table(section) = section {
-            section.insert(field.to_owned(), toml::Value::String(text));
-        }
+        let toml::Value::Table(section) = section else {
+            return Err(ConfigError::Unreadable(format!(
+                "{}: [{table}] is not a table",
+                self.file.display()
+            )));
+        };
+        section.insert(field.to_owned(), toml::Value::String(text));
         Ok(value)
     }
 
@@ -310,11 +318,24 @@ impl Config {
         if let Some(dir) = self.file.parent() {
             std::fs::create_dir_all(dir).map_err(|e| failed(&e, dir))?;
         }
+        // A temporary file of this process next to the real one, created new (never through an existing file
+        // or link), synced, then renamed over the real one.
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.subsec_nanos());
         let mut temporary = self.file.clone().into_os_string();
-        temporary.push(".new");
+        temporary.push(format!(".{}-{nanos}.new", std::process::id()));
         let temporary = PathBuf::from(temporary);
-        std::fs::write(&temporary, text).map_err(|e| failed(&e, &temporary))?;
-        std::fs::rename(&temporary, &self.file).map_err(|e| {
+        let written = (|| {
+            let mut f = std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&temporary)?;
+            std::io::Write::write_all(&mut f, text.as_bytes())?;
+            f.sync_all()?;
+            std::fs::rename(&temporary, &self.file)
+        })();
+        written.map_err(|e| {
             let _ = std::fs::remove_file(&temporary);
             failed(&e, &self.file)
         })
