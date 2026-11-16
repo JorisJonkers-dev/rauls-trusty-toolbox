@@ -225,7 +225,13 @@ fn a_relative_path_is_stored_as_an_absolute_one() {
         .unwrap();
     assert!(out.status.success(), "{out:?}");
     let v: Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert_eq!(v["entries"][0]["value"], s(&work.join("pkg/TTW.mpi")));
+    let stored = PathBuf::from(v["entries"][0]["value"].as_str().unwrap());
+    assert!(stored.is_absolute(), "{stored:?}");
+    // The same file, however the platform spells the temporary folder (a link on macOS, short names on Windows).
+    assert_eq!(
+        std::fs::canonicalize(&stored).unwrap(),
+        std::fs::canonicalize(work.join("pkg").join("TTW.mpi")).unwrap()
+    );
 }
 
 #[test]
