@@ -95,7 +95,7 @@ The `fork` branch of nv-rs, which holds upstream's commits replayed unchanged pl
 _Avoid_: Main (that name belongs to the untouched upstream copy)
 
 **nvmod**:
-The Component that manages Instances: installs, profiles, sorting through loot-rs, Doctor, and driving the other Components.
+The Component that manages Instances: mod installs, profiles, staging, conflicts, sorting through loot-rs and the content Doctor. Driving the other Components is the Toolbox's (ADR-0007).
 _Avoid_: The launcher, the mod manager (when meaning the whole product: that is the Toolbox)
 
 **ttwright-rs**:
@@ -107,21 +107,25 @@ Native code added to nv-rs, compiled in or loaded through its C ABI, described b
 _Avoid_: Plugin, native plugin, mod (for the code)
 
 **Doctor**:
-The read-only check that inspects an Instance and reports what is wrong without changing anything.
+The read-only check that inspects an Instance and reports what is wrong without changing anything. The content Doctor is nvmod's (mods, plugins, NVSE plugins, readiness); the stack Doctor is the Toolbox's and gathers every Component's checks into one report.
 _Avoid_: Linter, validator
 
 ### Integration
 
 **Contract**:
-A versioned JSON Schema, owned by the Component that emits it, for what is exchanged with that Component.
+A versioned JSON Schema, owned by the Component that emits it, for what is exchanged with that Component. A wire Contract describes what a program prints; an on-disk Contract describes what a program keeps and also defines its migration (ADR-0009).
 _Avoid_: API, interface (too broad)
 
-**Tool pin**:
-An entry in nvmod's `tools.lock.toml` naming one Component's or third-party program's exact version, checksum and attestation identity.
-_Avoid_: Dependency (for external programs)
+**Contract registry**:
+The Toolbox's list of every Contract, the versions each Known-good set speaks and a snapshot of each such version.
+_Avoid_: Compat matrix, schema store
+
+**Supply entry**:
+An entry in the Toolbox's generated `supply.toml` giving, for one version a Known-good set names, the per-platform asset URL, checksum, attestation identity and source tag. It replaces nvmod's tool pin (ADR-0008).
+_Avoid_: Tool pin, lock entry, dependency (for external programs)
 
 **Known-good set**:
-A combination of Component versions recorded in `known-good.toml` after the contract and end-to-end tests passed for exactly that combination.
+A combination of Component versions recorded in `known-good.toml` after the contract and end-to-end tests passed for exactly that combination. A new set starts as `candidate` and is promoted by the check.
 _Avoid_: Compatible versions, supported matrix, compat set
 
 **Rolling channel**:
@@ -129,8 +133,12 @@ The opt-in way an nv-rs build newer than the Known-good set is installed beside 
 _Avoid_: Nightly, beta (for nv-rs builds)
 
 **Runner**:
-The one part of nvmod that starts a process: argument vector, no shell, scrubbed environment, timeout, output cap and whole-tree kill.
+The one part of the Toolbox that starts a process (`raul-runner`, moved from nvmod): argument vector, no shell, scrubbed environment, timeout, output cap and whole-tree kill.
 _Avoid_: Launcher (that word is for starting the game), executor
+
+**Parked**:
+A ticket kept open but outside every milestone until the condition written on it is met.
+_Avoid_: Backlog, wontfix, someday
 
 ### Interface
 
