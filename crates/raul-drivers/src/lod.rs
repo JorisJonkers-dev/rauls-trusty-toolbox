@@ -145,9 +145,24 @@ pub fn plan(instance: &NvmodInstance, profile: &str, worlds: &[String]) -> Resul
         return Err(format!("profile `{profile}` has no active plugin"));
     }
     let data_folder = nvmod_loadorder::staging_data(instance, profile).map_err(|e| describe(&e))?;
-    let data_folder = std::path::absolute(&data_folder).unwrap_or(data_folder);
-    let root = std::path::absolute(&instance.root).unwrap_or_else(|_| instance.root.clone());
-    let output_dir = root.join(WORK_DIR).join("out");
+    let absolute = |p: &Path| std::path::absolute(p).map_err(|e| format!("{}: {e}", p.display()));
+    let data_folder = absolute(&data_folder)?;
+    let output_dir = absolute(&instance.root)?.join(WORK_DIR).join("out");
+    // lodwright's own rule for the output folder, checked before it is asked.
+    if output_dir.starts_with(&data_folder) {
+        return Err(format!(
+            "the output folder {} lies inside the data folder {}",
+            output_dir.display(),
+            data_folder.display()
+        ));
+    }
+    if let Some(repo) = output_dir.ancestors().find(|a| a.join(".git").exists()) {
+        return Err(format!(
+            "the output folder {} lies inside the git working tree {}; lodwright refuses that",
+            output_dir.display(),
+            repo.display()
+        ));
+    }
     let worlds = if worlds.is_empty() {
         settings.worlds.clone()
     } else {

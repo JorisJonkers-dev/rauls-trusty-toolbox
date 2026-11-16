@@ -145,7 +145,7 @@ fn without_settings_the_request_takes_every_world_and_world_flags_choose_them() 
     let (_, request) = f.plan(&["--world", "A", "--world", "B"]);
     assert_eq!(request["worlds"], serde_json::json!(["A", "B"]));
     let out = f.raul(&["lod", "plan", "--instance", s(&f.instance())]);
-    assert!(String::from_utf8_lossy(&out.stdout).contains("1 plugins, every world with terrain"));
+    assert!(String::from_utf8_lossy(&out.stdout).contains("1 plugin, every world with terrain"));
 }
 
 #[test]
@@ -170,6 +170,15 @@ fn a_profile_that_cannot_give_a_request_is_refused() {
     assert_eq!(f.raul(&["lod", "plan", "--bogus"]).status.code(), Some(5));
     assert_eq!(f.raul(&["lod"]).status.code(), Some(5));
     assert_eq!(f.raul(&["lod", "generate"]).status.code(), Some(2));
+    // lodwright refuses an output folder inside a git working tree, so the plan does too.
+    std::fs::create_dir_all(f.path(".git")).unwrap();
+    assert!(f.raul(&["stage", "--instance", s(&f.instance()), "--copy"]).status.success());
+    let out = f.raul(&["lod", "plan", "--instance", s(&f.instance())]);
+    assert_eq!(out.status.code(), Some(2));
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("git working tree"),
+        "{out:?}"
+    );
 }
 
 /// nvmod has its own `lod`, and writes a run log for every command it runs: `raul lod` leaves none.

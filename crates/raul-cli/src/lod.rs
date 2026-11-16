@@ -109,9 +109,10 @@ fn plan(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
                         .join(", ")
                 },
             );
+        let n = plan.plugins.len();
         format!(
-            "raul lod plan: profile `{profile}`, {} plugins, {worlds}\n  data:   {}\n  output: {}\n",
-            plan.plugins.len(),
+            "raul lod plan: profile `{profile}`, {n} plugin{}, {worlds}\n  data:   {}\n  output: {}\n",
+            if n == 1 { "" } else { "s" },
             plan.data_folder.display(),
             plan.output_dir.display()
         )
