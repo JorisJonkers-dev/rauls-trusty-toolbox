@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794848532387,
+  "lastUpdate": 1794855984956,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -391,6 +391,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.156897,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "649f27395e1c9a7d28911c9978768db7970ef3c3",
+          "message": "fix(release): make the macOS and Windows smoke tests finish (#106)\n\n* fix(release): keep the macOS smoke test from failing on a broken pipe\n\nThe dmg licence is accepted by piping yes into hdiutil attach. When hdiutil\nstops reading, yes ends with a broken pipe, and under pipefail that failed the\nstep. yes is now fed through process substitution, and the lipo checks read\ncaptured output instead of piping into grep -q.\n\n* fix(release): check the Windows installer's contents and time-limit the silent install\n\nThe silent NSIS install hung in CI until the job's 90-minute limit. The\nsmoke test now unpacks the installer with 7z and checks the raul.exe inside,\nthen tries the silent install under a 180-second limit; a hang is a warning\nthat names what was checked instead of a stuck job.",
+          "timestamp": "2026-11-16T20:05:14+01:00",
+          "tree_id": "df47c97cc952c321ed39f5a348c0d21895e3ce94",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/649f27395e1c9a7d28911c9978768db7970ef3c3"
+        },
+        "date": 1794855984333,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 3.540682,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 44.261408,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 408.398958,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.73888,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.946287,
             "unit": "ms"
           }
         ]
