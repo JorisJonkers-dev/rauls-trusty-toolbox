@@ -21,7 +21,10 @@ raul-core = { workspace = true }
 raul-bench = { workspace = true }
 nvmod-cli = { workspace = true }
 raul-runner = { workspace = true }
+raul-drivers = { workspace = true }
+nvmod-core = { workspace = true }
 serde_json = { workspace = true }
+ctrlc = { version = "3.5.2", features = ["termination"] }
 
 [lints]
 workspace = true

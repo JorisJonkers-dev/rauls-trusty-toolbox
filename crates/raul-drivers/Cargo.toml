@@ -9,12 +9,17 @@ publish.workspace = true
 description = "Drivers of the process Components (TTW through ttwright, LOD through lodwright) and the raul-events stream."
 
 [dependencies]
+nvmod-core = { workspace = true }
+nvmod-instance = { workspace = true }
+nvmod-modinstall = { workspace = true }
+raul-runner = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
 jsonschema = { workspace = true }
+nvmod-testkit = { workspace = true }
 
 [lints]
 workspace = true
