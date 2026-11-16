@@ -106,3 +106,50 @@ fn detect_on_a_folder_without_the_game_exits_with_found() {
     let out = raul(&["detect", "--folder", dir.path().to_str().unwrap()]);
     assert_eq!(out.status.code(), Some(1));
 }
+
+#[test]
+fn bench_writes_a_json_and_a_markdown_report() {
+    let out_dir = nvmod_testkit::TempDir::new("raul-cli-bench");
+    let out = raul(&[
+        "bench",
+        "--quick",
+        "--out",
+        out_dir.path().to_str().unwrap(),
+    ]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let json: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(out_dir.path().join("bench.json")).unwrap()).unwrap();
+    assert!(json["results"].as_array().is_some_and(|r| !r.is_empty()));
+    assert!(
+        std::fs::read_to_string(out_dir.path().join("bench.md"))
+            .unwrap()
+            .contains("| sort/small |")
+    );
+}
+
+#[test]
+fn bench_compare_warns_but_succeeds_on_a_regression() {
+    let dir = nvmod_testkit::TempDir::new("raul-cli-compare");
+    let report = |ms: f64| {
+        serde_json::json!({"schema_version":1,"raul":"0.0.0","os":"linux","arch":"x86_64","skipped":[],
+        "results":[{"name":"sort/small","iterations":3,"median_ms":ms,"mean_ms":ms,"min_ms":ms,"max_ms":ms,"unit_per_s":null}]})
+    };
+    std::fs::write(dir.path().join("base.json"), report(10.0).to_string()).unwrap();
+    std::fs::write(dir.path().join("head.json"), report(20.0).to_string()).unwrap();
+    let out = raul(&[
+        "bench",
+        "compare",
+        dir.path().join("base.json").to_str().unwrap(),
+        dir.path().join("head.json").to_str().unwrap(),
+    ]);
+    assert!(out.status.success());
+    assert!(
+        stdout(&out).contains("Warning: sort/small"),
+        "{}",
+        stdout(&out)
+    );
+}
