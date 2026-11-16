@@ -184,8 +184,13 @@ fn copy_output(from: &Path, to: &Path) -> std::io::Result<()> {
 }
 
 /// Put the output into the Instance as [`MOD_NAME`]. An existing LOD Mod is renamed out of the way first, removed
-/// once the new one is in, and renamed back when the new one cannot be added.
-fn replace_mod(instance: &NvmodInstance, profile: &str, source: &Path) -> Result<u64, String> {
+/// once the new one is in, and renamed back when the new one cannot be added. Returns the Mod's file count, and a
+/// warning when the old Mod could not be removed (the new one is in and active either way).
+fn replace_mod(
+    instance: &NvmodInstance,
+    profile: &str,
+    source: &Path,
+) -> Result<(u64, Option<String>), String> {
     let previous = format!("{MOD_NAME} previous");
     let had = find_ci(&instance.root.join("mods"), MOD_NAME).is_some();
     let lifecycle_error = |e: nvmod_modinstall::mods::ModsError| match e {
@@ -228,13 +233,14 @@ fn replace_mod(instance: &NvmodInstance, profile: &str, source: &Path) -> Result
                     false,
                 );
                 if let Err(e) = removed {
-                    return Err(format!(
-                        "the new LOD Mod is in, but the old one, `{previous}`, could not be removed: {}",
+                    let warning = format!(
+                        "the new LOD Mod is in, but the old one, `{previous}`, could not be removed: {}; remove it with `raul mods remove`",
                         lifecycle_error(e)
-                    ));
+                    );
+                    return Ok((report.files.len() as u64, Some(warning)));
                 }
             }
-            Ok(report.files.len() as u64)
+            Ok((report.files.len() as u64, None))
         }
         Err(e) => {
             let why = match e {
@@ -487,7 +493,10 @@ pub fn generate(req: &LodRequest, emit: &mut dyn FnMut(Event)) -> LodOutcome {
     let replaced = replace_mod(&instance, &profile, &copy);
     let _ = clear(&copy);
     match replaced {
-        Ok(files) => {
+        Ok((files, warning)) => {
+            if let Some(message) = warning {
+                emit(Event::Warning { message });
+            }
             r.mod_name = Some(MOD_NAME.to_owned());
             r.files = Some(files);
             done(r, true)

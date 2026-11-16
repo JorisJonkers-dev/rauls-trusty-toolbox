@@ -30,6 +30,9 @@ struct Flags {
 /// How long a LOD run may take before it is stopped.
 const DEFAULT_TIMEOUT: Duration = Duration::from_hours(2);
 
+/// The longest `--timeout-secs` taken: a week.
+const MAX_TIMEOUT_SECS: u64 = 7 * 24 * 60 * 60;
+
 fn parse(args: &[String], generate: bool) -> Result<Flags, String> {
     let mut f = Flags {
         instance: None,
@@ -58,8 +61,12 @@ fn parse(args: &[String], generate: bool) -> Result<Flags, String> {
                 let secs = value()?
                     .parse::<u64>()
                     .ok()
-                    .filter(|s| *s > 0)
-                    .ok_or_else(|| "--timeout-secs needs a number of seconds above 0".to_owned())?;
+                    .filter(|s| (1..=MAX_TIMEOUT_SECS).contains(s))
+                    .ok_or_else(|| {
+                        format!(
+                            "--timeout-secs needs a number of seconds from 1 to {MAX_TIMEOUT_SECS}"
+                        )
+                    })?;
                 f.timeout = Duration::from_secs(secs);
             }
             other => return Err(format!("unknown option {other}")),
