@@ -245,7 +245,8 @@ jobs:
       - name: Smoke test
         run: |
           set -euo pipefail
-          check() { "$@" --version | tee /dev/stderr | head -1 | grep -qx "raul $VERSION"; }
+          # Git Bash on Windows has no /dev/stderr, so the output is captured and printed instead of tee'd.
+          check() { local out; out="$("$@" --version)"; echo "$out"; head -1 <<<"$out" | grep -qx "raul $VERSION"; }
           case "$RUNNER_OS" in
             Linux)
               app="$(ls target/packages/*.AppImage)"; chmod +x "$app"
@@ -258,7 +259,8 @@ jobs:
               setup="$(ls target/packages/*.setup.exe)"; "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"
               sleep 5; check "$RUNNER_TEMP/installed/raul.exe" ;;
             macOS)
-              dmg="$(ls target/packages/*.dmg)"; hdiutil attach -nobrowse -mountpoint "$RUNNER_TEMP/dmg" "$dmg"
+              # The dmg shows the licence as an agreement; `yes` accepts it so attach does not wait.
+              dmg="$(ls target/packages/*.dmg)"; yes | PAGER=cat hdiutil attach -nobrowse -mountpoint "$RUNNER_TEMP/dmg" "$dmg" >/dev/null
               check "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul"
               lipo -archs "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul" | grep -q arm64
               lipo -archs "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul" | grep -q x86_64
