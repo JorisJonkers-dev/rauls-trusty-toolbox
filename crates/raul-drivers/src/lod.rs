@@ -2,6 +2,11 @@
 //! LOD through lodwright-rs: the request document the Toolbox builds from a Profile and passes to
 //! `lodwright generate --request <file>`, checked against the `lodwright-request` v1 schema lodwright publishes
 //! (a snapshot is in `contracts/snapshots/lodwright-rs/`), and the manifest lodwright leaves in its output folder.
+//! [`generate`] runs lodwright with that request and keeps its output as one Mod.
+
+mod generate;
+
+pub use generate::{LODWRIGHT, LODWRIGHT_RESULT_VERSIONS, LodOutcome, LodRequest, generate};
 
 use std::path::{Path, PathBuf};
 
@@ -241,29 +246,39 @@ pub fn check_request(request: &Value) -> Result<(), String> {
 ///
 /// # Errors
 ///
-/// The manifest cannot be read, is not a `lodwright-manifest`, or is of a version this build does not read.
-pub fn read_manifest(output_dir: &Path) -> Result<Option<Value>, String> {
+/// [`LodErrorCode::ContractRefused`] for a manifest of a newer version; [`LodErrorCode::ToolFailed`] when it
+/// cannot be read or is not a `lodwright-manifest`. Each with a reason for people.
+pub fn read_manifest(output_dir: &Path) -> Result<Option<Value>, (LodErrorCode, String)> {
+    let failed = |why: String| (LodErrorCode::ToolFailed, why);
     let file = output_dir.join(MANIFEST_FILE);
     let text = match std::fs::read_to_string(&file) {
         Ok(t) => t,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) => return Err(format!("{}: {e}", file.display())),
+        Err(e) => return Err(failed(format!("{}: {e}", file.display()))),
     };
-    let doc: Value = serde_json::from_str(&text).map_err(|e| format!("{}: {e}", file.display()))?;
+    let doc: Value =
+        serde_json::from_str(&text).map_err(|e| failed(format!("{}: {e}", file.display())))?;
     if doc["contract"] != MANIFEST_CONTRACT {
-        return Err(format!(
+        return Err(failed(format!(
             "{} is not a {MANIFEST_CONTRACT} document",
             file.display()
-        ));
+        )));
     }
+    let newest = MANIFEST_VERSIONS.iter().max().copied().unwrap_or(1);
     match doc["schema_version"].as_i64() {
         Some(v) if MANIFEST_VERSIONS.contains(&v) => Ok(Some(doc)),
-        Some(v) => Err(format!(
-            "{} is {MANIFEST_CONTRACT} version {v}; this raul reads version {}",
-            file.display(),
-            MANIFEST_VERSIONS.iter().max().copied().unwrap_or(1)
+        Some(v) if v > newest => Err((
+            LodErrorCode::ContractRefused,
+            format!(
+                "{} is {MANIFEST_CONTRACT} version {v}; this raul reads version {newest}",
+                file.display()
+            ),
         )),
-        None => Err(format!("{} has no schema_version", file.display())),
+        Some(v) => Err(failed(format!(
+            "{} is {MANIFEST_CONTRACT} version {v}, which this raul does not read",
+            file.display()
+        ))),
+        None => Err(failed(format!("{} has no schema_version", file.display()))),
     }
 }
 
@@ -283,17 +298,21 @@ mod tests {
             json!([])
         );
         write(r#"{"schema_version":2,"contract":"lodwright-manifest"}"#);
-        assert!(read_manifest(dir.path()).unwrap_err().contains("version 2"));
+        let (code, why) = read_manifest(dir.path()).unwrap_err();
+        assert_eq!(code, LodErrorCode::ContractRefused);
+        assert!(why.contains("version 2"), "{why}");
         write(r#"{"schema_version":1,"contract":"lodwright-result"}"#);
         assert!(
             read_manifest(dir.path())
                 .unwrap_err()
+                .1
                 .contains("not a lodwright-manifest")
         );
         write(r#"{"contract":"lodwright-manifest"}"#);
         assert!(
             read_manifest(dir.path())
                 .unwrap_err()
+                .1
                 .contains("no schema_version")
         );
         write("not json");

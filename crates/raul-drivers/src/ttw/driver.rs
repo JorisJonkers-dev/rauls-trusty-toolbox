@@ -280,26 +280,32 @@ fn arguments(req: &TtwRequest, ready: &Ready, dest: &Path, events: &Path) -> Vec
     words
 }
 
-/// Reads the lines ttwright appends to its event file and turns each into an [`Event`].
-struct EventTail {
+/// How one event line of a Component becomes [`Event`]s: the parsed line, whether a warning about it was given
+/// already, and where the events go.
+pub(crate) type MapLine = fn(&Value, &mut bool, &mut dyn FnMut(Event));
+
+/// Reads the lines a Component appends to its event file and turns each into [`Event`]s.
+pub(crate) struct EventTail {
     file: PathBuf,
     offset: u64,
     partial: String,
     warned: bool,
+    map: MapLine,
 }
 
 impl EventTail {
-    fn new(file: PathBuf) -> EventTail {
+    pub(crate) fn new(file: PathBuf, map: MapLine) -> EventTail {
         EventTail {
             file,
             offset: 0,
             partial: String::new(),
             warned: false,
+            map,
         }
     }
 
     /// Emit every complete line written since the last call; with `last`, also a final line without a newline.
-    fn drain(&mut self, emit: &mut dyn FnMut(Event), last: bool) {
+    pub(crate) fn drain(&mut self, emit: &mut dyn FnMut(Event), last: bool) {
         if let Ok(mut f) = std::fs::File::open(&self.file)
             && f.seek(SeekFrom::Start(self.offset)).is_ok()
         {
@@ -323,57 +329,61 @@ impl EventTail {
         if line.is_empty() {
             return;
         }
-        let Ok(v) = serde_json::from_str::<Value>(line) else {
-            return;
-        };
-        if v["schema_version"].as_i64() != Some(TTWRIGHT_EVENTS_VERSION) {
-            if !self.warned {
-                self.warned = true;
-                emit(Event::Warning {
-                    message: format!(
-                        "ttwright writes events of version {}; this raul reads {TTWRIGHT_EVENTS_VERSION}, so progress is not shown",
-                        v["schema_version"]
-                    ),
-                });
-            }
-            return;
-        }
-        let text = |k: &str| v[k].as_str().map(str::to_owned);
-        match v["event"].as_str() {
-            Some("phase") => {
-                if let Some(phase) = text("phase") {
-                    emit(Event::Phase { phase });
-                }
-            }
-            Some("progress") => emit(Event::Progress {
-                phase: text("phase").unwrap_or_default(),
-                done: v["done"].as_u64().unwrap_or(0),
-                of: v["of"].as_u64().unwrap_or(0),
-                message: text("message"),
-            }),
-            Some("warning") => emit(Event::Warning {
-                message: text("message").unwrap_or_default(),
-            }),
-            // `started` and `finished` are the driver's own to report.
-            _ => {}
+        if let Ok(v) = serde_json::from_str::<Value>(line) {
+            (self.map)(&v, &mut self.warned, emit);
         }
     }
 }
 
-/// Run ttwright through `runner`, emitting its events while it runs.
-fn run_streaming(
+/// One `ttwright-events` line as [`Event`]s.
+fn ttwright_line(v: &Value, warned: &mut bool, emit: &mut dyn FnMut(Event)) {
+    if v["schema_version"].as_i64() != Some(TTWRIGHT_EVENTS_VERSION) {
+        if !*warned {
+            *warned = true;
+            emit(Event::Warning {
+                message: format!(
+                    "ttwright writes events of version {}; this raul reads {TTWRIGHT_EVENTS_VERSION}, so progress is not shown",
+                    v["schema_version"]
+                ),
+            });
+        }
+        return;
+    }
+    let text = |k: &str| v[k].as_str().map(str::to_owned);
+    match v["event"].as_str() {
+        Some("phase") => {
+            if let Some(phase) = text("phase") {
+                emit(Event::Phase { phase });
+            }
+        }
+        Some("progress") => emit(Event::Progress {
+            phase: text("phase").unwrap_or_default(),
+            done: v["done"].as_u64().unwrap_or(0),
+            of: v["of"].as_u64().unwrap_or(0),
+            message: text("message"),
+        }),
+        Some("warning") => emit(Event::Warning {
+            message: text("message").unwrap_or_default(),
+        }),
+        // `started` and `finished` are the driver's own to report.
+        _ => {}
+    }
+}
+
+/// Run the Component `tool` through `runner`, turning the lines of its event file into events while it runs.
+pub(crate) fn run_streaming(
     runner: &Runner,
+    tool: &str,
     call_program: &Path,
     args: &[String],
     sha256: &str,
-    events: &Path,
+    mut tail: EventTail,
     emit: &mut dyn FnMut(Event),
 ) -> Result<Output, ToolError> {
     let (tx, rx) = mpsc::channel();
-    let mut tail = EventTail::new(events.to_path_buf());
     std::thread::scope(|scope| {
         scope.spawn(|| {
-            let mut call = Call::new(TTWRIGHT, call_program, args);
+            let mut call = Call::new(tool, call_program, args);
             call.expected_sha256 = Some(sha256);
             let _ = tx.send(runner.run_any(&call));
         });
@@ -386,7 +396,7 @@ fn run_streaming(
                 Err(mpsc::RecvTimeoutError::Timeout) => tail.drain(emit, false),
                 Err(mpsc::RecvTimeoutError::Disconnected) => {
                     return Err(ToolError::Failed {
-                        tool: TTWRIGHT.to_owned(),
+                        tool: tool.to_owned(),
                         reason: "the run ended without an answer".to_owned(),
                     });
                 }
@@ -396,7 +406,7 @@ fn run_streaming(
 }
 
 /// Files under `dir`, not following links (a link counts as one file, so a loop of links cannot recurse).
-fn count_files(dir: &Path) -> u64 {
+pub(crate) fn count_files(dir: &Path) -> u64 {
     std::fs::read_dir(dir)
         .into_iter()
         .flatten()
@@ -408,12 +418,12 @@ fn count_files(dir: &Path) -> u64 {
         .sum()
 }
 
-fn is_link(path: &Path) -> bool {
+pub(crate) fn is_link(path: &Path) -> bool {
     std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink())
 }
 
 /// Remove the work folder: a link is removed as a link, never followed; a missing folder is fine.
-fn clear(path: &Path) -> std::io::Result<()> {
+pub(crate) fn clear(path: &Path) -> std::io::Result<()> {
     let result = if is_link(path) {
         std::fs::remove_file(path)
     } else {
@@ -518,7 +528,15 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         ..Runner::default()
     };
     let args = arguments(req, &ready, &dest, &events);
-    let output = run_streaming(&runner, &ready.program, &args, &ready.sha256, &events, emit);
+    let output = run_streaming(
+        &runner,
+        TTWRIGHT,
+        &ready.program,
+        &args,
+        &ready.sha256,
+        EventTail::new(events.clone(), ttwright_line),
+        emit,
+    );
     let journal = dest.join(".ttwright-journal.json").is_file();
     let output = match output {
         Ok(o) => o,
@@ -743,7 +761,7 @@ mod tests {
     fn the_event_tail_reads_whole_lines_and_warns_once_about_a_newer_version() {
         let dir = TempDir::new("raul-tail");
         let file = dir.path().join("events.ndjson");
-        let mut tail = EventTail::new(file.clone());
+        let mut tail = EventTail::new(file.clone(), ttwright_line);
         let mut seen = Vec::new();
         tail.drain(&mut |e| seen.push(e), false);
         assert!(seen.is_empty(), "no file yet");

@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! `raul lod plan`: the `lodwright-request` document `raul lod generate` would send to lodwright for a Profile,
-//! checked against lodwright's published schema. Nothing is run or written.
+//! checked against lodwright's published schema; nothing is run or written. `raul lod generate`: run lodwright with
+//! that request and keep its output as the Mod `LOD (lodwright)`; `--json` streams `raul-events` lines.
 
 use std::io::Write;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use nvmod_instance::NvmodInstance;
 use raul_core::config::{Config, Key};
-use raul_drivers::lod;
+use raul_drivers::events::Event;
+use raul_drivers::lod::{self, LodRequest};
+
+use crate::printer::Printer;
 
 const USAGE_LINE: &str =
     "lod takes `plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]`";
@@ -17,14 +22,23 @@ struct Flags {
     profile: Option<String>,
     worlds: Vec<String>,
     json: bool,
+    dry_run: bool,
+    lodwright: Option<PathBuf>,
+    timeout: Duration,
 }
 
-fn parse(args: &[String]) -> Result<Flags, String> {
+/// How long a LOD run may take before it is stopped.
+const DEFAULT_TIMEOUT: Duration = Duration::from_hours(2);
+
+fn parse(args: &[String], generate: bool) -> Result<Flags, String> {
     let mut f = Flags {
         instance: None,
         profile: None,
         worlds: Vec::new(),
         json: false,
+        dry_run: false,
+        lodwright: None,
+        timeout: DEFAULT_TIMEOUT,
     };
     let mut rest = args.iter();
     while let Some(a) = rest.next() {
@@ -38,6 +52,16 @@ fn parse(args: &[String]) -> Result<Flags, String> {
             "--instance" => f.instance = Some(PathBuf::from(value()?)),
             "--profile" => f.profile = Some(value()?),
             "--world" => f.worlds.push(value()?),
+            "--dry-run" if generate => f.dry_run = true,
+            "--lodwright" if generate => f.lodwright = Some(PathBuf::from(value()?)),
+            "--timeout-secs" if generate => {
+                let secs = value()?
+                    .parse::<u64>()
+                    .ok()
+                    .filter(|s| *s > 0)
+                    .ok_or_else(|| "--timeout-secs needs a number of seconds above 0".to_owned())?;
+                f.timeout = Duration::from_secs(secs);
+            }
             other => return Err(format!("unknown option {other}")),
         }
     }
@@ -47,13 +71,7 @@ fn parse(args: &[String]) -> Result<Flags, String> {
 pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     match args.first().map(String::as_str) {
         Some("plan") => plan(&args[1..], out, err),
-        Some("generate") => {
-            let _ = writeln!(
-                err,
-                "raul lod generate: refused: it comes with lodwright-rs 0.3.0, which is not in the Known-good set yet; `raul lod plan` shows the request it will send"
-            );
-            crate::REFUSED
-        }
+        Some("generate") => generate(&args[1..], out, err),
         _ => crate::usage(err, USAGE_LINE),
     }
 }
@@ -63,17 +81,19 @@ fn refused(err: &mut dyn Write, why: &str) -> u8 {
     crate::REFUSED
 }
 
+/// The Instance from `raul config`, when the flags name none.
+fn configured_instance() -> Option<PathBuf> {
+    raul_core::config::default_file()
+        .and_then(|f| Config::load(&f).ok())
+        .and_then(|c| c.get(Key::Instance))
+}
+
 fn plan(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    let flags = match parse(args) {
+    let flags = match parse(args, false) {
         Ok(f) => f,
         Err(why) => return crate::usage(err, &format!("{why}\n{USAGE_LINE}")),
     };
-    let from_config = || {
-        raul_core::config::default_file()
-            .and_then(|f| Config::load(&f).ok())
-            .and_then(|c| c.get(Key::Instance))
-    };
-    let Some(root) = flags.instance.or_else(from_config) else {
+    let Some(root) = flags.instance.or_else(configured_instance) else {
         return refused(
             err,
             "no Instance: pass --instance <dir> or run `raul config set storage.root <dir>`",
@@ -118,4 +138,67 @@ fn plan(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         )
     };
     crate::write_or_fail(out, err, &text)
+}
+
+/// The bundled lodwright next to the running `raul`.
+fn bundled_lodwright() -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    raul_drivers::ttw::bundled(exe.parent()?, lod::LODWRIGHT)
+}
+
+fn generate(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    let flags = match parse(args, true) {
+        Ok(f) => f,
+        Err(why) => return crate::usage(err, &format!("{why}\n{USAGE_LINE}")),
+    };
+    // A stop request (Ctrl+C, SIGTERM, the GUI's cancel) stops lodwright; the Instance stays as it was.
+    let _ = ctrlc::set_handler(nvmod_core::cancel::request);
+    let absolute = |p: PathBuf| std::path::absolute(&p).unwrap_or(p);
+    let instance = flags.instance.or_else(configured_instance).map(absolute);
+    let req = LodRequest {
+        instance: instance.clone().unwrap_or_default(),
+        profile: flags.profile,
+        worlds: flags.worlds,
+        lodwright: flags.lodwright.map(absolute).or_else(bundled_lodwright),
+        dry_run: flags.dry_run,
+        timeout: flags.timeout,
+    };
+    let json = flags.json;
+    let mut printer = Printer {
+        command: "lod",
+        out,
+        err,
+        json,
+        seq: 0,
+        last_percent: None,
+    };
+    let outcome = lod::generate(&req, &mut |e| printer.emit(e));
+    if json {
+        printer.emit(Event::Result {
+            result: serde_json::to_value(&outcome.result).unwrap_or_default(),
+        });
+        printer.emit(outcome.finished());
+    } else if let Some(e) = &outcome.result.error {
+        let _ = writeln!(printer.err, "raul lod generate: {}", e.message);
+    } else {
+        let r = &outcome.result;
+        let text = if r.dry_run {
+            "raul lod generate: dry run passed; the request is valid and nothing was written\n"
+                .to_owned()
+        } else if r.up_to_date {
+            format!(
+                "raul lod generate: `{}` is up to date; nothing was written\n",
+                lod::MOD_NAME
+            )
+        } else {
+            format!(
+                "raul lod generate: wrote `{}` ({} files) into profile `{}`\n",
+                lod::MOD_NAME,
+                r.files.unwrap_or(0),
+                r.profile
+            )
+        };
+        let _ = printer.out.write_all(text.as_bytes());
+    }
+    outcome.exit_code
 }

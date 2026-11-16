@@ -7,6 +7,7 @@ mod config;
 mod detect;
 mod known_good;
 mod lod;
+mod printer;
 mod ttw;
 mod update;
 mod version;

@@ -8,71 +8,15 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use raul_core::config::{Config, Key};
-use raul_drivers::events::{CONTRACT, Event, EventLine, SCHEMA_VERSION};
+use raul_drivers::events::Event;
+
+use crate::printer::Printer;
 use raul_drivers::ttw::{self, TtwErrorCode, TtwRequest};
 
 /// The longest `--timeout-secs` taken: a week.
 const MAX_TIMEOUT_SECS: u64 = 7 * 24 * 60 * 60;
 
 const USAGE_LINE: &str = "ttw takes [--instance <dir>] [--profile <name>] [--fallout3 <dir>] [--newvegas <dir>] [--package <file>] [--ttwright <path>] [--dry-run] [--resume] [--timeout-secs <n>] [--json]";
-
-/// Prints events as `raul-events` lines or as text for people.
-struct Printer<'a> {
-    out: &'a mut dyn Write,
-    err: &'a mut dyn Write,
-    json: bool,
-    seq: u64,
-    last_percent: Option<(String, u64)>,
-}
-
-impl Printer<'_> {
-    fn emit(&mut self, event: Event) {
-        if self.json {
-            self.seq += 1;
-            let line = EventLine {
-                schema_version: SCHEMA_VERSION,
-                contract: CONTRACT.to_owned(),
-                seq: self.seq,
-                command: "ttw".to_owned(),
-                event,
-            };
-            let _ = writeln!(
-                self.out,
-                "{}",
-                serde_json::to_string(&line).unwrap_or_default()
-            );
-            let _ = self.out.flush();
-            return;
-        }
-        match event {
-            Event::Started { tool, .. } => {
-                let _ = writeln!(
-                    self.err,
-                    "raul ttw: running {} (SHA-256 {})",
-                    tool.path.display(),
-                    tool.sha256
-                );
-            }
-            Event::Phase { phase } => {
-                let _ = writeln!(self.err, "raul ttw: {phase}");
-            }
-            Event::Progress {
-                phase, done, of, ..
-            } if of > 0 => {
-                // One line per tenth, so a long phase does not flood the terminal.
-                let tenth = done.saturating_mul(10) / of;
-                if self.last_percent.as_ref() != Some(&(phase.clone(), tenth)) {
-                    let _ = writeln!(self.err, "raul ttw: {phase} {done}/{of}");
-                    self.last_percent = Some((phase, tenth));
-                }
-            }
-            Event::Warning { message } => {
-                let _ = writeln!(self.err, "raul ttw: warning: {message}");
-            }
-            _ => {}
-        }
-    }
-}
 
 fn value<'a>(rest: &mut impl Iterator<Item = &'a String>, flag: &str) -> Result<&'a str, String> {
     rest.next()
@@ -168,6 +112,7 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
     req.ttwright = req.ttwright.or_else(bundled_ttwright);
 
     let mut printer = Printer {
+        command: "ttw",
         out,
         err,
         json,
