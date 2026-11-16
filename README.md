@@ -9,7 +9,7 @@ launches the game through the nv-rs engine port, all from one window or one comm
 
 **Status: early.** `raul` runs from the command line today: it finds your game, checks the pinned
 Components and runs every nvmod command. The GUI arrives when it moves here from nvmod-rs. The plan is in
-[`docs/PLAN.md`](docs/PLAN.md), the design in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), decisions in
+[`docs/PLAN.md`](docs/PLAN.md) and the reorganisation that refines it in [`docs/REORG.md`](docs/REORG.md), the design in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), decisions in
 [`docs/adr`](docs/adr) and terms in [`GLOSSARY.md`](GLOSSARY.md).
 
 <!-- Screenshots go here once the GUI ships. -->
@@ -59,9 +59,10 @@ The toolbox ties together four projects that keep their own history, issues, rel
 | Component | What it does |
 | --- | --- |
 | [nv-rs](https://github.com/JorisJonkers-dev/nv-rs) | The engine port (this organisation's fork of [slaterain/nv-rs](https://github.com/slaterain/nv-rs)) |
-| [nvmod-rs](https://github.com/JorisJonkers-dev/nvmod-rs) | Mod management: instances, profiles, installs, archives, TTW setup, Doctor |
+| [nvmod-rs](https://github.com/JorisJonkers-dev/nvmod-rs) | Mod management: instances, profiles, mod installs, staging, conflicts, load order, content Doctor |
 | [loot-rs](https://github.com/JorisJonkers-dev/loot-rs) | Load-order sorting against the LOOT masterlist |
 | [lodwright-rs](https://github.com/JorisJonkers-dev/lodwright-rs) | Distant terrain, object and tree LOD generation |
+| [ttwright-rs](https://github.com/JorisJonkers-dev/ttwright-rs) | Tale of Two Wastelands installation from the player's own game copies |
 
 ## Origins
 

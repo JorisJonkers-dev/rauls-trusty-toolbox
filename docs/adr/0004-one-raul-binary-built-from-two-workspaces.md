@@ -4,6 +4,9 @@ date: 2026-11-16
 ---
 # One `raul` binary, built from two workspaces
 
+Amended by [ADR-0012](0012-egui-is-the-gui-toolkit.md): with egui instead of GPUI, the reason for a separate GUI
+workspace is re-measured in #13; one `raul` binary stays.
+
 Users get one program: `raul` with no arguments opens the GUI, `raul <command>` is the CLI. A cargo feature alone
 would put GPUI's roughly 560 crates into the main `Cargo.lock` even when off (Cargo locks optional dependencies), so
 the main workspace builds a CLI-only `raul` (lean lock, fast pull-request CI, benches, headless use) and a nested GUI

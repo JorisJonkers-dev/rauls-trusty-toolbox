@@ -4,6 +4,50 @@ How the Toolbox and its Components fit together. Terms are defined in [GLOSSARY.
 behind this shape are [ADR-0001](adr/0001-the-toolbox-is-the-product-umbrella.md) to
 [ADR-0006](adr/0006-native-on-linux-windows-and-macos-with-no-compatibility-layers.md).
 
+## Where this is going
+
+[ADR-0007](adr/0007-orchestration-tool-supply-and-the-view-model-live-in-the-toolbox.md) to
+[ADR-0011](adr/0011-the-rolling-engine-channel.md) move orchestration, tool supply, the Runner, the view model and
+the GUI from nvmod into the Toolbox; [REORG.md](REORG.md) has the crate-by-crate plan and the order. The target:
+
+```mermaid
+flowchart LR
+  subgraph raul["raul (this repository)"]
+    gui["raul-gui"]
+    uis["raul-ui-service / raul-ui-model"]
+    cli["raul-cli"]
+    core["raul-core<br/>setup pipeline, detection, Known-good sets, updates"]
+    drv["raul-drivers / raul-launch<br/>TTW, LOD, engine"]
+    sup["raul-supply<br/>pins, store, fetch, verify"]
+    run["raul-runner"]
+    bench["raul-bench"]
+  end
+  subgraph linked["linked libraries (GPL-3.0-only)"]
+    nvmod["nvmod crates<br/>mod management"]
+    loot["loot-rs"]
+  end
+  subgraph procs["separate programs, versioned Contracts"]
+    nvrs["nv-rs"]
+    lod["lodwright-rs"]
+    ttw["ttwright-rs"]
+  end
+  gui --> uis
+  uis -- reads --> core
+  uis -- writes, raul-events --> cli
+  cli --> core
+  core --> nvmod
+  core --> drv
+  drv --> sup --> run
+  drv --> run
+  nvmod --> loot
+  run --> nvrs
+  run --> lod
+  run --> ttw
+  bench --> nvmod
+```
+
+The rest of this page describes the code as it is today, before the moves.
+
 ## Pieces
 
 ```mermaid
