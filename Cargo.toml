@@ -4,7 +4,7 @@
 [workspace]
 resolver = "3"
 members = ["crates/raul-core", "crates/raul-cli", "crates/raul-bench", "crates/raul-runner"]
-exclude = ["components", "crates/raul-gui"]
+exclude = ["components", "crates/raul-gui", "tools"]
 
 [workspace.package]
 version = "0.0.0"

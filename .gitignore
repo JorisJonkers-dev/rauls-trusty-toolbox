@@ -92,3 +92,4 @@ __pycache__/
 *.7z
 *.rar
 *.zip
+lcov.info

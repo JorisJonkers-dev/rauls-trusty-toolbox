@@ -74,6 +74,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
+          fetch-depth: 0
       # Crates come through the estate packages proxy (7-day minimum age); the hygiene guard requires it.
       - uses: JorisJonkers-dev/github-workflows/actions/setup-package-proxy@b14d5e031f1abd5bec45e50c898e9e73f3ffc534 # v0.50.4
         with:
@@ -106,9 +107,27 @@ jobs:
         if: ${{ !cancelled() }}
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
-      - name: Test
+      # The tests run once, instrumented; the report feeds the changed-line gate below.
+      - name: Tests with coverage
+        id: tests
         if: ${{ !cancelled() }}
-        run: mise exec -- cargo nextest run --workspace --locked
+        run: mise exec -- cargo llvm-cov nextest --workspace --locked --lcov --output-path lcov.info
+
+      # 70% of the executable lines a change adds or edits in the Toolbox's crates must run in a test
+      # (docs/COVERAGE.md). Submodule moves change no line here, so a Component bump has nothing to gate.
+      - name: Changed-line coverage gate (70%)
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' }}
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE:-}" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "No base commit to compare with: nothing to gate." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          cargo test --locked --manifest-path tools/coverage-gate/Cargo.toml
+          cargo run --quiet --locked --manifest-path tools/coverage-gate/Cargo.toml -- \
+            --lcov lcov.info --base "$BASE" --min 70 --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Doc tests
         if: ${{ !cancelled() }}
