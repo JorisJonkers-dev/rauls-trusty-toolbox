@@ -12,6 +12,11 @@ removing, renaming or retyping one is.
 | Contract | Version | Printed by |
 | --- | --- | --- |
 | `raul-config` | 1 | `raul config list\|get\|set\|unset --json` |
+| `raul-events` | 1 | the JSON lines of a driver command: `raul ttw --json` |
+| `raul-ttw-result` | 1 | the `result` event of `raul ttw --json` |
+
+`snapshots/` holds the schemas of the Component Contracts the Toolbox reads, as their releases published them:
+`snapshots/ttwright-rs/` is ttwright-rs v0.3.0 (`ttwright-result`, `ttwright-events`, `ttwright-contracts`, all v1).
 
 ## `raul-config`
 
@@ -49,3 +54,42 @@ A command line `raul config` cannot read exits 5 with a usage line on standard e
 The file itself is an on-disk document with `schema_version = 1` (the first version: a file without one is read as
 version 1). Keys this build does not know survive a `set`. `raul config` is the file's only writer: the GUI and
 scripts run one `set` at a time.
+
+## `raul-events`
+
+`raul ttw --json` prints one `raul-events` line per event on standard output while it runs. Each line has
+`schema_version`, `contract`, `seq` (from 1), `command` and `event`:
+
+| `event` | Fields | When |
+| --- | --- | --- |
+| `started` | `dry_run`, `resume`, `instance`, `profile`, `tool` (`name`, `version` (`null` until the result names it), `path`, `sha256`) | the checks passed and the program starts |
+| `phase` | `phase` | a phase began: ttwright's `package`, `preflight`, `checks`, `assets`, `post_install`, then `add_mod` |
+| `progress` | `phase`, `done`, `of` (0 when unknown), `message` | progress within the phase |
+| `warning` | `message` | something went wrong, but the run goes on |
+| `result` | `result` | the command's result document (`raul-ttw-result`) |
+| `finished` | `status`, `exit_code`, `code`, `message`, `resumable`, `changed` | always the last line |
+
+A command refused before it starts prints only `result` and `finished`. The process exits with `finished.exit_code`.
+Standard error carries the same story as text for people.
+
+## `raul-ttw-result`
+
+`raul ttw` installs TTW with ttwright-rs and adds its output to the Instance as the Mod `Tale of Two Wastelands`,
+with its plugins enabled in the Profile. The result names the Mod, the plugins it enabled, the ttwright program
+that ran (with its SHA-256), the `ttwright-result` document ttwright printed, and the staging folder ttwright
+wrote to. A cancelled or failed install keeps the staging folder, so `raul ttw --resume` continues there.
+
+| `status` | Exit code | `error.code` | ttwright |
+| --- | --- | --- | --- |
+| `success` | 0 | | exit code 0, and the Mod was added (or a dry run) |
+| `refused` | 2 | `instance_invalid`, `profile_missing`, `missing_input`, `mod_exists`, `tool_missing` | not started |
+| `refused` | 2 | `contract_refused` | printed a `ttwright-result` of a newer version |
+| `unsupported` | 2 | `unsupported` | exit code 3 (`unsupported_feature`, `unsupported_version`); nothing was written |
+| `unverifiable` | 3 | `tool_unverifiable` | changed after its checksum was taken; not started |
+| `failed` | 4 | `ttwright_failed` | exit code 1, or 2 (a usage error) |
+| `failed` | 4 | `tool_failed` | could not start, was ended by a signal, or printed no valid result |
+| `failed` | 4 | `add_mod_failed` | exit code 0, but adding the Mod failed and was rolled back |
+| `cancelled` | 4 | `cancelled` | exit code 4, or stopped by `raul` on SIGINT or SIGTERM; `--resume` continues |
+
+`error.ttwright_code` is ttwright's own `error.code` when ttwright gave one. In every case but `success` the
+Instance is as it was before the command. A command line `raul` cannot read exits 5 and prints no events.

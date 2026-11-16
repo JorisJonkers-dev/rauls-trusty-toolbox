@@ -10,6 +10,7 @@ description = "Orchestration of the Toolbox: Known-good sets, game detection, be
 
 [dependencies]
 raul-runner = { workspace = true }
+raul-drivers = { workspace = true }
 schemars = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
@@ -20,6 +21,7 @@ nvmod-pe = { workspace = true }
 
 [dev-dependencies]
 nvmod-testkit = { workspace = true }
+serde = { workspace = true }
 jsonschema = { workspace = true }
 
 [lints]
