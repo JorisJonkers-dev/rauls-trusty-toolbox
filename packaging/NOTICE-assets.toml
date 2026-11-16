@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Every non-code asset the Toolbox ships or keeps, with its source and licence (ADR-0014). CI fails on an asset
+# that is not listed here.
+
+[[asset]]
+path = "packaging/icons/raul.png"
+what = "placeholder app icon (a generated gear), to be replaced by the designed wrench-on-cog icon"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/design/mockup.html"
+what = "GUI mockup, including its inline line icons drawn for it from generic shapes"
+source = "this repository"
+license = "GPL-3.0-only"

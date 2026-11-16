@@ -132,6 +132,20 @@ _Avoid_: Nightly, beta (for nv-rs builds)
 The one part of nvmod that starts a process: argument vector, no shell, scrubbed environment, timeout, output cap and whole-tree kill.
 _Avoid_: Launcher (that word is for starting the game), executor
 
+### Interface
+
+**Install skin**:
+The opt-in setting that reads interface icons and fonts from the player's own game install at run time, never shipped or uploaded (ADR-0014).
+_Avoid_: Theme (themes are the Toolbox's own: dark and high contrast), mod skin
+
+**TTW bundle**:
+The one row in Mods that stands for an installed TTW, which can be switched on and off as a whole.
+_Avoid_: TTW mod (it is many files from the player's own games, not one downloaded mod)
+
+**Attention chip**:
+A small count with an icon that says a page needs a look; the sidebar, Home and Doctor show the same ones.
+_Avoid_: Badge, notification (notifications are transient messages)
+
 ### Observability
 
 **Run log**:
