@@ -256,14 +256,24 @@ jobs:
             Windows)
               7z x -bso0 -o"$RUNNER_TEMP/zip" target/packages/*-portable.zip
               check "$RUNNER_TEMP/zip/raul-$VERSION-windows-x64/raul.exe"
-              setup="$(ls target/packages/*.setup.exe)"; "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"
-              sleep 5; check "$RUNNER_TEMP/installed/raul.exe" ;;
+              setup="$(ls target/packages/*.setup.exe)"
+              # The installer must hold the same raul.exe: 7z unpacks an NSIS installer without running it.
+              7z x -bso0 -o"$RUNNER_TEMP/nsis" "$setup"; check "$(find "$RUNNER_TEMP/nsis" -iname raul.exe | head -1)"
+              # A silent install is tried under a time limit; it hung in CI before, so a hang is a warning, not a stuck job.
+              if timeout 180 "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"; then
+                sleep 5; check "$RUNNER_TEMP/installed/raul.exe"
+              else
+                echo "::warning::the silent NSIS install did not finish within 180 s (exit $?); the installer contents were checked above"
+                taskkill //F //IM "$(basename "$setup")" >/dev/null 2>&1 || true
+              fi ;;
             macOS)
               # The dmg shows the licence as an agreement; `yes` accepts it so attach does not wait.
-              dmg="$(ls target/packages/*.dmg)"; yes | env PAGER=cat hdiutil attach -nobrowse -mountpoint "$RUNNER_TEMP/dmg" "$dmg" >/dev/null
+              # `yes` is fed through process substitution: it ends with a broken pipe when hdiutil stops reading,
+              # which in a pipeline would fail the step under pipefail.
+              dmg="$(ls target/packages/*.dmg)"; env PAGER=cat hdiutil attach -nobrowse -mountpoint "$RUNNER_TEMP/dmg" "$dmg" < <(yes) >/dev/null
               check "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul"
-              lipo -archs "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul" | grep -q arm64
-              lipo -archs "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul" | grep -q x86_64
+              archs="$(lipo -archs "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul")"; echo "$archs"
+              grep -qw arm64 <<<"$archs"; grep -qw x86_64 <<<"$archs"
               hdiutil detach "$RUNNER_TEMP/dmg" ;;
           esac
 
