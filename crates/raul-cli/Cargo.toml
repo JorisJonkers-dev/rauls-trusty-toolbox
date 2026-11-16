@@ -28,6 +28,8 @@ workspace = true
 
 [dev-dependencies]
 nvmod-testkit = { workspace = true }
+jsonschema = { workspace = true }
+toml = { workspace = true }
 
 # Installers (docs/PLAN.md, Phase 5): `cargo packager --release -p raul-cli --formats <list>` from the repository
 # root, after the release binary and the bundled Component programs are built (.github/workflows/release.yml).
