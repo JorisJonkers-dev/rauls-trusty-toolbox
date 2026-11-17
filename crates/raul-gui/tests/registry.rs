@@ -157,6 +157,11 @@ fn every_page_command_runs_against_a_fixture() {
             .collect();
         let result = f.raul(&words);
         understood(&command.line(), &result, command.action.takes_json());
+        if command.action == Action::Update {
+            // It asks the release list on the network: what it answers depends on the machine, not on the command.
+            ran += 1;
+            continue;
+        }
         assert_eq!(
             result.0,
             expected(command),
