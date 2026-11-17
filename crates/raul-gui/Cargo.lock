@@ -3293,6 +3293,7 @@ dependencies = [
  "raul-cli",
  "raul-ui-model",
  "raul-ui-service",
+ "serde_json",
 ]
 
 [[package]]

@@ -8,7 +8,8 @@ use raul_ui_model::Screen;
 use raul_ui_model::keymap::Keymap;
 use raul_ui_model::palette::{self, Do};
 use raul_ui_service::registry::{
-    Action, Coverage, action_of, coverage, help_lists, planned_screens,
+    Action, COMMANDS, Coverage, action_of, command, coverage, help_block, help_lists,
+    planned_screens,
 };
 
 /// Runs a command line through the same `raul_cli::run` the GUI build's `raul` runs.
@@ -25,15 +26,21 @@ fn raul(args: &[&str]) -> (u8, String, String) {
 
 #[test]
 fn every_action_is_a_command_of_the_real_command_line() {
-    let (code, help, _) = raul(&["nvmod-help"]);
+    let (code, nvmod, _) = raul(&["nvmod-help"]);
     assert_eq!(code, 0);
+    let (_, own, _) = raul(&["help"]);
+    let help = format!("{own}\n{nvmod}");
     for action in Action::ALL {
         assert!(
             help_lists(&help, action),
-            "`{}` is not in `raul nvmod-help`",
+            "`{}` is not in `raul help` or `raul nvmod-help`",
             action.invocation()
         );
-        let (_, _, err) = raul(&[action.command(), "--json"]);
+        let mut args = vec![action.command()];
+        if action.takes_json() {
+            args.push("--json");
+        }
+        let (_, _, err) = raul(&args);
         assert!(
             !(err.starts_with("nvmod: unknown command")
                 || err.starts_with("raul: unknown command")),
@@ -110,4 +117,93 @@ fn an_action_is_found_by_its_command_line() {
     for a in Action::ALL {
         assert_eq!(action_of(&a.invocation()), Some(a));
     }
+}
+
+#[test]
+fn every_mvp_command_and_its_flags_are_in_the_help() {
+    let (_, own, _) = raul(&["help"]);
+    let (_, nvmod, _) = raul(&["nvmod-help"]);
+    let help = format!("{own}\n{nvmod}");
+    for command in COMMANDS {
+        let line = command.line();
+        if let Some(pr) = command.awaits {
+            assert!(
+                help_block(&own, &line).is_none(),
+                "`{line}` is in `raul help` now: drop its mark of {pr}"
+            );
+            continue;
+        }
+        let block =
+            help_block(&help, &line).unwrap_or_else(|| panic!("`{line}` is not in the help"));
+        for flag in command.flags {
+            assert!(
+                block
+                    .split(|c: char| !(c.is_alphanumeric() || c == '-'))
+                    .any(|w| w == *flag),
+                "`{line}` has no {flag} in its help:\n{block}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_help_block_is_its_usage_line_and_the_lines_that_continue_it() {
+    let help = "usage:\n  raul config list|get <key>|set <key> <path>|unset <key> [--json]\n        more\n  raul lod plan [--world <name>]\n                 the plan\n  nvmod sort --instance <dir> [--apply]\n  nvmod plugins list --instance <dir>\n";
+    for sub in ["list", "get", "set", "unset"] {
+        let block = help_block(help, &format!("raul config {sub}")).unwrap();
+        assert!(
+            block.contains("[--json]") && block.contains("more"),
+            "{block}"
+        );
+    }
+    assert!(help_block(help, "raul config drop").is_none());
+    let lod = help_block(help, "raul lod plan").unwrap();
+    assert!(lod.contains("the plan") && !lod.contains("sort"));
+    assert!(help_block(help, "raul lod generate").is_none());
+    assert!(help_block(help, "raul sort").unwrap().contains("--apply"));
+    let two = "  nvmod doctor --base <dir>\n  nvmod doctor --instance <dir>\n";
+    let both = help_block(two, "raul doctor").unwrap();
+    assert!(
+        both.contains("--base") && both.contains("--instance"),
+        "{both}"
+    );
+    assert!(help_block(help, "raul plugins list").is_some());
+    assert!(help_block(help, "raul plugins").is_some());
+    assert!(
+        help_block(help, "nvmod sort").is_none(),
+        "a line is asked for as raul"
+    );
+}
+
+#[test]
+fn every_mvp_command_is_a_registered_action_with_its_words() {
+    for command in COMMANDS {
+        assert_eq!(action_of(&command.line()), Some(command.action));
+        let args = command.args(["--x".to_owned()]);
+        assert_eq!(args.len(), command.words.len() + 1);
+        assert_eq!(args.last().map(String::as_str), Some("--x"));
+    }
+    assert!(!Action::Init.takes_json() && !Action::InstallNvRs.takes_json());
+    assert!(Action::Config.takes_json() && Action::Lod.cancellable());
+}
+
+#[test]
+fn ids_are_unique_and_json_follows_the_action() {
+    let mut ids: Vec<&str> = COMMANDS.iter().map(|c| c.id).collect();
+    ids.sort_unstable();
+    let n = ids.len();
+    ids.dedup();
+    assert_eq!(ids.len(), n, "two commands share an id");
+    for c in COMMANDS {
+        assert_eq!(command(c.id), Some(c));
+        assert_eq!(
+            c.flags.contains(&"--json"),
+            c.action.takes_json(),
+            "{}: --json in its flags and Action::takes_json disagree",
+            c.id
+        );
+    }
+    assert!(command("sort-apply").unwrap().writes);
+    assert!(!command("sort-preview").unwrap().writes);
+    assert!(command("nothing").is_none());
 }

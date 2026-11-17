@@ -33,6 +33,7 @@ eframe = { workspace = true }
 [dev-dependencies]
 egui_kittest = { workspace = true }
 nvmod-testkit = { workspace = true }
+serde_json = { workspace = true }
 
 [lints]
 workspace = true
