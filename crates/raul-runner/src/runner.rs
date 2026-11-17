@@ -23,7 +23,7 @@ pub const EXIT_TOOL_FAILED: u8 = 4;
 /// How much of the tool's standard error is kept for a report, unless the runner is told otherwise.
 const STDERR_KEEP: usize = 64 * 1024;
 /// How long to wait for a pipe to finish after the tool has ended (a child it left behind may hold it open).
-const PIPE_GRACE: Duration = Duration::from_secs(2);
+pub(crate) const PIPE_GRACE: Duration = Duration::from_secs(2);
 
 /// Why a tool call did not give a usable answer.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -190,6 +190,21 @@ impl Runner {
         self
     }
 
+    /// Also pass every variable of the caller's own environment whose name and value are text. For a program that
+    /// is the Toolbox itself, such as the GUI starting its own `raul`, which needs the same home, display and
+    /// Steam variables as the person's shell; every other program keeps the scrub.
+    #[must_use]
+    pub fn inherit_all(mut self) -> Runner {
+        for (name, value) in std::env::vars_os() {
+            if let (Some(name), Some(value)) = (name.to_str(), value.to_str())
+                && name != "PATH"
+            {
+                self.env.push((name.to_owned(), value.to_owned()));
+            }
+        }
+        self
+    }
+
     /// Also pass `name` with `value`.
     #[must_use]
     pub fn with_env(mut self, name: &str, value: &str) -> Runner {
@@ -198,7 +213,7 @@ impl Runner {
     }
 }
 
-fn failed(call: &Call, reason: impl Into<String>) -> ToolError {
+pub(crate) fn failed(call: &Call, reason: impl Into<String>) -> ToolError {
     ToolError::Failed {
         tool: call.tool.to_owned(),
         reason: reason.into(),
@@ -208,7 +223,7 @@ fn failed(call: &Call, reason: impl Into<String>) -> ToolError {
 /// Read `pipe` into memory, at most `cap` bytes, and send what was kept when it ends. With `over`, reading stops
 /// and the flag is set as soon as more than `cap` bytes are offered; without it the rest is read and dropped, so
 /// the tool never blocks on a full pipe.
-fn drain(
+pub(crate) fn drain(
     mut pipe: impl Read + Send + 'static,
     cap: usize,
     over: Option<Arc<AtomicBool>>,
@@ -239,7 +254,7 @@ fn drain(
 
 /// Start the command. A program that was written an instant ago can still be "busy" on Linux while another thread's
 /// fork holds the file open for writing; that clears in milliseconds, so it is tried again a few times.
-fn spawn(command: &mut Command) -> std::io::Result<std::process::Child> {
+pub(crate) fn spawn(command: &mut Command) -> std::io::Result<std::process::Child> {
     let mut tries = 0;
     loop {
         match command.spawn() {
@@ -254,7 +269,7 @@ fn spawn(command: &mut Command) -> std::io::Result<std::process::Child> {
 
 impl Runner {
     /// Check the pinned checksum of the program, if any.
-    fn verify(call: &Call) -> Result<(), ToolError> {
+    pub(crate) fn verify(call: &Call) -> Result<(), ToolError> {
         let Some(expected) = call.expected_sha256 else {
             return Ok(());
         };
@@ -316,8 +331,9 @@ impl Runner {
         result
     }
 
-    fn run_inner(&self, call: &Call) -> Result<Output, ToolError> {
-        Self::verify(call)?;
+    /// The command for `call`: its program and arguments, the scrubbed environment plus what this Runner passes,
+    /// piped output, and standard input piped only when the call has some.
+    pub(crate) fn command(&self, call: &Call) -> Command {
         // The one place the Toolbox starts a program (ADR-0007).
         #[allow(clippy::disallowed_methods)]
         let mut command = Command::new(call.program);
@@ -349,6 +365,12 @@ impl Runner {
         if let Some(cwd) = call.cwd {
             command.current_dir(cwd);
         }
+        command
+    }
+
+    fn run_inner(&self, call: &Call) -> Result<Output, ToolError> {
+        Self::verify(call)?;
+        let mut command = self.command(call);
         let mut child = spawn(&mut command).map_err(|e| {
             failed(
                 call,

@@ -3,14 +3,18 @@
 //! argument vector (never a shell line), a timeout, an output size cap and a scrubbed environment, with the
 //! program's SHA-256 re-verified before each run when the caller pins one. This is the only crate allowed to use
 //! `std::process::Command`; `clippy.toml` forbids it everywhere else and a test of this crate scans the sources.
+//! [`Runner::run_streaming`] is its streaming mode for long jobs: a process group, each output line as it is
+//! printed, and a stop that asks first and forces after a grace period.
 //! It was copied with its history from nvmod-rs's `nvmod-runner`, which keeps its own copy until its removal.
 
 mod program;
 mod runner;
 mod sha256;
+mod stream;
 
 pub use program::{Started, start_program};
 pub use runner::{
     Call, EXIT_REFUSED, EXIT_TOOL_FAILED, EXIT_VERIFICATION, NETWORK_ENV, Output, Runner, ToolError,
 };
 pub use sha256::sha256_hex;
+pub use stream::{STOP_GRACE, StopHandle, Streamed};
