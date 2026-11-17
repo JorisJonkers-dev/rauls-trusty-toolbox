@@ -309,6 +309,16 @@ fn saved_text(key: Key, set: bool) -> &'static str {
 /// The width of the label column of a form.
 pub(crate) const LABEL_WIDTH: f32 = 190.0;
 
+/// The label column of a form in the space `ui` has: [`LABEL_WIDTH`], narrower when the page is (UI-RULES A6).
+pub(crate) fn label_width(ui: &egui::Ui) -> f32 {
+    let room = ui.available_width();
+    if room < 520.0 {
+        (room * 0.3).clamp(84.0, LABEL_WIDTH)
+    } else {
+        LABEL_WIDTH
+    }
+}
+
 /// One path field (UI-RULES T6): label and hint, the path in monospace, and its mark.
 /// Returns true when the field was left with a change to save.
 pub(crate) fn path_field(
@@ -320,10 +330,11 @@ pub(crate) fn path_field(
     required: bool,
 ) -> bool {
     let mut leave = false;
+    let label_width = label_width(ui);
     ui.horizontal(|ui| {
         let label_id = ui
             .vertical(|ui| {
-                ui.set_width(LABEL_WIDTH);
+                ui.set_width(label_width);
                 let id = ui.label(label).id;
                 ui.label(
                     RichText::new(hint)
@@ -337,7 +348,7 @@ pub(crate) fn path_field(
         let edit = egui::TextEdit::singleline(&mut f.draft)
             .font(egui::TextStyle::Monospace)
             .hint_text(MARK_NOT_SET)
-            .desired_width((ui.available_width() - 130.0).max(160.0));
+            .desired_width((ui.available_width() - 130.0).max(80.0));
         let response = ui.add_enabled(!saving, edit).labelled_by(label_id);
         if !f.draft.is_empty() {
             response.clone().on_hover_text(f.draft.clone());
@@ -361,7 +372,7 @@ pub(crate) fn path_field(
         }
     });
     ui.horizontal(|ui| {
-        ui.add_space(LABEL_WIDTH + ui.spacing().item_spacing.x);
+        ui.add_space(label_width + ui.spacing().item_spacing.x);
         ui.vertical(|ui| {
             if let Save::Refused(why) | Save::Failed(why) = &f.save {
                 error_block(ui, t, &NOT_SAVED, Some(why));
@@ -373,9 +384,10 @@ pub(crate) fn path_field(
 }
 
 fn read_only_row(ui: &mut egui::Ui, t: &Tokens, label: &str, hint: &str, value: Option<&str>) {
+    let label_width = label_width(ui);
     ui.horizontal(|ui| {
         ui.vertical(|ui| {
-            ui.set_width(LABEL_WIDTH);
+            ui.set_width(label_width);
             ui.label(label);
             ui.label(
                 RichText::new(hint)

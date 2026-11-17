@@ -25,7 +25,6 @@ const LARGE: [f32; 2] = [1920.0, 1080.0];
 const KNOWN: &[(&str, &str)] = &[
     ("load-order", "#206"),
     ("lod", "#207"),
-    ("settings", "#209"),
     ("ttw", "#210"),
     ("setup", "#211"),
 ];
@@ -55,6 +54,17 @@ fn overflowing(size: [f32; 2]) -> Vec<(String, String)> {
         });
         h.run_steps(4);
         for node in h.root().query_all(By::new()) {
+            // A text field scrolls its text inside itself; the tree reports that text run whole, not the field.
+            let in_text_field = node.accesskit_node().parent().is_some_and(|p| {
+                matches!(
+                    p.role(),
+                    eframe::egui::accesskit::Role::TextInput
+                        | eframe::egui::accesskit::Role::MultilineTextInput
+                )
+            });
+            if in_text_field {
+                continue;
+            }
             let Some(rect) = node.accesskit_node().bounding_box() else {
                 continue;
             };
@@ -62,7 +72,8 @@ fn overflowing(size: [f32; 2]) -> Vec<(String, String)> {
                 found.push((
                     view.clone(),
                     format!(
-                        "{name}: {:?} reaches x {:.0} (y {:.0}) in a {:.0} by {:.0} window",
+                        "{name}: {:?} {:?} reaches x {:.0} (y {:.0}) in a {:.0} by {:.0} window",
+                        node.accesskit_node().role(),
                         node.accesskit_node()
                             .label()
                             .or(node.accesskit_node().value()),
