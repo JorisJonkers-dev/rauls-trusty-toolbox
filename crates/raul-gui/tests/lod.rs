@@ -43,7 +43,7 @@ case "$mode" in
     echo '{"event":"block","world":"SyntheticWorld","level":4,"done":1,"of":1,"up_to_date":false}' >> "$events"
     printf '{"schema_version":1,"contract":"lodwright-manifest","files":[]}\n' > "$out/manifest.json"
     result ok ok ;;
-  slow) exec sleep 30 ;;
+  slow) touch "$here/started"; exec sleep 30 ;;
 esac
 "#;
 
@@ -196,14 +196,17 @@ fn stop_ends_the_run_and_adds_nothing() {
     f.mode("slow");
     let mut h = f.app();
     generate(&mut h);
-    // Frames until the run has started, for up to 30 seconds; the fake waits to be stopped.
-    for _ in 0..300 {
+    // Frames until the fake itself is running (it leaves a marker), for up to 60 seconds: Stop can only end a
+    // run that has started. The fake then waits to be stopped.
+    for _ in 0..600 {
         h.run_steps(2);
-        if h.query_by_label(STOP).is_some() {
+        if f.path("tools/started").exists() && h.query_by_label(STOP).is_some() {
             break;
         }
         std::thread::sleep(Duration::from_millis(100));
     }
+    assert!(f.path("tools/started").exists(), "the fake started");
+    h.run_steps(8);
     assert!(
         // The header and the status line can both say it, so ask for every match.
         h.query_all_by_label_contains(STATE_GENERATING_START)
