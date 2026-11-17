@@ -120,8 +120,11 @@ flowchart LR
 
 The Components are submodules under `components/`, each pinned to the version of the latest Known-good set in
 `known-good.toml`. `raul known-good check` keeps the two equal, and CI also checks that every pointer is a release
-tag or on its repository's default branch. A Component release dispatches `component-bump.yml`, which opens a pull
-request that moves only that Component. The release (`release.yml`) packages `raul` with the Component programs of
+tag or on its repository's default branch. The `Components` workflow (`components.yml`) runs a self-hosted Renovate
+every 15 minutes (`.github/renovate-components.json`). It finds a new release of a Component's repository itself, with no message from
+that repository, and opens a pull request that moves only that Component: `raul known-good apply` moves the submodule and adds the
+set, and both lock files are refreshed. nvmod moves with the loot-rs it links (ADR-0015). Pipeline Complete decides whether the
+pull request merges, and auto-merge lands it. The release (`release.yml`) packages `raul` with the Component programs of
 that set.
 
 ## Workspaces and lock files

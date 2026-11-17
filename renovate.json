@@ -1,4 +1,19 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>JorisJonkers-dev/renovate-config"]
+  "extends": [
+    "github>JorisJonkers-dev/renovate-config"
+  ],
+  "packageRules": [
+    {
+      "description": "The Components and the loot-rs nvmod links move together, in the pull requests of the Components workflow (.github/renovate-components.json); a lone bump of the workspace's loot-rs tag would break the pairing.",
+      "matchManagers": [
+        "cargo"
+      ],
+      "matchPackageNames": [
+        "/^https:\\/\\/github\\.com\\/JorisJonkers-dev\\//i",
+        "loot-rs"
+      ],
+      "enabled": false
+    }
+  ]
 }

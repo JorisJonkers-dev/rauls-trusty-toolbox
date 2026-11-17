@@ -1,0 +1,91 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Self-hosted Renovate run (.github/workflows/components.yml). It follows the Components' release tags and opens one pull request per release that moves the submodule, adds a Known-good set and refreshes both lock files. The hosted Renovate app reads renovate.json only, never this file.",
+  "platform": "github",
+  "repositories": [
+    "JorisJonkers-dev/rauls-trusty-toolbox"
+  ],
+  "onboarding": false,
+  "requireConfig": "ignored",
+  "extends": [],
+  "enabledManagers": [
+    "custom.jsonata"
+  ],
+  "cloneSubmodules": true,
+  "allowedCommands": [
+    "^git checkout -- known-good\\.toml$",
+    "^cargo run --quiet -p raul-cli -- known-good apply [a-z-]+ v[0-9.]+$",
+    "^cargo update --workspace( --manifest-path crates/raul-gui/Cargo\\.toml)?$"
+  ],
+  "schedule": [
+    "at any time"
+  ],
+  "timezone": "Etc/UTC",
+  "minimumReleaseAge": null,
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "branchPrefix": "renovate-components/",
+  "rebaseWhen": "conflicted",
+  "automerge": true,
+  "automergeType": "pr",
+  "platformAutomerge": true,
+  "semanticCommits": "enabled",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "commitMessageAction": "bump",
+  "commitMessageTopic": "{{{depName}}}",
+  "commitMessageExtra": "to {{{newValue}}}",
+  "labels": [
+    "dependencies",
+    "component: dependencies"
+  ],
+  "customManagers": [
+    {
+      "customType": "jsonata",
+      "description": "The Components of the latest Known-good set (the last [[set]] of known-good.toml); each release tag of a Component's repository is an update.",
+      "fileFormat": "toml",
+      "managerFilePatterns": [
+        "/^known-good\\.toml$/"
+      ],
+      "matchStrings": [
+        "set[-1].components.$each(function($v, $k) { {\"depName\": $k, \"currentValue\": $v.version, \"packageName\": \"JorisJonkers-dev/\" & ($k = \"nvmod\" ? \"nvmod-rs\" : $k)} })"
+      ],
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver",
+      "depTypeTemplate": "component"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "loot-rs moves with nvmod (ADR-0015): the apply command takes the loot-rs tag nvmod links, so a loot-rs release alone is not an update here until nvmod links it.",
+      "matchDepNames": [
+        "loot-rs"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "Everything else is the same bump: move the submodule, add the set, refresh both lock files.",
+      "matchManagers": [
+        "custom.jsonata"
+      ],
+      "postUpgradeTasks": {
+        "commands": [
+          "git checkout -- known-good.toml",
+          "cargo run --quiet -p raul-cli -- known-good apply {{{depName}}} {{{newValue}}}",
+          "cargo update --workspace",
+          "cargo update --workspace --manifest-path crates/raul-gui/Cargo.toml"
+        ],
+        "fileFilters": [
+          "known-good.toml",
+          "Cargo.toml",
+          "Cargo.lock",
+          "crates/raul-gui/Cargo.lock",
+          "components/**"
+        ],
+        "executionMode": "branch"
+      }
+    }
+  ],
+  "allowPostUpgradeCommandTemplating": true,
+  "gitAuthor": "rauls-trusty-toolbox bump <noreply@github.com>"
+}

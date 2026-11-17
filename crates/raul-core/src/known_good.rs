@@ -217,42 +217,59 @@ pub fn component_dir(name: &str) -> &str {
 }
 
 /// `text` with one more set appended that copies the latest Known-good set and moves only `component` to
-/// `version`. The new set's id is the first free `<month>-<letter>` (`month` is `YYYY-MM`). It is written as
-/// `known-good`: the bump pull request's required check is what makes that true before it can merge.
+/// `version`. See [`bump_all`].
 ///
 /// # Errors
 ///
-/// When `text` is not a valid file, `component` is not a Component, it is already at `version`, or the month has
-/// no free letter.
+/// As [`bump_all`].
 pub fn bump(text: &str, component: &str, version: &str, month: &str) -> Result<String, String> {
-    if !COMPONENTS.contains(&component) {
-        return Err(format!("{component} is not a Component"));
+    bump_all(text, &[(component, version)], month)
+}
+
+/// `text` with one more set appended that copies the latest Known-good set and moves every `(component, version)`
+/// of `moves` (nvmod moves with the loot-rs it links, ADR-0015). The new set's id is the first free
+/// `<month>-<letter>` (`month` is `YYYY-MM`). It is written as `known-good`: the bump pull request's required
+/// check is what makes that true before it can merge.
+///
+/// # Errors
+///
+/// When `text` is not a valid file, a name is not a Component, no Component actually moves, or the month has no
+/// free letter. A Component already at its version is left as it is when another one moves.
+pub fn bump_all(text: &str, moves: &[(&str, &str)], month: &str) -> Result<String, String> {
+    if let Some((bad, _)) = moves.iter().find(|(c, _)| !COMPONENTS.contains(c)) {
+        return Err(format!("{bad} is not a Component"));
     }
     let kg = KnownGood::parse(text).map_err(|p| p.join("; "))?;
     let latest = kg
         .latest_known_good()
         .ok_or("known-good.toml has no known-good set")?;
-    let current = &latest.components[component];
-    if bare(&current.version) == bare(version) {
-        return Err(format!(
-            "{component} is already at {version} in set {}",
-            latest.id
-        ));
+    let changing: Vec<(&str, &str)> = moves
+        .iter()
+        .copied()
+        .filter(|(c, v)| bare(&latest.components[*c].version) != bare(v))
+        .collect();
+    if changing.is_empty() {
+        let (c, v) = moves.first().copied().unwrap_or(("nothing", "nothing"));
+        return Err(format!("{c} is already at {v} in set {}", latest.id));
     }
     let id = ('a'..='z')
         .map(|c| format!("{month}-{c}"))
         .find(|id| kg.sets.iter().all(|s| &s.id != id))
         .ok_or_else(|| format!("no free set id left in {month}"))?;
+    let title: Vec<String> = changing
+        .iter()
+        .map(|(c, v)| format!("{c} {} -> {v}", latest.components[*c].version))
+        .collect();
     let mut out = text.trim_end().to_string();
     let _ = write!(
         out,
-        "\n\n# {component} {} -> {version}\n[[set]]\nid = \"{id}\"\nstatus = \"known-good\"\n",
-        current.version
+        "\n\n# {}\n[[set]]\nid = \"{id}\"\nstatus = \"known-good\"\n",
+        title.join(", ")
     );
     for name in COMPONENTS {
         let mut entry = latest.components[name].clone();
-        if name == component {
-            entry.version = version.to_string();
+        if let Some((_, v)) = changing.iter().find(|(c, _)| *c == name) {
+            entry.version = (*v).to_string();
         }
         let _ = write!(
             out,
@@ -269,4 +286,50 @@ pub fn bump(text: &str, component: &str, version: &str, month: &str) -> Result<S
         }
     }
     Ok(out)
+}
+
+/// The loot-rs tag (`vX.Y.Z`) that nvmod's `tools.lock.toml` says it links, if the lock names one.
+#[must_use]
+pub fn linked_loot_tag(tools_lock: &str) -> Option<String> {
+    let lock = toml::from_str::<Lock>(tools_lock).ok()?;
+    let tool = lock.tools.iter().find(|t| t.name == "loot-rs")?;
+    Some(format!("v{}", bare(&tool.version)))
+}
+
+/// `cargo_toml` with the tag of its loot-rs git dependency set to `tag`, or `None` when the file has no such
+/// dependency or already has that tag.
+#[must_use]
+pub fn with_loot_tag(cargo_toml: &str, tag: &str) -> Option<String> {
+    let mut changed = false;
+    let lines: Vec<String> = cargo_toml
+        .lines()
+        .map(|line| {
+            let names_loot = line.trim_start().starts_with("loot-rs")
+                && line.contains("JorisJonkers-dev/loot-rs")
+                && line.contains("tag = \"");
+            if !names_loot {
+                return line.to_string();
+            }
+            let Some(open) = line.find("tag = \"") else {
+                return line.to_string();
+            };
+            let start = open + "tag = \"".len();
+            let Some(len) = line[start..].find('"') else {
+                return line.to_string();
+            };
+            let end = start + len;
+            if &line[start..end] == tag {
+                return line.to_string();
+            }
+            changed = true;
+            format!("{}{tag}{}", &line[..start], &line[end..])
+        })
+        .collect();
+    changed.then(|| {
+        let mut out = lines.join("\n");
+        if cargo_toml.ends_with('\n') {
+            out.push('\n');
+        }
+        out
+    })
 }
