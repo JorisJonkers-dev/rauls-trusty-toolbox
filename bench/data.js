@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794910694242,
+  "lastUpdate": 1794911939060,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1910,6 +1910,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.963465000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "56d27193f0328acd0cc5349afc196110117a8a67",
+          "message": "fix(ci): give the Components follower's commands the cargo registry token (#182)\n\nThe token the package proxy step sets is not visible to commands Renovate starts, so the bump command could not fetch crates ('no token found for jorisjonkers-packages'). Pass only that one variable.",
+          "timestamp": "2026-11-17T11:37:43+01:00",
+          "tree_id": "b1eac3e48127c857e38b43d4bc02154e9e1f3b2f",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/56d27193f0328acd0cc5349afc196110117a8a67"
+        },
+        "date": 1794911938371,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.080328,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.621842999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.304859999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.488261,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.800451,
             "unit": "ms"
           }
         ]
