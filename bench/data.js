@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794895536844,
+  "lastUpdate": 1794895937135,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -783,6 +783,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.314639,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5d8b1a4f0186e4f0c9316563f601f3f94d7eb209",
+          "message": "feat(ttw): publish the raul-events and raul-ttw-result v1 Contracts with fixtures (#121)",
+          "timestamp": "2026-11-17T07:11:09+01:00",
+          "tree_id": "a4c7de6153bfab3fadef69d3cd818e613af55119",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/5d8b1a4f0186e4f0c9316563f601f3f94d7eb209"
+        },
+        "date": 1794895936853,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.118968,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.661103,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.236993,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.4969549999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.084885,
             "unit": "ms"
           }
         ]
