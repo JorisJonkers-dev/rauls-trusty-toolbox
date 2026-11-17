@@ -36,9 +36,11 @@ crate::texts!(TEXTS {
     STATE_STOPPING = "Stopping";
     GENERATE = "Generate";
     CONFIRM_TITLE = "Generate LOD?";
-    CONFIRM_COST = "lodwright reads {n} active plugins and writes LOD for them. This can take a long time; you can leave the page while it runs. The result replaces the Mod LOD (lodwright). Stop leaves the Instance as it was.";
-    CONFIRM_COST_ONE = "lodwright reads 1 active plugin and writes LOD for it. This can take a long time; you can leave the page while it runs. The result replaces the Mod LOD (lodwright). Stop leaves the Instance as it was.";
+    CONFIRM_COST = "Reads {n} active plugins and writes LOD for them. This can take a long time; you can leave the page while it runs. The result replaces the Mod LOD. Stop leaves the Instance as it was.";
+    CONFIRM_COST_ONE = "Reads 1 active plugin and writes LOD for it. This can take a long time; you can leave the page while it runs. The result replaces the Mod LOD. Stop leaves the Instance as it was.";
     STOP = "Stop";
+    GENERATE_HOVER = "Generates LOD for the Instance.";
+    STOP_HOVER = "Stops the running LOD generation.";
     NO_INSTANCE = "LOD is generated for the Instance, which lives in the storage folder. Set the storage folder in Settings first.";
     OPEN_SETTINGS = "Settings";
     SECTION_PLAN = "What a run does";
@@ -470,11 +472,7 @@ impl Page for Lod {
         };
         match self.state.phase {
             Phase::Generating => {
-                if ui
-                    .button(STOP)
-                    .on_hover_text(generate_command(&instance).shown())
-                    .clicked()
-                {
+                if ui.button(STOP).on_hover_text(STOP_HOVER).clicked() {
                     self.stop(cx);
                 }
             }
@@ -482,7 +480,7 @@ impl Page for Lod {
                 if self.state.plan.is_some()
                     && ui
                         .add(shell::primary_button(&t, GENERATE))
-                        .on_hover_text(generate_command(&instance).shown())
+                        .on_hover_text(GENERATE_HOVER)
                         .clicked() =>
             {
                 self.ask_generate(cx, &instance);
@@ -533,9 +531,6 @@ impl Page for Lod {
                 &e,
                 (!p.cause.is_empty()).then_some(p.cause.as_str()),
             );
-            if let Some(c) = &p.command {
-                shell::command_line(ui, &t, c);
-            }
             ui.add_space(12.0);
         }
         match self.state.phase {
@@ -569,7 +564,6 @@ impl Page for Lod {
                         ui.label(line);
                     });
                 }
-                shell::command_line(ui, &t, &generate_command(&instance).shown());
             }
         }
         ui.add_space(12.0);
@@ -682,7 +676,7 @@ fn outcome(status: Status, up_to_date: bool, worlds: &[&str]) -> Outcome {
         error: (status != Status::Success).then(|| {
             (
                 "lodwright_failed".to_owned(),
-                "lodwright could not read a terrain record of a synthetic plugin".to_owned(),
+                "Could not read a terrain record of a synthetic plugin".to_owned(),
             )
         }),
     }
@@ -727,7 +721,7 @@ pub fn fixtures() -> Vec<Fixture> {
     plan_failed.planning();
     plan_failed.failed(Problem {
         id: PLAN_FAILED.id,
-        cause: "there is no staging tree yet; run `raul stage` first".to_owned(),
+        cause: "There is no staging tree yet.".to_owned(),
         command: Some(plan_command(INSTANCE).shown()),
     });
     vec![
