@@ -467,50 +467,6 @@ impl App {
                 }
             });
         });
-        self.job_results(ui);
-    }
-
-    /// The jobs that failed, as error surfaces of their own (UI-RULES W3, G4): what was run, what it said, and a
-    /// "Copy details" button. A running job is already on its page; a failed one is named here, once.
-    fn job_results(&mut self, ui: &mut egui::Ui) {
-        let t = self.tokens;
-        // The most recent one: an older failure is on the page that ran it.
-        let failed = self
-            .jobs
-            .table()
-            .jobs()
-            .iter()
-            .rev()
-            .find_map(|j| match j.state {
-                JobState::Finished(outcome)
-                    if outcome != raul_ui_model::job::Outcome::Completed =>
-                {
-                    Some((j.op.clone(), outcome.words().to_owned()))
-                }
-                JobState::Running | JobState::Cancelling | JobState::Finished(_) => None,
-            });
-        if let Some((op, words)) = failed {
-            let detail = format!("{op}: {words}");
-            ui.horizontal_top(|ui| {
-                crate::pages::home::icon(ui, &t, crate::pages::home::Mark::Problem);
-                ui.vertical(|ui| {
-                    ui.add(
-                        egui::Label::new(RichText::new(msg::JOB_FAILED.what).color(t.err.color()))
-                            .wrap()
-                            .selectable(true),
-                    );
-                    ui.add(
-                        egui::Label::new(RichText::new(&detail).color(t.muted.color()))
-                            .wrap()
-                            .selectable(true),
-                    );
-                    if ui.button(msg::COPY_DETAILS).clicked() {
-                        let text = copy_text(msg::JOB_FAILED.detail, msg::JOB_FAILED.what, &detail);
-                        ui.ctx().copy_text(text);
-                    }
-                });
-            });
-        }
     }
 }
 

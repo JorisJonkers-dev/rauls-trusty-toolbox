@@ -478,6 +478,7 @@ impl Page for Home {
 }
 
 impl Home {
+    #[allow(clippy::too_many_lines)]
     fn launch_panel(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
         shell::section_label(ui, &t, SECTION_LAUNCH, true);
