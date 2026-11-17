@@ -157,10 +157,14 @@ pub enum Found {
 
 /// Where the package is looked for when the shell does not say: the Downloads folder of the home folder.
 pub fn default_downloads() -> String {
-    let home = std::env::var_os("HOME")
-        .or_else(|| std::env::var_os("USERPROFILE"))
-        .map_or_else(|| PathBuf::from("Downloads"), PathBuf::from);
-    home.join("Downloads").to_string_lossy().into_owned()
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
+    // Without a home folder the search is relative to where the window runs, in a folder of that name.
+    home.map_or_else(
+        || PathBuf::from("Downloads"),
+        |h| PathBuf::from(h).join("Downloads"),
+    )
+    .to_string_lossy()
+    .into_owned()
 }
 
 /// Whether `name` is a TTW installer package: `TTW_*.mpi`, in any case.

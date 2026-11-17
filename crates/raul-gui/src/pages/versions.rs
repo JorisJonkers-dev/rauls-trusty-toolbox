@@ -790,7 +790,7 @@ mod tests {
         button.click();
         let call = wait_for_call(&mut h, &exec, "update");
         assert_eq!(call, ["update", "check", "--json"], "the button checks");
-        h.run_steps(2);
+        wait_for_label(&mut h, UPDATE);
         assert!(
             h.query_by_label(UPDATE).is_some(),
             "a newer release turns the action into Update"
@@ -818,6 +818,17 @@ mod tests {
         );
     }
 
+    /// Runs frames until `label` is on screen: a command's answer lands some frames after it was started.
+    fn wait_for_label(h: &mut Harness<'static, App>, label: &str) {
+        for _ in 0..200 {
+            h.run_steps(2);
+            if h.query_by_label(label).is_some() {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+    }
+
     #[test]
     fn a_check_that_answers_says_nothing_went_wrong() {
         let exec = Arc::new(Recording::default());
@@ -825,7 +836,7 @@ mod tests {
         h.run_steps(4);
         h.get_by_label(CHECK_UPDATES).click();
         let _ = wait_for_call(&mut h, &exec, "update");
-        h.run_steps(4);
+        wait_for_label(&mut h, UPDATE);
         assert!(
             h.query_by_label(UPDATE_FAILED.what).is_none(),
             "the check answered, so there is no failure to show"
@@ -855,7 +866,7 @@ mod tests {
         h.run_steps(4);
         h.get_by_label(CHECK_UPDATES).click();
         let _ = wait_for_call(&mut h, &failing, "update");
-        h.run_steps(4);
+        wait_for_label(&mut h, UPDATE_FAILED.what);
         assert!(
             h.query_by_label(UPDATE_FAILED.what).is_some(),
             "the check failed where it was clicked"
