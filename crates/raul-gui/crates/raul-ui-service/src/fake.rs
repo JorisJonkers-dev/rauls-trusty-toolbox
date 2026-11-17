@@ -520,8 +520,8 @@ mod tests {
         let fake = FakeService::new();
         fake.on_sort(Ok(sample::sort()))
             .on_verify(Err(ServiceError::Failed(
-                nvmod_ui_model::error::ViewError::new(
-                    nvmod_ui_model::error::ExitClass::Refused,
+                raul_ui_model::error::ViewError::new(
+                    raul_ui_model::error::ExitClass::Refused,
                     "no",
                     "Nothing was changed",
                 ),
@@ -565,7 +565,7 @@ mod tests {
 
     #[test]
     fn setup_and_mods_requests_are_the_words_after_the_command() {
-        use nvmod_ui_model::mods::ModStep;
+        use raul_ui_model::mods::ModStep;
         let mut setup = SetupRequest::fresh("/i", "/b", "m.yaml");
         setup.mods = vec!["a.zip".into(), "b.zip".into()];
         setup.skip_nv_rs = true;
@@ -589,7 +589,7 @@ mod tests {
                 "--dry-run"
             ]
         );
-        let spec = setup.job_spec(nvmod_ui_model::job::JobId(1));
+        let spec = setup.job_spec(raul_ui_model::job::JobId(1));
         assert!(
             !spec.writes && spec.dry_run && !spec.cancellable,
             "a dry run only plans"
@@ -599,7 +599,7 @@ mod tests {
         resume.keep_partial = true;
         resume.dry_run = true;
         assert_eq!(resume.args(), ["--resume", "--instance", "/i"]);
-        let spec = resume.job_spec(nvmod_ui_model::job::JobId(1));
+        let spec = resume.job_spec(raul_ui_model::job::JobId(1));
         assert!(spec.writes && spec.cancellable && !spec.dry_run);
         assert_eq!(
             SetupRequest::restart("/i", false).args(),
@@ -609,7 +609,7 @@ mod tests {
             SetupRequest::restart("/i", true).args(),
             ["--restart", "--instance", "/i", "--yes"]
         );
-        let restart = SetupRequest::restart("/i", true).job_spec(nvmod_ui_model::job::JobId(1));
+        let restart = SetupRequest::restart("/i", true).job_spec(raul_ui_model::job::JobId(1));
         assert!(restart.writes && !restart.cancellable);
 
         let mods = |step, dry_run| ModsRequest {

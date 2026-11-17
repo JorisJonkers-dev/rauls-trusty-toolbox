@@ -218,10 +218,7 @@ mod tests {
             .into_iter()
             .find(|e| e.action == Do::Go(Screen::Doctor))
             .unwrap();
-        assert_eq!(
-            doctor.cli_equivalent.as_deref(),
-            Some("nvmod doctor --json")
-        );
+        assert_eq!(doctor.cli_equivalent.as_deref(), Some("raul doctor --json"));
         assert_eq!(doctor.shortcut, Some(Chord::ctrl(Key::Char('5'))));
         let fomod = p
             .results()
@@ -248,7 +245,7 @@ mod tests {
         let r = p.results();
         assert!(r.len() < all);
         assert_eq!(r[0].action, Do::Go(Screen::Doctor));
-        p.set_query("nvmod ttw");
+        p.set_query("raul ttw");
         assert_eq!(p.results()[0].action, Do::Go(Screen::Ttw));
         p.set_query("zzzzqq");
         assert!(p.results().is_empty());

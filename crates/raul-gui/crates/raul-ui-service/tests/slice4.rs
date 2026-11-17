@@ -4,16 +4,16 @@
 #![cfg(unix)]
 
 use nvmod_testkit::{BaseBuilder, TempDir, ZipBuilder, write_file, write_script};
-use nvmod_ui_model::error::ExitClass;
-use nvmod_ui_model::job::{JobId, JobState, JobTable, Outcome};
-use nvmod_ui_model::mods::{ModRow, ModsScreen};
-use nvmod_ui_service::dto::ModEntry;
-use nvmod_ui_service::exec::{Exec, Output};
-use nvmod_ui_service::registry::Action;
-use nvmod_ui_service::wiring::{ModsContext, apply_mods, preview_mods};
-use nvmod_ui_service::{
-    CancelHandle, CliService, InstallRequest, JobSpec, ProcessExec, RollbackRequest, Service,
-    SetupRequest, cancel_job,
+use raul_ui_model::error::ExitClass;
+use raul_ui_model::job::{JobId, JobState, JobTable, Outcome};
+use raul_ui_model::mods::{ModRow, ModStep, ModsScreen};
+use raul_ui_service::dto::ModEntry;
+use raul_ui_service::exec::{Exec, Output};
+use raul_ui_service::registry::Action;
+use raul_ui_service::wiring::{ModsContext, apply_mods, preview_mods};
+use raul_ui_service::{
+    CancelHandle, CliService, InstallRequest, JobSpec, ModsRequest, ProcessExec, RollbackRequest,
+    Service, SetupRequest, cancel_job,
 };
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
@@ -26,7 +26,7 @@ impl Exec for InProcess {
         // runs in this one process need a millisecond between them.
         std::thread::sleep(Duration::from_millis(3));
         let (mut out, mut err) = (Vec::new(), Vec::new());
-        let code = nvmod_cli::run(args, &mut out, &mut err);
+        let code = raul_cli::run(args, &mut out, &mut err);
         Ok(Output {
             code: Some(i64::from(code)),
             stdout: String::from_utf8_lossy(&out).into_owned(),
@@ -242,7 +242,7 @@ fn a_typed_setup_request_runs_as_a_dry_run_and_a_resume_is_refused_without_a_sta
     assert!(e.what.contains("no unfinished setup"), "{}", e.what);
     assert_eq!(
         e.repro.unwrap(),
-        format!("nvmod setup --resume --instance {} --json", s(&target))
+        format!("raul setup --resume --instance {} --json", s(&target))
     );
 }
 
@@ -342,4 +342,50 @@ fn a_cancel_before_the_start_runs_nothing() {
         JobState::Finished(Outcome::Cancelled)
     );
     assert!(!Path::new("ran").exists());
+}
+
+/// The service keeps no state of its own: every answer comes from the disk as it is after the last write, whoever
+/// made that write.
+#[test]
+fn every_read_after_a_write_comes_from_the_disk_and_nothing_is_cached() {
+    let rig = Rig::new();
+    let svc = CliService::new(InProcess);
+    let change = |step: ModStep, dry_run: bool| {
+        svc.mods_change(&ModsRequest {
+            instance: s(&rig.root()),
+            profile: None,
+            step,
+            dry_run,
+        })
+        .unwrap()
+    };
+    let done = change(ModStep::Disable(vec!["B".into()]), false);
+    assert_eq!(
+        names(&done.mods),
+        [("C", "enabled"), ("B", "disabled"), ("A", "enabled")]
+    );
+    let mut screen = rig.screen();
+    assert_eq!(
+        screen
+            .visible()
+            .iter()
+            .map(|r| r.enabled)
+            .collect::<Vec<_>>(),
+        [true, false, true],
+        "the screen loads what the write left"
+    );
+    // Another program changes the Instance behind the service's back.
+    let out = nvmod(&["mods", "enable", "B", "--instance", &s(&rig.root())]);
+    assert_eq!(out.code, Some(0), "{}", out.stderr);
+    let plan = change(ModStep::Disable(vec!["A".into()]), true);
+    assert_eq!(
+        names(&plan.mods),
+        [("C", "enabled"), ("B", "enabled"), ("A", "disabled")],
+        "the next answer starts from the disk, not from the service's last answer"
+    );
+    screen.loaded(rig.rows().iter().map(ModRow::from).collect());
+    assert!(
+        screen.visible().iter().all(|r| r.enabled),
+        "a dry run wrote nothing"
+    );
 }

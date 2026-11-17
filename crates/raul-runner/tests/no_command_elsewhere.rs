@@ -35,13 +35,30 @@ fn starts_a_process(text: &str) -> bool {
 }
 
 /// The files under each crate of `crates` (its `src` and its `build.rs`) that start a process, as
-/// `<crate>/<path>`, leaving out the runner and `exceptions`.
+/// `<crate>/<path>`, leaving out the runner and `exceptions`. A crate with a `crates` folder of its own is a nested
+/// workspace (the GUI's, ADR-0004); its members are scanned too, as `<crate>/crates/<member>/<path>`.
 fn offenders(crates: &Path, exceptions: &[(&str, &str)]) -> Vec<String> {
     let mut found = Vec::new();
+    scan(crates, "", exceptions, &mut found);
+    found.sort();
+    found
+}
+
+fn scan(crates: &Path, prefix: &str, exceptions: &[(&str, &str)], found: &mut Vec<String>) {
     for krate in std::fs::read_dir(crates).unwrap().flatten() {
         let name = krate.file_name().to_string_lossy().into_owned();
-        if name == RUNNER || !krate.path().is_dir() {
+        // Only the Toolbox's own runner; a nested crate of the same name gets no pass.
+        if (prefix.is_empty() && name == RUNNER) || !krate.path().is_dir() {
             continue;
+        }
+        let nested = krate.path().join("crates");
+        if nested.is_dir() {
+            scan(
+                &nested,
+                &format!("{prefix}{name}/crates/"),
+                exceptions,
+                found,
+            );
         }
         let mut files = Vec::new();
         // Only shipped code: integration tests start the built binary, which is not a tool call.
@@ -52,7 +69,7 @@ fn offenders(crates: &Path, exceptions: &[(&str, &str)]) -> Vec<String> {
         }
         for file in files {
             let relative = format!(
-                "{name}/{}",
+                "{prefix}{name}/{}",
                 file.strip_prefix(krate.path())
                     .unwrap()
                     .to_string_lossy()
@@ -66,8 +83,6 @@ fn offenders(crates: &Path, exceptions: &[(&str, &str)]) -> Vec<String> {
             }
         }
     }
-    found.sort();
-    found
 }
 
 fn toolbox_crates() -> PathBuf {
@@ -106,6 +121,41 @@ fn tree(name: &str, files: &[(&str, &str)]) -> nvmod_testkit::TempDir {
         std::fs::write(path, text).unwrap();
     }
     dir
+}
+
+#[test]
+fn the_guard_covers_the_gui_workspace() {
+    let gui = toolbox_crates().join("raul-gui");
+    assert!(
+        gui.join("crates").is_dir(),
+        "the GUI workspace moved; point the guard at it"
+    );
+    let dir = tree(
+        "guard-nested",
+        &[
+            ("raul-gui/src/main.rs", "use std::process::Command;"),
+            (
+                "raul-gui/crates/raul-ui-service/src/exec.rs",
+                "#![allow(clippy::disallowed_methods)]",
+            ),
+            (
+                "raul-gui/crates/raul-runner/src/lib.rs",
+                "use std::process::Command;",
+            ),
+            (
+                "raul-gui/crates/raul-ui-model/src/lib.rs",
+                "pub struct Route;",
+            ),
+        ],
+    );
+    assert_eq!(
+        offenders(dir.path(), &[]),
+        [
+            "raul-gui/crates/raul-runner/src/lib.rs",
+            "raul-gui/crates/raul-ui-service/src/exec.rs",
+            "raul-gui/src/main.rs",
+        ]
+    );
 }
 
 #[test]

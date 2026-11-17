@@ -95,25 +95,25 @@ impl Screen {
         }
     }
 
-    /// The `nvmod` command behind the screen (the target surface of document 04, section 8).
+    /// The `raul` command behind the screen.
     pub fn cli(self) -> &'static str {
         match self {
-            Self::Home => "nvmod status --json",
-            Self::FirstRun => "nvmod init --plan",
-            Self::ImportMo2 => "nvmod import mo2 --plan",
-            Self::Mods => "nvmod mods list --json",
-            Self::Install => "nvmod install --plan",
-            Self::Fomod => "nvmod fomod",
-            Self::Plugins => "nvmod plugins list --json",
-            Self::SortDiff => "nvmod sort --plan --explain",
-            Self::Graph => "nvmod graph --json",
-            Self::Ttw => "nvmod ttw install --plan",
-            Self::Doctor => "nvmod doctor --json",
-            Self::Verify => "nvmod verify --json",
-            Self::Runtimes => "nvmod runtime list",
-            Self::History => "nvmod history",
-            Self::Jobs => "nvmod jobs --follow --json",
-            Self::Oracle => "nvmod oracle status --json",
+            Self::Home => "raul status --json",
+            Self::FirstRun => "raul init --plan",
+            Self::ImportMo2 => "raul import mo2 --plan",
+            Self::Mods => "raul mods list --json",
+            Self::Install => "raul install --plan",
+            Self::Fomod => "raul fomod",
+            Self::Plugins => "raul plugins list --json",
+            Self::SortDiff => "raul sort --plan --explain",
+            Self::Graph => "raul graph --json",
+            Self::Ttw => "raul ttw install --plan",
+            Self::Doctor => "raul doctor --json",
+            Self::Verify => "raul verify --json",
+            Self::Runtimes => "raul runtime list",
+            Self::History => "raul history",
+            Self::Jobs => "raul jobs --follow --json",
+            Self::Oracle => "raul oracle status --json",
         }
     }
 
@@ -238,7 +238,7 @@ mod tests {
         assert_eq!(Screen::ALL.len(), 16);
         for s in Screen::ALL {
             assert!(!s.title().is_empty());
-            assert!(s.cli().starts_with("nvmod "));
+            assert!(s.cli().starts_with("raul "));
         }
         assert!(Screen::Install.mutates());
         assert!(!Screen::Doctor.mutates());

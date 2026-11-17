@@ -1,44 +1,44 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The registry that ties every GUI action to the `nvmod` command that does the same.
+//! The registry that ties every GUI action to the `raul` command that does the same.
 //!
-//! The rule of the design (document 04, section 8) is that the GUI cannot do anything the command line cannot.
+//! The rule of the design (ADR-0003) is that the GUI cannot do anything the command line cannot.
 //! [`Action`] lists the commands the GUI drives; [`coverage`] answers for every screen either with the action
 //! behind it or with an explicit [`Coverage::Planned`] gap. Both matches are exhaustive, so a new screen or a new
 //! action does not compile until it is placed, and the parity test in `tests/parity.rs` checks the table against
-//! the real command line (`nvmod --help`) and against the palette.
+//! the real command line (`raul nvmod-help`) and against the palette.
 
-use nvmod_ui_model::Screen;
+use raul_ui_model::Screen;
 
 /// A command of the real command line that the GUI drives.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Action {
-    /// `nvmod setup`: the first run, base copy to a modded Instance.
+    /// `raul setup`: the first run, base copy to a modded Instance.
     Setup,
-    /// `nvmod import-mo2`: a new Instance from an MO2 profile.
+    /// `raul import-mo2`: a new Instance from an MO2 profile.
     ImportMo2,
-    /// `nvmod install`: one Mod from an archive, with FOMOD answers.
+    /// `raul install`: one Mod from an archive, with FOMOD answers.
     InstallMod,
-    /// `nvmod rollback`: undo the last install, sort or mods change.
+    /// `raul rollback`: undo the last install, sort or mods change.
     Rollback,
-    /// `nvmod sort`: the load order.
+    /// `raul sort`: the load order.
     Sort,
-    /// `nvmod ttw`: Tale of Two Wastelands.
+    /// `raul ttw`: Tale of Two Wastelands.
     Ttw,
-    /// `nvmod doctor`: the checks.
+    /// `raul doctor`: the checks.
     Doctor,
-    /// `nvmod verify`: confirm an install.
+    /// `raul verify`: confirm an install.
     Verify,
-    /// `nvmod tools`: the pinned tools.
+    /// `raul tools`: the pinned tools.
     Tools,
-    /// `nvmod target`: what the Instance runs on.
+    /// `raul target`: what the Instance runs on.
     Target,
-    /// `nvmod mods`: list, enable, disable and reorder the Mods of a profile.
+    /// `raul mods`: list, enable, disable and reorder the Mods of a profile.
     Mods,
-    /// `nvmod conflicts`: the file-level conflicts of a profile (read only).
+    /// `raul conflicts`: the file-level conflicts of a profile (read only).
     Conflicts,
-    /// `nvmod tree`: the virtual Data folder (read only).
+    /// `raul tree`: the virtual Data folder (read only).
     Tree,
-    /// `nvmod plugins`: list, enable, disable, move and lock the plugins of a profile.
+    /// `raul plugins`: list, enable, disable, move and lock the plugins of a profile.
     Plugins,
 }
 
@@ -106,9 +106,9 @@ impl Action {
         }
     }
 
-    /// The command line start, `nvmod <command>`.
+    /// The command line start, `raul <command>`.
     pub fn invocation(self) -> String {
-        format!("nvmod {}", self.command())
+        format!("raul {}", self.command())
     }
 }
 
@@ -153,20 +153,24 @@ pub fn planned_screens() -> Vec<Screen> {
         .collect()
 }
 
-/// Whether `help` (the output of `nvmod --help`) lists the action's command.
+/// Whether `help` (the output of `raul nvmod-help`, whose lines name the program `nvmod`) lists the action's
+/// command. `raul` runs every nvmod command in process, so either program name counts.
 pub fn help_lists(help: &str, action: Action) -> bool {
-    let start = action.invocation();
+    let command = action.command();
     help.lines().any(|l| {
-        let l = l.trim_start();
-        l == start || l.starts_with(&format!("{start} "))
+        let Some((program, rest)) = l.trim_start().split_once(' ') else {
+            return false;
+        };
+        matches!(program, "raul" | "nvmod")
+            && (rest == command || rest.starts_with(&format!("{command} ")))
     })
 }
 
-/// The `nvmod` command a command string such as `nvmod ttw --instance <dir>` starts, if it is one of the
+/// The `raul` command a command string such as `raul ttw --instance <dir>` starts, if it is one of the
 /// registered actions.
 pub fn action_of(command_line: &str) -> Option<Action> {
     let mut words = command_line.split_whitespace();
-    if words.next()? != "nvmod" {
+    if words.next()? != "raul" {
         return None;
     }
     let sub = words.next()?;

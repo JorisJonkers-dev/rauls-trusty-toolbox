@@ -1,20 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The GUI cannot do anything the command line cannot (document 04, section 8). These tests fail when a screen
+//! The GUI cannot do anything the command line cannot (ADR-0003). These tests fail when a screen
 //! that changes something, or an action the GUI drives, has no equivalent on the real command line.
 
 #![allow(clippy::assert_is_empty)]
 
-use nvmod_ui_model::Screen;
-use nvmod_ui_model::keymap::Keymap;
-use nvmod_ui_model::palette::{self, Do};
-use nvmod_ui_service::registry::{
+use raul_ui_model::Screen;
+use raul_ui_model::keymap::Keymap;
+use raul_ui_model::palette::{self, Do};
+use raul_ui_service::registry::{
     Action, Coverage, action_of, coverage, help_lists, planned_screens,
 };
 
-fn nvmod(args: &[&str]) -> (u8, String, String) {
+/// Runs a command line through the same `raul_cli::run` the GUI build's `raul` runs.
+fn raul(args: &[&str]) -> (u8, String, String) {
     let args: Vec<String> = args.iter().map(|a| (*a).to_owned()).collect();
     let (mut out, mut err) = (Vec::new(), Vec::new());
-    let code = nvmod_cli::run(&args, &mut out, &mut err);
+    let code = raul_cli::run(&args, &mut out, &mut err);
     (
         code,
         String::from_utf8(out).unwrap(),
@@ -24,17 +25,18 @@ fn nvmod(args: &[&str]) -> (u8, String, String) {
 
 #[test]
 fn every_action_is_a_command_of_the_real_command_line() {
-    let (code, help, _) = nvmod(&["--help"]);
+    let (code, help, _) = raul(&["nvmod-help"]);
     assert_eq!(code, 0);
     for action in Action::ALL {
         assert!(
             help_lists(&help, action),
-            "`{}` is not in `nvmod --help`",
+            "`{}` is not in `raul nvmod-help`",
             action.invocation()
         );
-        let (_, _, err) = nvmod(&[action.command(), "--json"]);
+        let (_, _, err) = raul(&[action.command(), "--json"]);
         assert!(
-            !err.starts_with("nvmod: unknown command"),
+            !(err.starts_with("nvmod: unknown command")
+                || err.starts_with("raul: unknown command")),
             "`{}` is not dispatched: {err}",
             action.command()
         );
@@ -43,9 +45,11 @@ fn every_action_is_a_command_of_the_real_command_line() {
 
 #[test]
 fn a_command_that_the_help_does_not_list_is_not_covered() {
-    let help = "usage:\n  nvmod pe <file>\n  nvmod doctor --base <dir>\n";
+    let help = "usage:\n  nvmod pe <file>\n  nvmod doctor --base <dir>\n  raul sort --plan\n";
     assert!(help_lists(help, Action::Doctor));
+    assert!(help_lists(help, Action::Sort));
     assert!(!help_lists(help, Action::Ttw));
+    assert!(!help_lists("  cargo ttw\n", Action::Ttw));
     // A longer command that merely starts with the same letters is not the command.
     assert!(!help_lists("  nvmod setup-extra --x\n", Action::Setup));
 }
@@ -95,13 +99,13 @@ fn every_palette_entry_that_opens_a_changing_screen_is_covered() {
 
 #[test]
 fn an_action_is_found_by_its_command_line() {
-    assert_eq!(action_of("nvmod ttw --instance <dir>"), Some(Action::Ttw));
+    assert_eq!(action_of("raul ttw --instance <dir>"), Some(Action::Ttw));
     assert_eq!(
-        action_of("nvmod import-mo2 --mo2 x"),
+        action_of("raul import-mo2 --mo2 x"),
         Some(Action::ImportMo2)
     );
-    assert_eq!(action_of("nvmod install a.zip"), Some(Action::InstallMod));
-    assert_eq!(action_of("nvmod nothing"), None);
+    assert_eq!(action_of("raul install a.zip"), Some(Action::InstallMod));
+    assert_eq!(action_of("raul nothing"), None);
     assert_eq!(action_of("ls"), None);
     for a in Action::ALL {
         assert_eq!(action_of(&a.invocation()), Some(a));

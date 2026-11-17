@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The view-model of the nvmod GUI (`docs/design/gui/04-view-model-api.md` in nv-linux).
+//! The view model of the Toolbox GUI (ADR-0003, ADR-0007), moved from nvmod-rs with its history.
 //!
 //! Nothing here knows a GUI toolkit, a window or a process: every type is plain data and every transition is a
 //! pure method, so the whole behaviour of the wizards, the command palette and the keymap is tested with
@@ -7,9 +7,9 @@
 //!
 //! * [`route`]: the screens, the left rail and the `Ctrl+1` to `Ctrl+8` mapping.
 //! * [`error`]: exit classes of the command line and the error shape every screen shows.
-//! * [`job`]: the job events of document 04 and the table that orders and de-duplicates them.
+//! * [`job`]: the job events and the table that orders and de-duplicates them.
 //! * [`doctor`] and [`mods`]: the state of the Doctor and Mods screens.
-//! * [`setup`]: the real `nvmod setup --json` event stream and the setup wizard it drives.
+//! * [`setup`]: the real `raul setup --json` event stream and the setup wizard it drives.
 //! * [`wizard`]: the install and FOMOD, MO2 import and TTW wizards.
 //! * [`keymap`] and [`palette`]: shortcuts of document 05 and the command palette with CLI equivalents.
 

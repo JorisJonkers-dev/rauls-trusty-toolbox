@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The state of the Mods screen: the list, the search, the selection and the edits staged but not yet applied.
 //!
-//! This state only stages edits and says what they are ([`ModsScreen::pending`]) and which `nvmod mods` steps make
+//! This state only stages edits and says what they are ([`ModsScreen::pending`]) and which `raul mods` steps make
 //! them ([`ModsScreen::plan`]); nothing here changes an Instance. The service crate runs the steps.
 
 use crate::error::{Load, ViewError};
@@ -26,14 +26,14 @@ pub enum ModEdit {
     Reorder(Vec<String>),
 }
 
-/// One `nvmod mods` call that carries out part of the staged edits.
+/// One `raul mods` call that carries out part of the staged edits.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModStep {
-    /// `nvmod mods enable <mod>...`.
+    /// `raul mods enable <mod>...`.
     Enable(Vec<String>),
-    /// `nvmod mods disable <mod>...`.
+    /// `raul mods disable <mod>...`.
     Disable(Vec<String>),
-    /// `nvmod mods reorder <mod> --position <n>`: the Mod ends at this 1-based place in the whole list.
+    /// `raul mods reorder <mod> --position <n>`: the Mod ends at this 1-based place in the whole list.
     Move {
         /// The Mod.
         name: String,
@@ -294,7 +294,7 @@ impl ModsScreen {
         edits
     }
 
-    /// The `nvmod mods` calls that carry out [`ModsScreen::pending`], in the order to run them: one enable, one
+    /// The `raul mods` calls that carry out [`ModsScreen::pending`], in the order to run them: one enable, one
     /// disable, then the moves. Enabling and disabling do not change places and moving does not change state, so
     /// the first two are independent of the moves; each move is counted against the list after the moves before it.
     pub fn plan(&self) -> Vec<ModStep> {

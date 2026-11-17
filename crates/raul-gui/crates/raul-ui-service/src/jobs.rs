@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! Running a command line as a job: its events go to a sink, or straight into the job table.
 //!
-//! A command that streams (`nvmod setup --json` prints one event per line) feeds the table while it runs. A
+//! A command that streams (`raul setup --json` prints one event per line) feeds the table while it runs. A
 //! command that prints one report at the end gets a final record instead: `Started`, a log line, `Finished`. In
 //! both cases the job is in the table from its start to its end, and a late or missing event cannot leave it
 //! running.
@@ -10,9 +10,9 @@ use crate::exec::{CancelHandle, Exec, Output};
 use crate::registry::Action;
 use crate::service::{CliService, ServiceError, cause_of, repro};
 use crate::wiring::outcome_of;
-use nvmod_ui_model::error::{ExitClass, ViewError};
-use nvmod_ui_model::job::{JobError, JobEvent, JobId, JobTable, Outcome};
-use nvmod_ui_model::setup::{parse_line, to_job_event};
+use raul_ui_model::error::{ExitClass, ViewError};
+use raul_ui_model::job::{JobError, JobEvent, JobId, JobTable, Outcome};
+use raul_ui_model::setup::{parse_line, to_job_event};
 
 /// What to run as a job.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -115,7 +115,7 @@ impl Feed<'_> {
 fn cancelled_line(spec: &JobSpec) -> String {
     if spec.writes {
         format!(
-            "cancelled: nvmod {} was stopped before it could say what it left behind; run the Doctor{}",
+            "cancelled: raul {} was stopped before it could say what it left behind; run the Doctor{}",
             spec.action.command(),
             if spec.action == Action::Setup {
                 " (the Instance can be continued with a resume or removed with a restart)"
@@ -124,7 +124,7 @@ fn cancelled_line(spec: &JobSpec) -> String {
             }
         )
     } else {
-        format!("cancelled: nvmod {} was stopped", spec.action.command())
+        format!("cancelled: raul {} was stopped", spec.action.command())
     }
 }
 
@@ -247,7 +247,7 @@ impl<E: Exec> CliService<E> {
                 let line = if cut_off {
                     cancelled_line(spec)
                 } else if class == ExitClass::Ok {
-                    format!("nvmod {} finished", spec.action.command())
+                    format!("raul {} finished", spec.action.command())
                 } else {
                     cause_of(&out.stderr, spec.action.command())
                 };
@@ -300,7 +300,7 @@ impl<E: Exec> CliService<E> {
             && let Err(busy) = table.check_can_start_writer()
         {
             let what = match busy {
-                nvmod_ui_model::job::JobError::Busy(id) => {
+                raul_ui_model::job::JobError::Busy(id) => {
                     format!("another job (number {}) is writing to the Instance", id.0)
                 }
                 other => format!("{other:?}"),
@@ -325,7 +325,7 @@ impl<E: Exec> CliService<E> {
 mod tests {
     use super::*;
     use crate::fake::ScriptedExec;
-    use nvmod_ui_model::job::JobState;
+    use raul_ui_model::job::JobState;
 
     const PLAN: &str = r#"{"seq":1,"event":"plan","dry_run":false,"resume":false,"instance":"/i","steps":[{"step":"init","description":"Make the Instance"}]}"#;
     const STEP_STARTED: &str = r#"{"seq":2,"event":"step","step":"init","status":"started","index":1,"total":1,"description":"Make the Instance"}"#;
@@ -366,7 +366,7 @@ mod tests {
     #[test]
     fn a_stream_cut_short_is_finished_from_the_exit_code() {
         let exec = ScriptedExec::new();
-        exec.on_run(&[PLAN, STEP_STARTED], 4, "nvmod setup: it broke");
+        exec.on_run(&[PLAN, STEP_STARTED], 4, "raul setup: it broke");
         let svc = CliService::new(exec);
         let (events, out) = collect(&svc, &setup_spec());
         assert_eq!(out.code, Some(4));
@@ -408,7 +408,7 @@ mod tests {
     fn a_command_that_prints_one_report_gets_a_final_record() {
         let exec = ScriptedExec::new();
         exec.on_run(&["{", "  \"profile\": \"Default\"", "}"], 0, "");
-        exec.on_run(&[], 4, "nvmod sort: the write failed\nmore");
+        exec.on_run(&[], 4, "raul sort: the write failed\nmore");
         exec.on_run(&["{}"], 0, "");
         let svc = CliService::new(exec);
         let spec = JobSpec::new(JobId(7), Action::Sort, vec!["--apply".into()]).writing();
@@ -416,7 +416,7 @@ mod tests {
         svc.run_job_in(&spec, &mut table).unwrap();
         let j = table.get(JobId(7)).unwrap();
         assert_eq!(j.state, JobState::Finished(Outcome::Completed));
-        assert_eq!(j.log_tail, ["nvmod sort finished"]);
+        assert_eq!(j.log_tail, ["raul sort finished"]);
 
         let spec = JobSpec::new(JobId(8), Action::Sort, vec![]).writing();
         svc.run_job_in(&spec, &mut table).unwrap();
@@ -545,7 +545,7 @@ mod tests {
     #[test]
     fn a_process_that_cannot_start_sends_no_events() {
         let exec = ScriptedExec::new();
-        exec.on_start_failure("could not start nvmod");
+        exec.on_start_failure("could not start raul");
         let svc = CliService::new(exec);
         let mut sent = 0;
         let err = svc.run_job(&setup_spec(), &mut |_| sent += 1).unwrap_err();

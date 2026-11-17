@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The real `nvmod setup --json` event stream and the setup wizard it drives.
+//! The real `raul setup --json` event stream and the setup wizard it drives.
 //!
 //! The stream is what `nvmod-cli`'s `setup.rs` prints, one JSON object per line, each with an increasing `seq`
 //! that starts at 1 in every invocation:
@@ -196,7 +196,7 @@ impl std::fmt::Display for StreamError {
 
 impl std::error::Error for StreamError {}
 
-/// Parses one line of `nvmod setup --json`.
+/// Parses one line of `raul setup --json`.
 ///
 /// # Errors
 /// [`StreamError`] for a line that is not an event with a `seq`.
@@ -263,7 +263,7 @@ pub struct Finish {
     pub exit: ExitClass,
     /// The run was undone: nothing is left behind.
     pub rolled_back: bool,
-    /// `nvmod setup --resume` can continue.
+    /// `raul setup --resume` can continue.
     pub resumable: bool,
     /// The failed step.
     pub failed_step: Option<String>,
@@ -544,15 +544,15 @@ impl SetupWizard {
     /// The command lines the footer offers for the current state (`--json` is the GUI's own).
     pub fn equivalent_command(&self) -> String {
         match (self.resume, self.dry_run, self.instance.as_deref()) {
-            (true, _, Some(i)) => format!("nvmod setup --resume --instance {i}"),
-            (_, true, Some(i)) => format!("nvmod setup --instance {i} --dry-run"),
-            (_, _, Some(i)) => format!("nvmod setup --instance {i}"),
-            _ => "nvmod setup".to_owned(),
+            (true, _, Some(i)) => format!("raul setup --resume --instance {i}"),
+            (_, true, Some(i)) => format!("raul setup --instance {i} --dry-run"),
+            (_, _, Some(i)) => format!("raul setup --instance {i}"),
+            _ => "raul setup".to_owned(),
         }
     }
 }
 
-/// Maps one line of the stream onto the job event of document 04 (at most one, so the line's `seq` orders it).
+/// Maps one line of the stream onto a job event (at most one, so the line's `seq` orders it).
 pub fn to_job_event(id: JobId, line: &StreamLine) -> Option<JobEvent> {
     let seq = line.seq;
     match &line.event {
@@ -699,7 +699,7 @@ mod tests {
         assert!(w.current().is_none());
         assert_eq!(w.next(), Next::Done);
         assert!(w.error().is_none());
-        assert_eq!(w.equivalent_command(), "nvmod setup --instance /i");
+        assert_eq!(w.equivalent_command(), "raul setup --instance /i");
         // Nothing revives a finished wizard.
         assert_eq!(
             w.feed_line(&step(9, "init", "started", 1)).unwrap(),
@@ -771,10 +771,7 @@ mod tests {
         assert!(w.is_dry_run());
         assert_eq!(w.next(), Next::RunForReal);
         assert!(w.error().is_none());
-        assert_eq!(
-            w.equivalent_command(),
-            "nvmod setup --instance /i --dry-run"
-        );
+        assert_eq!(w.equivalent_command(), "raul setup --instance /i --dry-run");
     }
 
     #[test]
@@ -804,7 +801,7 @@ mod tests {
         assert!(w.is_resume());
         assert_eq!(w.steps()[0].state, StepState::Skipped);
         assert_eq!(w.progress(), (1, 3));
-        assert_eq!(w.equivalent_command(), "nvmod setup --resume --instance /i");
+        assert_eq!(w.equivalent_command(), "raul setup --resume --instance /i");
     }
 
     #[test]

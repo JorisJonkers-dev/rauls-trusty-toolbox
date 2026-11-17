@@ -1,12 +1,12 @@
 [package]
-name = "nvmod-ui-model"
+name = "raul-ui-model"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish.workspace = true
-description = "The toolkit-free view-model of the nvmod GUI: pages, wizard state machines, the command palette and keymap, and the mapping of the setup event stream onto wizard state."
+description = "The toolkit-free view model of the Toolbox GUI: pages, wizard state machines, the command palette and keymap, the job table, and the mapping of the setup event stream onto wizard state."
 
 [dependencies]
 serde = { workspace = true }
