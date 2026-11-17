@@ -465,6 +465,11 @@ impl<P> Default for Pending<P> {
 }
 
 impl<P: Copy + PartialEq> Pending<P> {
+    /// Whether no job is awaited.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.jobs.is_empty()
+    }
+
     /// Waits for job `id`, started for `purpose`.
     pub(crate) fn add(&mut self, purpose: P, id: JobId) {
         self.jobs.push((purpose, id));

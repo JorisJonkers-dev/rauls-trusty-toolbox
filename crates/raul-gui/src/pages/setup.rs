@@ -104,6 +104,9 @@ crate::texts!(TEXTS {
     MISSING_CHECKS = "The checks are still running.";
     MISSING_REFUSED = "Fix the folder above, then press Next.";
     READING = "Reading the settings";
+    RETRY = "Try again";
+    INSTALL_WAITING = "This build cannot install from the window yet. Run the commands below in a terminal.";
+    NO_STORAGE_YET = "There is no storage folder yet; go back to the first step.";
 });
 
 crate::errors!(ERRORS {
@@ -134,7 +137,7 @@ pub struct Setup {
 enum Job {
     Config,
     Save(Key),
-    Find(Key),
+    Find(Key, Step),
     Init,
     Install,
     Doctor,
@@ -180,7 +183,7 @@ impl Setup {
 
     fn find(&mut self, cx: &mut PageCx<'_>, key: Key) {
         match start(cx, &detect_command()) {
-            Ok(id) => self.pending.add(Job::Find(key), id),
+            Ok(id) => self.pending.add(Job::Find(key, self.state.step), id),
             Err(e) => self.state.find_failed = Some(e.what.to_owned()),
         }
     }
@@ -217,7 +220,7 @@ impl Setup {
 
     fn run_checks(&mut self, cx: &mut PageCx<'_>) {
         let Some(instance) = self.state.instance() else {
-            self.state.checks = Fetch::Failed(MISSING_STORAGE.to_owned());
+            self.state.checks = Fetch::Failed(NO_STORAGE_YET.to_owned());
             return;
         };
         match start(cx, &doctor_command(&instance)) {
@@ -262,7 +265,12 @@ impl Setup {
                         cx.shell.new_vegas = c.get(Key::NewVegas).map(str::to_owned);
                     }
                 }
-                Job::Find(key) => {
+                Job::Find(key, step) => {
+                    // An answer for a step the person has left, or for a Fallout 3 folder no longer wanted, is
+                    // dropped.
+                    if step != self.state.step || (key == Key::Fallout3 && !self.state.want_ttw) {
+                        continue;
+                    }
                     let game = if key == Key::Fallout3 {
                         "fallout3"
                     } else {
@@ -271,16 +279,16 @@ impl Setup {
                     match &result {
                         Ok(out) => match parse_detect(&out.stdout, game) {
                             Ok(found) => {
-                                if let (Some(path), Some(f)) = (&found, self.state.field_mut(key)) {
+                                // Find fills the field only while it holds nothing typed; Next or leaving the
+                                // field saves it, with the command shown under it.
+                                if let (Some(path), Some(f)) = (&found, self.state.field_mut(key))
+                                    && !f.changed()
+                                    && f.save != Save::Saving
+                                {
                                     f.draft.clone_from(path);
                                     f.save = Save::Idle;
                                 }
                                 self.state.found = Some(found);
-                                if let Some(f) = self.state.field(key)
-                                    && f.changed()
-                                {
-                                    self.save(cx, key);
-                                }
                             }
                             Err(_) => self.state.find_failed = Some(failure_of(out)),
                         },
@@ -339,6 +347,7 @@ impl Setup {
                     .map(|i| std::path::Path::new(&i).join("nv-rs").join("install.json"));
                 if record.is_some_and(|r| r.exists()) {
                     self.state.engine = EngineStep::Installed;
+                    cx.shell.engine = Some(super::home::FACT_ENGINE_ACTIVE.to_owned());
                 }
             }
             Step::Check if self.state.checks == Fetch::Idle => self.run_checks(cx),
@@ -389,6 +398,9 @@ impl Page for Setup {
             Fetch::Failed(why) => {
                 error_block(ui, &t, &UNREADABLE, Some(why));
                 shell::command_line(ui, &t, &Command::config_list().shown());
+                if ui.button(RETRY).clicked() {
+                    self.state.config = Fetch::Idle;
+                }
                 return;
             }
             Fetch::Ready(_) => {}
@@ -427,7 +439,8 @@ impl Page for Setup {
 
 impl Setup {
     fn pending_is_empty(&mut self) -> bool {
-        !self.state.saving()
+        self.pending.is_empty()
+            && !self.state.saving()
             && !matches!(
                 self.state.engine,
                 EngineStep::Initialising | EngineStep::Installing
@@ -462,7 +475,12 @@ impl Setup {
             Step::NewVegas => self.new_vegas(ui, cx),
             Step::Ttw => self.ttw(ui, cx),
             Step::Engine => self.engine(ui, cx),
-            Step::Check => checks(ui, &t, &self.state),
+            Step::Check => {
+                if checks(ui, &t, &self.state) {
+                    self.state.checks = Fetch::Idle;
+                    self.entered_step(cx);
+                }
+            }
             Step::Ready => self.ready(ui, cx),
         }
         ui.add_space(16.0);
@@ -572,6 +590,9 @@ impl Setup {
                 {
                     self.install(cx, false);
                 }
+                if !can {
+                    ui.label(RichText::new(INSTALL_WAITING).color(t.muted.color()));
+                }
             }
             EngineStep::Initialising => {
                 mark(ui, &t, Mark::Info, MARK_WORKING);
@@ -680,7 +701,16 @@ impl Setup {
                         self.state.advancing = true;
                     }
                 }
-                if step != Step::NewVegas && step != Step::Ready && ui.button(BACK).clicked() {
+                // Back waits for a running install or save, so it never runs against a changed folder.
+                let busy = self.state.saving()
+                    || matches!(
+                        self.state.engine,
+                        EngineStep::Initialising | EngineStep::Installing
+                    );
+                if step != Step::NewVegas
+                    && step != Step::Ready
+                    && ui.add_enabled(!busy, egui::Button::new(BACK)).clicked()
+                {
                     self.state.back();
                 }
             });
@@ -787,19 +817,22 @@ fn option_card(ui: &mut egui::Ui, t: &Tokens, chosen: bool, title: &str, sub: &s
     inner.inner || inner.response.interact(egui::Sense::click()).clicked()
 }
 
-fn checks(ui: &mut egui::Ui, t: &Tokens, state: &State) {
+/// The check step; returns true when Try again was pressed after the checks could not run.
+fn checks(ui: &mut egui::Ui, t: &Tokens, state: &State) -> bool {
     let command = doctor_command(&state.instance().unwrap_or_default());
     match &state.checks {
         Fetch::Idle | Fetch::Loading => waiting(ui, t, CHECKING, &command),
         Fetch::Failed(why) => {
             error_block(ui, t, &CHECKS_FAILED, Some(why));
             shell::command_line(ui, t, &command.shown());
+            return ui.button(RETRY).clicked();
         }
         Fetch::Ready(c) => {
             findings(ui, t, c);
             shell::command_line(ui, t, &command.shown());
         }
     }
+    false
 }
 
 /// How many findings the check step lists.
@@ -822,8 +855,8 @@ fn finding_row(ui: &mut egui::Ui, t: &Tokens, f: &Finding) {
     let (m, word) = match f.severity.as_str() {
         "error" => (Mark::Problem, MARK_PROBLEM),
         "warning" => (Mark::Warning, MARK_WARNING),
-        "info" => (Mark::Unset, MARK_INFO),
-        _ => (Mark::Ok, MARK_OK),
+        "ok" => (Mark::Ok, MARK_OK),
+        _ => (Mark::Unset, MARK_INFO),
     };
     ui.horizontal(|ui| {
         ui.allocate_ui_with_layout(
