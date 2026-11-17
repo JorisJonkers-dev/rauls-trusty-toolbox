@@ -26,7 +26,6 @@ const KNOWN: &[(&str, &str)] = &[
     ("load-order", "#206"),
     ("lod", "#207"),
     ("settings", "#209"),
-    ("ttw", "#210"),
     ("setup", "#211"),
 ];
 
