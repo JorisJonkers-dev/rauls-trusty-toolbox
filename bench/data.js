@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794906092963,
+  "lastUpdate": 1794906465913,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1567,6 +1567,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.202264999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ef32e335aa533ce4f86e94cb01c7117b09da3a43",
+          "message": "feat(gui): LOD page with plan, blocks, generate and stop (#151)\n\n* feat(gui): LOD page with plan, blocks, generate and stop\n\nThe LOD page reads `raul lod plan` and shows what a run reads and writes,\none block per world with its status and progress, and the generator\nversion and output folder read only. Generate asks once, stating the cost,\nthen runs `raul lod generate`, which keeps the output as one Mod. The run\nkeeps going when the page is left, and Stop ends it with the Instance as\nit was.\n\nSnapshot fixtures cover the no-Instance, loading, planned, generating,\ngenerated, up-to-date, error, plan-error, long-text and large-list states.\nAn end-to-end test drives the page through the release `raul` on a\nsynthetic Instance with a stand-in generator: generate, a second run that\nfinds the output current, Cancel in the dialog, and Stop.\n\nCloses #99\n\n* test(gui): accept the header and the status line both naming the running state\n\n* test(gui): stop the fake LOD run only after it has started",
+          "timestamp": "2026-11-17T10:06:26+01:00",
+          "tree_id": "b1a3374bdcc20c23ba5f0f47264a08850c4b29f7",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ef32e335aa533ce4f86e94cb01c7117b09da3a43"
+        },
+        "date": 1794906465199,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.375177,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.528933,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.013323,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.759662,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.999078,
             "unit": "ms"
           }
         ]
