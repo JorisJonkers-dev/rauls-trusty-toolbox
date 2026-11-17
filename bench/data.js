@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794897960873,
+  "lastUpdate": 1794898957116,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1077,6 +1077,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.891584,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f167a6d073f4319e86d957d74c906aa8c5a9877b",
+          "message": "chore(main): release 0.2.0 (#130)\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-17T08:01:21+01:00",
+          "tree_id": "2499fae540af166a3ddcabac7d9df0e1ac8a1829",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f167a6d073f4319e86d957d74c906aa8c5a9877b"
+        },
+        "date": 1794898956819,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.094678,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.667992,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.328611000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.514993,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.109001999999999,
             "unit": "ms"
           }
         ]
