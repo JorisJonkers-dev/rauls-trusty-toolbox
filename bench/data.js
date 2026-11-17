@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794949296575,
+  "lastUpdate": 1794950895713,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -2645,6 +2645,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.364134,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "edffb368f375ab9caaaa00447bca6cb1d8028612",
+          "message": "fix(gui): end a chained job as its second command ended (#222)",
+          "timestamp": "2026-11-17T22:27:03+01:00",
+          "tree_id": "29e7ae8cfbd58b5b04dd0fd9728bcea1320cb4c6",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/edffb368f375ab9caaaa00447bca6cb1d8028612"
+        },
+        "date": 1794950895305,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.100611,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.631698,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.416744,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.52001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.809026,
             "unit": "ms"
           }
         ]
