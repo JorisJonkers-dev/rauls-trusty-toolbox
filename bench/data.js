@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794895937135,
+  "lastUpdate": 1794896128622,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -832,6 +832,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.084885,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "58a51fae6604168bff227002b074f69f89eb6f42",
+          "message": "ci(release): build ttwright-cli and bundle the ttwright program (#125)\n\n* ci(release): build ttwright-cli and bundle the ttwright program\n\n* ci(release): check the bundled ttwright in the AppImage and the Windows installer too\n\n* ci(release): spell the missing-ttwright check as an if",
+          "timestamp": "2026-11-17T07:14:12+01:00",
+          "tree_id": "319412452f43d968ae756bd0b14b3d835ce14f50",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/58a51fae6604168bff227002b074f69f89eb6f42"
+        },
+        "date": 1794896127804,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.387025,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.604043,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.789124,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.768078999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.447308999999999,
             "unit": "ms"
           }
         ]
