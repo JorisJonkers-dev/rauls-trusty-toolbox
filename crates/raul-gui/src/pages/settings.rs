@@ -430,11 +430,30 @@ pub(crate) fn share_config(cx: &mut PageCx<'_>, config: &Config) {
 /// [`WAITING`] when the registry has no entry for it yet or marks it as waiting for its pull request,
 /// [`msg::JOB_BUSY`] while another writing command runs, and [`msg::JOB_NOT_STARTED`] otherwise.
 pub(crate) fn start(cx: &mut PageCx<'_>, command: &Command) -> Result<JobId, ErrorText> {
+    start_then(cx, command, None)
+}
+
+/// [`start`] with a second command that runs as part of the same job once the first one went through.
+pub(crate) fn start_then(
+    cx: &mut PageCx<'_>,
+    command: &Command,
+    then: Option<&Command>,
+) -> Result<JobId, ErrorText> {
     let Some(entry) = registry::command(command.id).filter(|c| c.awaits.is_none()) else {
         return Err(WAITING);
     };
+    let then = then.map(|c| {
+        registry::command(c.id).map_or_else(Vec::new, |e| {
+            let mut args = vec![e.action.command().to_owned()];
+            args.extend(e.args(c.rest()));
+            if e.action.takes_json() {
+                args.push("--json".to_owned());
+            }
+            args
+        })
+    });
     cx.jobs
-        .start(entry.action, entry.args(command.rest()), entry.writes)
+        .start_then(entry.action, entry.args(command.rest()), then, entry.writes)
         .map_err(|e| match e {
             JobError::Busy(_) => msg::JOB_BUSY,
             JobError::Unknown(_) | JobError::NotCancellable(_) => msg::JOB_NOT_STARTED,

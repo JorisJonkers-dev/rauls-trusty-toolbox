@@ -99,7 +99,8 @@ impl Jobs {
         self.repaint = Some(ctx.clone());
     }
 
-    /// Starts `raul <action> <args> --json`. A job that `writes` is refused while another writing job runs.
+    /// Starts `raul <action> <args> --json`, then `<then> --json` when `then` is given and the first went through.
+    /// A job that `writes` is refused while another writing job runs.
     ///
     /// # Errors
     /// [`JobError::Busy`] when another writing job runs.
@@ -107,6 +108,20 @@ impl Jobs {
         &mut self,
         action: Action,
         args: Vec<String>,
+        writes: bool,
+    ) -> Result<JobId, JobError> {
+        self.start_then(action, args, None, writes)
+    }
+
+    /// [`Jobs::start`] with a second command run as part of the same job.
+    ///
+    /// # Errors
+    /// As [`Jobs::start`].
+    pub fn start_then(
+        &mut self,
+        action: Action,
+        args: Vec<String>,
+        then: Option<Vec<String>>,
         writes: bool,
     ) -> Result<JobId, JobError> {
         if writes {
@@ -118,6 +133,9 @@ impl Jobs {
         let id = JobId(self.next);
         self.next += 1;
         let mut spec = JobSpec::new(id, action, args);
+        if let Some(then) = then {
+            spec = spec.then(then);
+        }
         if writes {
             spec = spec.writing();
             self.writer = Some(id);

@@ -864,7 +864,7 @@ pub fn fixtures() -> Vec<Fixture> {
             "bad-load-order",
             seen(State {
                 load_order: Fetch::Failed(
-                    "raul plugins list: refused: the Instance has no profile".into(),
+                    "the load order could not be read: there is no mod list yet".into(),
                 ),
                 ..State::ready(all.clone(), Engine::active())
             }),
@@ -874,7 +874,9 @@ pub fn fixtures() -> Vec<Fixture> {
             "warning",
             seen(State {
                 config: Fetch::Ready(all.clone()),
-                engine: Fetch::Failed("raul verify: refused: the Instance has no profile".into()),
+                engine: Fetch::Failed(
+                    "the engine could not be checked: there is no mod list yet".into(),
+                ),
                 ..State::default()
             }),
         ),

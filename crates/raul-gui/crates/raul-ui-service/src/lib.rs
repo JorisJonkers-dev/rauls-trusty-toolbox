@@ -32,6 +32,7 @@ pub use jobs::{JobSpec, cancel_job};
 pub use lifecycle::{CategoryEntry, LifecycleReport, LifecycleRequest, LifecycleStep, Where};
 pub use service::{
     CliService, DoctorRequest, ImportRequest, InstallRequest, InstallResult, ModsRequest,
-    RollbackRequest, RuntimeTarget, Service, ServiceError, SetupMode, SetupRequest, SortRequest,
-    TargetRequest, ToolsRequest, TtwRequest, VerifyRequest,
+    NO_PROFILE_EFFECT, NO_PROFILE_WHAT, ProfileRequest, RollbackRequest, RuntimeTarget, Service,
+    ServiceError, SetupMode, SetupRequest, SortRequest, TargetRequest, ToolsRequest, TtwRequest,
+    VerifyRequest,
 };

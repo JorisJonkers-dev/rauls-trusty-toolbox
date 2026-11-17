@@ -524,7 +524,9 @@ pub fn fixtures() -> Vec<Fixture> {
             "error",
             Versions::with(State {
                 config: Fetch::Ready(config.clone()),
-                engine: Fetch::Failed("raul verify: refused: the Instance has no profile".into()),
+                engine: Fetch::Failed(
+                    "the engine could not be checked: there is no mod list yet".into(),
+                ),
                 shipped: Fetch::Ready(shipped),
                 install: Install::Idle,
             }),

@@ -198,6 +198,27 @@ mod tests {
     }
 
     #[test]
+    fn no_screen_says_profile() {
+        // A profile is an internal name: setup makes the default one, so no page shows it, asks for it or names it
+        // in a message. The command lines a page shows may still carry it (`--profile Default`).
+        for (owner, name, text) in all_texts() {
+            assert!(
+                !text.to_lowercase().contains("profile"),
+                "{owner}/{name} says profile: {text}"
+            );
+        }
+        for (owner, e) in all_errors() {
+            for text in [e.what, e.detail] {
+                assert!(
+                    !text.to_lowercase().contains("profile"),
+                    "{owner}/{} says profile: {text}",
+                    e.id
+                );
+            }
+        }
+    }
+
+    #[test]
     fn capitals_are_detected() {
         assert!(shouted("LOAD ORDER"));
         assert!(!shouted("Load order"));

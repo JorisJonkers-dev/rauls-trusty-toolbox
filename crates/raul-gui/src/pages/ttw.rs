@@ -59,7 +59,7 @@ crate::texts!(TEXTS {
     SECTION_OUTPUT = "Output";
     FACT_INTO = "Installs into";
     FACT_AS = "Added as";
-    ADDED_AS = "One Mod, with its plugins enabled in the Profile";
+    ADDED_AS = "One Mod, with its plugins enabled in your load order";
     FACT_GAMES = "Game folders";
     GAMES_UNTOUCHED = "Not changed";
     FACT_SPACE = "Space";
@@ -95,7 +95,7 @@ crate::texts!(TEXTS {
     PHASE_ADD_MOD = "Adding the Mod to the Instance";
     PROGRESS_OF = "{done} of {total}";
     LEAVE = "You can leave this page; the install keeps going.";
-    INSTALLED = "TTW is installed as one Mod, and its plugins are enabled in the Profile.";
+    INSTALLED = "TTW is installed as one Mod, and its plugins are enabled in your load order.";
     FACT_PLUGINS = "Plugins enabled";
     FACT_FILES = "Files";
     INSTALLED_STATUS = "TTW installed.";
@@ -1013,8 +1013,11 @@ mod tests {
         }
     }
 
-    const RESULT: &str = r#"{"schema_version":1,"contract":"raul-events","seq":1,"command":"ttw","event":"result","result":{"schema_version":1,"contract":"raul-ttw-result","status":"cancelled","dry_run":false,"resumed":false,"instance":"/i","profile":"Default","mod":null,"plugins_enabled":[],"files":null,"staging":"/i/s","resumable":true,"tool":{"name":"ttwright","path":"/t","sha256":"00","version":"0.3.0"},"ttwright":null,"error":{"code":"cancelled","message":"stopped","ttwright_code":"cancelled"}}}
-{"schema_version":1,"contract":"raul-events","seq":2,"command":"ttw","event":"finished","status":"cancelled","exit_code":4,"code":"cancelled","message":"stopped","resumable":true,"changed":false}"#;
+    // The result document of the command; its `profile` field is internal and never shown.
+    const RESULT: &str = concat!(
+        r#"{"schema_version":1,"contract":"raul-events","seq":1,"command":"ttw","event":"result","result":{"schema_version":1,"contract":"raul-ttw-result","status":"cancelled","dry_run":false,"resumed":false,"instance":"/i","profile":"Default","mod":null,"plugins_enabled":[],"files":null,"staging":"/i/s","resumable":true,"tool":{"name":"ttwright","path":"/t","sha256":"00","version":"0.3.0"},"ttwright":null,"error":{"code":"cancelled","message":"stopped","ttwright_code":"cancelled"}}}"#,
+        "\n{\"schema_version\":1,\"contract\":\"raul-events\",\"seq\":2,\"command\":\"ttw\",\"event\":\"finished\",\"status\":\"cancelled\",\"exit_code\":4,\"code\":\"cancelled\",\"message\":\"stopped\",\"resumable\":true,\"changed\":false}"
+    );
 
     #[test]
     fn a_ttw_stream_becomes_the_report_the_page_shows() {
