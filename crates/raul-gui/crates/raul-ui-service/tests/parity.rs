@@ -161,6 +161,18 @@ fn a_help_block_is_its_usage_line_and_the_lines_that_continue_it() {
     assert!(lod.contains("the plan") && !lod.contains("sort"));
     assert!(help_block(help, "raul lod generate").is_none());
     assert!(help_block(help, "raul sort").unwrap().contains("--apply"));
+    let forms = "  raul --version | raul version [--json]\n  raul run <title|path|game|nv-rs> --instance <dir> [--guard <path>]\n";
+    assert!(
+        help_block(forms, "raul version")
+            .unwrap()
+            .contains("[--json]")
+    );
+    assert!(
+        help_block(forms, "raul run nv-rs")
+            .unwrap()
+            .contains("--guard")
+    );
+    assert!(help_block(forms, "raul run steam").is_none());
     let two = "  nvmod doctor --base <dir>\n  nvmod doctor --instance <dir>\n";
     let both = help_block(two, "raul doctor").unwrap();
     assert!(
