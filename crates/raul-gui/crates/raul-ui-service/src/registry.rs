@@ -40,11 +40,21 @@ pub enum Action {
     Tree,
     /// `raul plugins`: list, enable, disable, move and lock the plugins of a profile.
     Plugins,
+    /// `raul config`: the game folders, the TTW package and the storage folder.
+    Config,
+    /// `raul install-nv-rs`: fetch the verified engine release, or build it from source.
+    InstallNvRs,
+    /// `raul init`: an Instance skeleton for a base copy of the game.
+    Init,
+    /// `raul lod`: plan and generate distant land with lodwright.
+    Lod,
+    /// `raul run`: start the game on nv-rs, only through the memory-capped run guard.
+    Run,
 }
 
 impl Action {
     /// Every action.
-    pub const ALL: [Action; 14] = [
+    pub const ALL: [Action; 19] = [
         Action::Setup,
         Action::ImportMo2,
         Action::InstallMod,
@@ -59,6 +69,11 @@ impl Action {
         Action::Conflicts,
         Action::Tree,
         Action::Plugins,
+        Action::Config,
+        Action::InstallNvRs,
+        Action::Init,
+        Action::Lod,
+        Action::Run,
     ];
 
     /// The subcommand word of the command line.
@@ -78,12 +93,25 @@ impl Action {
             Self::Conflicts => "conflicts",
             Self::Tree => "tree",
             Self::Plugins => "plugins",
+            Self::Config => "config",
+            Self::InstallNvRs => "install-nv-rs",
+            Self::Init => "init",
+            Self::Lod => "lod",
+            Self::Run => "run",
         }
     }
 
-    /// Whether a run of it can be stopped from the GUI: the long ones that write, `setup`, `ttw` and `install`.
+    /// Whether a run of it can be stopped from the GUI: the long ones that write.
     pub fn cancellable(self) -> bool {
-        matches!(self, Self::Setup | Self::Ttw | Self::InstallMod)
+        matches!(
+            self,
+            Self::Setup | Self::Ttw | Self::InstallMod | Self::InstallNvRs | Self::Lod
+        )
+    }
+
+    /// Whether the command takes `--json`. `init` and `install-nv-rs` print text only.
+    pub fn takes_json(self) -> bool {
+        !matches!(self, Self::Init | Self::InstallNvRs)
     }
 
     /// What the GUI calls it.
@@ -103,6 +131,11 @@ impl Action {
             Self::Conflicts => "Show the file conflicts",
             Self::Tree => "Explore the virtual Data folder",
             Self::Plugins => "Manage the plugins",
+            Self::Config => "Game folders",
+            Self::InstallNvRs => "Install the engine",
+            Self::Init => "Create the Instance",
+            Self::Lod => "Distant land",
+            Self::Run => "Play",
         }
     }
 
@@ -175,4 +208,245 @@ pub fn action_of(command_line: &str) -> Option<Action> {
     }
     let sub = words.next()?;
     Action::ALL.into_iter().find(|a| a.command() == sub)
+}
+
+/// One command line a page starts: the action, the words after it, and the flags the page passes. The parity
+/// tests check each against the help of the real command line and run it against fixtures.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Command {
+    /// A stable name, unique in [`COMMANDS`], such as `sort-apply`; pages look a command up by it.
+    pub id: &'static str,
+    /// The command.
+    pub action: Action,
+    /// The words after the command word, such as `["get"]` for `raul config get`.
+    pub words: &'static [&'static str],
+    /// The flags a page may pass; each is in the command's help.
+    pub flags: &'static [&'static str],
+    /// Whether it writes: only one writing job runs at a time.
+    pub writes: bool,
+    /// The pull request that adds the command to `raul`, while it is not merged; the parity tests skip it and
+    /// fail once the help lists it, so the mark is removed then.
+    pub awaits: Option<&'static str>,
+}
+
+impl Command {
+    /// The command line start, such as `raul config get`.
+    pub fn line(&self) -> String {
+        let mut line = self.action.invocation();
+        for w in self.words {
+            line.push(' ');
+            line.push_str(w);
+        }
+        line
+    }
+
+    /// The arguments of a job of this command: its words, then `rest` (values and flags).
+    pub fn args(&self, rest: impl IntoIterator<Item = String>) -> Vec<String> {
+        self.words
+            .iter()
+            .map(|w| (*w).to_owned())
+            .chain(rest)
+            .collect()
+    }
+}
+
+/// Every command the pages of the minimum viable Toolbox start (#117).
+pub const COMMANDS: &[Command] = &[
+    Command {
+        id: "config-list",
+        action: Action::Config,
+        words: &["list"],
+        flags: &["--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "config-get",
+        action: Action::Config,
+        words: &["get"],
+        flags: &["--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "config-set",
+        action: Action::Config,
+        words: &["set"],
+        flags: &["--json"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        id: "config-unset",
+        action: Action::Config,
+        words: &["unset"],
+        flags: &["--json"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        id: "install-nv-rs",
+        action: Action::InstallNvRs,
+        words: &[],
+        flags: &["--instance", "--release", "--release-url"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        id: "init",
+        action: Action::Init,
+        words: &[],
+        flags: &["--base", "--instance"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        id: "plugins-list",
+        action: Action::Plugins,
+        words: &["list"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "sort-preview",
+        action: Action::Sort,
+        words: &[],
+        flags: &[
+            "--instance",
+            "--profile",
+            "--masterlist",
+            "--fetch-masterlist",
+            "--json",
+        ],
+        writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "sort-apply",
+        action: Action::Sort,
+        words: &[],
+        flags: &[
+            "--instance",
+            "--profile",
+            "--masterlist",
+            "--fetch-masterlist",
+            "--apply",
+            "--json",
+        ],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        id: "rollback",
+        action: Action::Rollback,
+        words: &[],
+        flags: &["--instance", "--json"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        id: "lod-plan",
+        action: Action::Lod,
+        words: &["plan"],
+        flags: &["--instance", "--profile", "--world", "--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "lod-generate",
+        action: Action::Lod,
+        words: &["generate"],
+        flags: &["--instance", "--profile", "--world", "--dry-run", "--json"],
+        writes: true,
+        awaits: Some("#127"),
+    },
+    Command {
+        id: "run",
+        action: Action::Run,
+        words: &[],
+        flags: &["--instance", "--dry-run", "--json"],
+        writes: false,
+        awaits: Some("#124"),
+    },
+    Command {
+        id: "ttw",
+        action: Action::Ttw,
+        words: &[],
+        flags: &[
+            "--instance",
+            "--profile",
+            "--fallout3",
+            "--newvegas",
+            "--package",
+            "--dry-run",
+            "--resume",
+            "--json",
+        ],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        id: "doctor",
+        action: Action::Doctor,
+        words: &[],
+        flags: &["--instance", "--profile", "--json"],
+        writes: false,
+        awaits: None,
+    },
+];
+
+/// The help block of `line` (such as `raul config get`) in `help`: each usage line of it and the lines that continue
+/// it, up to the next usage line. A line naming the program `nvmod` counts for `raul`, which runs nvmod's commands.
+/// `None` when the help does not list it.
+pub fn help_block(help: &str, line: &str) -> Option<String> {
+    let rest = line.strip_prefix("raul ")?;
+    let starts = |l: &str| {
+        let l = l.trim_start();
+        ["raul ", "nvmod "].iter().any(|p| {
+            l.strip_prefix(p).is_some_and(|r| {
+                r == rest
+                    || r.starts_with(&format!("{rest} "))
+                    || r.starts_with(&format!("{rest}|"))
+                    || alternatives_match(r, rest)
+            })
+        })
+    };
+    let lines: Vec<&str> = help.lines().collect();
+    let mut blocks = Vec::new();
+    for (at, first) in lines.iter().enumerate().filter(|(_, l)| starts(l)) {
+        let mut block = (*first).to_owned();
+        for l in &lines[at + 1..] {
+            let t = l.trim_start();
+            if t.starts_with("raul ") || t.starts_with("nvmod ") || t.is_empty() {
+                break;
+            }
+            block.push('\n');
+            block.push_str(l);
+        }
+        blocks.push(block);
+    }
+    (!blocks.is_empty()).then(|| blocks.join("\n"))
+}
+
+/// Whether a usage line such as `config list|get <key>|set <key> <path>` names the command `config get`.
+fn alternatives_match(usage: &str, command: &str) -> bool {
+    let mut words = command.split(' ');
+    let (Some(first), Some(sub), None) = (words.next(), words.next(), words.next()) else {
+        return false;
+    };
+    let Some(alts) = usage.strip_prefix(&format!("{first} ")) else {
+        return false;
+    };
+    alts.split_whitespace()
+        .next()
+        .is_some_and(|w| w.split('|').any(|a| a == sub))
+        || alts
+            .split('|')
+            .any(|a| a.split_whitespace().next() == Some(sub))
+}
+
+/// The command `id` names in [`COMMANDS`].
+pub fn command(id: &str) -> Option<&'static Command> {
+    COMMANDS.iter().find(|c| c.id == id)
 }

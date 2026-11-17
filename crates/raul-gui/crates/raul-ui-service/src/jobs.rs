@@ -179,7 +179,7 @@ impl<E: Exec> CliService<E> {
         sink: &mut dyn FnMut(JobEvent),
         cancel: &CancelHandle,
     ) -> Result<Output, ServiceError> {
-        let args = Self::words(spec.action, spec.args.clone(), true);
+        let args = Self::words(spec.action, spec.args.clone(), spec.action.takes_json());
         let mut feed = Feed {
             spec,
             sink,
