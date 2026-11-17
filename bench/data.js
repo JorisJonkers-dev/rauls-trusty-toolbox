@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794909466412,
+  "lastUpdate": 1794910085146,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1812,6 +1812,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.531339,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "36a8f8f5297d4ce9870eca3934439ac0439076b3",
+          "message": "ci: log the Component follower at debug level (#163)",
+          "timestamp": "2026-11-17T11:06:44+01:00",
+          "tree_id": "becfb6dd040d59e672412bc5074faa18036b91ad",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/36a8f8f5297d4ce9870eca3934439ac0439076b3"
+        },
+        "date": 1794910084425,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.102108,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.627328,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.736673000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.5254649999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.820186,
             "unit": "ms"
           }
         ]
