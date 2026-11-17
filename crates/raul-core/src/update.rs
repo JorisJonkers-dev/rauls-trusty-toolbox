@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The opt-in update check (ADR-0005; nv-linux ADR-0010): pull-only, run only when the person asks or has turned
+//! The opt-in update check (ADR-0005): pull-only, run only when the person asks or has turned
 //! it on, and it sends nothing that identifies them. It reads the Toolbox's GitHub Releases and offers the newest
 //! published release that is newer than the running one; drafts and pre-releases are never offered.
 
