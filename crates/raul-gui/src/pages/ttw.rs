@@ -112,7 +112,7 @@ crate::texts!(TEXTS {
     FACT_PLUGINS = "Plugins enabled";
     FACT_FILES = "Files";
     INSTALLED_STATUS = "TTW installed.";
-    UNREADABLE = "The command finished, but what it printed could not be read.";
+    UNREADABLE = "The run finished, but what it printed could not be read.";
 });
 
 crate::errors!(ERRORS {
@@ -434,9 +434,6 @@ impl Ttw {
             .unwrap_or(INSTALL_FAILED);
         let said = (!p.cause.is_empty()).then_some(p.cause.as_str());
         error_block(ui, t, &e, said);
-        if let Some(c) = &p.command {
-            shell::command_line(ui, t, c);
-        }
         ui.add_space(12.0);
     }
 
@@ -515,9 +512,6 @@ impl Ttw {
         if let Some(why) = &self.save_failed {
             error_block(ui, t, &PACKAGE_NOT_SAVED, Some(why));
         }
-        if let Some(file) = self.state.wizard.package() {
-            shell::command_line(ui, t, &Command::config_save(Key::TtwPackage, file).shown());
-        }
         ui.add_space(12.0);
     }
 
@@ -574,11 +568,6 @@ impl Ttw {
         if self.state.resuming {
             ui.label(RichText::new(RESUMING).color(t.muted.color()));
         }
-        shell::command_line(
-            ui,
-            t,
-            &install_command(instance, self.state.resuming).shown(),
-        );
     }
 
     fn install(&self, ui: &mut egui::Ui, t: &Tokens, instance: &str) {
@@ -610,11 +599,6 @@ impl Ttw {
             });
             ui.add_space(8.0);
             ui.label(RichText::new(LEAVE).color(t.muted.color()));
-            shell::command_line(
-                ui,
-                t,
-                &install_command(instance, self.state.resuming).shown(),
-            );
             return;
         }
         if self.state.outcome() != Some(Outcome::Completed) {
@@ -696,12 +680,6 @@ impl Ttw {
                         };
                         let next =
                             ui.add_enabled(self.state.can_next(), shell::primary_button(t, label));
-                        let next = match (step, self.state.instance.as_deref()) {
-                            (Step::Review, Some(i)) => {
-                                next.on_hover_text(install_command(i, self.state.resuming).shown())
-                            }
-                            _ => next,
-                        };
                         if next.clicked() {
                             if step == Step::Review {
                                 self.run(cx, Job::Install);
@@ -822,7 +800,6 @@ impl Page for Ttw {
             }
             Fetch::Failed(why) => {
                 error_block(ui, &t, &SOURCES_UNREADABLE, Some(why));
-                shell::command_line(ui, &t, &Command::config_list().shown());
                 ui.add_space(8.0);
                 if ui.button(CHECK_AGAIN).clicked() {
                     self.run(cx, Job::Sources);
@@ -1101,7 +1078,7 @@ pub fn fixtures() -> Vec<Fixture> {
     let mut loading = State::new(Some(INSTANCE.to_owned()));
     loading.loading();
     let mut unreadable = State::new(Some(INSTANCE.to_owned()));
-    unreadable.sources_failed("raul config: the configuration file is not valid TOML".to_owned());
+    unreadable.sources_failed("the configuration file is not valid TOML".to_owned());
     let mut checking = at(Step::Review, sources(Some(FALLOUT3), Some(PACKAGE)));
     let _ = checking.checking();
     let mut check_failed = at(Step::Review, sources(Some(FALLOUT3), Some(PACKAGE)));
@@ -1148,7 +1125,7 @@ pub fn fixtures() -> Vec<Fixture> {
         command: Some(install_command(INSTANCE, false).shown()),
         ..problem(
             &INSTALL_UNKNOWN,
-            "`raul ttw` stopped before it said how it ended",
+            "The run stopped before it said how it ended.",
         )
     });
     let long_path = "/users/player/a folder with a very long name that keeps going on and on/and another one/Fallout 3 goty";
