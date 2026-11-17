@@ -52,12 +52,18 @@ impl App {
     }
 
     /// The shell showing only `page` with `shell` around it, as the snapshot tests render a fixture.
+    ///
+    /// # Panics
+    /// When the fixture's view is not in the page registry, so a fixture never renders as a blank page.
     pub fn fixture(fixture: pages::Fixture, jobs: Jobs) -> App {
         let view = fixture.page.view();
         let mut app = App::new(jobs);
-        if let Some(slot) = app.pages.iter_mut().find(|p| p.view() == view) {
-            *slot = fixture.page;
-        }
+        let slot = app
+            .pages
+            .iter_mut()
+            .find(|p| p.view() == view)
+            .expect("a fixture's view is in the page registry");
+        *slot = fixture.page;
         app.view = view;
         app.shell = fixture.shell;
         app
@@ -104,7 +110,6 @@ impl App {
             return;
         }
         self.jobs.poll();
-        self.keys(&ctx);
         let narrow = ctx.content_rect().width() < NARROW;
         let t = self.tokens;
         let bar = egui::Frame::new()
@@ -144,11 +149,14 @@ impl App {
             .show(ui, |ui| self.content(ui));
         self.dialogs.show(&ctx, &t);
         self.answers();
+        // After the frame's UI, so a dialog or a text field it opened already holds the keys.
+        self.keys(&ctx);
         if let Some(view) = self.shell.go_to.take() {
             self.view = view;
         }
         if let Some(left) = &mut self.smoke {
             if *left == 0 {
+                crate::SMOKE_FRAMES_DRAWN.store(true, std::sync::atomic::Ordering::SeqCst);
                 ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             } else {
                 *left -= 1;

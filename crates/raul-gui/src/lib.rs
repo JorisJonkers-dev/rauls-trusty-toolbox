@@ -21,6 +21,10 @@ pub mod theme;
 
 use std::process::ExitCode;
 
+/// Set once the window drew the frames the smoke test waits for; `open` reports success only then.
+pub static SMOKE_FRAMES_DRAWN: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
 /// The environment variable that makes the window close after its first frames: the headless smoke test.
 pub const SMOKE_ENV: &str = "RAUL_GUI_SMOKE";
 
@@ -68,6 +72,10 @@ pub fn open() -> ExitCode {
         }),
     );
     match result {
+        Ok(()) if smoke && !SMOKE_FRAMES_DRAWN.load(std::sync::atomic::Ordering::SeqCst) => {
+            eprintln!("raul: the window closed before it drew a frame");
+            ExitCode::from(raul_cli::FOUND)
+        }
         Ok(()) => {
             if smoke {
                 println!("raul: the window opened and closed");

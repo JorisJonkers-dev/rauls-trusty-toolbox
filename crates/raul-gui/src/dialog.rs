@@ -36,6 +36,12 @@ pub struct Dialog {
 }
 
 impl Dialog {
+    /// Whether it must stay open until its action is taken: busy, and with an action to take. A busy dialog with no
+    /// action can always be closed, so it can never trap the window.
+    pub fn holds(&self) -> bool {
+        self.busy && self.action.is_some()
+    }
+
     /// A dialog that only informs, with a Close button.
     pub fn info(id: &'static str, title: impl Into<String>, body: Vec<String>) -> Dialog {
         Dialog {
@@ -85,8 +91,13 @@ pub struct Dialogs {
 }
 
 impl Dialogs {
-    /// Opens `dialog`. A dialog that is already open is replaced and counts as closed.
+    /// Opens `dialog`. A dialog that is already open is replaced and counts as closed, unless it is busy: then the
+    /// new one is not opened and counts as closed itself.
     pub fn open(&mut self, dialog: Dialog) {
+        if self.open.as_ref().is_some_and(Dialog::holds) {
+            self.answers.push((dialog.id, Answer::Closed));
+            return;
+        }
         if let Some(old) = self.open.take() {
             self.answers.push((old.id, Answer::Closed));
         }
@@ -109,10 +120,10 @@ impl Dialogs {
         Some(self.answers.remove(at).1)
     }
 
-    /// Answers the open dialog. A busy dialog cannot be closed this way, only confirmed.
+    /// Answers the open dialog. A busy dialog with an action cannot be closed this way, only confirmed.
     pub fn answer(&mut self, answer: Answer) {
         if let Some(d) = &self.open
-            && (answer == Answer::Confirmed || !d.busy)
+            && (answer == Answer::Confirmed || !d.holds())
         {
             self.answers.push((d.id, answer));
             self.open = None;
@@ -210,6 +221,28 @@ mod tests {
         assert!(d.is_open());
         d.answer(Answer::Confirmed);
         assert_eq!(d.take_answer("copy"), Some(Answer::Confirmed));
+    }
+
+    #[test]
+    fn a_busy_dialog_with_no_action_can_still_be_closed() {
+        let mut d = Dialogs::default();
+        let mut busy = Dialog::info("wait", "Wait", vec![]);
+        busy.busy = true;
+        d.open(busy);
+        d.answer(Answer::Closed);
+        assert!(!d.is_open());
+    }
+
+    #[test]
+    fn a_busy_dialog_is_not_replaced() {
+        let mut d = Dialogs::default();
+        let mut busy = Dialog::confirm("copy", "Copying", "Files are being copied.", "Hide");
+        busy.busy = true;
+        d.open(busy);
+        d.open(Dialog::info("about", "About", vec![]));
+        assert_eq!(d.current().map(|x| x.id), Some("copy"));
+        assert_eq!(d.take_answer("about"), Some(Answer::Closed));
+        assert_eq!(d.take_answer("copy"), None);
     }
 
     #[test]
