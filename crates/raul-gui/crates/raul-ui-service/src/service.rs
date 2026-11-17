@@ -599,6 +599,13 @@ pub(crate) fn cause_of(stderr: &str, command: &str) -> String {
 }
 
 fn failure(out: &Output, command: &str, args: &[String]) -> ServiceError {
+    let mut e = failure_error(out, command);
+    e.repro = Some(repro(args));
+    ServiceError::Failed(e)
+}
+
+/// The error of a command that failed, from its exit code and output, without its repro.
+fn failure_error(out: &Output, command: &str) -> ViewError {
     let class = out.code.map_or(ExitClass::Internal, ExitClass::from_code);
     let mut cause = cause_of(&out.stderr, command);
     if out.stderr.trim().is_empty() {
@@ -610,7 +617,6 @@ fn failure(out: &Output, command: &str, args: &[String]) -> ServiceError {
         }
     }
     let mut e = ViewError::new(class, cause, effect_of(class));
-    e.repro = Some(repro(args));
     e.retry = match class {
         ExitClass::StepFailedRolledBack => Retry::Yes,
         ExitClass::Refused | ExitClass::Usage | ExitClass::ProblemsFound => {
@@ -618,7 +624,7 @@ fn failure(out: &Output, command: &str, args: &[String]) -> ServiceError {
         }
         _ => Retry::No,
     };
-    ServiceError::Failed(e)
+    e
 }
 
 fn unreadable(what: &str, why: &serde_json::Error, args: &[String]) -> ServiceError {
@@ -719,14 +725,25 @@ impl<E: Exec> CliService<E> {
     }
 }
 
-/// Reads the `raul-ttw-result` from the `raul-events` stream `raul ttw --json` printed. The stream must end with
-/// `finished`, and its status must be the result's: a stream cut short (the command was killed after its result)
-/// or one that disagrees with itself is not a report.
-fn ttw_report(out: &Output, args: &[String]) -> Result<TtwReport, ServiceError> {
+impl TtwReport {
+    /// Reads the `raul-ttw-result` from the `raul-events` stream `raul ttw --json` printed, as a finished job's
+    /// [`Output`] holds it. The stream must end with `finished`, and its status must be the result's: a stream cut
+    /// short (the command was killed after its result) or one that disagrees with itself is not a report.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the output holds no readable result, the stream is newer than this build, or
+    /// the stream did not end as its result says. The error has no repro; the caller knows the command line.
+    pub fn from_output(out: &Output) -> Result<TtwReport, ServiceError> {
+        ttw_report(out, None)
+    }
+}
+
+/// [`TtwReport::from_output`], with the repro of `args` on its errors when they are given.
+fn ttw_report(out: &Output, args: Option<&[String]>) -> Result<TtwReport, ServiceError> {
     use raul_ui_model::events::{Event, LineError, parse_line};
     let unreadable = |class: ExitClass, what: String| {
         let mut e = ViewError::new(class, what, effect_of(class));
-        e.repro = Some(repro(args));
+        e.repro = args.map(repro);
         ServiceError::Failed(e)
     };
     let (mut document, mut finished) = (None, None);
@@ -749,7 +766,9 @@ fn ttw_report(out: &Output, args: &[String]) -> Result<TtwReport, ServiceError> 
         }
     }
     let Some(document) = document else {
-        return Err(failure(out, "ttw", args));
+        let mut e = failure_error(out, "ttw");
+        e.repro = args.map(repro);
+        return Err(ServiceError::Failed(e));
     };
     let report = TtwReport::from_value(document).map_err(|why| {
         unreadable(
@@ -833,7 +852,7 @@ impl<E: Exec> Service for CliService<E> {
 
     fn ttw(&self, r: &TtwRequest) -> Result<TtwReport, ServiceError> {
         let (out, args) = self.invoke(Action::Ttw, r.args())?;
-        ttw_report(&out, &args)
+        ttw_report(&out, Some(&args))
     }
 
     fn doctor(&self, r: &DoctorRequest) -> Result<DoctorReport, ServiceError> {

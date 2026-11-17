@@ -63,6 +63,13 @@ fn the_shell_dialogs_match_their_snapshots() {
         (msg::PLAY, "shell-play-blocked"),
     ] {
         let mut h = harness(App::new(Jobs::new(Arc::new(Quiet))));
+        h.run();
+        // The Instance lookup at start ends before the picture, so the footer shows no running job.
+        assert!(
+            h.state_mut()
+                .wait_for_jobs(std::time::Duration::from_secs(10))
+        );
+        h.run();
         h.get_by_label(label).click();
         h.run();
         h.snapshot_options(name, &options("shell"));

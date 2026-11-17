@@ -29,11 +29,11 @@ raul-cli = { workspace = true }
 raul-ui-model = { workspace = true }
 raul-ui-service = { workspace = true }
 eframe = { workspace = true }
+serde_json = { workspace = true }
 
 [dev-dependencies]
 egui_kittest = { workspace = true }
 nvmod-testkit = { workspace = true }
-serde_json = { workspace = true }
 
 [lints]
 workspace = true

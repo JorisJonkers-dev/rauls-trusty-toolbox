@@ -415,6 +415,15 @@ pub const COMMANDS: &[Command] = &[
         awaits: None,
     },
     Command {
+        // The pinned tools and the masterlist version the Load order page shows.
+        id: "tools-list",
+        action: Action::Tools,
+        words: &["list"],
+        flags: &["--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
         id: "doctor",
         action: Action::Doctor,
         words: &[],

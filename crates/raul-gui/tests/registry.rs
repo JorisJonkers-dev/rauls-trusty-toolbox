@@ -92,7 +92,7 @@ impl Fixture {
             (Action::Sort, _) => vec!["--instance", &instance, "--masterlist", "MASTERLIST"],
             (Action::Ttw, _) => vec!["--instance", &instance, "--dry-run"],
             (Action::Detect, _) => vec!["--folder", "BASE"],
-            (Action::Config | Action::Version, _) => vec![],
+            (Action::Config | Action::Version | Action::Tools, _) => vec![],
             _ => vec!["--instance", &instance],
         };
         let mut rest: Vec<String> = words

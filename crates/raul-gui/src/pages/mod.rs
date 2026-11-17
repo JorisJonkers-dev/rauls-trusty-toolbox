@@ -26,6 +26,9 @@ use raul_ui_model::pages::{Attention, View};
 pub struct ShellState {
     /// The New Vegas folder the top bar shows, `None` when it is not set (its home is Settings).
     pub new_vegas: Option<String>,
+    /// The Instance folder, as `raul config get instance` derives it from the storage folder; `None` while it is
+    /// not known or not set. The shell reads it once at start and again after each `raul config set` or `unset`.
+    pub instance: Option<String>,
     /// The active engine build the top bar shows, `None` when there is none (its home is Versions).
     pub engine: Option<String>,
     /// The polite status line of the footer (UI-RULES G4).
