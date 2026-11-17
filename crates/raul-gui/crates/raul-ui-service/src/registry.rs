@@ -63,7 +63,7 @@ pub enum Action {
 
 impl Action {
     /// Every action.
-    pub const ALL: [Action; 22] = [
+    pub const ALL: [Action; 23] = [
         Action::Setup,
         Action::ImportMo2,
         Action::InstallMod,
