@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794895342287,
+  "lastUpdate": 1794895536844,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -734,6 +734,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.060243,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ef3ef976fd381d6b4ee4377faa5a695d0a2128fc",
+          "message": "feat(config): raul config list, get, set and unset for the paths the GUI needs (#120)\n\n* feat(config): raul config list, get, set and unset for the paths the GUI needs\n\n* fix(config): write through a new synced temporary file and name a section that is not a table\n\n* test(config): compare the stored path with the file, not its spelling",
+          "timestamp": "2026-11-17T07:04:28+01:00",
+          "tree_id": "9580ff212f416bd1f5e7b231b950a1862462bea0",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ef3ef976fd381d6b4ee4377faa5a695d0a2128fc"
+        },
+        "date": 1794895536315,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.385396,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.629417,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.291404,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.820397,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.314639,
             "unit": "ms"
           }
         ]
