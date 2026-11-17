@@ -273,8 +273,12 @@ impl Home {
         }
         if let Some((why, fix)) = self.stop() {
             self.blocked_fix = Some(fix);
-            cx.dialogs
-                .open(Dialog::confirm(BLOCKED_DIALOG, msg::PLAY_BLOCKED_TITLE, why, FIX));
+            cx.dialogs.open(Dialog::confirm(
+                BLOCKED_DIALOG,
+                msg::PLAY_BLOCKED_TITLE,
+                why,
+                FIX,
+            ));
             return;
         }
         if !self.state.can_play() {
@@ -302,10 +306,9 @@ impl Home {
         match self.state.readiness() {
             // Checking is not reached: a press during the reads waits in `play` instead.
             Readiness::Ready | Readiness::Checking => None,
-            Readiness::Next(step) => Some((
-                STATE_NEXT.replace("{step}", step_text(step)),
-                step.fix(),
-            )),
+            Readiness::Next(step) => {
+                Some((STATE_NEXT.replace("{step}", step_text(step)), step.fix()))
+            }
         }
     }
 }
@@ -346,8 +349,7 @@ impl Page for Home {
         }
         // The header counts what the rows say and leaves the step that no row marks to the line under Play, so a
         // missing step is named once (UI-RULES G5).
-        if matches!(self.state.readiness(), Readiness::Next(_))
-            && self.state.attention().is_empty()
+        if matches!(self.state.readiness(), Readiness::Next(_)) && self.state.attention().is_empty()
         {
             return STATE_NOT_READY.to_owned();
         }
@@ -405,18 +407,19 @@ impl Page for Home {
         }
         match cx.dialogs.take_answer(BLOCKED_DIALOG) {
             // Fix opens the page the dialog named, even when the reads moved the state on since it opened.
+            // Either answer answers the press that opened the dialog: it must not reopen the dialog or start the game
+            // later, even when a read started meanwhile.
             Some(Answer::Confirmed) => {
+                cx.shell.play_requested = false;
+                self.play_waiting = false;
                 if let Some(fix) = self.blocked_fix.take() {
                     cx.shell.go_to = Some(fix);
                 }
             }
             Some(Answer::Closed) => {
                 self.blocked_fix = None;
-                // The dialog closed, so the press it answered is answered too: it must not reopen the dialog.
-                if cx.shell.play_requested && !self.state.reading() {
-                    cx.shell.play_requested = false;
-                    self.play_waiting = false;
-                }
+                cx.shell.play_requested = false;
+                self.play_waiting = false;
             }
             None => {}
         }
@@ -484,11 +487,9 @@ impl Home {
             Launch::Started => Some(RAUL_STARTED),
             Launch::Failed(_) => None,
             _ if checking || block.is_some() => None,
-            _ if readiness == Readiness::Ready => Some(if warned {
-                RAUL_WARNINGS
-            } else {
-                RAUL_READY
-            }),
+            _ if readiness == Readiness::Ready => {
+                Some(if warned { RAUL_WARNINGS } else { RAUL_READY })
+            }
             _ => None,
         };
         if let Some(line) = line {
@@ -519,11 +520,12 @@ impl Home {
             });
             ui.label(RichText::new(e.detail).color(t.muted.color()));
         }
-        // The step that no row marks, said once under Play with the page that sets it up (UI-RULES G2, G3). While
-        // the reads run, the header says Checking and this waits: a step is only missing once it is known.
+        // The step that no row marks, said once under Play with the page that sets it up (UI-RULES G2, G3). A step
+        // that is known to be missing is named even while other reads run, so the header's "Not ready yet" always
+        // has its reason on the page.
         if let Readiness::Next(step) = readiness
             && block.is_none()
-            && !checking
+            && !warned
         {
             ui.horizontal_wrapped(|ui| {
                 icon(ui, &t, Mark::Warning);

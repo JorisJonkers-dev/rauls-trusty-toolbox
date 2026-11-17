@@ -234,14 +234,19 @@ impl State {
         if matches!(self.config, Fetch::Failed(_)) {
             return false;
         }
-        self.config.is_pending()
-            || self.engine.is_pending()
-            || (self.instance_exists.is_none()
-                && self
-                    .config
-                    .ready()
-                    .is_some_and(|c| c.get(Key::Instance).is_some()))
-            || self.load_order.is_pending()
+        if self.config.is_pending() {
+            return true;
+        }
+        // The engine, the Instance folder and the load order are read only when the settings name an Instance;
+        // without one they are never asked for, so they are not on their way either.
+        let has_instance = self
+            .config
+            .ready()
+            .is_some_and(|c| c.get(Key::Instance).is_some());
+        has_instance
+            && (self.engine.is_pending()
+                || self.instance_exists.is_none()
+                || self.load_order.is_pending())
     }
 
     /// The one definition of "ready to play": the game is found, the storage folder is set, the Instance exists,
@@ -592,7 +597,10 @@ mod tests {
 
     #[test]
     fn not_ready_without_a_storage_folder_and_play_does_not_run() {
-        let no_storage = State::ready(Config::with("/c", &[(Key::NewVegas, "/nv")]), Engine::active());
+        let no_storage = State::ready(
+            Config::with("/c", &[(Key::NewVegas, "/nv")]),
+            Engine::active(),
+        );
         assert_eq!(no_storage.readiness(), Readiness::Next(Step::Storage));
         assert_eq!(no_storage.first_missing(), Some(Step::Storage));
         assert_eq!(no_storage.block(), Some(Block::NoStorage));
@@ -613,8 +621,7 @@ mod tests {
 
     #[test]
     fn not_ready_when_the_engine_is_not_installed_or_does_not_match_and_play_does_not_run() {
-        let no_engine = sound();
-        assert_eq!(no_engine.readiness(), Readiness::Ready);
+        assert_eq!(sound().readiness(), Readiness::Ready);
         let mut not_installed = sound();
         not_installed.engine = Fetch::Ready(Engine::missing());
         assert_eq!(not_installed.readiness(), Readiness::Next(Step::Engine));
