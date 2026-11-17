@@ -18,8 +18,8 @@ removing, renaming or retyping one is.
 
 `snapshots/` holds the schemas of the Component Contracts the Toolbox reads, as their releases published them:
 `snapshots/ttwright-rs/` is ttwright-rs v0.3.0 (`ttwright-result`, `ttwright-events`, `ttwright-contracts`, all v1).
-`snapshots/lodwright-rs/` holds `lodwright-request` and `lodwright-result` v1 from lodwright-rs `main` (commit
-`a60a65d`); they are replaced by the lodwright-rs 0.3.0 release assets when that release enters the Known-good set.
+`snapshots/lodwright-rs/` is lodwright-rs v0.3.0 (`lodwright-request` and `lodwright-result`, both v1), byte for byte
+the schemas attached to that release.
 
 ## `raul-config`
 

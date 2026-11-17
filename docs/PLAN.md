@@ -96,7 +96,7 @@ Other facts that shape the plan:
 | Shipped beside `raul`, not linked | Licence | Effect |
 |---|---|---|
 | nv-rs binaries | GPL-3.0-or-later | separate program in an aggregate; source offer and licence text in the package |
-| lodwright binary | MPL-2.0 | separate program; licence text in the package |
+| lodwright binary | GPL-3.0-only (MPL-2.0 up to 0.2.x, ADR-0002) | separate program in an aggregate; source offer and licence text in the package |
 
 Rules the plan follows (from ADR-0008, proposed, plus the brief):
 

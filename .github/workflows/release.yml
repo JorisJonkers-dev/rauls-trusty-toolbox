@@ -173,7 +173,7 @@ jobs:
             echo "| nv-rs (fork of slaterain/nv-rs) | GPL-3.0-or-later |"
             echo "| nvmod | GPL-3.0-only |"
             echo "| loot-rs | GPL-3.0-only |"
-            echo "| lodwright-rs | MPL-2.0 |"
+            echo "| lodwright-rs | GPL-3.0-only |"
             echo "| ttwright-rs (rewrite of SulfurNitride/TTW_Linux_Installer) | GPL-3.0-only |"
             echo
             echo "| Crate | Version | Licence |"
