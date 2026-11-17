@@ -205,7 +205,10 @@ fn stop_ends_the_run_and_adds_nothing() {
         std::thread::sleep(Duration::from_millis(100));
     }
     assert!(
-        h.query_by_label_contains(STATE_GENERATING_START).is_some(),
+        // The header and the status line can both say it, so ask for every match.
+        h.query_all_by_label_contains(STATE_GENERATING_START)
+            .next()
+            .is_some(),
         "the run shows while it goes"
     );
     h.get_by_label(STOP).click();
