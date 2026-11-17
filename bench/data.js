@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794910085146,
+  "lastUpdate": 1794910694242,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1861,6 +1861,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.820186,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "93ad249cbeae6c1d2b9ff3bbddd5771ace8c8903",
+          "message": "ci(release): use a prebuilt cargo-cyclonedx and cache cargo-packager (#165)",
+          "timestamp": "2026-11-17T11:16:52+01:00",
+          "tree_id": "b26a1ac35c8fa4a37e051a71ee8f5f416ae43b36",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/93ad249cbeae6c1d2b9ff3bbddd5771ace8c8903"
+        },
+        "date": 1794910693720,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.514004,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.534904,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 29.857954,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.191888,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.963465000000001,
             "unit": "ms"
           }
         ]
