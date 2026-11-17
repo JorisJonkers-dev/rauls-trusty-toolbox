@@ -18,6 +18,7 @@ use super::{Fixture, Page, PageCx};
 use crate::catalogue::{self as msg, ErrorText};
 use crate::dialog::{Answer, Dialog};
 use crate::shell;
+use crate::theme::Tokens;
 use eframe::egui::{self, RichText};
 use raul_ui_model::pages::settings::{Command, Config, Fetch, Key};
 use raul_ui_model::pages::versions::{
@@ -381,9 +382,10 @@ impl Versions {
         match &self.state.update {
             Update::Idle => {}
             Update::Checking => {
-                ui.horizontal(|ui| {
+                ui.horizontal_wrapped(|ui| {
                     super::home::icon(ui, &t, Mark::Info);
-                    ui.label(RichText::new(UPDATE_CHECKING).color(t.muted.color()));
+                    let line = RichText::new(UPDATE_CHECKING).color(t.muted.color());
+                    ui.add(egui::Label::new(line).wrap());
                 });
             }
             Update::Checked { raul, newer } => match newer {
@@ -392,7 +394,7 @@ impl Versions {
                         .replace("{version}", &r.version)
                         .replace("{current}", raul);
                     ui.horizontal_wrapped(|ui| {
-                        mark(ui, &t, Mark::Info, &line);
+                        wrapped_mark(ui, &t, Mark::Info, &line);
                         if ui.small_button(UPDATE_OPEN).clicked() {
                             cx.dialogs.open(Dialog::info(
                                 UPDATE_DIALOG,
@@ -403,18 +405,18 @@ impl Versions {
                     });
                 }
                 None => {
-                    ui.label(RichText::new(UPDATE_NEWEST).color(t.muted.color()));
+                    note(ui, &t, UPDATE_NEWEST);
                 }
             },
             Update::Failed(why) if why == WAITING.what => {
-                ui.label(RichText::new(WAITING_NOTE).color(t.muted.color()));
+                note(ui, &t, WAITING_NOTE);
             }
             Update::Failed(why) => error_block(ui, &t, &UPDATE_FAILED, Some(why)),
         }
         if version.is_none() {
             match &self.state.shipped {
                 Fetch::Failed(why) if why == WAITING.what => {
-                    ui.label(RichText::new(WAITING_NOTE).color(t.muted.color()));
+                    note(ui, &t, WAITING_NOTE);
                 }
                 Fetch::Failed(why) => {
                     error_block(ui, &t, &VERSION_UNREADABLE, Some(why));
@@ -450,26 +452,27 @@ impl Versions {
                     EngineStatus::Missing => DETAIL_MISSING.to_owned(),
                     EngineStatus::Differs => e.message.clone(),
                 };
-                ui.label(RichText::new(detail).color(t.muted.color()));
+                note(ui, &t, &detail);
             }
             Fetch::Failed(why) if why == WAITING.what => {
-                ui.label(RichText::new(WAITING_NOTE).color(t.muted.color()));
+                note(ui, &t, WAITING_NOTE);
             }
             Fetch::Failed(why) => error_block(ui, &t, &ENGINE_UNREADABLE, Some(why)),
             Fetch::Idle | Fetch::Loading => {}
         }
         ui.add_space(8.0);
         if self.state.config.ready().is_some() && self.state.instance().is_none() {
-            ui.label(RichText::new(NO_STORAGE).color(t.muted.color()));
+            note(ui, &t, NO_STORAGE);
             if ui.button(OPEN_SETTINGS).clicked() {
                 cx.shell.go_to = Some(View::Page(PageId::Settings));
             }
             return;
         }
         if running {
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 super::home::icon(ui, &t, super::home::Mark::Info);
-                ui.label(RichText::new(INSTALLING).color(t.muted.color()));
+                let line = RichText::new(INSTALLING).color(t.muted.color());
+                ui.add(egui::Label::new(line).wrap());
             });
         }
         if let Install::Failed(why) = &self.state.install {
@@ -508,6 +511,23 @@ impl Versions {
             );
         }
     }
+}
+
+/// A line of secondary text that wraps inside the page instead of reaching past its right edge (UI-RULES A5, A6).
+fn note(ui: &mut egui::Ui, t: &Tokens, text: &str) {
+    ui.add(egui::Label::new(RichText::new(text).color(t.muted.color())).wrap());
+}
+
+/// A status mark whose word may wrap: the icon and the sentence, so a line that is too wide for the page wraps
+/// instead of reaching past its right edge (UI-RULES A5, A6). It is the shared `mark` with the word allowed to
+/// wrap, so on one line it draws the same.
+fn wrapped_mark(ui: &mut egui::Ui, t: &Tokens, m: Mark, word: &str) {
+    ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().item_spacing.x = 6.0;
+        super::home::icon(ui, t, m);
+        let text = RichText::new(word).color(m.colour(t));
+        ui.add(egui::Label::new(text).wrap());
+    });
 }
 
 /// What a finished `raul update check` answered, or why there is none: the command failed, or its answer is not the
