@@ -667,8 +667,8 @@ impl ImportWizard {
 pub enum TtwNeed {
     /// The Fallout 3 folder.
     Fallout3,
-    /// A pinned installer release.
-    Installer,
+    /// The TTW package the player downloaded (`ttw.package`).
+    Package,
 }
 
 /// The Tale of Two Wastelands install. It is long, so it can be cancelled and then rolls back.
@@ -677,7 +677,7 @@ pub struct TtwWizard {
     /// The shared machine.
     pub flow: Flow,
     fallout3: Option<String>,
-    installer_pinned: bool,
+    package: Option<String>,
 }
 
 impl Default for TtwWizard {
@@ -692,7 +692,7 @@ impl TtwWizard {
         Self {
             flow: Flow::new(),
             fallout3: None,
-            installer_pinned: false,
+            package: None,
         }
     }
 
@@ -706,9 +706,14 @@ impl TtwWizard {
         self.fallout3.as_deref()
     }
 
-    /// Records whether a pinned installer release exists in the lock.
-    pub fn set_installer_pinned(&mut self, pinned: bool) {
-        self.installer_pinned = pinned;
+    /// Chooses the TTW package file.
+    pub fn set_package(&mut self, path: impl Into<String>) {
+        self.package = Some(path.into());
+    }
+
+    /// The chosen TTW package file.
+    pub fn package(&self) -> Option<&str> {
+        self.package.as_deref()
     }
 
     /// What is still missing.
@@ -717,8 +722,8 @@ impl TtwWizard {
         if self.fallout3.is_none() {
             n.push(TtwNeed::Fallout3);
         }
-        if !self.installer_pinned {
-            n.push(TtwNeed::Installer);
+        if self.package.is_none() {
+            n.push(TtwNeed::Package);
         }
         n
     }
@@ -746,7 +751,10 @@ impl TtwWizard {
     /// The command that does the same.
     pub fn equivalent_command(&self) -> Option<String> {
         let f3 = self.fallout3.as_ref()?;
-        Some(format!("raul ttw --instance <dir> --fallout3 {f3}"))
+        let package = self.package.as_ref()?;
+        Some(format!(
+            "raul ttw --instance <dir> --fallout3 {f3} --package {package}"
+        ))
     }
 }
 
@@ -1009,11 +1017,13 @@ mod tests {
     #[test]
     fn ttw_needs_inputs_and_cancels_to_rollback() {
         let mut w = TtwWizard::new();
-        assert_eq!(w.needs(), vec![TtwNeed::Fallout3, TtwNeed::Installer]);
+        assert_eq!(w.needs(), vec![TtwNeed::Fallout3, TtwNeed::Package]);
         assert_eq!(w.plan(), Err(FlowError::Blocked(2)));
         assert!(w.equivalent_command().is_none());
         w.set_fallout3("/fo3");
-        w.set_installer_pinned(true);
+        assert!(w.equivalent_command().is_none(), "the package is missing");
+        w.set_package("/ttw.mpi");
+        assert_eq!(w.package(), Some("/ttw.mpi"));
         assert!(w.needs().is_empty());
         w.plan().unwrap();
         w.flow.plan_ready(0).unwrap();
@@ -1025,7 +1035,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             w.equivalent_command().unwrap(),
-            "raul ttw --instance <dir> --fallout3 /fo3"
+            "raul ttw --instance <dir> --fallout3 /fo3 --package /ttw.mpi"
         );
         assert_eq!(TtwWizard::default().needs().len(), 2);
     }

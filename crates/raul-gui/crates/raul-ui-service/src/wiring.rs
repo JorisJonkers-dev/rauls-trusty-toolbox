@@ -42,7 +42,7 @@ pub struct TtwContext {
     pub profile: Option<String>,
     /// The New Vegas folder; `None` for the one in `raul config`.
     pub newvegas: Option<String>,
-    /// The TTW package file; `None` for the one in `raul config`.
+    /// The TTW package file when the wizard has none; `None` for the one in `raul config`.
     pub package: Option<String>,
     /// Another ttwright program, for development; `None` for the bundled one.
     pub ttwright: Option<String>,
@@ -185,7 +185,10 @@ pub fn apply_ttw(
         profile: ctx.profile.clone(),
         fallout3: w.fallout3().map(str::to_owned),
         newvegas: ctx.newvegas.clone(),
-        package: ctx.package.clone(),
+        package: w
+            .package()
+            .map(str::to_owned)
+            .or_else(|| ctx.package.clone()),
         ttwright: ctx.ttwright.clone(),
         dry_run: false,
         resume: ctx.resume,
