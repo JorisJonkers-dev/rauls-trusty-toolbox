@@ -54,5 +54,5 @@ jobs:
         env:
           RENOVATE_TOKEN: ${{ steps.app-token.outputs.token }}
           RENOVATE_CONFIG_FILE: ${{ github.workspace }}/.github/renovate-components.json
-          LOG_LEVEL: info
+          LOG_LEVEL: debug
         run: npx --yes renovate@44.224.1
