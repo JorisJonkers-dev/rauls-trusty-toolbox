@@ -29,6 +29,10 @@ pub struct JobSpec {
     pub dry_run: bool,
     /// Whether Cancel is offered ([`Action::cancellable`] for the actions that can be stopped).
     pub cancellable: bool,
+    /// The complete arguments of a second command (its name, words and flags), run right after the first one when it
+    /// succeeded, as one job: the setup
+    /// wizard's Instance step makes the Instance and its default profile that way.
+    pub then: Option<Vec<String>>,
 }
 
 impl JobSpec {
@@ -41,7 +45,15 @@ impl JobSpec {
             writes: false,
             dry_run: false,
             cancellable: action.cancellable(),
+            then: None,
         }
+    }
+
+    /// Marks the job as one that runs `args` after its own command, as one job.
+    #[must_use]
+    pub fn then(mut self, args: Vec<String>) -> Self {
+        self.then = Some(args);
+        self
     }
 
     /// Marks the job as one that writes to the Instance.
@@ -185,6 +197,7 @@ impl<E: Exec> CliService<E> {
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the process could not be started; no event is sent then.
+    #[allow(clippy::too_many_lines)]
     pub fn run_job_cancellable(
         &self,
         spec: &JobSpec,
@@ -238,6 +251,20 @@ impl<E: Exec> CliService<E> {
                 e.repro = Some(repro(&args));
                 ServiceError::Failed(e)
             })?;
+        // A second command runs only once the first one went through, and only while nothing asked to stop.
+        let out = match (&spec.then, out.code) {
+            (Some(then), Some(0)) if !cancel.is_requested() => {
+                let args = then.clone();
+                self.exec()
+                    .run_cancellable(&args, &mut |_| {}, cancel)
+                    .map_err(|why| {
+                        let mut e = ViewError::new(ExitClass::Internal, why, "Nothing was started");
+                        e.repro = Some(repro(&args));
+                        ServiceError::Failed(e)
+                    })?
+            }
+            _ => out,
+        };
         if !feed.finished {
             let cut_off = out.code.is_none() && cancel.is_requested();
             let class = out.code.map_or(ExitClass::Internal, ExitClass::from_code);
@@ -551,6 +578,45 @@ mod tests {
         svc.exec().on_run(&["{}"], 0, "");
         svc.run_job_in(&read, &mut table).unwrap();
         assert!(table.get(JobId(3)).is_some());
+    }
+
+    #[test]
+    fn a_second_command_runs_as_part_of_the_same_job_only_after_the_first() {
+        let exec = ScriptedExec::new();
+        exec.on_run(&[], 0, "").on_run(&[], 0, "");
+        let svc = CliService::new(exec);
+        let spec = JobSpec::new(
+            JobId(1),
+            Action::Init,
+            vec!["--instance".into(), "/i".into()],
+        )
+        .then(vec![
+            "create".into(),
+            "--name".into(),
+            "Default".into(),
+            "--instance".into(),
+            "/i".into(),
+        ])
+        .writing();
+        let mut table = JobTable::default();
+        svc.run_job_in(&spec, &mut table).unwrap();
+        assert_eq!(
+            svc.exec().calls(),
+            [
+                vec!["init", "--instance", "/i"],
+                vec!["create", "--name", "Default", "--instance", "/i"]
+            ]
+        );
+        assert_eq!(
+            table.get(JobId(1)).unwrap().state,
+            JobState::Finished(Outcome::Completed)
+        );
+
+        // A first command that failed leaves the second one out.
+        svc.exec().on_run(&[], 4, "raul init: it broke");
+        let spec = JobSpec::new(JobId(2), Action::Init, vec![]).then(vec!["create".into()]);
+        svc.run_job(&spec, &mut |_| {}).unwrap();
+        assert_eq!(svc.exec().calls().len(), 3, "nothing ran after the failure");
     }
 
     #[test]

@@ -46,15 +46,15 @@ crate::texts!(TEXTS {
     SECTION_PLAN = "What a run does";
     SECTION_BLOCKS = "Blocks";
     READS = "Reads";
-    READS_VALUE = "{n} active plugins from the Profile";
-    READS_ONE = "1 active plugin from the Profile";
+    READS_VALUE = "{n} active plugins from your mod list";
+    READS_ONE = "1 active plugin from your mod list";
     WRITES = "Writes";
     KIND_TERRAIN = "Terrain";
     KIND_OBJECTS = "Objects";
     KIND_TREES = "Trees";
-    KIND_NONE = "Nothing: every kind is switched off in the Profile's settings";
+    KIND_NONE = "Nothing: every kind is switched off in the LOD settings";
     KEEPS = "Keeps it as";
-    KEEPS_VALUE = "One Mod, enabled in the Profile. A new run replaces it.";
+    KEEPS_VALUE = "One Mod, enabled in your mod list. A new run replaces it.";
     WORK_FOLDER = "Work folder";
     COL_BLOCK = "Block";
     COL_STATUS = "Status";
@@ -764,7 +764,7 @@ pub fn fixtures() -> Vec<Fixture> {
     plan_failed.planning();
     plan_failed.failed(Problem {
         id: PLAN_FAILED.id,
-        cause: "the Profile has no Staging tree; run `raul stage` first".to_owned(),
+        cause: "there is no staging tree yet; run `raul stage` first".to_owned(),
         command: Some(plan_command(INSTANCE).shown()),
     });
     vec![

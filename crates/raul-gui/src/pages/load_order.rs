@@ -43,7 +43,7 @@ crate::texts!(TEXTS {
     UNDO = "Undo";
     NO_INSTANCE = "The Load order belongs to the Instance, which lives in the storage folder. Set the storage folder in Settings first.";
     OPEN_SETTINGS = "Settings";
-    EMPTY = "The Profile has no plugins yet.";
+    EMPTY = "Your mod list has no plugins yet.";
     PREVIEW_NOTE = "Preview: {n} moves pending";
     PREVIEW_NOTE_ONE = "Preview: 1 move pending";
     PREVIEW_DETAIL = "Nothing changes until Apply. Undo stays available after.";
