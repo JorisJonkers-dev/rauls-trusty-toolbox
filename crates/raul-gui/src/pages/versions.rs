@@ -115,7 +115,8 @@ impl Versions {
             }
             Err(e) => self.state.config = Fetch::Failed(e.what.to_owned()),
         }
-        if self.state.shipped.ready().is_none() {
+        // The shipped set never changes while the window is open: read it once, or again after a failure.
+        if matches!(self.state.shipped, Fetch::Idle | Fetch::Failed(_)) {
             match start(cx, &version_command()) {
                 Ok(id) => {
                     self.pending.add(Job::Version, id);
@@ -264,7 +265,11 @@ impl Page for Versions {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
-        if self.visits.returned(ui.ctx()) && self.state.install != Install::Running {
+        if self.visits.returned(ui.ctx())
+            && self.state.install != Install::Running
+            && !self.state.config.is_pending()
+            && !self.state.engine.is_pending()
+        {
             self.state.config = Fetch::Idle;
         }
         if self.state.config == Fetch::Idle {

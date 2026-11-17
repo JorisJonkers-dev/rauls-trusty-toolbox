@@ -43,6 +43,12 @@ crate::texts!(TEXTS {
     SAVED_FALLOUT3 = "Fallout 3 folder saved.";
     SAVED_TTW_PACKAGE = "TTW installer saved.";
     SAVED_STORAGE = "Storage folder saved.";
+    CLEARED_NEW_VEGAS = "New Vegas folder cleared.";
+    CLEARED_FALLOUT3 = "Fallout 3 folder cleared.";
+    CLEARED_TTW_PACKAGE = "TTW installer cleared.";
+    CLEARED_STORAGE = "Storage folder cleared.";
+    EXITED_WITH = "raul exited with code {code}";
+    STOPPED = "raul was stopped";
     MARK_FOUND = "Found";
     MARK_NOT_SET = "Not set";
     MARK_SAVING = "Saving";
@@ -135,8 +141,9 @@ impl Settings {
                 Job::Save(key) => match config_answer(&result) {
                     Ok(answer) => {
                         self.state.saved(key, &answer);
-                        if matches!(answer, Answer::Entries(_)) {
-                            cx.shell.status = Some(saved_text(key).to_owned());
+                        if let Answer::Entries(c) = &answer {
+                            cx.shell.status =
+                                Some(saved_text(key, c.get(key).is_some()).to_owned());
                         }
                     }
                     Err(why) => {
@@ -173,7 +180,8 @@ impl Page for Settings {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
-        if self.visits.returned(ui.ctx()) && !self.state.saving() {
+        if self.visits.returned(ui.ctx()) && !self.state.saving() && !self.state.config.is_pending()
+        {
             self.state.config = Fetch::Idle;
         }
         if self.state.config == Fetch::Idle {
@@ -280,12 +288,17 @@ fn required(key: Key) -> bool {
     matches!(key, Key::NewVegas | Key::StorageRoot)
 }
 
-fn saved_text(key: Key) -> &'static str {
-    match key {
-        Key::NewVegas => SAVED_NEW_VEGAS,
-        Key::Fallout3 => SAVED_FALLOUT3,
-        Key::TtwPackage => SAVED_TTW_PACKAGE,
-        Key::StorageRoot | Key::Instance => SAVED_STORAGE,
+/// The footer line of a save (UI-RULES T6): saved, or cleared when the path was emptied.
+fn saved_text(key: Key, set: bool) -> &'static str {
+    match (key, set) {
+        (Key::NewVegas, true) => SAVED_NEW_VEGAS,
+        (Key::NewVegas, false) => CLEARED_NEW_VEGAS,
+        (Key::Fallout3, true) => SAVED_FALLOUT3,
+        (Key::Fallout3, false) => CLEARED_FALLOUT3,
+        (Key::TtwPackage, true) => SAVED_TTW_PACKAGE,
+        (Key::TtwPackage, false) => CLEARED_TTW_PACKAGE,
+        (Key::StorageRoot | Key::Instance, true) => SAVED_STORAGE,
+        (Key::StorageRoot | Key::Instance, false) => CLEARED_STORAGE,
     }
 }
 
@@ -484,8 +497,8 @@ pub(crate) fn failure_of(out: &Output) -> String {
         .find(|l| !l.is_empty())
         .map_or_else(
             || match out.code {
-                Some(code) => format!("raul exited with code {code}"),
-                None => "raul was stopped".to_owned(),
+                Some(code) => EXITED_WITH.replace("{code}", &code.to_string()),
+                None => STOPPED.to_owned(),
             },
             str::to_owned,
         )

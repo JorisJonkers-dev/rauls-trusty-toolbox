@@ -62,6 +62,7 @@ crate::texts!(TEXTS {
     FACT_INSTANCE = "Instance";
     FACT_ENGINE_ACTIVE = "nv-rs";
     FACT_NONE = "None yet";
+    FACT_UNKNOWN = "Not known";
     RUN_SHAPE = "raul run nv-rs --instance <dir>";
     STARTED_STATUS = "The game was started.";
     RAUL_READY = "All set. Go on, the Mojave's waiting.";
@@ -99,6 +100,8 @@ pub struct Home {
     pub state: State,
     pending: Pending<Job>,
     visits: Visits,
+    /// The shell's Play arrived while the reads were still on their way.
+    play_waiting: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -188,9 +191,13 @@ impl Home {
         if let Some(config) = self.state.config.ready() {
             share_config(cx, config);
         }
-        if let Some(engine) = self.state.engine.ready() {
-            cx.shell.engine =
-                (engine.status() == EngineStatus::Active).then(|| FACT_ENGINE_ACTIVE.to_owned());
+        match &self.state.engine {
+            Fetch::Ready(engine) => {
+                cx.shell.engine = (engine.status() == EngineStatus::Active)
+                    .then(|| FACT_ENGINE_ACTIVE.to_owned());
+            }
+            Fetch::Failed(_) => cx.shell.engine = None,
+            Fetch::Idle | Fetch::Loading => {}
         }
         if !self.state.config.is_pending() && !self.state.engine.is_pending() {
             cx.shell.play_blocked = self.state.block().map(block_text);
@@ -272,7 +279,22 @@ impl Page for Home {
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
-        if self.visits.returned(ui.ctx()) && self.state.launch != Launch::Starting {
+        let returned = self.visits.returned(ui.ctx());
+        if returned && self.play_waiting {
+            // A Play that waited for the reads was left behind when the person opened another page: drop it, so
+            // the game never starts later without a click.
+            self.play_waiting = false;
+            cx.shell.play_requested = false;
+        }
+        if returned
+            && self.state.launch != Launch::Starting
+            && !self.state.config.is_pending()
+            && !self.state.engine.is_pending()
+        {
+            if self.state.launch == Launch::Started {
+                // `raul run` returned once the game started; coming back, Home shows readiness again.
+                self.state.launch = Launch::Idle;
+            }
             self.state.config = Fetch::Idle;
         }
         if self.state.config == Fetch::Idle {
@@ -291,13 +313,13 @@ impl Page for Home {
         {
             cx.shell.go_to = Some(block.fix());
         }
-        // The shell's Play: start once the reads are in; a block found by then is shown, not started.
-        if cx.shell.play_requested
-            && !self.state.config.is_pending()
-            && !self.state.engine.is_pending()
-        {
-            cx.shell.play_requested = false;
-            if self.state.block().is_none() {
+        // The shell's Play: start once the reads are in; a block found by then is explained, not started.
+        if cx.shell.play_requested {
+            if self.state.config.is_pending() || self.state.engine.is_pending() {
+                self.play_waiting = true;
+            } else {
+                cx.shell.play_requested = false;
+                self.play_waiting = false;
                 self.play(cx);
             }
         }
@@ -391,10 +413,11 @@ impl Home {
             .map_or_else(|| RUN_SHAPE.to_owned(), |c| c.shown());
         shell::command_line(ui, &t, &command);
         ui.add_space(8.0);
-        let engine = match self.state.engine.ready().map(Engine::status) {
-            Some(EngineStatus::Active) => FACT_ENGINE_ACTIVE,
-            Some(_) => FACT_NONE,
-            None => DETAIL_CHECKING,
+        let engine = match &self.state.engine {
+            Fetch::Ready(e) if e.status() == EngineStatus::Active => FACT_ENGINE_ACTIVE,
+            Fetch::Ready(_) => FACT_NONE,
+            Fetch::Failed(_) => FACT_UNKNOWN,
+            Fetch::Idle | Fetch::Loading => DETAIL_CHECKING,
         };
         let instance = self
             .state
@@ -740,4 +763,95 @@ pub fn fixtures() -> Vec<Fixture> {
         ),
         Fixture::new("long-text", seen(State::ready(long, Engine::active()))),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::jobs::Jobs;
+    use crate::shell::App;
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable;
+    use raul_ui_service::{Exec, Output, registry};
+    use std::sync::{Arc, Mutex};
+
+    #[derive(Default)]
+    struct Recording {
+        calls: Mutex<Vec<Vec<String>>>,
+    }
+
+    impl Exec for Recording {
+        fn run(&self, args: &[String]) -> Result<Output, String> {
+            self.calls.lock().unwrap().push(args.to_vec());
+            Ok(Output {
+                code: Some(0),
+                stdout: String::new(),
+                stderr: String::new(),
+            })
+        }
+    }
+
+    fn harness(name: &str, exec: Arc<Recording>) -> Harness<'static, App> {
+        let fixture = fixtures().into_iter().find(|f| f.name == name).unwrap();
+        let app = App::fixture(fixture, Jobs::new(exec));
+        Harness::builder()
+            .with_size([1280.0, 800.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            })
+    }
+
+    #[test]
+    fn play_runs_the_game_through_raul_run_or_says_it_cannot_yet() {
+        let exec = Arc::new(Recording::default());
+        let mut h = harness("ready", exec.clone());
+        h.run();
+        h.get_by_label(PLAY_BIG).click();
+        for _ in 0..100 {
+            h.run_steps(2);
+            if !exec.calls.lock().unwrap().is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        let waiting = registry::command("run").is_some_and(|c| c.awaits.is_some());
+        let calls = exec.calls.lock().unwrap().clone();
+        if waiting {
+            assert!(calls.is_empty(), "a waiting command is never started");
+            assert!(
+                h.query_by_label(super::super::settings::WAITING.what)
+                    .is_some()
+            );
+        } else {
+            assert_eq!(
+                calls[0],
+                [
+                    "run",
+                    "nv-rs",
+                    "--instance",
+                    "/users/player/raul-storage/instance",
+                    "--json"
+                ]
+            );
+        }
+    }
+
+    #[test]
+    fn a_blocked_play_explains_and_its_fix_opens_the_owning_page() {
+        let exec = Arc::new(Recording::default());
+        let mut h = harness("no-engine", exec.clone());
+        h.run();
+        h.get_by_label(PLAY_BIG).click();
+        h.run();
+        let dialog = h.state().dialogs().current().cloned().unwrap();
+        assert_eq!(dialog.body[0], PLAY_NO_ENGINE.detail);
+        h.get_all_by_label(FIX).last().unwrap().click();
+        h.run();
+        assert_eq!(h.state().view(), View::Page(PageId::Versions));
+        assert!(
+            exec.calls.lock().unwrap().iter().all(|c| c[0] != "run"),
+            "the game was not started"
+        );
+    }
 }
