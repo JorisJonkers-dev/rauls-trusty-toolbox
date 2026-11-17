@@ -526,3 +526,76 @@ pub fn fixtures() -> Vec<Fixture> {
         ),
     ]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::jobs::Jobs;
+    use crate::shell::App;
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable;
+    use raul_ui_service::{Exec, Output};
+    use std::sync::{Arc, Mutex};
+
+    #[derive(Default)]
+    struct Recording {
+        calls: Mutex<Vec<Vec<String>>>,
+    }
+
+    impl Exec for Recording {
+        fn run(&self, args: &[String]) -> Result<Output, String> {
+            self.calls.lock().unwrap().push(args.to_vec());
+            Ok(Output {
+                code: Some(0),
+                stdout: String::new(),
+                stderr: String::new(),
+            })
+        }
+    }
+
+    #[test]
+    fn install_asks_once_then_runs_the_release_install() {
+        let exec = Arc::new(Recording::default());
+        let fixture = fixtures()
+            .into_iter()
+            .find(|f| f.name == "not-installed")
+            .unwrap();
+        let app = App::fixture(fixture, Jobs::new(exec.clone()));
+        let mut h = Harness::builder()
+            .with_size([1280.0, 800.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            });
+        h.run();
+        h.get_by_label(INSTALL).click();
+        h.run();
+        assert_eq!(
+            h.state()
+                .dialogs()
+                .current()
+                .map(|d| d.title.clone())
+                .as_deref(),
+            Some(INSTALL_TITLE),
+            "nothing reaches the network before the confirm"
+        );
+        assert!(exec.calls.lock().unwrap().is_empty());
+        h.get_by_label(INSTALL_ACTION).click();
+        for _ in 0..200 {
+            h.run_steps(2);
+            if !exec.calls.lock().unwrap().is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert_eq!(
+            exec.calls.lock().unwrap()[0],
+            [
+                "install-nv-rs",
+                "--instance",
+                "/users/player/raul-storage/instance",
+                "--release"
+            ]
+        );
+    }
+}

@@ -143,7 +143,7 @@ pub enum Launch {
 
 /// `raul run nv-rs --instance <dir>`: the game on nv-rs, through the memory-capped run guard.
 pub fn run_command(instance: &str) -> Command {
-    Command::read("run", 1, &["run", "nv-rs", "--instance", instance])
+    Command::read("run", 2, &["run", "nv-rs", "--instance", instance])
 }
 
 /// The state of Home.
@@ -327,6 +327,11 @@ mod tests {
             "raul run nv-rs --instance /s/instance"
         );
         assert_eq!(s.rows().len(), RowId::ALL.len());
+        assert_eq!(
+            run_command("/i").rest(),
+            ["--instance", "/i"],
+            "the registry entry names the nv-rs target"
+        );
     }
 
     #[test]
