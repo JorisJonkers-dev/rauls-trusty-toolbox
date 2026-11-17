@@ -72,7 +72,7 @@ crate::texts!(TEXTS {
     STARTING = "Starting";
     FACT_ENGINE = "Engine";
     FACT_INSTANCE = "Instance";
-    FACT_ENGINE_ACTIVE = "nv-rs";
+    FACT_ENGINE_ACTIVE = "Installed and verified";
     FACT_NONE = "None yet";
     FACT_UNKNOWN = "Not known";
     STARTED_STATUS = "The game was started.";
