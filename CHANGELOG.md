@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.2.0...v0.3.0) (2026-11-17)
+
+
+### Features
+
+* **gui:** Load order page with sort preview, apply and undo ([#150](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/150)) ([1795a59](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/1795a59650e98e1b8cd8679e5fcdd19e85a9b69f))
+* **gui:** LOD page with plan, blocks, generate and stop ([#151](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/151)) ([ef32e33](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ef32e335aa533ce4f86e94cb01c7117b09da3a43))
+* **gui:** read raul ttw's event stream and result in the service ([#141](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/141)) ([48788dc](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/48788dc6eba374ba43b7c6b5643fd5174518628d))
+* **gui:** register verify, version and detect, and give run its target ([#138](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/138)) ([74fff85](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/74fff852a42f7276cd234bdabe3096eb4f1d8620))
+* **gui:** Settings, Versions and Home pages ([#143](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/143)) ([296335e](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/296335e0dd3e09467fb17d5ae2fd722919d8206d))
+* **gui:** share the Instance with every page, read TTW reports from job output, register tools list ([#148](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/148)) ([a37324b](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a37324b66ce762e2b926d31c1dc5e8c0817486b5))
+* **gui:** the first-run setup wizard ([#144](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/144)) ([5119d1a](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/5119d1af78db58461cf86d1fc509025e078b4e7d))
+* **gui:** TTW flow page with a dry-run review, install, cancel and resume ([#153](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/153)) ([7ecde77](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7ecde773a3daf54016aef5807027d765b4bf0e26))
+* **lod:** raul lod generate runs lodwright with the request and keeps its output as one Mod ([#127](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/127)) ([dfd987a](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/dfd987a9f335afde48d98232ea05196523a84b28))
+
+
+### Bug Fixes
+
+* **gui:** register nvmod's raul run and start the game from Play with it ([#149](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/149)) ([94c78d5](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/94c78d5c08967093e27a6102542498e6c2e04093))
+
 ## [0.2.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.1.0...v0.2.0) (2026-11-17)
 
 
