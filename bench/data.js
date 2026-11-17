@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794903549992,
+  "lastUpdate": 1794903818376,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1322,6 +1322,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.287939,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5119d1af78db58461cf86d1fc509025e078b4e7d",
+          "message": "feat(gui): the first-run setup wizard (#144)\n\n* feat(gui): the first-run setup wizard\n\nFive steps on the shell, as in the design mockup: the New Vegas and\nstorage folders, TTW (optional, with the Fallout 3 folder), the engine,\na quick read-only check and Ready. Paths save through raul config set,\nthe engine goes in with raul init and raul install-nv-rs --release, and\nthe check runs raul doctor. Nothing in a game folder changes; the wizard\ncan be skipped and run again from Settings.\n\n* test(gui): drive the setup wizard from its first step to Home\n\n* test(gui): refresh the wizard snapshots now that Find can run\n\n* fix(gui): Raul does not call the setup clean when the checks did not run\n\n* fix(gui): keep the wizard's late answers and Find from overwriting what the person did\n\nFind fills a folder only while nothing is typed, and an answer for a step\nthe person left is dropped. Back waits for a running install or save. A\nfailed read or check offers Try again, an unknown finding severity is a\nnote rather than OK, and a disabled Install says why.",
+          "timestamp": "2026-11-17T09:22:27+01:00",
+          "tree_id": "bd60adb60f3f514ab84ad87cbb1737a2654c0460",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/5119d1af78db58461cf86d1fc509025e078b4e7d"
+        },
+        "date": 1794903818084,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.0761180000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.673916,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.549555,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.512552,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.990805,
             "unit": "ms"
           }
         ]
