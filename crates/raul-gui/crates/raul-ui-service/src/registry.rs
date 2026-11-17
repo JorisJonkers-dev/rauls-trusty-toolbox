@@ -50,15 +50,20 @@ pub enum Action {
     Lod,
     /// `raul run`: start the game on nv-rs, only through the memory-capped run guard.
     Run,
-    /// `raul version`: the Toolbox version and the Known-good set it ships.
+    /// `raul version`: the Toolbox version.
     Version,
+    /// `raul update check`: look for a newer Toolbox release; downloads nothing.
+    Update,
     /// `raul detect`: find New Vegas and Fallout 3 copies, or check one folder.
     Detect,
+    /// `raul profile create`: the default profile of an Instance that has none. Setup makes it with its own
+    /// steps; this action is the one place a screen asks for it when an Instance made another way has none.
+    Profile,
 }
 
 impl Action {
     /// Every action.
-    pub const ALL: [Action; 21] = [
+    pub const ALL: [Action; 23] = [
         Action::Setup,
         Action::ImportMo2,
         Action::InstallMod,
@@ -79,7 +84,9 @@ impl Action {
         Action::Lod,
         Action::Run,
         Action::Version,
+        Action::Update,
         Action::Detect,
+        Action::Profile,
     ];
 
     /// The subcommand word of the command line.
@@ -105,7 +112,9 @@ impl Action {
             Self::Lod => "lod",
             Self::Run => "run",
             Self::Version => "version",
+            Self::Update => "update",
             Self::Detect => "detect",
+            Self::Profile => "profile",
         }
     }
 
@@ -119,7 +128,7 @@ impl Action {
 
     /// Whether the command takes `--json`. `init` and `install-nv-rs` print text only.
     pub fn takes_json(self) -> bool {
-        !matches!(self, Self::Init | Self::InstallNvRs)
+        !matches!(self, Self::Init | Self::InstallNvRs | Self::Profile)
     }
 
     /// What the GUI calls it.
@@ -145,7 +154,9 @@ impl Action {
             Self::Lod => "Distant land",
             Self::Run => "Play",
             Self::Version => "Versions",
+            Self::Update => "Check for updates",
             Self::Detect => "Find the games",
+            Self::Profile => "Make the default profile",
         }
     }
 
@@ -267,6 +278,14 @@ pub const COMMANDS: &[Command] = &[
         id: "version",
         action: Action::Version,
         words: &[],
+        flags: &["--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "update-check",
+        action: Action::Update,
+        words: &["check"],
         flags: &["--json"],
         writes: false,
         awaits: None,
@@ -417,12 +436,20 @@ pub const COMMANDS: &[Command] = &[
         awaits: None,
     },
     Command {
-        // The pinned tools and the masterlist version the Load order page shows.
+        // The pinned tools and the masterlist they name.
         id: "tools-list",
         action: Action::Tools,
         words: &["list"],
         flags: &["--json"],
         writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "profile-create",
+        action: Action::Profile,
+        words: &["create"],
+        flags: &["--name", "--instance"],
+        writes: true,
         awaits: None,
     },
     Command {

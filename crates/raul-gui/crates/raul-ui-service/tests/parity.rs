@@ -52,9 +52,10 @@ fn every_action_is_a_command_of_the_real_command_line() {
 
 #[test]
 fn a_command_that_the_help_does_not_list_is_not_covered() {
-    let help = "usage:\n  nvmod pe <file>\n  nvmod doctor --base <dir>\n  raul sort --plan\n";
+    let help = "usage:\n  nvmod pe <file>\n  nvmod doctor --base <dir>\n  raul sort --plan\n  nvmod profile create --name <name> --instance <dir>\n";
     assert!(help_lists(help, Action::Doctor));
     assert!(help_lists(help, Action::Sort));
+    assert!(help_lists(help, Action::Profile));
     assert!(!help_lists(help, Action::Ttw));
     assert!(!help_lists("  cargo ttw\n", Action::Ttw));
     // A longer command that merely starts with the same letters is not the command.

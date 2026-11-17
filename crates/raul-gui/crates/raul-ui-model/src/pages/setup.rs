@@ -7,6 +7,7 @@
 //! set up in its own flow; the wizard only asks whether it is wanted and for the Fallout 3 folder.
 
 use super::settings::{Command, Config, Fetch, Field, Key, Save};
+use crate::wizard::DEFAULT_PROFILE;
 use serde::Deserialize;
 
 /// A step of the wizard.
@@ -151,6 +152,40 @@ pub fn detect_command() -> Command {
 /// `raul init --base <game> --instance <dir>`: makes the Instance; refuses one that exists.
 pub fn init_command(base: &str, instance: &str) -> Command {
     Command::write("init", 1, &["init", "--base", base, "--instance", instance])
+}
+
+/// `raul profile create --name Default --instance <dir>`: the profile the Mods and the load order live in, made
+/// right after the Instance so no step ever asks for one. Running it on an Instance that has the profile already
+/// changes nothing.
+pub fn profile_command(instance: &str) -> Command {
+    Command::write(
+        "profile-create",
+        2,
+        &[
+            "profile",
+            "create",
+            "--name",
+            DEFAULT_PROFILE,
+            "--instance",
+            instance,
+        ],
+    )
+}
+
+/// The two commands a first run's Instance step runs, in order: `raul init` and the default profile.
+pub fn init_and_profile_commands(base: &str, instance: &str) -> [Command; 2] {
+    [init_command(base, instance), profile_command(instance)]
+}
+
+/// The same two commands as one job, for the equivalent-command strip: `raul init ... && raul profile create ...`.
+pub fn init_and_profile_command(base: &str, instance: &str) -> Command {
+    let [init, profile] = init_and_profile_commands(base, instance);
+    // Only the line a person reads: the second command follows the first after `&&`, which `shown` leaves bare.
+    let mut words = init.words.clone();
+    words.push("&&".to_owned());
+    words.push("raul".to_owned());
+    words.extend(profile.words);
+    Command { words, ..init }
 }
 
 /// `raul doctor --instance <dir>`: read only.
@@ -470,6 +505,25 @@ mod tests {
         assert_eq!(doctor_command("/i").shown(), "raul doctor --instance /i");
         assert_eq!(detect_command().shown(), "raul detect");
         assert!(init_command("/a", "/b").writes && !doctor_command("/i").writes);
+    }
+
+    #[test]
+    fn the_instance_step_makes_the_default_profile_with_it() {
+        let [init, profile] = init_and_profile_commands("/g/nv", "/s/instance");
+        assert_eq!(
+            init.shown(),
+            "raul init --base /g/nv --instance /s/instance"
+        );
+        assert_eq!(
+            profile.shown(),
+            "raul profile create --name Default --instance /s/instance"
+        );
+        assert!(profile.writes);
+        assert_eq!(profile.id, "profile-create");
+        assert_eq!(
+            init_and_profile_command("/g/nv", "/s/instance").shown(),
+            "raul init --base /g/nv --instance /s/instance && raul profile create --name Default --instance /s/instance"
+        );
     }
 
     #[test]

@@ -49,14 +49,6 @@ pub fn undo_command(instance: &str) -> Command {
     Command::write("rollback", 1, &["rollback", "--instance", instance])
 }
 
-/// `raul tools list`: the pinned tools, among them the masterlist and its version.
-pub fn tools_command() -> Command {
-    Command::read("tools-list", 2, &["tools", "list"])
-}
-
-/// The name of the masterlist in the tool lock starts with this.
-pub const MASTERLIST_TOOL: &str = "loot-masterlist";
-
 /// What a masterlist message or a sorter finding is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MessageKind {
@@ -238,8 +230,6 @@ pub struct State {
     pub current: Vec<Plugin>,
     /// The order the sort proposes, while a preview is shown.
     pub proposed: Vec<Plugin>,
-    /// The masterlist version, read only (its home is Versions).
-    pub masterlist: Option<String>,
     /// Messages about the list as a whole, and the plugins the Profile names that are not installed.
     pub notes: Vec<Message>,
     /// The last problem, shown until the next step starts.
@@ -507,7 +497,6 @@ mod tests {
             apply_command("/a b").shown(),
             "raul sort --instance '/a b' --fetch-masterlist --apply"
         );
-        assert_eq!(tools_command().rest(), Vec::<String>::new());
     }
 
     #[test]

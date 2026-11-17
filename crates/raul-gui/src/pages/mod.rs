@@ -54,6 +54,8 @@ pub struct PageCx<'a> {
     pub dialogs: &'a mut Dialogs,
     /// The jobs: `raul` commands running in the background.
     pub jobs: &'a mut Jobs,
+    /// The window, so a page that waits for work of its own can ask for the frame that shows it.
+    pub repaint: Option<egui::Context>,
 }
 
 /// A page or a flow.

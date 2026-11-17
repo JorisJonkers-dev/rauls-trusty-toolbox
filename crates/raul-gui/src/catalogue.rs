@@ -73,6 +73,7 @@ texts!(SHELL {
     ABOUT = "About";
     ABOUT_TITLE = "About Raul's Toolbox";
     ABOUT_BODY = "One all-Rust installer, setup wizard and mod manager for Fallout: New Vegas. You need your own copy of the game; no game files are included.";
+    ABOUT_VERSION = "Version";
     ABOUT_ASSETS = "Bundled assets";
     COMMAND = "Command";
     CLOSE = "Close";
@@ -203,6 +204,27 @@ mod tests {
                 line.matches(". ").count() <= 1,
                 "at most two short sentences: {line}"
             );
+        }
+    }
+
+    #[test]
+    fn no_screen_says_profile() {
+        // A profile is an internal name: setup makes the default one, so no page shows it, asks for it or names it
+        // in a message. The command lines a page shows may still carry it (`--profile Default`).
+        for (owner, name, text) in all_texts() {
+            assert!(
+                !text.to_lowercase().contains("profile"),
+                "{owner}/{name} says profile: {text}"
+            );
+        }
+        for (owner, e) in all_errors() {
+            for text in [e.what, e.detail] {
+                assert!(
+                    !text.to_lowercase().contains("profile"),
+                    "{owner}/{} says profile: {text}",
+                    e.id
+                );
+            }
         }
     }
 

@@ -53,7 +53,7 @@ crate::texts!(TEXTS {
     DETAIL_GAME_NOT_SET = "Not set. Point the Toolbox at your game.";
     DETAIL_STORAGE_NOT_SET = "Not set. Pick where the Toolbox keeps its files.";
     DETAIL_CHECKING = "Checking";
-    DETAIL_ENGINE_ACTIVE = "nv-rs, checked against its install record";
+    DETAIL_ENGINE_ACTIVE = "The engine is installed and verified.";
     DETAIL_ENGINE_MISSING = "No engine installed yet";
     DETAIL_TTW_READY = "Sources set. Ready when you are.";
     DETAIL_TTW_NEEDS = "Optional. Needs Fallout 3 and the TTW installer.";
@@ -886,7 +886,7 @@ pub fn fixtures() -> Vec<Fixture> {
             "bad-load-order",
             seen(State {
                 load_order: Fetch::Failed(
-                    "raul plugins list: refused: the Instance has no profile".into(),
+                    "the load order could not be read: there is no mod list yet".into(),
                 ),
                 ..State::ready(all.clone(), Engine::active())
             }),
@@ -896,7 +896,9 @@ pub fn fixtures() -> Vec<Fixture> {
             "warning",
             seen(State {
                 config: Fetch::Ready(all.clone()),
-                engine: Fetch::Failed("raul verify: refused: the Instance has no profile".into()),
+                engine: Fetch::Failed(
+                    "the engine could not be checked: there is no mod list yet".into(),
+                ),
                 ..State::default()
             }),
         ),
@@ -1025,7 +1027,7 @@ mod tests {
         // The error is an error surface of its own: it can be copied from the dialog.
         assert!(h.query_all_by_label(msg::COPY_DETAILS).next().is_some());
         h.get_all_by_label(FIX).last().unwrap().click();
-        h.run();
+        h.run_steps(4);
         assert_eq!(h.state().view(), View::Page(PageId::Versions));
         assert!(
             exec.calls.lock().unwrap().iter().all(|c| c[0] != "run"),

@@ -73,7 +73,7 @@ impl Fixture {
             "mods/Other/Other.esp",
             &PluginBuilder::new().build(),
         );
-        let profile = |name: &str, lines: &[&str]| {
+        let list = |name: &str, lines: &[&str]| {
             let mut text = HEADER.to_owned();
             for l in lines {
                 text.push_str(l);
@@ -85,13 +85,13 @@ impl Fixture {
                 text.as_bytes(),
             );
         };
-        profile("modlist.txt", &["+Patch", "+Core", "+Other"]);
+        list("modlist.txt", &["+Patch", "+Core", "+Other"]);
         // The patch is listed before its master: the sort moves it.
-        profile(
+        list(
             "plugins.txt",
             &["FalloutNV.esm", "Patch.esp", "Base.esp", "Other.esp"],
         );
-        profile(
+        list(
             "loadorder.txt",
             &["FalloutNV.esm", "Patch.esp", "Base.esp", "Other.esp"],
         );
