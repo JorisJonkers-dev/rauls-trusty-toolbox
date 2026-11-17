@@ -1076,11 +1076,22 @@ version = "0.0.0"
 dependencies = [
  "nvmod-instance",
  "nvmod-pe",
+ "raul-drivers",
  "raul-runner",
+ "schemars",
  "semver",
  "serde",
  "serde_json",
  "toml",
+]
+
+[[package]]
+name = "raul-drivers"
+version = "0.0.0"
+dependencies = [
+ "schemars",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
