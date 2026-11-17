@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794906465913,
+  "lastUpdate": 1794908468053,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1616,6 +1616,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 12.999078,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7ecde773a3daf54016aef5807027d765b4bf0e26",
+          "message": "feat(gui): TTW flow page with a dry-run review, install, cancel and resume (#153)\n\n* feat(gui): TTW flow page with a dry-run review, install, cancel and resume\n\nThe TTW flow walks the four steps of UI-RULES P4. Sources shows the\nFallout 3 folder, the New Vegas folder and the TTW package from\n`raul config list`, read only with a link to Settings, and says what is\nmissing. Output names the Instance. Review runs `raul ttw --dry-run` and\nshows its checks, what happens and the install command. Install runs\n`raul ttw` as a job with a percentage, keeps going when the page is\nleft, and can be cancelled. A stopped run offers Resume (`--resume`), a\nrefused one Try again.\n\nTtwWizard no longer asks whether an installer is pinned: it needs the\nFallout 3 folder and the TTW package, which is what `raul ttw` needs.\n\nChecked with model tests for the flow, snapshot fixtures for every state\nand end-to-end tests through the release raul with a fake installer:\ninstall, refusal and try again, resume, and cancel.\n\n* fix(gui): keep the TTW flow when its sources did not change\n\nShowing the flow again reads the sources once more and starts over only\nwhen they changed. On a resumed review the one button says Resume, and\nan unknown install phase reads as Working.",
+          "timestamp": "2026-11-17T10:39:59+01:00",
+          "tree_id": "0ab3cb548b4b703480cc343070ecf4b1f8384f23",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7ecde773a3daf54016aef5807027d765b4bf0e26"
+        },
+        "date": 1794908467707,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.102484,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.694496,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.681784,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.504637,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.999243,
             "unit": "ms"
           }
         ]
