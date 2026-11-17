@@ -15,6 +15,7 @@ use raul_ui_model::error::{ExitClass, Retry, ViewError};
 use raul_ui_model::mods::ModStep;
 use raul_ui_model::setup::{FinishStatus, Phase, SetupWizard};
 use raul_ui_model::wizard::{DEFAULT_PROFILE, FomodQuestion};
+use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
 
@@ -607,12 +608,36 @@ pub trait Service {
     /// [`ServiceError::Failed`] when the run was refused or failed.
     fn setup(&self, request: &SetupRequest) -> Result<SetupReport, ServiceError>;
 
+    /// `raul update check`: the release list of the Toolbox, read and nothing downloaded (ADR-0005).
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the check could not run, or its answer could not be read.
+    fn update_check(&self) -> Result<UpdateReport, ServiceError>;
+
     /// `raul profile create`: the default profile of an Instance that has none. Setup makes it with its own
     /// steps, so a screen only asks for it when an Instance made another way has none.
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the command refused or failed.
     fn profile_create(&self, request: &ProfileRequest) -> Result<(), ServiceError>;
+}
+
+/// What `raul update check --json` answered.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct UpdateReport {
+    /// The version that runs.
+    pub current: String,
+    /// The newer release, when there is one.
+    pub newer: Option<UpdateRelease>,
+}
+
+/// A release newer than the one that runs.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct UpdateRelease {
+    /// The version that is out, without its leading `v`.
+    pub version: String,
+    /// The release page.
+    pub url: String,
 }
 
 fn word(value: &str) -> String {
@@ -1052,6 +1077,14 @@ impl<E: Exec> Service for CliService<E> {
 
     fn setup(&self, r: &SetupRequest) -> Result<SetupReport, ServiceError> {
         self.setup_report(r)
+    }
+
+    fn update_check(&self) -> Result<UpdateReport, ServiceError> {
+        let (out, args) = self.invoke(Action::Update, vec!["check".to_owned()])?;
+        match out.code {
+            Some(0) => Self::parse(Action::Update, &out, &args),
+            _ => Err(failure(&out, "update check", &args)),
+        }
     }
 
     fn profile_create(&self, r: &ProfileRequest) -> Result<(), ServiceError> {

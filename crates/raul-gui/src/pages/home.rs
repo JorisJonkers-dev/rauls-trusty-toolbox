@@ -53,7 +53,7 @@ crate::texts!(TEXTS {
     DETAIL_GAME_NOT_SET = "Not set. Point the Toolbox at your game.";
     DETAIL_STORAGE_NOT_SET = "Not set. Pick where the Toolbox keeps its files.";
     DETAIL_CHECKING = "Checking";
-    DETAIL_ENGINE_ACTIVE = "nv-rs, checked against its install record";
+    DETAIL_ENGINE_ACTIVE = "The engine is installed and verified.";
     DETAIL_ENGINE_MISSING = "No engine installed yet";
     DETAIL_TTW_READY = "Sources set. Ready when you are.";
     DETAIL_TTW_NEEDS = "Optional. Needs Fallout 3 and the TTW installer.";
@@ -997,7 +997,7 @@ mod tests {
         let dialog = h.state().dialogs().current().cloned().unwrap();
         assert_eq!(dialog.body[0], PLAY_NO_ENGINE.detail);
         h.get_all_by_label(FIX).last().unwrap().click();
-        h.run();
+        h.run_steps(4);
         assert_eq!(h.state().view(), View::Page(PageId::Versions));
         assert!(
             exec.calls.lock().unwrap().iter().all(|c| c[0] != "run"),

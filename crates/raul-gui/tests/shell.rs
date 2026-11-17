@@ -7,10 +7,11 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
+use raul_gui::pages::versions::{CHECK_UPDATES, TOOLBOX_LABEL};
 use raul_gui::shell::App;
 use raul_ui_model::pages::{PageId, View};
 use raul_ui_service::{Exec, Output};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 /// Answers every command with success and an empty report.
 struct Quiet;
@@ -91,6 +92,74 @@ fn the_setup_strip_opens_the_home_of_each_value() {
     assert_eq!(h.state().view(), View::Page(PageId::Versions));
 }
 
+/// Answers `version` and records every command that ran.
+struct Versions {
+    calls: Mutex<Vec<Vec<String>>>,
+}
+
+impl Exec for Versions {
+    fn run(&self, args: &[String]) -> Result<Output, String> {
+        self.calls.lock().unwrap().push(args.to_vec());
+        let stdout = match args.first().map(String::as_str) {
+            Some("version") => r#"{"raul":"0.2.0"}"#.to_owned(),
+            Some("update") => r#"{"current":"0.2.0","newer":null}"#.to_owned(),
+            _ => "{}".to_owned(),
+        };
+        Ok(Output {
+            code: Some(0),
+            stdout,
+            stderr: String::new(),
+        })
+    }
+}
+
+#[test]
+fn the_update_button_sits_beside_the_version_and_starts_the_check() {
+    let exec = Arc::new(Versions {
+        calls: Mutex::new(Vec::new()),
+    });
+    let mut app = App::new(Jobs::new(exec.clone()));
+    app.open(View::Page(PageId::Versions));
+    let mut h = harness(1280.0, app);
+    // The version is read once, and nothing reaches the network before a click.
+    let seen = |h: &mut Harness<'static, App>, command: &str| -> bool {
+        for _ in 0..200 {
+            h.run_steps(2);
+            if exec.calls.lock().unwrap().iter().any(|c| c[0] == command) {
+                return true;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        false
+    };
+    assert!(seen(&mut h, "version"), "the version is read");
+    assert!(
+        !exec.calls.lock().unwrap().iter().any(|c| c[0] == "update"),
+        "nothing reaches the network before a click"
+    );
+    assert!(
+        h.query_by_label(TOOLBOX_LABEL).is_some() && h.query_by_label("0.2.0").is_some(),
+        "the Toolbox's own version is plain text"
+    );
+    for tool in ["nvmod-rs", "loot-rs", "lodwright-rs", "ttwright-rs"] {
+        assert!(
+            h.query_by_label_contains(tool).is_none(),
+            "{tool} is a Component version and is not shown"
+        );
+    }
+    let button = h.get_by_role_and_label(egui::accesskit::Role::Button, CHECK_UPDATES);
+    button.click();
+    assert!(seen(&mut h, "update"), "the button starts the update check");
+    assert!(
+        exec.calls.lock().unwrap().contains(&vec![
+            "update".to_owned(),
+            "check".to_owned(),
+            "--json".to_owned()
+        ]),
+        "Check for updates runs `raul update check`"
+    );
+}
+
 #[test]
 fn play_without_a_game_explains_why_and_offers_the_fix() {
     let mut h = harness(1280.0, app());
@@ -136,6 +205,18 @@ fn about_lists_inter_and_esc_closes_it() {
     h.run();
     let body = h.state().dialogs().current().unwrap().body.join("\n");
     assert!(body.contains("Inter") && body.contains("OFL-1.1"), "{body}");
+    assert!(
+        body.contains(&format!(
+            "{} {}",
+            msg::ABOUT_VERSION,
+            env!("CARGO_PKG_VERSION")
+        )),
+        "About names the Toolbox's own version: {body}"
+    );
+    assert!(
+        !body.contains("nv-rs ") && !body.contains("loot-rs") && !body.contains("known"),
+        "About names no Component version and no release check's set: {body}"
+    );
     h.key_press(egui::Key::Escape);
     h.run();
     assert!(!h.state().dialogs().is_open());

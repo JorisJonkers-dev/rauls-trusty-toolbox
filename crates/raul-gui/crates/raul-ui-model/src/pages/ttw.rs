@@ -99,7 +99,7 @@ pub struct Report {
     pub files: Option<u64>,
     /// `raul ttw --resume` continues this run.
     pub resumable: bool,
-    /// The installer program and its version, as `name version`.
+    /// The installer program, as it is called; its version is a Component version and is not shown.
     pub tool: Option<String>,
     /// The stable error code, unless it succeeded.
     pub code: Option<String>,

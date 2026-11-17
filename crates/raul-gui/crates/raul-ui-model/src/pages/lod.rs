@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The toolkit-free state of the LOD page: the plan (`raul lod plan`), the blocks it covers with their status and
-//! progress, Generate (`raul lod generate`), Stop, and the generator version and output folder.
+//! progress, Generate (`raul lod generate`), Stop, and the output folder.
 //!
 //! A block is one world of the request: the request names its worlds, or none for every world with terrain. While
 //! Generate runs every block is building and the job's progress is shown; once it ends, each block shows what the
@@ -12,9 +12,6 @@ use serde::Deserialize;
 
 /// The Mod the LOD output becomes.
 pub const MOD_NAME: &str = "LOD (lodwright)";
-
-/// The Component that generates LOD, as `raul version` names it.
-pub const GENERATOR: &str = "lodwright-rs";
 
 /// `raul lod plan --instance <dir>`: the request a run would send to lodwright; nothing is run.
 pub fn plan_command(instance: &str) -> Command {
@@ -294,8 +291,6 @@ pub struct State {
     pub instance: Option<String>,
     /// The plan, once read.
     pub plan: Option<Plan>,
-    /// The generator version, read only (its home is Versions).
-    pub generator: Option<String>,
     /// How the last Generate ended.
     pub outcome: Option<Outcome>,
     /// The progress of the running Generate.

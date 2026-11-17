@@ -99,7 +99,7 @@ impl Fixture {
             (Action::Profile, _) => vec!["--name", "Default", "--instance", &instance],
             // A dry run: the launch plan is printed and nothing is started.
             (Action::Run, _) => vec!["nv-rs", "--instance", &instance, "--dry-run"],
-            (Action::Config | Action::Version | Action::Tools, _) => vec![],
+            (Action::Config | Action::Version | Action::Update | Action::Tools, _) => vec![],
             _ => vec!["--instance", &instance],
         };
         let mut rest: Vec<String> = words
@@ -160,6 +160,11 @@ fn every_page_command_runs_against_a_fixture() {
             .collect();
         let result = f.raul(&words);
         understood(&command.line(), &result, command.action.takes_json());
+        if command.action == Action::Update {
+            // It asks the release list on the network: what it answers depends on the machine, not on the command.
+            ran += 1;
+            continue;
+        }
         assert_eq!(
             result.0,
             expected(command),
