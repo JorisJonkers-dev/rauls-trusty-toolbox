@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! `raul update`: check the Toolbox's GitHub Releases for a newer release when asked, and turn the GUI's check at
-//! start on or off. Nothing is downloaded or installed, and nothing identifying is sent (nv-linux ADR-0010).
+//! start on or off. Nothing is downloaded or installed, and nothing identifying is sent (ADR-0005).
 
 use std::io::Write;
 use std::path::Path;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The opt-in update check against the Toolbox's GitHub Releases (ADR-0005, nv-linux ADR-0010).
+//! The opt-in update check against the Toolbox's GitHub Releases (ADR-0005).
 
 use raul_core::update::{
     FETCH_TIMEOUT_SECS, MAX_LIST_BYTES, Settings, curl_args, newer_release, runner,
