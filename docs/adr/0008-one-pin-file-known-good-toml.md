@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: accepted, partly superseded by ADR-0016
 date: 2026-11-16
 ---
 # One pin file: `known-good.toml` decides every Component version
+
+Superseded in part by [ADR-0016](0016-components-are-incorporated-libraries-called-in-process.md): `supply.toml` rows and generated wire Contract versions cover only the packages `raul` installs. Where they are published is [ADR-0017](0017-first-party-packages-on-ghcr-and-linked-crates-by-git-tag.md).
 
 nvmod-rs's `tools.lock.toml` folds into the Toolbox. `known-good.toml` is the only place that decides which Component
 versions belong together and which Contract versions each speaks; the Contract versions are generated from each

@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: accepted, partly superseded by ADR-0016
 date: 2026-11-16
 ---
 # Orchestration, tool supply, the Runner and the view model live in the Toolbox
+
+Superseded in part by [ADR-0016](0016-components-are-incorporated-libraries-called-in-process.md): the Runner no longer starts Components and the GUI no longer writes through a `raul` subprocess. Only the game and Windows-only tools are started as processes.
 
 The Toolbox contains the tools. Everything that takes a player from a game copy to a running modded game, and keeps
 it working, moves from nvmod-rs into the Toolbox: the setup pipeline with its journal and resume, the drivers of the

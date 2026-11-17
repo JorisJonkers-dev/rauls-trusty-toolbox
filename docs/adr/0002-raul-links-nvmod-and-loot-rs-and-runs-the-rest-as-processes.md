@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: accepted, partly superseded by ADR-0016
 date: 2026-11-16
 ---
 # `raul` links nvmod and loot-rs; nv-rs, lodwright-rs and ttwright-rs run as processes
+
+Superseded in part by [ADR-0016](0016-components-are-incorporated-libraries-called-in-process.md): lodwright-rs and ttwright-rs are linked and called in process, not started through the Runner. The licence consequences stand.
 
 Amended by [ADR-0007](0007-orchestration-tool-supply-and-the-view-model-live-in-the-toolbox.md): `raul` links nvmod's
 mod-management libraries; the orchestration that nvmod held, and the Runner, now live in the Toolbox.

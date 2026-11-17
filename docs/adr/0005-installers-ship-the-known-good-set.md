@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: accepted, partly superseded by ADR-0016
 date: 2026-11-16
 ---
 # Installers ship the Known-good set; later updates are opt-in
+
+Superseded in part by [ADR-0016](0016-components-are-incorporated-libraries-called-in-process.md): installers ship the engine package, not lodwright-rs and ttwright-rs programs, which are linked.
 
 Amended by [ADR-0008](0008-one-pin-file-known-good-toml.md) and [ADR-0011](0011-the-rolling-engine-channel.md): the
 Toolbox's tool supply, not nvmod, verifies checksums and attestations, and the Rolling channel is the Toolbox's.
