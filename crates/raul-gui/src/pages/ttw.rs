@@ -76,6 +76,7 @@ crate::texts!(TEXTS {
     FACT_STOPS = "If it stops";
     STOPS = "The Instance stays as it was, and Resume continues the run";
     FACT_TOOL = "Installer";
+    FACT_TOOL_CHECKED = "Checked and ready";
     RESUMING = "Install continues the stopped run where it left off.";
     CHECK_AGAIN = "Check again";
     BACK = "Back";
@@ -389,8 +390,8 @@ impl Ttw {
             (FACT_TIME, TIME, false),
             (FACT_STOPS, STOPS, false),
         ];
-        if let Some(tool) = &check.tool {
-            rows.push((FACT_TOOL, tool.as_str(), true));
+        if check.tool.is_some() {
+            rows.push((FACT_TOOL, FACT_TOOL_CHECKED, true));
         }
         facts(ui, t, "ttw-plan", &rows);
         ui.add_space(8.0);
@@ -692,10 +693,7 @@ fn report_of(result: &Result<Output, String>) -> Result<Report, String> {
         plugins: r.plugins_enabled,
         files: r.files,
         resumable: r.resumable,
-        tool: r.tool.map(|t| match t.version {
-            Some(v) => format!("{} {v}", t.name),
-            None => t.name,
-        }),
+        tool: r.tool.map(|t| t.name),
         code: r.error.as_ref().map(|e| e.code.clone()),
         message: r.error.map(|e| e.message),
     })
@@ -873,7 +871,7 @@ fn reviewed() -> State {
     let _ = s.checking();
     let _ = s.checked(
         Report {
-            tool: Some("ttwright 0.3.0".to_owned()),
+            tool: Some("ttwright".to_owned()),
             ..Report::of(Status::Success, true)
         },
         problem(&CHECK_FAILED, ""),
@@ -1021,7 +1019,7 @@ mod tests {
         let r = report_of(&Ok(output(4, RESULT))).unwrap();
         assert_eq!(r.status, Status::Cancelled);
         assert!(r.resumable);
-        assert_eq!(r.tool.as_deref(), Some("ttwright 0.3.0"));
+        assert_eq!(r.tool.as_deref(), Some("ttwright"), "no Component version");
         assert_eq!(r.code.as_deref(), Some("cancelled"));
         assert_eq!(r.message.as_deref(), Some("stopped"));
         assert!(report_of(&Ok(output(0, "not a stream"))).is_err());

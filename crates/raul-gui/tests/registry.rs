@@ -97,7 +97,7 @@ impl Fixture {
             (Action::Detect, _) => vec!["--folder", "BASE"],
             // A dry run: the launch plan is printed and nothing is started.
             (Action::Run, _) => vec!["nv-rs", "--instance", &instance, "--dry-run"],
-            (Action::Config | Action::Version | Action::Tools, _) => vec![],
+            (Action::Config | Action::Version | Action::Update | Action::Tools, _) => vec![],
             _ => vec!["--instance", &instance],
         };
         let mut rest: Vec<String> = words

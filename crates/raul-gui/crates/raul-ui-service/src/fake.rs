@@ -12,7 +12,7 @@ use crate::exec::{CancelHandle, Exec, Output};
 use crate::service::{
     DoctorRequest, ImportRequest, InstallRequest, InstallResult, ModsRequest, RollbackRequest,
     Service, ServiceError, SetupRequest, SortRequest, TargetRequest, ToolsRequest, TtwRequest,
-    VerifyRequest,
+    UpdateReport, VerifyRequest,
 };
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -71,6 +71,7 @@ pub struct FakeService {
     conflicts: Script<ConflictsRequest, ConflictsReport>,
     trees: Script<TreeRequest, TreeReport>,
     plugin_lists: Script<PluginsRequest, PluginsReport>,
+    update_checks: Script<(), UpdateReport>,
 }
 
 impl FakeService {
@@ -167,6 +168,17 @@ impl FakeService {
     pub fn on_setup(&self, answer: Result<SetupReport, ServiceError>) -> &Self {
         self.setups.queue(answer);
         self
+    }
+
+    /// Queues the answer of the next `update_check` call.
+    pub fn on_update_check(&self, answer: Result<UpdateReport, ServiceError>) -> &Self {
+        self.update_checks.queue(answer);
+        self
+    }
+
+    /// How many `update_check` calls were made.
+    pub fn update_check_calls(&self) -> usize {
+        self.update_checks.calls().len()
     }
 
     /// The `mods_change` requests so far.
@@ -300,6 +312,10 @@ impl Service for FakeService {
 
     fn setup(&self, request: &SetupRequest) -> Result<SetupReport, ServiceError> {
         self.setups.call(request, "setup")
+    }
+
+    fn update_check(&self) -> Result<UpdateReport, ServiceError> {
+        self.update_checks.call(&(), "update_check")
     }
 }
 

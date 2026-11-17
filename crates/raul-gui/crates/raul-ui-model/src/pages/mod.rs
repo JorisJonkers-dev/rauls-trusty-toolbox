@@ -34,7 +34,7 @@ pub enum PageId {
     LoadOrder,
     /// Distant land: generate it and see which blocks are up to date.
     Lod,
-    /// The engine release and the Component versions.
+    /// The Toolbox's own version and the update check, and the engine release.
     Versions,
     /// The paths the Toolbox uses.
     Settings,

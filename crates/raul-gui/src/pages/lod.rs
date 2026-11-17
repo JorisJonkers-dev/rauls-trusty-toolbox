@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The LOD page (UI-RULES P3, T5, K3, G6): the plan, the blocks with their status and progress, Generate, Stop, and
-//! the generator version and output folder.
+//! the output folder.
 //!
 //! The plan comes from `raul lod plan` and says what a run reads and writes; nothing is run for it. Generate starts
 //! `raul lod generate`, which runs lodwright and keeps its output as one Mod of the Instance, enabled in the
 //! Profile; a new run replaces that Mod. The run keeps going when the page is left, and Stop asks it to end, which
-//! leaves the Instance as it was. The generator version is shown read only; its home is Versions, and the output
-//! folder's home is Settings.
+//! leaves the Instance as it was. The output folder is shown read only; its home is Settings.
 
 use super::home::{Mark, icon, mark};
 use super::settings::{Pending, Visits, error_block, failure_of, start, waiting};
@@ -19,11 +18,10 @@ use eframe::egui::{self, RichText};
 use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobId, JobState};
 use raul_ui_model::pages::lod::{
-    BlockStatus, GENERATOR, MOD_NAME, Outcome, Phase, Plan, Problem, Progress, State, Written,
+    BlockStatus, MOD_NAME, Outcome, Phase, Plan, Problem, Progress, State, Written,
     generate_command, parse_plan, plan_command, read_result,
 };
 use raul_ui_model::pages::settings::Command;
-use raul_ui_model::pages::versions::{parse_version, version_command};
 use raul_ui_model::pages::{Attention, PageId, Severity, View};
 use raul_ui_service::Output;
 
@@ -74,10 +72,7 @@ crate::texts!(TEXTS {
     DONE_STATUS = "LOD generated.";
     CURRENT_STATUS = "LOD is up to date.";
     STOPPED_STATUS = "LOD generation stopped. Nothing changed.";
-    GENERATOR_LABEL = "Generator";
-    GENERATOR_UNKNOWN = "Generator version not known";
     OUTPUT_LABEL = "Output";
-    VERSIONS = "Versions";
     PHASE = "Phase: {phase}";
     UNREADABLE = "The command finished, but what it printed could not be read.";
 });
@@ -115,7 +110,6 @@ pub struct Lod {
     pending: Pending<Job>,
     visits: Visits,
     generate: Option<JobId>,
-    version_asked: bool,
     /// The Instance the open Generate dialog names.
     asked: Option<String>,
 }
@@ -124,7 +118,6 @@ pub struct Lod {
 enum Job {
     Plan,
     Generate,
-    Version,
 }
 
 impl Lod {
@@ -132,7 +125,6 @@ impl Lod {
     pub fn with(state: State) -> Lod {
         Lod {
             state,
-            version_asked: true,
             ..Lod::default()
         }
     }
@@ -142,7 +134,6 @@ impl Lod {
         match job {
             Job::Plan => i.map(plan_command),
             Job::Generate => i.map(generate_command),
-            Job::Version => Some(version_command()),
         }
     }
 
@@ -157,7 +148,6 @@ impl Lod {
         match job {
             Job::Plan => self.state.planning(),
             Job::Generate => self.state.generating(),
-            Job::Version => {}
         }
         match start(cx, &command) {
             Ok(id) => {
@@ -166,12 +156,11 @@ impl Lod {
                     self.generate = Some(id);
                 }
             }
-            Err(e) if job != Job::Version => self.state.failed(Problem {
+            Err(e) => self.state.failed(Problem {
                 id: e.id,
                 cause: e.what.to_owned(),
                 command: Some(command.shown()),
             }),
-            Err(_) => {}
         }
     }
 
@@ -214,7 +203,6 @@ impl Lod {
         }
         self.state = State {
             instance: cx.shell.instance.clone(),
-            generator: self.state.generator.take(),
             ..State::default()
         };
         self.run(cx, Job::Plan);
@@ -237,7 +225,7 @@ impl Lod {
         for (job, result) in self.pending.finished(cx.jobs) {
             let command = self.command(job).map(|c| c.shown());
             match job {
-                Job::Plan => match read(&result, parse_plan) {
+                Job::Plan => match plan_answer(&result) {
                     Ok(plan) => self.state.planned(plan),
                     Err(cause) => self.state.failed(Problem {
                         id: PLAN_FAILED.id,
@@ -245,11 +233,6 @@ impl Lod {
                         command,
                     }),
                 },
-                Job::Version => {
-                    if let Ok(shipped) = read(&result, parse_version) {
-                        self.state.generator = shipped.version_of(GENERATOR).map(str::to_owned);
-                    }
-                }
                 Job::Generate => {
                     self.generate = None;
                     let stopped = self.state.phase == Phase::Stopping;
@@ -510,10 +493,6 @@ impl Page for Lod {
 
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
-        if !self.version_asked {
-            self.version_asked = true;
-            self.run(cx, Job::Version);
-        }
         let back = self.visits.returned(ui.ctx());
         self.follow_instance(cx);
         if back && self.state.phase == Phase::Planned {
@@ -613,44 +592,29 @@ impl Page for Lod {
 }
 
 impl Lod {
-    /// The generator version and the output folder, read only, with the way to their home pages.
+    /// The output folder, read only, with the way to its home page.
     fn footer(&self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
         ui.horizontal_wrapped(|ui| {
-            match &self.state.generator {
-                Some(v) => {
-                    ui.label(RichText::new(GENERATOR_LABEL).color(t.muted.color()));
-                    ui.label(
-                        RichText::new(format!("{GENERATOR} {v}"))
-                            .monospace()
-                            .color(t.muted.color()),
-                    );
-                }
-                None => {
-                    ui.label(RichText::new(GENERATOR_UNKNOWN).color(t.muted.color()));
-                }
-            }
-            if ui.small_button(VERSIONS).clicked() {
-                cx.shell.go_to = Some(View::Page(PageId::Versions));
-            }
             if let Some(plan) = &self.state.plan {
                 ui.label(RichText::new(OUTPUT_LABEL).color(t.muted.color()));
                 path(ui, &t, &plan.output_dir);
+            }
+            if ui.small_button(OPEN_SETTINGS).clicked() {
+                cx.shell.go_to = Some(View::Page(PageId::Settings));
             }
         });
     }
 }
 
-/// What a finished read printed, read by `parse`, or why there is none.
-fn read<T>(
-    result: &Result<Output, String>,
-    parse: impl Fn(&str) -> Result<T, String>,
-) -> Result<T, String> {
+/// The plan a finished `raul lod plan` printed, or why there is none: the command failed, or its answer is not a
+/// plan.
+fn plan_answer(result: &Result<Output, String>) -> Result<Plan, String> {
     let out = result.as_ref().map_err(Clone::clone)?;
     if out.code != Some(0) {
         return Err(failure_of(out));
     }
-    parse(&out.stdout).map_err(|_| UNREADABLE.to_owned())
+    parse_plan(&out.stdout).map_err(|_| UNREADABLE.to_owned())
 }
 
 /// A path in monospace that truncates, in full in its tooltip (UI-RULES A5).
@@ -678,7 +642,6 @@ fn fixture(name: &'static str, state: State) -> Fixture {
         name,
         page: Box::new(Lod::with(State {
             instance: Some(INSTANCE.to_owned()),
-            generator: Some("v0.3.0".to_owned()),
             ..state
         })),
         shell: ShellState {
@@ -825,26 +788,36 @@ mod tests {
     }
 
     #[test]
-    fn a_read_counts_only_when_it_exits_0_and_reads() {
+    fn a_plan_counts_only_when_it_exits_0_and_reads() {
+        let p = plan(&["A"]);
+        let document = serde_json::json!({
+            "contract": "lodwright-request",
+            "schema_version": 1,
+            "data_folder": p.data_folder,
+            "plugins": ["A.esp"],
+            "worlds": p.worlds,
+            "output_dir": p.output_dir,
+            "terrain": { "enabled": true },
+            "objects": { "enabled": true },
+            "trees": { "enabled": true },
+        });
         let ok = Ok(Output {
             code: Some(0),
-            stdout: "x".into(),
+            stdout: document.to_string(),
             stderr: String::new(),
         });
-        assert_eq!(read(&ok, |s| Ok(s.len())).unwrap(), 1);
-        assert_eq!(
-            read(&ok, |_| Err::<(), _>("no".to_owned())).unwrap_err(),
-            UNREADABLE
-        );
+        assert_eq!(plan_answer(&ok).unwrap().plugins, 1);
+        let unreadable = Ok(Output {
+            code: Some(0),
+            stdout: "not a plan".into(),
+            stderr: String::new(),
+        });
+        assert_eq!(plan_answer(&unreadable).unwrap_err(), UNREADABLE);
         let refused = Ok(Output {
             code: Some(2),
             stdout: String::new(),
             stderr: "raul lod plan: refused: no Instance\n".into(),
         });
-        assert!(
-            read(&refused, |s| Ok(s.len()))
-                .unwrap_err()
-                .contains("no Instance")
-        );
+        assert!(plan_answer(&refused).unwrap_err().contains("no Instance"));
     }
 }

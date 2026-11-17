@@ -451,9 +451,13 @@ impl eframe::App for App {
     }
 }
 
-/// The About dialog: what the Toolbox is and every bundled asset with its licence (UI-RULES L1).
+/// The About dialog: what the Toolbox is, its own version, and every bundled asset with its licence (UI-RULES L1).
 pub fn about() -> Dialog {
-    let mut body = vec![msg::ABOUT_BODY.to_owned(), msg::ABOUT_ASSETS.to_owned()];
+    let mut body = vec![
+        msg::ABOUT_BODY.to_owned(),
+        format!("{} {}", msg::ABOUT_VERSION, env!("CARGO_PKG_VERSION")),
+        msg::ABOUT_ASSETS.to_owned(),
+    ];
     body.extend(
         crate::fonts::NOTICES
             .iter()

@@ -33,5 +33,5 @@ pub use lifecycle::{CategoryEntry, LifecycleReport, LifecycleRequest, LifecycleS
 pub use service::{
     CliService, DoctorRequest, ImportRequest, InstallRequest, InstallResult, ModsRequest,
     RollbackRequest, RuntimeTarget, Service, ServiceError, SetupMode, SetupRequest, SortRequest,
-    TargetRequest, ToolsRequest, TtwRequest, VerifyRequest,
+    TargetRequest, ToolsRequest, TtwRequest, UpdateRelease, UpdateReport, VerifyRequest,
 };

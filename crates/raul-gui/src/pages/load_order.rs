@@ -4,8 +4,7 @@
 //!
 //! Every step is a `raul` command from the registry, shown on the page: `raul plugins list`, `raul sort
 //! --fetch-masterlist` for the preview (nothing is written), the same with `--apply`, and `raul rollback` for Undo.
-//! A sort is reversible, so Apply does not ask; Undo is offered until the page reads another order. The masterlist
-//! version is shown read only; its home is Versions.
+//! A sort is reversible, so Apply does not ask; Undo is offered until the page reads another order.
 
 use super::home::{Mark, icon};
 use super::settings::{Pending, Visits, error_block, failure_of, start, waiting};
@@ -15,14 +14,14 @@ use crate::shell;
 use crate::theme::Tokens;
 use eframe::egui::{self, RichText};
 use raul_ui_model::pages::load_order::{
-    MASTERLIST_TOOL, Message, MessageKind, Phase, Plugin, Problem, State, apply_command,
-    list_command, preview_command, tools_command, undo_command,
+    Message, MessageKind, Phase, Plugin, Problem, State, apply_command, list_command,
+    preview_command, undo_command,
 };
 use raul_ui_model::pages::settings::Command;
 use raul_ui_model::pages::{Attention, PageId, Severity, View};
 use raul_ui_service::Output;
 use raul_ui_service::conflicts::{PluginRow, PluginsReport};
-use raul_ui_service::dto::{RollbackReport, SortMessage, SortReport, ToolRow};
+use raul_ui_service::dto::{RollbackReport, SortMessage, SortReport};
 
 crate::texts!(TEXTS {
     STATE_NO_INSTANCE = "No Instance yet";
@@ -58,9 +57,6 @@ crate::texts!(TEXTS {
     NONE = "—";
     MOVE_FROM_TO = "{from} → {to}";
     MORE_MESSAGES = "{n} more";
-    MASTERLIST = "Masterlist";
-    MASTERLIST_UNKNOWN = "Masterlist version not known";
-    VERSIONS = "Versions";
     SECTION_PLUGINS = "Plugins";
     SECTION_LIST = "About the list";
     APPLIED_STATUS = "Load order applied. Undo restores the old one.";
@@ -101,7 +97,6 @@ pub struct LoadOrder {
     pub state: State,
     pending: Pending<Job>,
     visits: Visits,
-    tools_asked: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -110,7 +105,6 @@ enum Job {
     Preview,
     Apply,
     Undo,
-    Tools,
 }
 
 impl LoadOrder {
@@ -118,7 +112,6 @@ impl LoadOrder {
     pub fn with(state: State) -> LoadOrder {
         LoadOrder {
             state,
-            tools_asked: true,
             ..LoadOrder::default()
         }
     }
@@ -130,7 +123,6 @@ impl LoadOrder {
             Job::Preview => preview_command(i),
             Job::Apply => apply_command(i),
             Job::Undo => undo_command(i),
-            Job::Tools => tools_command(),
         })
     }
 
@@ -144,7 +136,6 @@ impl LoadOrder {
             Job::Preview => self.state.sorting(),
             Job::Apply => self.state.applying(),
             Job::Undo => self.state.undoing(),
-            Job::Tools => {}
         }
         match start(cx, &command) {
             Ok(id) => self.pending.add(job, id),
@@ -164,7 +155,6 @@ impl LoadOrder {
         }
         self.state = State {
             instance: cx.shell.instance.clone(),
-            masterlist: self.state.masterlist.take(),
             ..State::default()
         };
         self.run(cx, Job::List);
@@ -222,14 +212,6 @@ impl LoadOrder {
                     }
                     Err(why) => self.state.failed(problem(&UNDO_FAILED, why)),
                 },
-                Job::Tools => {
-                    if let Ok(rows) = parse(&result, serde_json::from_value::<Vec<ToolRow>>) {
-                        self.state.masterlist = rows
-                            .into_iter()
-                            .find(|r| r.name.starts_with(MASTERLIST_TOOL))
-                            .map(|r| r.version);
-                    }
-                }
             }
         }
     }
@@ -440,12 +422,6 @@ impl Page for LoadOrder {
 
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
-        if !self.tools_asked {
-            self.tools_asked = true;
-            if let Ok(id) = start(cx, &tools_command()) {
-                self.pending.add(Job::Tools, id);
-            }
-        }
         let back = self.visits.returned(ui.ctx());
         self.follow_instance(cx);
         if back && matches!(self.state.phase, Phase::Listed | Phase::Applied) {
@@ -493,18 +469,6 @@ impl Page for LoadOrder {
         } else {
             self.table(ui, &t);
         }
-        ui.add_space(14.0);
-        ui.horizontal_wrapped(|ui| {
-            if let Some(v) = &self.state.masterlist {
-                ui.label(RichText::new(MASTERLIST).color(t.muted.color()));
-                ui.label(RichText::new(v).monospace().color(t.muted.color()));
-            } else {
-                ui.label(RichText::new(MASTERLIST_UNKNOWN).color(t.muted.color()));
-            }
-            if ui.small_button(VERSIONS).clicked() {
-                cx.shell.go_to = Some(View::Page(PageId::Versions));
-            }
-        });
     }
 
     fn texts(&self) -> &'static [(&'static str, &'static str)] {
@@ -663,7 +627,6 @@ fn fixture(name: &'static str, state: State) -> Fixture {
         name,
         page: Box::new(LoadOrder::with(State {
             instance: Some(INSTANCE.to_owned()),
-            masterlist: Some("v0.29-79b2bb6".to_owned()),
             ..state
         })),
         shell: ShellState {

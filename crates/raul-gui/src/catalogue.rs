@@ -73,6 +73,7 @@ texts!(SHELL {
     ABOUT = "About";
     ABOUT_TITLE = "About Raul's Toolbox";
     ABOUT_BODY = "One all-Rust installer, setup wizard and mod manager for Fallout: New Vegas. You need your own copy of the game; no game files are included.";
+    ABOUT_VERSION = "Version";
     ABOUT_ASSETS = "Bundled assets";
     COMMAND = "Command";
     CLOSE = "Close";
