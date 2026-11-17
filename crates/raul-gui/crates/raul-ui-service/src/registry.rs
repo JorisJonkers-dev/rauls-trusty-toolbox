@@ -393,8 +393,9 @@ pub const COMMANDS: &[Command] = &[
         action: Action::Run,
         // nvmod's `run <title|path|game|nv-rs>`: the target is the first value a page passes; Play passes `nv-rs`.
         words: &[],
-        flags: &["--instance", "--profile", "--dry-run", "--json"],
-        // It stages the Profile before the launch, so it holds the Instance like any other write.
+        flags: &["--instance", "--dry-run", "--json"],
+        // It stages the Profile before the launch and holds the Instance while it does; without --wait it returns
+        // once the game has started.
         writes: true,
         awaits: None,
     },
