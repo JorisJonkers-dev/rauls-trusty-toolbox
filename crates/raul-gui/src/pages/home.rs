@@ -18,7 +18,9 @@ use crate::dialog::{Answer, Dialog};
 use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText, Stroke};
-use raul_ui_model::pages::home::{Block, Launch, Level, Row, RowId, State, Why};
+use raul_ui_model::pages::home::{
+    Block, Launch, Level, Readiness, Row, RowId, State, Step, Why, load_order_command,
+};
 use raul_ui_model::pages::settings::{Command, Config, Fetch, Key};
 use raul_ui_model::pages::versions::{self as engine_model, Engine, EngineStatus};
 use raul_ui_model::pages::{Attention, PageId, Severity, View};
@@ -29,6 +31,12 @@ crate::texts!(TEXTS {
     STATE_ONE = "One thing to look at";
     STATE_MANY = "{n} things to look at";
     STATE_RUNNING = "The game is running";
+    STATE_NEXT = "Not ready yet: {step}";
+    STEP_GAME = "set the game folder";
+    STEP_STORAGE = "set the storage folder";
+    STEP_INSTANCE = "set up the Instance";
+    STEP_ENGINE = "install the engine";
+    STEP_LOAD_ORDER = "fix the load order";
     CHECK_AGAIN = "Check again";
     SECTION_READINESS = "Readiness";
     SECTION_LAUNCH = "Launch";
@@ -108,6 +116,7 @@ pub struct Home {
 enum Job {
     Config,
     Verify,
+    LoadOrder,
     Run,
 }
 
@@ -124,6 +133,8 @@ impl Home {
 
     fn load(&mut self, cx: &mut PageCx<'_>, first: bool) {
         self.state.engine = Fetch::Idle;
+        self.state.instance_exists = None;
+        self.state.load_order = Fetch::Idle;
         match start(cx, &Command::config_list()) {
             Ok(id) => {
                 self.pending.add(Job::Config, id);
@@ -132,7 +143,11 @@ impl Home {
                     settle(cx.jobs);
                 }
             }
-            Err(e) => self.state.config = Fetch::Failed(e.what.to_owned()),
+            Err(e) => {
+                self.state.config = Fetch::Failed(e.what.to_owned());
+                self.state.instance_exists = Some(false);
+                self.state.load_order = Fetch::Ready(());
+            }
         }
     }
 
@@ -140,11 +155,23 @@ impl Home {
     fn load_engine(&mut self, cx: &mut PageCx<'_>, config: &Config) {
         let Some(instance) = config.get(Key::Instance) else {
             self.state.engine = Fetch::Ready(Engine::missing());
+            self.state.instance_exists = Some(false);
+            self.state.load_order = Fetch::Ready(());
             return;
         };
         if !std::path::Path::new(instance).exists() {
             self.state.engine = Fetch::Ready(Engine::missing());
+            self.state.instance_exists = Some(false);
+            self.state.load_order = Fetch::Ready(());
             return;
+        }
+        self.state.instance_exists = Some(true);
+        match start(cx, &load_order_command(instance)) {
+            Ok(id) => {
+                self.pending.add(Job::LoadOrder, id);
+                self.state.load_order = Fetch::Loading;
+            }
+            Err(e) => self.state.load_order = Fetch::Failed(e.what.to_owned()),
         }
         match start(cx, &engine_model::verify_command(instance)) {
             Ok(id) => {
@@ -163,8 +190,19 @@ impl Home {
                         self.load_engine(cx, &config);
                         self.state.config = Fetch::Ready(config);
                     }
-                    Err(why) => self.state.config = Fetch::Failed(why),
+                    Err(why) => {
+                        self.state.config = Fetch::Failed(why);
+                        self.state.instance_exists = Some(false);
+                        self.state.load_order = Fetch::Ready(());
+                    }
                 },
+                Job::LoadOrder => {
+                    self.state.load_order = match &result {
+                        Ok(out) if out.code == Some(0) => Fetch::Ready(()),
+                        Ok(out) => Fetch::Failed(failure_of(out)),
+                        Err(why) => Fetch::Failed(why.clone()),
+                    };
+                }
                 Job::Verify => {
                     self.state.engine = match &result {
                         Ok(out) => engine_model::parse_verify(&out.stdout)
@@ -199,7 +237,7 @@ impl Home {
             Fetch::Failed(_) => cx.shell.engine = None,
             Fetch::Idle | Fetch::Loading => {}
         }
-        if !self.state.config.is_pending() && !self.state.engine.is_pending() {
+        if !self.state.reading() {
             cx.shell.play_blocked = self.state.block().map(block_text);
         }
     }
@@ -228,6 +266,16 @@ impl Home {
     }
 }
 
+fn step_text(step: Step) -> &'static str {
+    match step {
+        Step::Game => STEP_GAME,
+        Step::Storage => STEP_STORAGE,
+        Step::Instance => STEP_INSTANCE,
+        Step::Engine => STEP_ENGINE,
+        Step::LoadOrder => STEP_LOAD_ORDER,
+    }
+}
+
 /// The error a block shows.
 pub(crate) fn block_text(block: Block) -> ErrorText {
     match block {
@@ -252,7 +300,12 @@ impl Page for Home {
         if self.state.launch == Launch::Started {
             return STATE_RUNNING.to_owned();
         }
-        if self.state.config.is_pending() || self.state.engine.is_pending() {
+        if let Readiness::Next(step) = self.state.readiness()
+            && self.state.attention().is_empty()
+        {
+            return STATE_NEXT.replace("{step}", step_text(step));
+        }
+        if self.state.reading() {
             return STATE_CHECKING.to_owned();
         }
         match self.state.attention().len() {
@@ -269,7 +322,7 @@ impl Page for Home {
     }
 
     fn tools(&mut self, ui: &mut egui::Ui, _cx: &mut PageCx<'_>) {
-        let busy = self.state.config.is_pending() || self.state.engine.is_pending();
+        let busy = self.state.reading();
         if ui
             .add_enabled(!busy, egui::Button::new(CHECK_AGAIN))
             .clicked()
@@ -286,11 +339,7 @@ impl Page for Home {
             self.play_waiting = false;
             cx.shell.play_requested = false;
         }
-        if returned
-            && self.state.launch != Launch::Starting
-            && !self.state.config.is_pending()
-            && !self.state.engine.is_pending()
-        {
+        if returned && self.state.launch != Launch::Starting && !self.state.reading() {
             if self.state.launch == Launch::Started {
                 // `raul run` returned once the game started; coming back, Home shows readiness again.
                 self.state.launch = Launch::Idle;
@@ -315,7 +364,7 @@ impl Page for Home {
         }
         // The shell's Play: start once the reads are in; a block found by then is explained, not started.
         if cx.shell.play_requested {
-            if self.state.config.is_pending() || self.state.engine.is_pending() {
+            if self.state.reading() {
                 self.play_waiting = true;
             } else {
                 cx.shell.play_requested = false;
@@ -368,12 +417,17 @@ impl Home {
         let t = *cx.tokens;
         shell::section_label(ui, &t, SECTION_LAUNCH, true);
         let block = self.state.block();
-        let checking = self.state.config.is_pending() || self.state.engine.is_pending();
+        let checking = self.state.reading();
         let line = match (&self.state.launch, block) {
             (Launch::Started, _) => Some(RAUL_STARTED),
             (Launch::Failed(_), _) | (_, Some(_)) => None,
             _ if checking => None,
-            _ if self.state.attention().is_empty() => Some(RAUL_READY),
+            _ if self.state.readiness() == Readiness::Ready
+                && self.state.attention().is_empty() =>
+            {
+                Some(RAUL_READY)
+            }
+            _ if self.state.attention().is_empty() => None,
             _ => Some(RAUL_WARNINGS),
         };
         if let Some(line) = line {
@@ -403,6 +457,20 @@ impl Home {
                 }
             });
             ui.label(RichText::new(e.detail).color(t.muted.color()));
+        }
+        if let Readiness::Next(step) = self.state.readiness()
+            && block.is_none()
+        {
+            ui.horizontal_wrapped(|ui| {
+                icon(ui, &t, Mark::Warning);
+                ui.label(
+                    RichText::new(STATE_NEXT.replace("{step}", step_text(step)))
+                        .color(t.muted.color()),
+                );
+                if ui.button(FIX).clicked() {
+                    cx.shell.go_to = Some(step.fix());
+                }
+            });
         }
         if let Launch::Failed(why) = &self.state.launch {
             error_block(ui, &t, &RUN_FAILED, Some(why));
@@ -719,6 +787,22 @@ pub fn fixtures() -> Vec<Fixture> {
         ),
         Fixture::new("engine-differs", seen(State::ready(all.clone(), differs))),
         Fixture::new("ready", seen(State::ready(all.clone(), Engine::active()))),
+        Fixture::new(
+            "no-instance",
+            seen(State {
+                instance_exists: Some(false),
+                ..State::ready(all.clone(), Engine::active())
+            }),
+        ),
+        Fixture::new(
+            "bad-load-order",
+            seen(State {
+                load_order: Fetch::Failed(
+                    "raul plugins list: refused: the Instance has no profile".into(),
+                ),
+                ..State::ready(all.clone(), Engine::active())
+            }),
+        ),
         Fixture::new("ttw-ready", seen(State::ready(ttw, Engine::active()))),
         Fixture::new(
             "warning",
