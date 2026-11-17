@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794914125833,
+  "lastUpdate": 1794918849591,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -2106,6 +2106,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.648776999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e8acb88cd8ba4be38f7a01d3f8cba267b42ef4c5",
+          "message": "fix(gui): say ready to play only when the game can start (#186)\n\n* wip: truthful ready to play\n\n* wip: readiness gates Play, settles reads without settings, explains the missing step\n\n* fix(gui): answer the Play press on either dialog answer, name a step once, settle reads without an Instance",
+          "timestamp": "2026-11-17T13:32:52+01:00",
+          "tree_id": "aedf2f9a1a0f55a790a3cc3bd7463a6606bb2988",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e8acb88cd8ba4be38f7a01d3f8cba267b42ef4c5"
+        },
+        "date": 1794918848879,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.1194499999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.684779,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.810964,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.548578,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.894111,
             "unit": "ms"
           }
         ]
