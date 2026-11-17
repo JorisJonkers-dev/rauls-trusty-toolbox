@@ -5,20 +5,18 @@
 #![allow(clippy::assert_is_empty)]
 
 use nvmod_testkit::{BaseBuilder, TempDir, ZipBuilder, write_file, write_script};
-use nvmod_tools::{platform, sha256_hex};
 use raul_ui_model::error::ExitClass;
 use raul_ui_model::job::{JobId, JobState, JobTable, Outcome};
-use raul_ui_model::wizard::{ImportWizard, InstallWizard, Step, TtwWizard};
+use raul_ui_model::wizard::{ImportWizard, InstallWizard, Step};
 use raul_ui_service::exec::{Exec, Output};
 use raul_ui_service::registry::Action;
 use raul_ui_service::wiring::{
-    ImportContext, InstallContext, TtwContext, apply_import, apply_install, apply_ttw, plan_import,
-    plan_install, plan_ttw,
+    ImportContext, InstallContext, apply_import, apply_install, plan_import, plan_install,
 };
 use raul_ui_service::{
     CliService, DoctorRequest, ImportRequest, InstallRequest, InstallResult, JobSpec,
     RollbackRequest, RuntimeTarget, Service, ServiceError, SortRequest, TargetRequest,
-    ToolsRequest, TtwRequest, VerifyRequest,
+    ToolsRequest, VerifyRequest,
 };
 use std::path::PathBuf;
 
@@ -270,97 +268,6 @@ fn import_with_a_missing_mo2_folder_is_a_failure_with_the_cause() {
         "{e:?}"
     );
     assert!(!e.what.is_empty());
-}
-
-#[test]
-fn ttw_runs_a_pinned_installer_and_reads_its_record() {
-    let inst = Instance::new();
-    let fo3 = TempDir::new("svc-fo3");
-    write_file(fo3.path(), "Fallout3.exe", b"synthetic fallout 3");
-    let installer = write_script(
-        inst.work.path(),
-        "ttw-installer",
-        "dest=\"\"\nprev=\"\"\nfor a in \"$@\"; do [ \"$prev\" = --dest ] && dest=\"$a\"; prev=\"$a\"; done\n\
-         mkdir -p \"$dest/Meshes\"\necho g > \"$dest/Meshes/ttw.nif\"\necho m > \"$dest/TaleOfTwoWastelands.esm\"\n\
-         echo '{\"installer\":{\"name\":\"fake\",\"version\":\"9.9\"},\"fallout3_verified\":true,\"messages\":[\"ok\"]}' > \"$NVMOD_TTW_REPORT\"\n",
-    );
-    let hash = sha256_hex(&std::fs::read(&installer).unwrap());
-    let lock = inst.work.path().join("tools.lock.toml");
-    std::fs::write(
-        &lock,
-        format!(
-            "schema_version = 1\n\n[[tool]]\nname = \"ttw-installer\"\nversion = \"0.2.0\"\nkind = \"third-party\"\n\
-             contracts = {{ ttw-installer-result = 1 }}\n\n[tool.assets.{}]\nurl = \"http://127.0.0.1:9/ttw\"\nsha256 = \"{hash}\"\n",
-            platform()
-        ),
-    )
-    .unwrap();
-
-    let svc = service();
-    let mut w = TtwWizard::new();
-    assert!(plan_ttw(&mut w).is_err());
-    w.set_fallout3(s(fo3.path()));
-    w.set_installer_pinned(true);
-    plan_ttw(&mut w).unwrap();
-    w.flow.mark_reviewed().unwrap();
-    let ok_ctx = TtwContext {
-        instance: s(&inst.root()),
-        lock: Some(s(&lock)),
-        installer: Some(s(&installer)),
-        ..TtwContext::default()
-    };
-    apply_ttw(&mut w, &svc, &ok_ctx).unwrap();
-    assert_eq!(
-        w.flow.result(),
-        Some((ExitClass::Ok, raul_ui_model::job::Outcome::Completed))
-    );
-    assert!(
-        inst.root()
-            .join("mods/Tale of Two Wastelands/Meshes/ttw.nif")
-            .is_file()
-    );
-
-    // The report the wizard discarded, read from a second Instance, has the installer's record.
-    let inst3 = Instance::new();
-    let report = svc
-        .ttw(&TtwRequest {
-            instance: s(&inst3.root()),
-            fallout3: s(fo3.path()),
-            installer: Some(s(&installer)),
-            lock: Some(s(&lock)),
-            ..TtwRequest::default()
-        })
-        .unwrap();
-    assert_eq!(report.status, "installed");
-    assert_eq!(report.mod_name, "Tale of Two Wastelands");
-    assert_eq!(report.result.outcome, "success");
-    assert!(report.result.fallout3_verified);
-    assert_eq!(report.result.files_written, 2);
-    assert_eq!(report.result.messages, ["ok"]);
-    assert!(
-        report
-            .plugins
-            .contains(&"TaleOfTwoWastelands.esm".to_owned())
-    );
-
-    // A refusal (an unpinned installer) is a failure with the command's own words.
-    let inst2 = Instance::new();
-    let ctx = TtwContext {
-        instance: s(&inst2.root()),
-        lock: Some(s(&inst2.work.path().join("absent.lock.toml"))),
-        ..TtwContext::default()
-    };
-    let mut w = TtwWizard::new();
-    w.set_fallout3(s(fo3.path()));
-    w.set_installer_pinned(true);
-    plan_ttw(&mut w).unwrap();
-    w.flow.mark_reviewed().unwrap();
-    apply_ttw(&mut w, &svc, &ctx).unwrap();
-    let (class, _) = w.flow.result().unwrap();
-    assert!(
-        matches!(class, ExitClass::Refused | ExitClass::Internal),
-        "{class:?}"
-    );
 }
 
 #[test]

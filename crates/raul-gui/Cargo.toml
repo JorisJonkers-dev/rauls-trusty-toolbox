@@ -59,7 +59,6 @@ raul-ui-service = { path = "crates/raul-ui-service" }
 raul-cli = { path = "../raul-cli" }
 raul-runner = { path = "../raul-runner" }
 nvmod-testkit = { path = "../../components/nvmod-rs/crates/nvmod-testkit" }
-nvmod-tools = { path = "../../components/nvmod-rs/crates/nvmod-tools" }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"
 # The toolkit (ADR-0012): glow renders with OpenGL, which software rendering covers on a machine with no GPU.

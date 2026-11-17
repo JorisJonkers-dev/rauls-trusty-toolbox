@@ -17,7 +17,6 @@ serde_json = { workspace = true }
 [dev-dependencies]
 raul-cli = { workspace = true }
 nvmod-testkit = { workspace = true }
-nvmod-tools = { workspace = true }
 
 [lints]
 workspace = true
