@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794954039161,
+  "lastUpdate": 1794954560624,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -2890,6 +2890,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.972268,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "acc63e16a9f24d0e273071cc02ba075f0b662634",
+          "message": "feat(gui): find the newest valid TTW package over several folders (#228)",
+          "timestamp": "2026-11-17T23:27:59+01:00",
+          "tree_id": "5bddaf2f92892402357dbacb6b8bbf0cfdf73228",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/acc63e16a9f24d0e273071cc02ba075f0b662634"
+        },
+        "date": 1794954559857,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.0801260000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.632425,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.628729,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.496547,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.028468999999999,
             "unit": "ms"
           }
         ]
