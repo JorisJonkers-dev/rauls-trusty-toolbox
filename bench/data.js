@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794908794529,
+  "lastUpdate": 1794909043050,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1714,6 +1714,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.743056,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "265874a2fa66b8b4e29718697e2f536f6ce76e87",
+          "message": "ci: follow Component releases with a self-hosted Renovate run (#154)\n\nA scheduled Renovate run finds each new release of nv-rs, nvmod, lodwright-rs and ttwright-rs and opens one pull request that moves the submodule, adds a Known-good set and refreshes both lock files. nvmod moves with the loot-rs it links. The Component repositories send nothing. Replaces the dispatch-driven Component bump workflow.",
+          "timestamp": "2026-11-17T10:49:24+01:00",
+          "tree_id": "14cc29893cdd64cc87a237ff062cfe5486c128eb",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/265874a2fa66b8b4e29718697e2f536f6ce76e87"
+        },
+        "date": 1794909042330,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.094277,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.632538,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.331916,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.498664,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.3169319999999995,
             "unit": "ms"
           }
         ]
