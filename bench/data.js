@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794901992149,
+  "lastUpdate": 1794903549992,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1273,6 +1273,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.835089,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dfd987a9f335afde48d98232ea05196523a84b28",
+          "message": "feat(lod): raul lod generate runs lodwright with the request and keeps its output as one Mod (#127)\n\n* feat(lod): raul lod generate runs lodwright with the request and keeps its output as one Mod\n\n* fix(lod): keep the new Mod with a warning when the old one cannot be removed, and cap the timeout\n\n* fix(lod): clear a stale backup Mod first, name a failed rename-back, and report a stop during the replace as cancelled\n\n* test(lod): run raul lod generate against the real lodwright in CI\n\nThe new test builds a synthetic world with lodwright's own test kit, makes it the game master of an Instance,\nand runs `raul lod generate` twice with the real lodwright program: the first run leaves one enabled Mod with\nlodwright's files, the second answers up_to_date and changes nothing. It sits behind the real-lodwright feature,\nso a plain cargo test needs no lodwright.\n\nCI downloads the Linux release asset of the lodwright-rs version in the shipped Known-good set, checks it\nagainst that release's SHA256SUMS, lints the test and runs it.\n\n* fix(lod): put back a backup an interrupted run left alone, and list lod generate in the help\n\nA backup Mod with no LOD Mod beside it is the only copy: an earlier run stopped between moving the old Mod\nout of the way and adding the new one. It used to be removed first, so a later run whose install failed lost\nthe Mod. It is now renamed back first; a backup beside a LOD Mod is still removed.\n\nA stale events file that cannot be removed now fails the run instead of being read as this run's progress.\n`raul help` and the usage line of `raul lod` name `lod generate` and its flags.\n\n* fix(gui): lod generate is in raul help now, so its registry entry no longer waits for #127\n\n* test(gui): pin lod generate's refusal on the fixture, which has no lodwright program",
+          "timestamp": "2026-11-17T09:18:03+01:00",
+          "tree_id": "6bbe1e1b0e3118e58339e0886f6e180d43b2481e",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/dfd987a9f335afde48d98232ea05196523a84b28"
+        },
+        "date": 1794903549364,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.652225,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.51176,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.362569,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 3.853951,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.287939,
             "unit": "ms"
           }
         ]
