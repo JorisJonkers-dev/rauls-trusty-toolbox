@@ -2,7 +2,8 @@
 //! The Toolbox's own Contracts: the schema files in `contracts/` equal the ones generated from the Rust types, and
 //! every fixture in `contracts/fixtures/<name>/` (a `.json` document, or a `.ndjson` stream of one per line) is
 //! valid against its schema and reads back into its type unchanged. The `ttwright-result` documents the fixtures
-//! carry are valid against the snapshot of ttwright-rs v0.3.0's schema in `contracts/snapshots/`.
+//! carry are valid against the snapshot of ttwright-rs v0.3.0's schema in `contracts/snapshots/`, and every snapshot
+//! equals the schema its pinned Component publishes.
 //! `RAUL_BLESS_CONTRACTS=1 cargo test -p raul-core --test contracts` rewrites the schema files.
 
 use std::path::{Path, PathBuf};
@@ -233,5 +234,50 @@ fn lod_result_fixtures_read_back_and_carry_valid_lodwright_results() {
                     .as_ref()
                     .is_some_and(|l| l["code"] == "up_to_date")
         );
+    }
+}
+
+/// Where each pinned Component keeps the schemas it attaches to its releases.
+const SNAPSHOT_SOURCES: [(&str, &str); 2] = [
+    ("lodwright-rs", "components/lodwright-rs/schemas"),
+    ("ttwright-rs", "components/ttwright-rs/contracts"),
+];
+
+#[test]
+fn every_snapshot_equals_the_schema_of_the_pinned_component() {
+    let root = contracts_dir().join("..");
+    let text = |p: &Path| {
+        std::fs::read_to_string(p)
+            .unwrap_or_else(|e| panic!("{}: {e}", p.display()))
+            .replace("\r\n", "\n")
+    };
+    let snapshots = contracts_dir().join("snapshots");
+    let mut dirs: Vec<String> = std::fs::read_dir(&snapshots)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    dirs.sort();
+    let mut known: Vec<String> = SNAPSHOT_SOURCES.iter().map(|(c, _)| (*c).into()).collect();
+    known.sort();
+    assert_eq!(dirs, known, "a snapshot folder without a source here");
+    for (component, source) in SNAPSHOT_SOURCES {
+        let dir = snapshots.join(component);
+        let mut files: Vec<PathBuf> = std::fs::read_dir(&dir)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| p.extension().is_some_and(|e| e == "json"))
+            .collect();
+        files.sort();
+        assert!(!files.is_empty(), "{}: no snapshot", dir.display());
+        for snapshot in files {
+            let published = root.join(source).join(snapshot.file_name().unwrap());
+            assert_eq!(
+                text(&snapshot),
+                text(&published),
+                "{} differs from {} at the pinned release",
+                snapshot.display(),
+                published.display()
+            );
+        }
     }
 }
