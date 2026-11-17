@@ -14,6 +14,7 @@ use crate::error::{ExitClass, ViewError};
 use crate::events::Status;
 use crate::job::Outcome;
 use crate::wizard::{FlowError, Step as FlowStep, TtwNeed, TtwWizard};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -200,6 +201,79 @@ pub fn find_package(folder: &Path) -> Option<PathBuf> {
         }
     }
     best.map(|(_, path)| path)
+}
+
+/// The smallest size a finished package has: a smaller file is a partial download.
+pub const MIN_PACKAGE_BYTES: u64 = 1_000_000;
+
+/// The four bytes a package starts with: it is a zip-like container.
+const PACKAGE_HEADER: [u8; 4] = *b"PK\x03\x04";
+
+/// A file that passed [`check_package`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PackageInfo {
+    /// The package file.
+    pub path: PathBuf,
+    /// Its size in bytes.
+    pub size: u64,
+}
+
+/// Why [`check_package`] refused a file, in the words the page says it in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PackageProblem {
+    /// The file cannot be read.
+    NotThere,
+    /// The name is not a TTW package name: a download in progress ends in `.part`, `.crdownload` or `.tmp`.
+    WrongName,
+    /// Smaller than [`MIN_PACKAGE_BYTES`]: a partial download.
+    TooSmall,
+    /// The first bytes are not the package header, so the file is not a package.
+    NotAPackage,
+}
+
+impl PackageProblem {
+    /// One short plain sentence saying why the file was refused: no tool names and no paths in it.
+    pub fn why(&self) -> &'static str {
+        match self {
+            PackageProblem::NotThere => "The file cannot be read.",
+            PackageProblem::WrongName => "The name is not a TTW package name.",
+            PackageProblem::TooSmall => "The file is too small: the download did not finish.",
+            PackageProblem::NotAPackage => {
+                "The file does not start like a TTW package, so it is not one."
+            }
+        }
+    }
+}
+
+/// Whether `path` can be the package: the name is a TTW package name, the file is at least
+/// [`MIN_PACKAGE_BYTES`] bytes big and its first four bytes are the package header. Only the first four
+/// bytes of the file are read.
+///
+/// # Errors
+/// [`PackageProblem::NotThere`] when the file cannot be read, [`PackageProblem::WrongName`] when the name
+/// is not a TTW package name (a download in progress ends in `.part`, `.crdownload` or `.tmp`),
+/// [`PackageProblem::TooSmall`] when the file is a partial download and [`PackageProblem::NotAPackage`]
+/// when the first bytes are not the package header.
+pub fn check_package(path: &Path) -> Result<PackageInfo, PackageProblem> {
+    let name = path.file_name().map_or_default(|n| n.to_string_lossy());
+    if !is_package(&name) {
+        return Err(PackageProblem::WrongName);
+    }
+    let mut file = std::fs::File::open(path).map_err(|_| PackageProblem::NotThere)?;
+    let size = file.metadata().map_err(|_| PackageProblem::NotThere)?.len();
+    if size < MIN_PACKAGE_BYTES {
+        return Err(PackageProblem::TooSmall);
+    }
+    let mut head = [0_u8; 4];
+    file.read_exact(&mut head)
+        .map_err(|_| PackageProblem::NotThere)?;
+    if head != PACKAGE_HEADER {
+        return Err(PackageProblem::NotAPackage);
+    }
+    Ok(PackageInfo {
+        path: path.to_path_buf(),
+        size,
+    })
 }
 
 /// The folders directly under `folder`, in the order the file system lists them.
@@ -897,5 +971,86 @@ mod tests {
             Report::of(Status::Unverifiable, false).exit(),
             ExitClass::VerificationFailed
         );
+    }
+
+    /// A package-shaped body of `len` bytes: the header, then whatever fills it out.
+    fn package_body(len: usize) -> Vec<u8> {
+        let mut body = vec![0; len];
+        body[..PACKAGE_HEADER.len()].copy_from_slice(&PACKAGE_HEADER);
+        body
+    }
+
+    fn big() -> usize {
+        usize::try_from(MIN_PACKAGE_BYTES).unwrap()
+    }
+
+    #[test]
+    fn a_package_that_is_there_and_big_enough_passes_with_its_size() {
+        let scratch = Scratch::new("check-good");
+        let path = scratch.0.join("TTW_3.4.0.mpi");
+        std::fs::write(&path, package_body(big())).unwrap();
+        let info = check_package(&path).unwrap();
+        assert_eq!(info.path, path);
+        assert_eq!(info.size, MIN_PACKAGE_BYTES);
+    }
+
+    #[test]
+    fn a_package_that_is_still_downloading_is_too_small() {
+        let scratch = Scratch::new("check-short");
+        let path = scratch.0.join("TTW_3.4.0.mpi");
+        std::fs::write(&path, package_body(16)).unwrap();
+        assert_eq!(check_package(&path), Err(PackageProblem::TooSmall));
+    }
+
+    #[test]
+    fn a_file_that_does_not_start_like_a_package_is_refused() {
+        let scratch = Scratch::new("check-head");
+        let path = scratch.0.join("TTW_3.4.0.mpi");
+        let mut body = package_body(big());
+        body[..PACKAGE_HEADER.len()].copy_from_slice(b"notz");
+        std::fs::write(&path, body).unwrap();
+        assert_eq!(check_package(&path), Err(PackageProblem::NotAPackage));
+    }
+
+    #[test]
+    fn a_download_in_progress_is_not_a_package_name() {
+        let scratch = Scratch::new("check-part");
+        for name in [
+            "TTW_3.4.0.mpi.part",
+            "TTW_3.4.0.mpi.crdownload",
+            "TTW_3.4.0.mpi.tmp",
+        ] {
+            let path = scratch.0.join(name);
+            std::fs::write(&path, package_body(big())).unwrap();
+            assert_eq!(check_package(&path), Err(PackageProblem::WrongName));
+        }
+    }
+
+    #[test]
+    fn a_package_that_is_not_there_cannot_be_read() {
+        let scratch = Scratch::new("check-missing");
+        assert_eq!(
+            check_package(&scratch.0.join("TTW_missing.mpi")),
+            Err(PackageProblem::NotThere)
+        );
+    }
+
+    #[test]
+    fn every_reason_is_one_short_plain_sentence() {
+        let problems = [
+            PackageProblem::NotThere,
+            PackageProblem::WrongName,
+            PackageProblem::TooSmall,
+            PackageProblem::NotAPackage,
+        ];
+        let mut whys: Vec<&str> = problems.iter().map(PackageProblem::why).collect();
+        for why in &whys {
+            assert!(why.ends_with('.'), "{why}");
+            assert!(!why.contains('/') && !why.contains('\\'), "{why}");
+            assert!(!why.to_lowercase().contains("raul"), "{why}");
+        }
+        whys.sort_unstable();
+        whys.dedup();
+        assert_eq!(whys.len(), 4, "each problem says something of its own");
     }
 }
