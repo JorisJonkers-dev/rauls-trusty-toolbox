@@ -172,16 +172,12 @@ impl DoctorScreen {
 
     /// The findings shown: at or above the filter, the most serious first and in check order within a severity.
     pub fn visible(&self) -> Vec<&DoctorFinding> {
-        let mut rows: Vec<&DoctorFinding> = self
-            .load
-            .value()
-            .map(|v| {
-                v.findings
-                    .iter()
-                    .filter(|f| f.severity >= self.min)
-                    .collect()
-            })
-            .unwrap_or_default();
+        let mut rows: Vec<&DoctorFinding> = self.load.value().map_or_default(|v| {
+            v.findings
+                .iter()
+                .filter(|f| f.severity >= self.min)
+                .collect()
+        });
         rows.sort_by_key(|f| std::cmp::Reverse(f.severity));
         rows
     }

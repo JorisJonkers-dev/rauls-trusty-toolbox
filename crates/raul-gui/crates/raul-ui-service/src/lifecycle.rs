@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The typed calls of the Mods screen for the Mod lifecycle and the separators: `nvmod mods remove|rename|create|
+//! The typed calls of the Mods screen for the Mod lifecycle and the separators: `raul mods remove|rename|create|
 //! clone|hide|unhide|note`, `mods separator ...` and `mods category set`, as requests that print their command
 //! line and the typed JSON the commands answer with. Colours and the collapsed state of a separator are opaque
 //! values that only the GUI sets; they are not part of these calls.
@@ -111,7 +111,7 @@ pub struct LifecycleRequest {
 }
 
 impl LifecycleRequest {
-    /// The words after `nvmod mods`, before `--json`.
+    /// The words after `raul mods`, before `--json`.
     pub fn args(&self) -> Vec<String> {
         let mut rest: Vec<String> = Vec::new();
         let words =
@@ -181,7 +181,7 @@ fn place(rest: &mut Vec<String>, at: &Where) {
     }
 }
 
-/// What `nvmod mods remove|rename|...` print with `--json`.
+/// What `raul mods remove|rename|...` print with `--json`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct LifecycleReport {
     /// `changed`, `unchanged` or `dry-run`.
@@ -207,11 +207,11 @@ pub struct LifecycleReport {
     pub detail: Option<String>,
     /// Files in the Staging tree after the change.
     pub staged_files: Option<usize>,
-    /// The journal `nvmod rollback` undoes.
+    /// The journal `raul rollback` undoes.
     pub journal: Option<String>,
 }
 
-/// One category of a Mod in `nvmod mods list --json`.
+/// One category of a Mod in `raul mods list --json`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct CategoryEntry {
     /// The id.

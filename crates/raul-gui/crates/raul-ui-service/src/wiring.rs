@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! Drives the wizards of `nvmod-ui-model` with a [`Service`]. Each function does one transition of the shared
+//! Drives the wizards of `raul-ui-model` with a [`Service`]. Each function does one transition of the shared
 //! plan, review, apply machine: the wizard is in the step the function needs and ends in the step the result
 //! calls for. The service's reports and errors are the only source of what the wizards show.
 
@@ -8,10 +8,10 @@ use crate::service::{
     ImportRequest, InstallRequest, InstallResult, ModsRequest, RollbackRequest, Service,
     ServiceError, TtwRequest,
 };
-use nvmod_ui_model::error::{ExitClass, ViewError};
-use nvmod_ui_model::job::Outcome;
-use nvmod_ui_model::mods::{ModRow, ModStep, ModsScreen};
-use nvmod_ui_model::wizard::{Blocker, Flow, FlowError, ImportWizard, InstallWizard, TtwWizard};
+use raul_ui_model::error::{ExitClass, ViewError};
+use raul_ui_model::job::Outcome;
+use raul_ui_model::mods::{ModRow, ModStep, ModsScreen};
+use raul_ui_model::wizard::{Blocker, Flow, FlowError, ImportWizard, InstallWizard, TtwWizard};
 
 /// What the install wizard needs besides what it holds itself.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -73,7 +73,7 @@ fn install_request(w: &InstallWizard, ctx: &InstallContext, dry_run: bool) -> In
         dry_run,
         answers: w
             .fomod()
-            .map(nvmod_ui_model::wizard::FomodWizard::answers_json),
+            .map(raul_ui_model::wizard::FomodWizard::answers_json),
     }
 }
 
@@ -240,7 +240,7 @@ impl ModsPreview {
     }
 }
 
-/// Dry-runs the staged edits of the Mods screen, one `nvmod mods ... --dry-run` per step, and writes nothing.
+/// Dry-runs the staged edits of the Mods screen, one `raul mods ... --dry-run` per step, and writes nothing.
 /// An empty answer means nothing is staged.
 ///
 /// # Errors
@@ -275,13 +275,13 @@ pub struct ModsApplied {
     pub total: usize,
     /// Why a step failed. The earlier steps were undone ([`ModsApplied::undone`]) so the Instance is as it was.
     pub error: Option<ViewError>,
-    /// The earlier steps that were undone with `nvmod rollback` after a failure.
+    /// The earlier steps that were undone with `raul rollback` after a failure.
     pub undone: usize,
 }
 
-/// Applies the staged edits of the Mods screen, one `nvmod mods ...` per step. When every step went through the
+/// Applies the staged edits of the Mods screen, one `raul mods ...` per step. When every step went through the
 /// screen is reloaded from the last report (so nothing is staged any more). When one fails, the steps before it
-/// are undone with `nvmod rollback` (each step has its own journal), the edits stay staged, and the error says
+/// are undone with `raul rollback` (each step has its own journal), the edits stay staged, and the error says
 /// what happened; an undo that fails too is said in the error, with how many steps are still applied.
 pub fn apply_mods(
     screen: &mut ModsScreen,
@@ -307,7 +307,7 @@ pub fn apply_mods(
                     };
                     if let Err(why) = service.rollback(&undo) {
                         error.effect = format!(
-                            "{} step(s) are still applied: undo them with `nvmod rollback`. {}",
+                            "{} step(s) are still applied: undo them with `raul rollback`. {}",
                             journaled - undone,
                             why.view_error().what
                         );

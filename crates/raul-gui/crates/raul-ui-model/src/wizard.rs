@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The install and FOMOD, MO2 import and TTW wizards (documents 01 and 04).
 //!
-//! All three share one rule of document 04: a wizard plans first (nothing is written), the user reviews the plan,
+//! All three share one rule: a wizard plans first (nothing is written), the user reviews the plan,
 //! and only then can it apply. [`Flow`] holds that rule once; each wizard adds its own inputs and blockers.
 
 use crate::error::{ExitClass, ViewError};
@@ -131,7 +131,7 @@ impl Flow {
         Ok(())
     }
 
-    /// The adapter showed the review panel (document 04: `Action::Reviewed`).
+    /// The adapter showed the review panel (`Action::Reviewed`).
     ///
     /// # Errors
     /// [`FlowError::WrongStep`] outside the review step.
@@ -341,7 +341,7 @@ impl FomodWizard {
         self.questions
             .iter()
             .find(|q| q.id == id)
-            .map(|q| {
+            .map_or_default(|q| {
                 q.options
                     .iter()
                     .filter(|o| {
@@ -350,7 +350,6 @@ impl FomodWizard {
                     .map(|o| o.name.clone())
                     .collect()
             })
-            .unwrap_or_default()
     }
 
     /// Records the choice for a question.
@@ -423,7 +422,7 @@ impl FomodWizard {
         self.questions.iter().all(|q| self.is_answered(&q.id))
     }
 
-    /// The answers file `nvmod install-mod --answers` reads: question id to the chosen option names.
+    /// The answers file `raul install-mod --answers` reads: question id to the chosen option names.
     pub fn answers_json(&self) -> serde_json::Value {
         serde_json::to_value(&self.answers).unwrap_or_default()
     }
@@ -627,7 +626,7 @@ impl ImportWizard {
     /// The command that does the same, for the equivalent-command strip.
     pub fn equivalent_command(&self) -> Option<String> {
         let mo2 = self.mo2.as_ref()?;
-        let mut c = format!("nvmod import-mo2 --mo2 {mo2} --instance <dir> --base <dir>");
+        let mut c = format!("raul import-mo2 --mo2 {mo2} --instance <dir> --base <dir>");
         if let Some(p) = &self.profile {
             c.push_str(" --profile ");
             c.push_str(p);
@@ -747,7 +746,7 @@ impl TtwWizard {
     /// The command that does the same.
     pub fn equivalent_command(&self) -> Option<String> {
         let f3 = self.fallout3.as_ref()?;
-        Some(format!("nvmod ttw --instance <dir> --fallout3 {f3}"))
+        Some(format!("raul ttw --instance <dir> --fallout3 {f3}"))
     }
 }
 
@@ -985,7 +984,7 @@ mod tests {
         w.set_copy_only(true);
         assert_eq!(
             w.equivalent_command().unwrap(),
-            "nvmod import-mo2 --mo2 /mo2 --instance <dir> --base <dir> --profile Default --copy"
+            "raul import-mo2 --mo2 /mo2 --instance <dir> --base <dir> --profile Default --copy"
         );
         w.plan().unwrap();
         w.plan_ready(vec![Blocker {
@@ -1003,7 +1002,7 @@ mod tests {
         assert!(ok.flow.can_apply());
         assert_eq!(
             ok.equivalent_command().unwrap(),
-            "nvmod import-mo2 --mo2 /m --instance <dir> --base <dir>"
+            "raul import-mo2 --mo2 /m --instance <dir> --base <dir>"
         );
     }
 
@@ -1026,7 +1025,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             w.equivalent_command().unwrap(),
-            "nvmod ttw --instance <dir> --fallout3 /fo3"
+            "raul ttw --instance <dir> --fallout3 /fo3"
         );
         assert_eq!(TtwWizard::default().needs().len(), 2);
     }

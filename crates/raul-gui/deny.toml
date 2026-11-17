@@ -1,0 +1,53 @@
+# Licences, bans, sources and advisories for the GUI workspace (ADR-0004): the GUI crates, and through raul-cli the
+# nvmod and loot-rs crates the umbrella workspace links. Run from this folder: `cargo deny --locked check`.
+# The project is GPL-3.0-only; every third-party licence allowed below is compatible with it. Nothing is "allowed by
+# default": a licence not listed is refused.
+
+[graph]
+targets = ["x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc", "aarch64-apple-darwin", "x86_64-apple-darwin"]
+all-features = false
+
+[output]
+feature-depth = 1
+
+[advisories]
+version = 2
+db-urls = ["https://github.com/rustsec/advisory-db"]
+# Add RUSTSEC ids here only with a comment saying why the advisory does not apply.
+ignore = []
+yanked = "warn"
+
+[licenses]
+version = 2
+allow = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "CC0-1.0",
+]
+confidence-threshold = 0.8
+exceptions = []
+
+# The workspace crates are publish = false; their own licence is checked by the SPDX guard instead.
+[licenses.private]
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+allow-wildcard-paths = true
+highlight = "all"
+deny = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# loot-rs is linked as a library, pinned to a release tag (see Cargo.toml and ADR-0003 of nv-linux).
+allow-git = ["https://github.com/JorisJonkers-dev/loot-rs"]

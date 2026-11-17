@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The read-only calls `nvmod conflicts` and `nvmod tree`: requests and the typed JSON they print.
+//! The read-only calls `raul conflicts` and `raul tree`: requests and the typed JSON they print.
 
 use crate::service::{push, push_opt};
 use serde::Deserialize;
 
-/// What `nvmod conflicts` needs.
+/// What `raul conflicts` needs.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ConflictsRequest {
     /// The Instance folder.
@@ -16,7 +16,7 @@ pub struct ConflictsRequest {
 }
 
 impl ConflictsRequest {
-    /// The words after `nvmod conflicts`, before `--json`.
+    /// The words after `raul conflicts`, before `--json`.
     pub fn args(&self) -> Vec<String> {
         let mut rest = Vec::new();
         push(&mut rest, "instance", &self.instance);
@@ -26,7 +26,7 @@ impl ConflictsRequest {
     }
 }
 
-/// What `nvmod tree` needs.
+/// What `raul tree` needs.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TreeRequest {
     /// The Instance folder.
@@ -38,7 +38,7 @@ pub struct TreeRequest {
 }
 
 impl TreeRequest {
-    /// The words after `nvmod tree`, before `--json`.
+    /// The words after `raul tree`, before `--json`.
     pub fn args(&self) -> Vec<String> {
         let mut rest = Vec::new();
         push(&mut rest, "instance", &self.instance);
@@ -100,7 +100,7 @@ pub struct ModConflict {
     pub overwritten_by_mods: Vec<String>,
 }
 
-/// `nvmod conflicts --json`.
+/// `raul conflicts --json`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct ConflictsReport {
     /// The profile.
@@ -122,7 +122,7 @@ pub struct TreeEntry {
     pub source_path: String,
 }
 
-/// `nvmod tree --json`.
+/// `raul tree --json`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct TreeReport {
     /// The profile.
@@ -131,7 +131,7 @@ pub struct TreeReport {
     pub entries: Vec<TreeEntry>,
 }
 
-/// What `nvmod plugins list` needs.
+/// What `raul plugins list` needs.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PluginsRequest {
     /// The Instance folder.
@@ -141,7 +141,7 @@ pub struct PluginsRequest {
 }
 
 impl PluginsRequest {
-    /// The words after `nvmod plugins`, before `--json`.
+    /// The words after `raul plugins`, before `--json`.
     pub fn args(&self) -> Vec<String> {
         let mut rest = vec!["list".to_owned()];
         push(&mut rest, "instance", &self.instance);
@@ -161,7 +161,7 @@ pub struct MasterRow {
     pub active: bool,
 }
 
-/// One plugin of `nvmod plugins list --json`.
+/// One plugin of `raul plugins list --json`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct PluginRow {
@@ -198,7 +198,7 @@ pub struct LockRow {
     pub listed: bool,
 }
 
-/// `nvmod plugins list --json` (schema `schemas/plugins-list.v1.json`).
+/// `raul plugins list --json` (schema `schemas/plugins-list.v1.json`).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct PluginsReport {
     /// The version of the layout.

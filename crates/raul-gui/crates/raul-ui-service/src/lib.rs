@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The service seam of the nvmod GUI (`docs/design/gui/04-view-model-api.md` in nv-linux).
+//! The service seam of the Toolbox GUI (ADR-0003, ADR-0007), moved from nvmod-rs with its history.
 //!
-//! * [`Service`]: what screens and wizards ask of the world. [`CliService`] answers by running the `nvmod`
-//!   command line as a subprocess and reading its `--json` output, [`FakeService`] from a script.
-//! * [`jobs`]: runs a command line as a job whose events go into the job table of `nvmod-ui-model`.
+//! * [`Service`]: what screens and wizards ask of the world. [`CliService`] answers by running the `raul`
+//!   command line through the streaming Runner and reading its `--json` output, [`FakeService`] from a script.
+//! * [`jobs`]: runs a command line as a job whose events go into the job table of `raul-ui-model`.
 //! * [`registry`]: the table that ties every GUI action to the command line that does the same, and the checks
 //!   that fail when a screen or an action has no equivalent.
-//! * [`wiring`]: drives the install, MO2 import and TTW wizards of `nvmod-ui-model` with a service.
+//! * [`wiring`]: drives the install, MO2 import and TTW wizards of `raul-ui-model` with a service.
 //!
 //! No GUI toolkit is used here.
 

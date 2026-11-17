@@ -3,18 +3,18 @@
 
 #![allow(clippy::assert_is_empty)]
 
-use nvmod_ui_model::error::{ExitClass, Retry, ViewError};
-use nvmod_ui_model::job::Outcome;
-use nvmod_ui_model::wizard::{
+use raul_ui_model::error::{ExitClass, Retry, ViewError};
+use raul_ui_model::job::Outcome;
+use raul_ui_model::wizard::{
     FlowError, FomodOption, FomodQuestion, GroupRule, ImportWizard, InstallWizard, Step, TtwWizard,
 };
-use nvmod_ui_service::dto::Finding;
-use nvmod_ui_service::fake::sample;
-use nvmod_ui_service::wiring::{
+use raul_ui_service::dto::Finding;
+use raul_ui_service::fake::sample;
+use raul_ui_service::wiring::{
     ImportContext, InstallContext, TtwContext, apply_import, apply_install, apply_ttw, plan_import,
     plan_install, plan_ttw,
 };
-use nvmod_ui_service::{FakeService, InstallResult, ServiceError};
+use raul_ui_service::{FakeService, InstallResult, ServiceError};
 
 fn refused(what: &str) -> ServiceError {
     let mut e = ViewError::new(ExitClass::Refused, what, "Nothing was changed");

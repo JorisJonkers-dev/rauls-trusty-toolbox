@@ -11,10 +11,10 @@ use crate::dto::{
 };
 use crate::exec::{Exec, Output};
 use crate::registry::Action;
-use nvmod_ui_model::error::{ExitClass, Retry, ViewError};
-use nvmod_ui_model::mods::ModStep;
-use nvmod_ui_model::setup::{FinishStatus, Phase, SetupWizard};
-use nvmod_ui_model::wizard::FomodQuestion;
+use raul_ui_model::error::{ExitClass, Retry, ViewError};
+use raul_ui_model::mods::ModStep;
+use raul_ui_model::setup::{FinishStatus, Phase, SetupWizard};
+use raul_ui_model::wizard::FomodQuestion;
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
 
@@ -45,7 +45,7 @@ impl ServiceError {
     }
 }
 
-/// What `nvmod import-mo2` needs.
+/// What `raul import-mo2` needs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportRequest {
     /// The MO2 instance folder (only read).
@@ -60,7 +60,7 @@ pub struct ImportRequest {
     pub copy_only: bool,
 }
 
-/// What `nvmod install` needs.
+/// What `raul install` needs.
 #[derive(Debug, Clone, PartialEq)]
 pub struct InstallRequest {
     /// The archive.
@@ -77,7 +77,7 @@ pub struct InstallRequest {
     pub answers: Option<serde_json::Value>,
 }
 
-/// What `nvmod ttw` needs.
+/// What `raul ttw` needs.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TtwRequest {
     /// The Instance folder.
@@ -96,7 +96,7 @@ pub struct TtwRequest {
     pub store: Option<String>,
 }
 
-/// How `nvmod setup` is started.
+/// How `raul setup` is started.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SetupMode {
     /// A first run from the base copy.
@@ -111,7 +111,7 @@ pub enum SetupMode {
     },
 }
 
-/// What `nvmod setup` needs. A resume or a restart takes the Instance and nothing else, so [`SetupRequest::args`]
+/// What `raul setup` needs. A resume or a restart takes the Instance and nothing else, so [`SetupRequest::args`]
 /// leaves every other field out for them.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[allow(clippy::struct_excessive_bools)] // One bool per flag of the command line.
@@ -181,7 +181,7 @@ impl SetupRequest {
         }
     }
 
-    /// The words after `nvmod setup`, before `--json`.
+    /// The words after `raul setup`, before `--json`.
     pub fn args(&self) -> Vec<String> {
         let mut rest = Vec::new();
         match self.mode {
@@ -228,7 +228,7 @@ impl SetupRequest {
 
     /// The job that runs this request: it writes unless it only plans, and Cancel is offered for a first run or a
     /// resume (a restart is a removal that is not stopped half way).
-    pub fn job_spec(&self, id: nvmod_ui_model::job::JobId) -> crate::jobs::JobSpec {
+    pub fn job_spec(&self, id: raul_ui_model::job::JobId) -> crate::jobs::JobSpec {
         let mut spec = crate::jobs::JobSpec::new(id, Action::Setup, self.args());
         spec.writes = !(self.dry_run && self.mode == SetupMode::Fresh);
         spec.dry_run = self.dry_run && self.mode == SetupMode::Fresh;
@@ -237,7 +237,7 @@ impl SetupRequest {
     }
 }
 
-/// What one `nvmod mods enable|disable|reorder` call needs.
+/// What one `raul mods enable|disable|reorder` call needs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModsRequest {
     /// The Instance folder.
@@ -251,7 +251,7 @@ pub struct ModsRequest {
 }
 
 impl ModsRequest {
-    /// The words after `nvmod mods`, before `--json`.
+    /// The words after `raul mods`, before `--json`.
     pub fn args(&self) -> Vec<String> {
         let mut rest = Vec::new();
         match &self.step {
@@ -278,7 +278,7 @@ impl ModsRequest {
     }
 }
 
-/// What `nvmod doctor --instance` needs.
+/// What `raul doctor --instance` needs.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct DoctorRequest {
     /// The Instance folder.
@@ -289,7 +289,7 @@ pub struct DoctorRequest {
     pub masterlist: Option<String>,
 }
 
-/// What `nvmod sort` needs.
+/// What `raul sort` needs.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SortRequest {
     /// The Instance folder.
@@ -303,7 +303,7 @@ pub struct SortRequest {
 }
 
 impl SortRequest {
-    /// The words after `nvmod sort`, before `--json`.
+    /// The words after `raul sort`, before `--json`.
     pub fn args(&self) -> Vec<String> {
         let mut rest = Vec::new();
         push(&mut rest, "instance", &self.instance);
@@ -316,7 +316,7 @@ impl SortRequest {
     }
 }
 
-/// What `nvmod verify` needs.
+/// What `raul verify` needs.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct VerifyRequest {
     /// The Instance folder.
@@ -334,7 +334,7 @@ pub struct VerifyRequest {
 }
 
 impl VerifyRequest {
-    /// The words after `nvmod verify`, before `--json`.
+    /// The words after `raul verify`, before `--json`.
     pub fn args(&self) -> Vec<String> {
         let mut rest = Vec::new();
         push(&mut rest, "instance", &self.instance);
@@ -366,7 +366,7 @@ impl RuntimeTarget {
     }
 }
 
-/// What `nvmod target` needs.
+/// What `raul target` needs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TargetRequest {
     /// The Instance folder.
@@ -376,7 +376,7 @@ pub struct TargetRequest {
 }
 
 impl TargetRequest {
-    /// The words after `nvmod target`. The command has no `--json`.
+    /// The words after `raul target`. The command has no `--json`.
     pub fn args(&self) -> Vec<String> {
         let mut rest = vec![self.target.word().to_owned()];
         push(&mut rest, "instance", &self.instance);
@@ -384,7 +384,7 @@ impl TargetRequest {
     }
 }
 
-/// What `nvmod tools list` and `nvmod tools verify` need.
+/// What `raul tools list` and `raul tools verify` need.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ToolsRequest {
     /// The lock file, `None` for the built-in one.
@@ -396,7 +396,7 @@ pub struct ToolsRequest {
 }
 
 impl ToolsRequest {
-    /// The words after `nvmod tools <verb>`, before `--json`.
+    /// The words after `raul tools <verb>`, before `--json`.
     pub fn args(&self) -> Vec<String> {
         let mut rest = Vec::new();
         push_opt(&mut rest, "lock", self.lock.as_ref());
@@ -406,7 +406,7 @@ impl ToolsRequest {
     }
 }
 
-/// What `nvmod rollback` needs.
+/// What `raul rollback` needs.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RollbackRequest {
     /// The Instance folder.
@@ -414,7 +414,7 @@ pub struct RollbackRequest {
 }
 
 impl RollbackRequest {
-    /// The words after `nvmod rollback`, before `--json`.
+    /// The words after `raul rollback`, before `--json`.
     pub fn args(&self) -> Vec<String> {
         let mut rest = Vec::new();
         push(&mut rest, "instance", &self.instance);
@@ -434,91 +434,91 @@ pub enum InstallResult {
 /// What the screens and wizards ask of the world. [`CliService`] answers by running the command line,
 /// [`crate::FakeService`] from a script.
 pub trait Service {
-    /// `nvmod import-mo2`.
+    /// `raul import-mo2`.
     ///
     /// # Errors
     /// [`ServiceError::Disagree`] when the profile files disagree, [`ServiceError::Failed`] otherwise.
     fn import_mo2(&self, request: &ImportRequest) -> Result<ImportReport, ServiceError>;
 
-    /// `nvmod install`, also as a dry run.
+    /// `raul install`, also as a dry run.
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the command refused or failed.
     fn install_mod(&self, request: &InstallRequest) -> Result<InstallResult, ServiceError>;
 
-    /// `nvmod ttw`.
+    /// `raul ttw`.
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the command refused or failed.
     fn ttw(&self, request: &TtwRequest) -> Result<TtwReport, ServiceError>;
 
-    /// `nvmod doctor --instance`. Findings of error severity are a report, not an error.
+    /// `raul doctor --instance`. Findings of error severity are a report, not an error.
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the Doctor could not run.
     fn doctor(&self, request: &DoctorRequest) -> Result<DoctorReport, ServiceError>;
 
-    /// `nvmod sort`, a proposal or with `apply` the written order.
+    /// `raul sort`, a proposal or with `apply` the written order.
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the command refused or failed (a failed apply is rolled back).
     fn sort(&self, request: &SortRequest) -> Result<SortReport, ServiceError>;
 
-    /// `nvmod verify`. A verification that fails is a report with `verified` false, not an error.
+    /// `raul verify`. A verification that fails is a report with `verified` false, not an error.
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the verification could not run.
     fn verify(&self, request: &VerifyRequest) -> Result<VerifyReport, ServiceError>;
 
-    /// `nvmod target`.
+    /// `raul target`.
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the command refused or failed.
     fn set_target(&self, request: &TargetRequest) -> Result<TargetReport, ServiceError>;
 
-    /// `nvmod tools list`.
+    /// `raul tools list`.
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the lock or the Instance could not be read.
     fn tools_list(&self, request: &ToolsRequest) -> Result<ToolsReport, ServiceError>;
 
-    /// `nvmod tools verify`. A corrupt stored tool is a report with `verified` false, not an error.
+    /// `raul tools verify`. A corrupt stored tool is a report with `verified` false, not an error.
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the lock or the Instance could not be read.
     fn tools_verify(&self, request: &ToolsRequest) -> Result<ToolsReport, ServiceError>;
 
-    /// `nvmod rollback`: undoes the last install or sort.
+    /// `raul rollback`: undoes the last install or sort.
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when there is nothing to undo or the undo failed.
     fn rollback(&self, request: &RollbackRequest) -> Result<RollbackReport, ServiceError>;
 
-    /// One `nvmod mods enable|disable|reorder` call, also as a dry run.
+    /// One `raul mods enable|disable|reorder` call, also as a dry run.
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the command refused or failed (a failed change is rolled back).
     fn mods_change(&self, request: &ModsRequest) -> Result<ModsReport, ServiceError>;
 
-    /// `nvmod conflicts`: the file-level conflicts of a profile (read only).
+    /// `raul conflicts`: the file-level conflicts of a profile (read only).
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the command refused.
     fn conflicts(&self, request: &ConflictsRequest) -> Result<ConflictsReport, ServiceError>;
 
-    /// `nvmod tree`: the virtual Data folder of a profile (read only).
+    /// `raul tree`: the virtual Data folder of a profile (read only).
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the command refused.
     fn tree(&self, request: &TreeRequest) -> Result<TreeReport, ServiceError>;
 
-    /// `nvmod plugins list`: the plugins of a profile in load order (read only).
+    /// `raul plugins list`: the plugins of a profile in load order (read only).
     ///
     /// # Errors
     /// [`ServiceError::Failed`] when the command refused.
     fn plugins_list(&self, request: &PluginsRequest) -> Result<PluginsReport, ServiceError>;
 
-    /// `nvmod setup`, run to its end and read from its event stream. A run that fails is an error carrying the
+    /// `raul setup`, run to its end and read from its event stream. A run that fails is an error carrying the
     /// card of the setup wizard; a dry run is a report. To follow a run while it goes, use
     /// [`CliService::run_job`] with [`SetupRequest::job_spec`].
     ///
@@ -537,7 +537,7 @@ fn word(value: &str) -> String {
 
 /// The command line as a person would type it, for the error's repro.
 pub(crate) fn repro(args: &[String]) -> String {
-    let mut s = String::from("nvmod");
+    let mut s = String::from("raul");
     for a in args {
         s.push(' ');
         s.push_str(&word(a));
@@ -558,7 +558,7 @@ fn effect_of(class: ExitClass) -> &'static str {
     }
 }
 
-/// The cause from standard error: the first non-empty line without the `nvmod <command>:` and `refused:`
+/// The cause from standard error: the first non-empty line without the `raul <command>:` and `refused:`
 /// prefixes the command line puts in front.
 pub(crate) fn cause_of(stderr: &str, command: &str) -> String {
     let line = stderr.lines().map(str::trim).find(|l| !l.is_empty());
@@ -566,7 +566,7 @@ pub(crate) fn cause_of(stderr: &str, command: &str) -> String {
         return String::from("The command failed without saying why");
     };
     let line = line
-        .strip_prefix(&format!("nvmod {command}:"))
+        .strip_prefix(&format!("raul {command}:"))
         .map_or(line, str::trim);
     line.strip_prefix("refused:")
         .map_or(line, str::trim)
@@ -599,7 +599,7 @@ fn failure(out: &Output, command: &str, args: &[String]) -> ServiceError {
 fn unreadable(what: &str, why: &serde_json::Error, args: &[String]) -> ServiceError {
     let mut e = ViewError::new(
         ExitClass::Internal,
-        format!("The output of `nvmod {what}` could not be read: {why}"),
+        format!("The output of `raul {what}` could not be read: {why}"),
         effect_of(ExitClass::Internal),
     );
     e.repro = Some(repro(args));
@@ -615,7 +615,7 @@ impl AnswersFile {
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_nanos());
         let path =
-            std::env::temp_dir().join(format!("nvmod-answers-{}-{nanos}.json", std::process::id()));
+            std::env::temp_dir().join(format!("raul-answers-{}-{nanos}.json", std::process::id()));
         std::fs::write(&path, answers.to_string()).map_err(|e| {
             ServiceError::Failed(ViewError::new(
                 ExitClass::Internal,
@@ -633,7 +633,7 @@ impl Drop for AnswersFile {
     }
 }
 
-/// Runs the `nvmod` command line and reads its `--json` output.
+/// Runs the `raul` command line and reads its `--json` output.
 #[derive(Debug, Clone)]
 pub struct CliService<E: Exec> {
     exec: E,
@@ -645,7 +645,7 @@ impl<E: Exec> CliService<E> {
         Self { exec }
     }
 
-    /// The `nvmod` words of a call: the command, `rest` and `--json` (commands without a JSON output do not get it).
+    /// The `raul` words of a call: the command, `rest` and `--json` (commands without a JSON output do not get it).
     pub(crate) fn words(action: Action, rest: Vec<String>, json: bool) -> Vec<String> {
         let mut args = vec![action.command().to_owned()];
         args.extend(rest);

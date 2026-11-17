@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The job events of document 04, section 4, and the table that keeps them in order.
+//! The job events of view model, and the table that keeps them in order.
 
 use crate::error::ExitClass;
 use serde::{Deserialize, Serialize};
@@ -189,7 +189,7 @@ impl JobTable {
             .map(|j| j.id)
     }
 
-    /// Refuses a second writing job (document 04: `ViewError::Busy`).
+    /// Refuses a second writing job (`ViewError::Busy`).
     ///
     /// # Errors
     /// [`JobError::Busy`] with the job that holds the Instance.

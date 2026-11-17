@@ -1,0 +1,31 @@
+# The GUI workspace (ADR-0004): its own workspace root with its own Cargo.lock and deny file, so the GUI's
+# dependencies never enter the umbrella workspace's lock. It uses the umbrella's raul-cli and raul-runner, and the
+# nvmod crates under components/, by path.
+[workspace]
+resolver = "3"
+members = ["crates/raul-ui-model", "crates/raul-ui-service"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.100"
+license = "GPL-3.0-only"
+repository = "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox"
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+
+[workspace.dependencies]
+raul-ui-model = { path = "crates/raul-ui-model" }
+raul-cli = { path = "../raul-cli" }
+raul-runner = { path = "../raul-runner" }
+nvmod-testkit = { path = "../../components/nvmod-rs/crates/nvmod-testkit" }
+nvmod-tools = { path = "../../components/nvmod-rs/crates/nvmod-tools" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

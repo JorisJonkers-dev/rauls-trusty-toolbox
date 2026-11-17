@@ -6,16 +6,16 @@
 
 use nvmod_testkit::{BaseBuilder, TempDir, ZipBuilder, write_file, write_script};
 use nvmod_tools::{platform, sha256_hex};
-use nvmod_ui_model::error::ExitClass;
-use nvmod_ui_model::job::{JobId, JobState, JobTable, Outcome};
-use nvmod_ui_model::wizard::{ImportWizard, InstallWizard, Step, TtwWizard};
-use nvmod_ui_service::exec::{Exec, Output};
-use nvmod_ui_service::registry::Action;
-use nvmod_ui_service::wiring::{
+use raul_ui_model::error::ExitClass;
+use raul_ui_model::job::{JobId, JobState, JobTable, Outcome};
+use raul_ui_model::wizard::{ImportWizard, InstallWizard, Step, TtwWizard};
+use raul_ui_service::exec::{Exec, Output};
+use raul_ui_service::registry::Action;
+use raul_ui_service::wiring::{
     ImportContext, InstallContext, TtwContext, apply_import, apply_install, apply_ttw, plan_import,
     plan_install, plan_ttw,
 };
-use nvmod_ui_service::{
+use raul_ui_service::{
     CliService, DoctorRequest, ImportRequest, InstallRequest, InstallResult, JobSpec,
     RollbackRequest, RuntimeTarget, Service, ServiceError, SortRequest, TargetRequest,
     ToolsRequest, TtwRequest, VerifyRequest,
@@ -28,7 +28,7 @@ struct InProcess;
 impl Exec for InProcess {
     fn run(&self, args: &[String]) -> Result<Output, String> {
         let (mut out, mut err) = (Vec::new(), Vec::new());
-        let code = nvmod_cli::run(args, &mut out, &mut err);
+        let code = raul_cli::run(args, &mut out, &mut err);
         Ok(Output {
             code: Some(i64::from(code)),
             stdout: String::from_utf8_lossy(&out).into_owned(),
@@ -65,7 +65,7 @@ fn profile(root: &std::path::Path, mods: &str, plugins: &str) {
     );
 }
 
-/// An Instance made by `nvmod init`, with an empty profile `Default`.
+/// An Instance made by `raul init`, with an empty profile `Default`.
 struct Instance {
     _base: TempDir,
     dir: TempDir,
@@ -177,7 +177,7 @@ fn install_reports_and_refusals_are_read() {
         panic!("expected a failure");
     };
     assert_eq!(e.exit, ExitClass::Refused);
-    assert!(e.repro.unwrap().starts_with("nvmod install "));
+    assert!(e.repro.unwrap().starts_with("raul install "));
 }
 
 fn mo2(dir: &std::path::Path, loadorder: &[u8]) {
@@ -312,7 +312,7 @@ fn ttw_runs_a_pinned_installer_and_reads_its_record() {
     apply_ttw(&mut w, &svc, &ok_ctx).unwrap();
     assert_eq!(
         w.flow.result(),
-        Some((ExitClass::Ok, nvmod_ui_model::job::Outcome::Completed))
+        Some((ExitClass::Ok, raul_ui_model::job::Outcome::Completed))
     );
     assert!(
         inst.root()
@@ -389,7 +389,7 @@ fn doctor_findings_are_a_report_not_an_error() {
 
 #[test]
 fn a_process_that_cannot_start_is_an_internal_error() {
-    let svc = CliService::new(nvmod_ui_service::ProcessExec::new("/no/such/nvmod"));
+    let svc = CliService::new(raul_ui_service::ProcessExec::new("/no/such/nvmod"));
     let err = svc
         .doctor(&DoctorRequest {
             instance: "/x".into(),
@@ -445,7 +445,7 @@ fn sort_proposes_without_writing_and_apply_writes_the_order() {
         panic!("expected a refusal");
     };
     assert_eq!(e.exit, ExitClass::Refused);
-    assert!(e.repro.unwrap().starts_with("nvmod sort "));
+    assert!(e.repro.unwrap().starts_with("raul sort "));
 }
 
 #[test]
@@ -535,7 +535,7 @@ fn target_is_set_through_the_command_without_a_json_flag() {
     assert_eq!(
         e.repro.unwrap(),
         format!(
-            "nvmod target vanilla --instance {}",
+            "raul target vanilla --instance {}",
             s(&inst.work.path().join("none"))
         )
     );
@@ -585,7 +585,7 @@ fn a_real_process_streams_its_lines_into_the_job_table_as_they_are_printed() {
         marker.display()
     );
     let program = write_script(dir.path(), "nvmod", &body);
-    let svc = CliService::new(nvmod_ui_service::ProcessExec::new(program));
+    let svc = CliService::new(raul_ui_service::ProcessExec::new(program));
     let spec = JobSpec::new(JobId(1), Action::Setup, vec![]).writing();
     let mut seen_running = false;
     let mut table = JobTable::default();
@@ -640,7 +640,7 @@ fn a_real_sort_run_as_a_job_ends_with_a_final_record() {
 
 #[test]
 fn conflicts_and_tree_are_typed_reports_and_a_missing_profile_is_a_failure() {
-    use nvmod_ui_service::{ConflictsRequest, TreeRequest};
+    use raul_ui_service::{ConflictsRequest, TreeRequest};
     let inst = Instance::new();
     let root = inst.root();
     profile(&root, "+A\r\n+B\r\n", "FalloutNV.esm\r\n");
@@ -682,7 +682,7 @@ fn conflicts_and_tree_are_typed_reports_and_a_missing_profile_is_a_failure() {
 
 #[test]
 fn plugins_list_is_a_typed_read_only_report() {
-    use nvmod_ui_service::PluginsRequest;
+    use raul_ui_service::PluginsRequest;
     let inst = Instance::new();
     let root = inst.root();
     profile(&root, "+A\r\n", "FalloutNV.esm\r\nA.esp\r\n");

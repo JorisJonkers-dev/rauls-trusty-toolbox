@@ -2,7 +2,7 @@
 //! The JSON the `nvmod` command line prints, as typed values. The shapes are the ones of `nvmod-cli`: a change
 //! there that breaks one of these fails the end-to-end tests of this crate.
 
-use nvmod_ui_model::wizard::{FomodOption, FomodQuestion, GroupRule, OptionKind};
+use raul_ui_model::wizard::{FomodOption, FomodQuestion, GroupRule, OptionKind};
 use serde::Deserialize;
 
 /// One thing a check found (`nvmod_core::Finding`).
@@ -18,7 +18,7 @@ pub struct Finding {
     pub message: String,
 }
 
-/// `nvmod import-mo2 --json` on success.
+/// `raul import-mo2 --json` on success.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct ImportReport {
     /// The new Instance's folder.
@@ -52,7 +52,7 @@ pub struct Inferred {
     pub reason: String,
 }
 
-/// `nvmod install --json` on success (also a dry run).
+/// `raul install --json` on success (also a dry run).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct InstallReport {
     /// `installed` or `dry-run`.
@@ -72,7 +72,7 @@ pub struct InstallReport {
     pub inferred: Vec<Inferred>,
     /// Files in the Staging tree afterwards, none for a dry run.
     pub staged_files: Option<usize>,
-    /// The journal entry `nvmod rollback` uses, none for a dry run.
+    /// The journal entry `raul rollback` uses, none for a dry run.
     pub journal: Option<String>,
 }
 
@@ -117,13 +117,13 @@ impl From<QuestionDto> for FomodQuestion {
     }
 }
 
-/// `nvmod install --json` when the FOMOD needs answers (exit 1).
+/// `raul install --json` when the FOMOD needs answers (exit 1).
 #[derive(Debug, Deserialize)]
 pub(crate) struct QuestionsDoc {
     pub(crate) questions: Vec<QuestionDto>,
 }
 
-/// `nvmod import-mo2 --json` when the profile files disagree (exit 1).
+/// `raul import-mo2 --json` when the profile files disagree (exit 1).
 #[derive(Debug, Deserialize)]
 pub(crate) struct DisagreeDoc {
     pub(crate) disagreements: Vec<Finding>,
@@ -144,7 +144,7 @@ pub struct TtwRecord {
     pub messages: Vec<String>,
 }
 
-/// `nvmod ttw --json` on success.
+/// `raul ttw --json` on success.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct TtwReport {
     /// `installed`.
@@ -158,7 +158,7 @@ pub struct TtwReport {
     pub files: usize,
     /// Plugins newly activated.
     pub plugins: Vec<String>,
-    /// The journal entry `nvmod rollback` uses.
+    /// The journal entry `raul rollback` uses.
     pub journal: Option<String>,
     /// The installer's result record.
     pub result: TtwRecord,
@@ -175,7 +175,7 @@ pub struct DoctorSummary {
     pub errors: usize,
 }
 
-/// `nvmod doctor --instance <dir> --json` (the report of `nvmod_doctor::BaseReport`; the fields the Doctor
+/// `raul doctor --instance <dir> --json` (the report of `nvmod_doctor::BaseReport`; the fields the Doctor
 /// screen does not show yet are not read).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct DoctorReport {
@@ -187,16 +187,16 @@ pub struct DoctorReport {
     pub summary: DoctorSummary,
 }
 
-impl From<&DoctorReport> for nvmod_ui_model::doctor::DoctorView {
+impl From<&DoctorReport> for raul_ui_model::doctor::DoctorView {
     fn from(report: &DoctorReport) -> Self {
         Self {
             base: report.base.clone(),
             findings: report
                 .findings
                 .iter()
-                .map(|f| nvmod_ui_model::doctor::DoctorFinding {
+                .map(|f| raul_ui_model::doctor::DoctorFinding {
                     code: f.code.clone(),
-                    severity: nvmod_ui_model::doctor::Severity::parse(&f.severity),
+                    severity: raul_ui_model::doctor::Severity::parse(&f.severity),
                     subject: f.subject.clone(),
                     message: f.message.clone(),
                 })
@@ -258,11 +258,11 @@ pub struct SortApplied {
     pub stamped: usize,
     /// Of those, files whose hard link was replaced by a copy.
     pub detached: usize,
-    /// The journal `nvmod rollback` uses, `None` when nothing needed to change.
+    /// The journal `raul rollback` uses, `None` when nothing needed to change.
     pub journal: Option<String>,
 }
 
-/// `nvmod sort --json`.
+/// `raul sort --json`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct SortReport {
     /// The profile.
@@ -284,7 +284,7 @@ pub struct SortReport {
     pub applied: Option<SortApplied>,
 }
 
-/// The state of the installed nv-rs in `nvmod verify`.
+/// The state of the installed nv-rs in `raul verify`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct NvRsCheck {
     /// Whether an nv-rs is installed.
@@ -325,7 +325,7 @@ pub struct LaunchPlan {
     pub nv_rs: String,
 }
 
-/// `nvmod verify --json` (exit 0 verified, exit 3 not verified: both carry this report).
+/// `raul verify --json` (exit 0 verified, exit 3 not verified: both carry this report).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct VerifyReport {
     /// The overall answer.
@@ -338,7 +338,7 @@ pub struct VerifyReport {
     pub launch_plan: LaunchPlan,
 }
 
-/// `nvmod rollback --json`.
+/// `raul rollback --json`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct RollbackReport {
     /// The journal undone.
@@ -352,7 +352,7 @@ pub struct RollbackReport {
     pub profile: String,
 }
 
-/// One pinned tool in `nvmod tools list` and `verify`.
+/// One pinned tool in `raul tools list` and `verify`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct ToolRow {
     /// The tool.
@@ -365,7 +365,7 @@ pub struct ToolRow {
     pub detail: String,
 }
 
-/// The rows of `nvmod tools list` or `verify`.
+/// The rows of `raul tools list` or `verify`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ToolsReport {
     /// One row per pinned tool.
@@ -374,7 +374,7 @@ pub struct ToolsReport {
     pub verified: bool,
 }
 
-/// What `nvmod target` did. The command prints a sentence, so this is built from the request.
+/// What `raul target` did. The command prints a sentence, so this is built from the request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TargetReport {
     /// The Instance.
@@ -383,7 +383,7 @@ pub struct TargetReport {
     pub target: crate::service::RuntimeTarget,
 }
 
-/// One entry of the list `nvmod mods ... --json` prints.
+/// One entry of the list `raul mods ... --json` prints.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct ModEntry {
     /// 1 is the highest priority.
@@ -398,7 +398,7 @@ pub struct ModEntry {
     pub installed: bool,
 }
 
-impl From<&ModEntry> for nvmod_ui_model::mods::ModRow {
+impl From<&ModEntry> for raul_ui_model::mods::ModRow {
     fn from(e: &ModEntry) -> Self {
         Self {
             name: e.name.clone(),
@@ -407,7 +407,7 @@ impl From<&ModEntry> for nvmod_ui_model::mods::ModRow {
     }
 }
 
-/// `nvmod mods enable|disable|reorder --json`.
+/// `raul mods enable|disable|reorder --json`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct ModsReport {
     /// `changed`, `unchanged` or `dry-run`.
@@ -424,17 +424,17 @@ pub struct ModsReport {
     pub mods: Vec<ModEntry>,
     /// Files in the Staging tree after the change.
     pub staged_files: Option<usize>,
-    /// The journal `nvmod rollback` undoes; absent for a dry run or when nothing changed.
+    /// The journal `raul rollback` undoes; absent for a dry run or when nothing changed.
     pub journal: Option<String>,
 }
 
-/// What a run of `nvmod setup --json` came to, read from its event stream.
+/// What a run of `raul setup --json` came to, read from its event stream.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SetupReport {
     /// The steps and how each ended.
-    pub steps: Vec<nvmod_ui_model::setup::StepView>,
+    pub steps: Vec<raul_ui_model::setup::StepView>,
     /// How the run ended.
-    pub finish: nvmod_ui_model::setup::Finish,
+    pub finish: raul_ui_model::setup::Finish,
     /// Whether it was a dry run.
     pub dry_run: bool,
     /// Whether it was a resume.
