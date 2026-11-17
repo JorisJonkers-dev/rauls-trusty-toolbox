@@ -3,7 +3,7 @@
 //!
 //! Home owns no data (UI-RULES P3): it reads the paths of Settings and the engine of Versions and shows them, each
 //! row one click from the page that fixes it. Play is blocked only for a blocking problem, and the reason says
-//! which. Play runs `raul run nv-rs`, which refuses a game run without the memory-capped run guard.
+//! which. Play runs `raul run nv-rs`.
 
 use super::settings::{Command, Config, Fetch, Key};
 use super::versions::{Engine, EngineStatus};
@@ -141,9 +141,10 @@ pub enum Launch {
     Failed(String),
 }
 
-/// `raul run nv-rs --instance <dir>`: the game on nv-rs, through the memory-capped run guard.
+/// `raul run nv-rs --instance <dir>`: the game on the nv-rs engine, through nvmod's run command, which stages the
+/// Profile first.
 pub fn run_command(instance: &str) -> Command {
-    Command::read("run", 2, &["run", "nv-rs", "--instance", instance])
+    Command::write("run", 1, &["run", "nv-rs", "--instance", instance])
 }
 
 /// The state of Home.
@@ -329,8 +330,8 @@ mod tests {
         assert_eq!(s.rows().len(), RowId::ALL.len());
         assert_eq!(
             run_command("/i").rest(),
-            ["--instance", "/i"],
-            "the registry entry names the nv-rs target"
+            ["nv-rs", "--instance", "/i"],
+            "the target is the first value after `raul run`"
         );
     }
 

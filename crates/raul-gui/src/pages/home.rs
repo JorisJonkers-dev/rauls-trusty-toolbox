@@ -755,9 +755,7 @@ pub fn fixtures() -> Vec<Fixture> {
         Fixture::new(
             "run-failed",
             seen(State {
-                launch: Launch::Failed(
-                    "raul run: refused: no memory-capped run guard is available".into(),
-                ),
+                launch: Launch::Failed("nvmod run: refused: the game is already running".into()),
                 ..State::ready(all, Engine::active())
             }),
         ),
