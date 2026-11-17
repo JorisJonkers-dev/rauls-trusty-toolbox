@@ -164,12 +164,13 @@ impl Exec for ProcessExec {
             Err(ToolError::Failed { reason, .. }) if reason.starts_with("cannot start") => Err(
                 format!("could not start {}: {reason}", self.program.display()),
             ),
-            // Killed for its timeout or output cap: it ended without an exit code, and the reason is what it left.
-            Err(e) => Ok(Output {
+            // Stopped for its timeout or output cap: it ended without an exit code, and the reason is what it left.
+            Err(e @ ToolError::Failed { .. }) => Ok(Output {
                 code: None,
                 stdout: String::new(),
                 stderr: e.to_string(),
             }),
+            Err(e) => Err(e.to_string()),
         }
     }
 }

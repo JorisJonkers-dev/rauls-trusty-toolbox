@@ -64,17 +64,25 @@ enum Piped {
     Over,
 }
 
-/// Read `pipe` line by line and send each line, until it ends or more than `cap` bytes have been offered.
+/// Read `pipe` line by line and send each line, until it ends or more than `cap` bytes have been offered (line endings
+/// count, as they do for [`Runner::run`]).
 fn lines(pipe: impl Read + Send + 'static, cap: usize) -> mpsc::Receiver<Piped> {
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
+        let mut reader = BufReader::new(pipe);
         let mut total = 0usize;
-        for chunk in BufReader::new(pipe).split(b'\n') {
-            let Ok(mut bytes) = chunk else { break };
-            total = total.saturating_add(bytes.len() + 1);
-            if total > cap.saturating_add(1) {
+        loop {
+            let mut bytes = Vec::new();
+            match reader.read_until(b'\n', &mut bytes) {
+                Ok(0) | Err(_) => break,
+                Ok(n) => total = total.saturating_add(n),
+            }
+            if total > cap {
                 let _ = tx.send(Piped::Over);
                 break;
+            }
+            if bytes.last() == Some(&b'\n') {
+                bytes.pop();
             }
             if bytes.last() == Some(&b'\r') {
                 bytes.pop();
@@ -228,11 +236,7 @@ impl Runner {
                 std::thread::sleep(TICK);
             } else {
                 match out.recv_timeout(TICK) {
-                    Ok(Piped::Line(line)) => {
-                        on_line(&line);
-                        stdout.push_str(&line);
-                        stdout.push('\n');
-                    }
+                    Ok(Piped::Line(line)) => deliver(&line, on_line, &mut stdout),
                     Ok(Piped::Over) => over = true,
                     Err(mpsc::RecvTimeoutError::Timeout) => {}
                     Err(mpsc::RecvTimeoutError::Disconnected) => reader_done = true,
@@ -251,20 +255,13 @@ impl Runner {
         };
         // The rest of the output; a program it left behind may hold the pipe open, so this is bounded.
         let rest = Instant::now() + PIPE_GRACE;
-        while !reader_done && !over {
-            let left = rest.saturating_duration_since(Instant::now());
-            match out.recv_timeout(left) {
-                Ok(Piped::Line(line)) => {
-                    on_line(&line);
-                    stdout.push_str(&line);
-                    stdout.push('\n');
-                }
-                Ok(Piped::Over) => over = true,
-                Err(_) => break,
-            }
+        if !reader_done && !over {
+            over = rest_of(&out, rest, on_line, &mut stdout);
         }
+        // Standard error shares the same bound, so a left-behind program costs at most one grace period.
+        let left = rest.saturating_duration_since(Instant::now());
         let stderr =
-            String::from_utf8_lossy(&err.recv_timeout(PIPE_GRACE).unwrap_or_default()).into_owned();
+            String::from_utf8_lossy(&err.recv_timeout(left).unwrap_or_default()).into_owned();
         if !stderr.is_empty() {
             tracing::info!(
                 stderr = nvmod_runlog::capped_stderr(&stderr),
@@ -337,6 +334,30 @@ struct Watch {
     deadline: Option<Instant>,
     /// How long a stop request waits before it forces.
     grace: Duration,
+}
+
+/// Hands one line to the caller and keeps it.
+fn deliver(line: &str, on_line: &mut dyn FnMut(&str), stdout: &mut String) {
+    on_line(line);
+    stdout.push_str(line);
+    stdout.push('\n');
+}
+
+/// Reads what is left of standard output once the program has ended, until the pipe closes or `until`; returns
+/// whether the cap was passed.
+fn rest_of(
+    out: &mpsc::Receiver<Piped>,
+    until: Instant,
+    on_line: &mut dyn FnMut(&str),
+    stdout: &mut String,
+) -> bool {
+    loop {
+        match out.recv_timeout(until.saturating_duration_since(Instant::now())) {
+            Ok(Piped::Line(line)) => deliver(&line, on_line, stdout),
+            Ok(Piped::Over) => return true,
+            Err(_) => return false,
+        }
+    }
 }
 
 /// The instant `timeout` from now, or `None` when it is too far away to represent (no deadline).
@@ -461,6 +482,16 @@ mod tests {
             1,
             "{text}"
         );
+        // A variable the caller set keeps its value.
+        let (done, _) = collect(
+            &fast().with_env("HOME", "/set/by/caller").inherit_all(),
+            &Call::new("t", &p, &[]),
+            &StopHandle::new(),
+            STOP_GRACE,
+        );
+        let text = done.unwrap().stdout;
+        let homes: Vec<&str> = text.lines().filter(|l| l.starts_with("HOME=")).collect();
+        assert_eq!(homes, ["HOME=/set/by/caller"], "{text}");
     }
 
     #[test]
@@ -572,20 +603,22 @@ mod tests {
     }
 
     #[test]
-    fn output_exactly_at_the_cap_is_accepted() {
+    fn output_exactly_at_the_cap_is_accepted_and_one_byte_more_is_not() {
         let dir = TempDir::new("stream-cap-exact");
-        let p = script(&dir, "t", "printf '1234\\n'");
         let runner = Runner {
             max_output: 5,
             ..fast()
         };
-        let (done, _) = collect(
-            &runner,
-            &Call::new("t", &p, &[]),
-            &StopHandle::new(),
-            STOP_GRACE,
-        );
-        assert_eq!(done.unwrap().stdout, "1234\n");
+        for (name, body, ok) in [
+            ("a", "printf '1234\\n'", true),
+            ("b", "printf '12345'", true),
+            ("c", "printf '12345\\n'", false),
+        ] {
+            let p = script(&dir, name, body);
+            let call = Call::new("t", &p, &[]);
+            let (done, _) = collect(&runner, &call, &StopHandle::new(), STOP_GRACE);
+            assert_eq!(done.is_ok(), ok, "{body}: {done:?}");
+        }
     }
 
     #[test]

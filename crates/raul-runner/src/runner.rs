@@ -192,12 +192,14 @@ impl Runner {
 
     /// Also pass every variable of the caller's own environment whose name and value are text. For a program that
     /// is the Toolbox itself, such as the GUI starting its own `raul`, which needs the same home, display and
-    /// Steam variables as the person's shell; every other program keeps the scrub.
+    /// Steam variables as the person's shell; every other program keeps the scrub. A variable this Runner already
+    /// passes keeps its value.
     #[must_use]
     pub fn inherit_all(mut self) -> Runner {
         for (name, value) in std::env::vars_os() {
             if let (Some(name), Some(value)) = (name.to_str(), value.to_str())
                 && name != "PATH"
+                && !self.env.iter().any(|(set, _)| set == name)
             {
                 self.env.push((name.to_owned(), value.to_owned()));
             }
