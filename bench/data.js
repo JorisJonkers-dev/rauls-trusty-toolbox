@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794903883426,
+  "lastUpdate": 1794904308069,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1420,6 +1420,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.327195000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1795a59650e98e1b8cd8679e5fcdd19e85a9b69f",
+          "message": "feat(gui): Load order page with sort preview, apply and undo (#150)",
+          "timestamp": "2026-11-17T09:30:48+01:00",
+          "tree_id": "b1732b00cfe35c7d307d20fedd8ef87f7e777105",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/1795a59650e98e1b8cd8679e5fcdd19e85a9b69f"
+        },
+        "date": 1794904307675,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.643351,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.5443999999999996,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.278103,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 3.875114,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.953879,
             "unit": "ms"
           }
         ]
