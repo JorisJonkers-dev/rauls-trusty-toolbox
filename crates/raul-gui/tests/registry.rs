@@ -55,6 +55,9 @@ impl Fixture {
             .args(args)
             .env("RAUL_CONFIG_DIR", self.root.path().join("config"))
             .env("NVMOD_STATE_DIR", self.root.path().join("state"))
+            // A home of its own, so no nv-rs build of the machine running the tests is found.
+            .env("HOME", self.root.path().join("home"))
+            .env("USERPROFILE", self.root.path().join("home"))
             .output()
             .expect("run raul");
         (
@@ -128,8 +131,8 @@ fn understood(line: &str, (code, out, err): &(i32, String, String), json: bool) 
 }
 
 /// The exit code each command gives on the fixture: an engine fetch from an address that refuses fails (4), TTW
-/// with no Fallout 3 folder is refused (2), LOD generation with no lodwright program in the fixture is refused (2), verify finds no engine (3), the Doctor finds the fixture's missing pieces (1), the rest succeed;
-/// the rollback undoes the sort that ran before it.
+/// with no Fallout 3 folder is refused (2), LOD generation with no lodwright program in the fixture is refused (2), verify finds no engine (3), a run with no engine is refused (2),
+/// the Doctor finds the fixture's missing pieces (1), the rest succeed; the rollback undoes the sort that ran before it.
 fn expected(command: &Command) -> i32 {
     match command.action {
         Action::InstallNvRs => 4,
@@ -138,6 +141,8 @@ fn expected(command: &Command) -> i32 {
         Action::Doctor => 1,
         // No engine is installed in the fixture, so the install does not verify.
         Action::Verify => 3,
+        // No engine is installed, so even a dry run is refused.
+        Action::Run => 2,
         _ => 0,
     }
 }
