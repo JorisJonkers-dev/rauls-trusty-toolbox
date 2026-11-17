@@ -33,7 +33,7 @@ crate::texts!(TEXTS {
     RAIL_TTW = "TTW";
     RAIL_TTW_SUB = "Optional";
     RAIL_ENGINE = "Engine";
-    RAIL_ENGINE_SUB = "Install nv-rs";
+    RAIL_ENGINE_SUB = "Install the engine";
     RAIL_CHECK = "Check";
     RAIL_CHECK_SUB = "Quick health check";
     RAIL_READY = "Ready";
@@ -46,7 +46,7 @@ crate::texts!(TEXTS {
     SUB_TTW = "Optional. Plays both worlds as one game. You can set it up later from Home.";
     RAUL_TTW = "Both worlds as one? Needs Fallout 3 too. Skip it if unsure.";
     TITLE_ENGINE = "Engine";
-    SUB_ENGINE = "nv-rs runs the game natively. Your game folder stays as it is.";
+    SUB_ENGINE = "The engine runs the game natively. Your game folder stays as it is.";
     RAUL_ENGINE = "This is the bit that makes it run on Linux. No Proton.";
     TITLE_CHECK = "Quick check";
     SUB_CHECK = "Read-only checks of the game and the Instance.";
@@ -74,7 +74,7 @@ crate::texts!(TEXTS {
     INSTALL = "Install";
     INSTALL_AGAIN = "Try again";
     INITIALISING = "Making the Instance in the storage folder";
-    INSTALLING = "Downloading and checking the nv-rs release. This can take a few minutes.";
+    INSTALLING = "Downloading and checking the engine. This can take a few minutes.";
     INSTALLED = "Installed and checked.";
     ENGINE_NOTE = "You can install it again later on Versions.";
     MARK_INSTALLED = "Installed";
@@ -93,7 +93,7 @@ crate::texts!(TEXTS {
     FACT_CHECKS = "Checks";
     TTW_WANTED = "Wanted. Set it up from Home or now.";
     TTW_NOT_NOW = "Not now";
-    ENGINE_INSTALLED = "nv-rs, installed and checked";
+    ENGINE_INSTALLED = "Installed and checked.";
     CHECKS_CLEAN = "Nothing to look at";
     CHECKS_SOME = "{n} to look at";
     CHECKS_UNKNOWN = "Not run";
@@ -106,22 +106,22 @@ crate::texts!(TEXTS {
     MISSING_REFUSED = "Fix the folder above, then press Next.";
     READING = "Reading the settings";
     RETRY = "Try again";
-    INSTALL_WAITING = "This build cannot install from the window yet. Run the commands below in a terminal.";
+    INSTALL_WAITING = "This build cannot install from the window yet.";
     NO_STORAGE_YET = "There is no storage folder yet; go back to the first step.";
 });
 
 crate::errors!(ERRORS {
     INSTALL_FAILED = (
         "The engine was not installed",
-        "Your game folder did not change. The line below says why."
+        "Your game folder did not change."
     );
     CHECKS_FAILED = (
         "The checks could not run",
-        "Nothing changed. You can run them later from Home."
+        "Nothing changed. You can try them again later from Home."
     );
     UNREADABLE = (
         "The settings could not be read",
-        "Nothing changed. The line below says why."
+        "Nothing changed. The detail below says why."
     );
 });
 
@@ -400,7 +400,6 @@ impl Page for Setup {
             }
             Fetch::Failed(why) => {
                 error_block(ui, &t, &UNREADABLE, Some(why));
-                shell::command_line(ui, &t, &Command::config_list().shown());
                 if ui.button(RETRY).clicked() {
                     self.state.config = Fetch::Idle;
                 }
@@ -512,15 +511,6 @@ impl Setup {
         {
             ui.label(RichText::new(why).monospace().color(t.muted.color()));
         }
-        ui.horizontal(|ui| {
-            ui.add_space(LABEL_WIDTH + ui.spacing().item_spacing.x);
-            ui.label(
-                RichText::new(detect_command().shown())
-                    .monospace()
-                    .size(theme::BASE * 0.84)
-                    .color(t.muted.color()),
-            );
-        });
         ui.add_space(8.0);
     }
 
@@ -613,10 +603,6 @@ impl Setup {
         if let EngineStep::Failed(why) = &self.state.engine {
             error_block(ui, &t, &INSTALL_FAILED, Some(why));
         }
-        if !has_instance && self.state.engine != EngineStep::Installed {
-            shell::command_line(ui, &t, &init.shown());
-        }
-        shell::command_line(ui, &t, &install.shown());
         ui.label(RichText::new(ENGINE_NOTE).color(t.muted.color()));
     }
 
@@ -827,12 +813,10 @@ fn checks(ui: &mut egui::Ui, t: &Tokens, state: &State) -> bool {
         Fetch::Idle | Fetch::Loading => waiting(ui, t, CHECKING, &command),
         Fetch::Failed(why) => {
             error_block(ui, t, &CHECKS_FAILED, Some(why));
-            shell::command_line(ui, t, &command.shown());
             return ui.button(RETRY).clicked();
         }
         Fetch::Ready(c) => {
             findings(ui, t, c);
-            shell::command_line(ui, t, &command.shown());
         }
     }
     false
