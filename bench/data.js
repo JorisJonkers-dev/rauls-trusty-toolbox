@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794904308069,
+  "lastUpdate": 1794905551237,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1469,6 +1469,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.953879,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "94c78d5c08967093e27a6102542498e6c2e04093",
+          "message": "fix(gui): register nvmod's raul run and start the game from Play with it (#149)\n\n* fix(gui): register nvmod's raul run and start the game from Play with it\n\nThe run entry waited for a run guard command that is no longer planned.\nraul runs nvmod's run command in process, whose target is its first\nvalue: Play passes nv-rs. The entry takes the flags of that usage and\nwrites, since a run stages the Profile first.\n\n* fix(gui): list only the run flags a page passes\n\n* test(gui): give the registry fixture a home of its own, so a run finds no engine of the test machine\n\n* fix(gui): merge the registry test's identical exit-code arms",
+          "timestamp": "2026-11-17T09:51:20+01:00",
+          "tree_id": "d42d95641a3b23eb860e2ab8c9a38bb198775845",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/94c78d5c08967093e27a6102542498e6c2e04093"
+        },
+        "date": 1794905550904,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.090157,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.6480690000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.565614,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.504675,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.103669,
             "unit": "ms"
           }
         ]
