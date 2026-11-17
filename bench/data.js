@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794939629335,
+  "lastUpdate": 1794942517950,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -2351,6 +2351,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.12256,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7b99b8c017e731e0b44969beb7979cbcff496919",
+          "message": "feat(gui): no command lines on Versions, Home and dialogs (#200)\n\n* feat(gui): show no command lines on Versions, Home, Settings and dialogs\n\n* fix(gui): say the engine is installed without its tool name",
+          "timestamp": "2026-11-17T20:07:15+01:00",
+          "tree_id": "1e1743457f2e6e594385b5debae6bb7688975eb1",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7b99b8c017e731e0b44969beb7979cbcff496919"
+        },
+        "date": 1794942517249,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.089311,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.631049,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.759366,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.500499,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.62078,
             "unit": "ms"
           }
         ]
