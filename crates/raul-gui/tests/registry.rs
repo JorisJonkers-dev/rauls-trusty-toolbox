@@ -126,12 +126,13 @@ fn understood(line: &str, (code, out, err): &(i32, String, String), json: bool) 
 }
 
 /// The exit code each command gives on the fixture: an engine fetch from an address that refuses fails (4), TTW
-/// with no Fallout 3 folder is refused (2), verify finds no engine (3), the Doctor finds the fixture's missing pieces (1), the rest succeed;
+/// with no Fallout 3 folder is refused (2), LOD generation with no lodwright program in the fixture is refused (2), verify finds no engine (3), the Doctor finds the fixture's missing pieces (1), the rest succeed;
 /// the rollback undoes the sort that ran before it.
 fn expected(command: &Command) -> i32 {
     match command.action {
         Action::InstallNvRs => 4,
         Action::Ttw => 2,
+        Action::Lod if command.words.first() == Some(&"generate") => 2,
         Action::Doctor => 1,
         // No engine is installed in the fixture, so the install does not verify.
         Action::Verify => 3,
