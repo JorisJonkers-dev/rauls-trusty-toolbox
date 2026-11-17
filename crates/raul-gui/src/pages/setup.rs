@@ -442,7 +442,9 @@ impl Setup {
             Step::Ttw => (TITLE_TTW, SUB_TTW, RAUL_TTW),
             Step::Engine => (TITLE_ENGINE, SUB_ENGINE, RAUL_ENGINE),
             Step::Check => (TITLE_CHECK, SUB_CHECK, RAUL_CHECK),
-            Step::Ready if self.state.to_look_at() > 0 => (TITLE_READY, SUB_READY, RAUL_READY_LOOK),
+            Step::Ready if self.state.to_look_at() > 0 || self.state.checks.ready().is_none() => {
+                (TITLE_READY, SUB_READY, RAUL_READY_LOOK)
+            }
             Step::Ready => (TITLE_READY, SUB_READY, RAUL_READY),
         };
         ui.label(
@@ -1086,12 +1088,26 @@ mod tests {
         let calls = exec.calls.lock().unwrap();
         assert_eq!(
             calls[0],
-            ["init", "--base", "/games/nv", "--instance", instance.as_str()]
+            [
+                "init",
+                "--base",
+                "/games/nv",
+                "--instance",
+                instance.as_str()
+            ]
         );
         assert_eq!(
             calls[1],
-            ["install-nv-rs", "--instance", instance.as_str(), "--release"]
+            [
+                "install-nv-rs",
+                "--instance",
+                instance.as_str(),
+                "--release"
+            ]
         );
-        assert_eq!(calls[2], ["doctor", "--instance", instance.as_str(), "--json"]);
+        assert_eq!(
+            calls[2],
+            ["doctor", "--instance", instance.as_str(), "--json"]
+        );
     }
 }
