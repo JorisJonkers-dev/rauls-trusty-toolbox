@@ -2,14 +2,28 @@
 //! The TTW request end to end: `raul_ui_service::CliService` runs the release `raul ttw --json` through the
 //! streaming Runner against a fake ttwright on synthetic fixtures, reads its `raul-events` stream and its
 //! `raul-ttw-result`, and feeds the job table. The fake is a shell script, so these tests run on Linux and macOS.
+//!
+//! The TTW flow page is driven the same way: through the window, with the sources set by `raul config`, Next to the
+//! review (a dry run that writes nothing) and Install, which adds the Mod to the Instance.
 #![cfg(unix)]
 
+use eframe::egui::accesskit::Role;
+use egui_kittest::Harness;
+use egui_kittest::kittest::Queryable;
 use nvmod_testkit::{BaseBuilder, PeBuilder, TempDir, write_file, write_script};
+use raul_gui::jobs::Jobs;
+use raul_gui::pages::ttw::{
+    CANCEL, INSTALL, INSTALL_CANCELLED, INSTALL_FAILED, INSTALL_UNKNOWN, INSTALLED_STATUS, NEXT,
+    RESUME, TRY_AGAIN,
+};
+use raul_gui::shell::App;
 use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobEvent, JobId, JobState, JobTable, Outcome};
+use raul_ui_model::pages::{Flow, View};
 use raul_ui_service::registry::Action;
 use raul_ui_service::{CancelHandle, CliService, JobSpec, ProcessExec, Service, TtwRequest};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 /// The fake ttwright of `crates/raul-cli/tests/ttw.rs`: it reads its mode from `mode` next to it and behaves as
@@ -283,5 +297,169 @@ fn a_cancelled_ttw_job_stops_ttwright() {
     assert!(
         !PathBuf::from(format!("/proc/{pid}")).exists() || cfg!(target_os = "macos"),
         "ttwright outlived the cancel"
+    );
+}
+
+impl Fixture {
+    /// The fixture as the window sees it: the storage folder holds the Instance, the sources are set with
+    /// `raul config`, and a wrapper hands `raul ttw` the fake ttwright, which the page never names.
+    fn for_window(label: &str) -> Fixture {
+        let f = Fixture::new(label);
+        let storage = f.root.path().to_string_lossy().into_owned();
+        f.raul_ok(&["config", "set", "storage.root", &storage]);
+        f.raul_ok(&["config", "set", "game.fallout3", &f.s("Fallout3")]);
+        f.raul_ok(&["config", "set", "ttw.package", &f.s("TTW.mpi")]);
+        write_script(
+            f.root.path(),
+            "raul-window",
+            &format!(
+                "if [ \"$1\" = ttw ]; then set -- \"$@\" --ttwright '{t}'; fi\nexec '{raul}' \"$@\"",
+                t = f.s("tools/ttwright"),
+                raul = f.s("raul"),
+            ),
+        );
+        f
+    }
+
+    fn window(&self) -> Harness<'static, App> {
+        let exec = ProcessExec::new(self.path("raul-window")).with_grace(Duration::from_secs(5));
+        let app = App::new(Jobs::new(Arc::new(exec)));
+        let mut h = Harness::builder()
+            .with_size([1280.0, 800.0])
+            .build_eframe(|cc| {
+                raul_gui::set_up(&cc.egui_ctx);
+                app
+            });
+        settle(&mut h);
+        h.state_mut().open(View::Flow(Flow::Ttw));
+        settle(&mut h);
+        h
+    }
+
+    fn installed(&self) -> bool {
+        self.path("instance/mods/Tale of Two Wastelands").exists()
+    }
+}
+
+/// Runs frames until the jobs the page starts have ended and it has taken their answers.
+fn settle(h: &mut Harness<'static, App>) {
+    for _ in 0..6 {
+        h.run_steps(8);
+        assert!(h.state_mut().wait_for_jobs(Duration::from_secs(60)));
+    }
+    h.run_steps(8);
+}
+
+/// Next on Sources and Output, which starts the review's dry run.
+fn to_review(h: &mut Harness<'static, App>) {
+    for _ in 0..2 {
+        h.get_by_role_and_label(Role::Button, NEXT).click();
+        settle(h);
+    }
+}
+
+#[test]
+fn the_flow_reviews_with_a_dry_run_then_installs_the_mod() {
+    let f = Fixture::for_window("gui-ttw-flow");
+    f.mode("success");
+    let mut h = f.window();
+    to_review(&mut h);
+    assert!(!f.installed(), "the review writes nothing");
+    let args = std::fs::read_to_string(f.path("tools/args")).unwrap_or_default();
+    assert!(args.is_empty() || args.contains("--dry-run"), "{args}");
+    h.get_by_role_and_label(Role::Button, INSTALL).click();
+    settle(&mut h);
+    assert_eq!(
+        h.state_mut().shell_mut().status.as_deref(),
+        Some(INSTALLED_STATUS)
+    );
+    assert!(
+        f.path("instance/mods/Tale of Two Wastelands/Example.esm")
+            .is_file()
+    );
+    assert!(
+        h.query_by_label("Example.esm").is_some(),
+        "the plugins are listed"
+    );
+}
+
+#[test]
+fn a_refused_install_says_why_and_tries_again_from_the_review() {
+    let f = Fixture::for_window("gui-ttw-flow-refused");
+    f.mode("success");
+    let mut h = f.window();
+    to_review(&mut h);
+    f.mode("unsupported");
+    h.get_by_role_and_label(Role::Button, INSTALL).click();
+    settle(&mut h);
+    assert!(h.query_by_label(INSTALL_FAILED.what).is_some());
+    assert!(!f.installed());
+    f.mode("success");
+    h.get_by_label(TRY_AGAIN).click();
+    settle(&mut h);
+    assert!(h.query_by_label(INSTALL_FAILED.what).is_none());
+    h.get_by_role_and_label(Role::Button, INSTALL).click();
+    settle(&mut h);
+    assert!(f.installed(), "checked again, then installed");
+}
+
+#[test]
+fn a_stopped_install_resumes_where_it_left_off() {
+    let f = Fixture::for_window("gui-ttw-flow-resume");
+    f.mode("success");
+    let mut h = f.window();
+    to_review(&mut h);
+    f.mode("failed");
+    h.get_by_role_and_label(Role::Button, INSTALL).click();
+    settle(&mut h);
+    assert!(h.query_by_label(INSTALL_FAILED.what).is_some());
+    assert!(!f.installed(), "the Instance is as it was");
+    f.mode("success");
+    h.get_by_label(RESUME).click();
+    settle(&mut h);
+    // Back on the review, whose one button now continues the stopped run.
+    h.get_by_role_and_label(Role::Button, RESUME).click();
+    settle(&mut h);
+    let args = std::fs::read_to_string(f.path("tools/args")).unwrap();
+    assert!(args.contains("--resume"), "{args}");
+    assert!(f.installed());
+}
+
+#[test]
+fn cancel_stops_a_running_install_and_the_instance_stays_as_it_was() {
+    let f = Fixture::for_window("gui-ttw-flow-cancel");
+    f.mode("success");
+    let mut h = f.window();
+    to_review(&mut h);
+    f.mode("slow");
+    let _ = std::fs::remove_file(f.path("tools/pid"));
+    h.get_by_role_and_label(Role::Button, INSTALL).click();
+    let started = Instant::now();
+    while !f.path("tools/pid").exists() {
+        assert!(
+            started.elapsed() < Duration::from_secs(20),
+            "ttwright never started"
+        );
+        h.run_steps(2);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    h.run_steps(4);
+    h.get_by_role_and_label(Role::Button, CANCEL).click();
+    settle(&mut h);
+    assert!(
+        started.elapsed() < Duration::from_secs(25),
+        "{:?}",
+        started.elapsed()
+    );
+    assert!(!f.installed());
+    assert!(
+        [
+            INSTALL_CANCELLED.what,
+            INSTALL_FAILED.what,
+            INSTALL_UNKNOWN.what
+        ]
+        .iter()
+        .any(|w| h.query_by_label(w).is_some()),
+        "the page says how it ended"
     );
 }

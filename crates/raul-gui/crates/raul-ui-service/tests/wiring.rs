@@ -182,7 +182,7 @@ fn ttw_needs_its_inputs_then_runs_and_its_status_is_the_outcome() {
     let mut w = TtwWizard::new();
     assert!(plan_ttw(&mut w).is_err());
     w.set_fallout3("/fo3");
-    w.set_installer_pinned(true);
+    w.set_package("/ttw.mpi");
     plan_ttw(&mut w).unwrap();
     w.flow.mark_reviewed().unwrap();
     let svc = FakeService::new();
@@ -202,12 +202,20 @@ fn ttw_needs_its_inputs_then_runs_and_its_status_is_the_outcome() {
     assert!(call.resume && !call.dry_run);
     assert_eq!(
         call.args(),
-        ["--instance", "/inst", "--fallout3", "/fo3", "--resume"]
+        [
+            "--instance",
+            "/inst",
+            "--fallout3",
+            "/fo3",
+            "--package",
+            "/ttw.mpi",
+            "--resume"
+        ]
     );
 
     let mut w = TtwWizard::new();
     w.set_fallout3("/fo3");
-    w.set_installer_pinned(true);
+    w.set_package("/ttw.mpi");
     plan_ttw(&mut w).unwrap();
     w.flow.mark_reviewed().unwrap();
     svc.on_ttw(Ok(sample::ttw()));
