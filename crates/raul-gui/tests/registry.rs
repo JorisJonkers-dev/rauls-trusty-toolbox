@@ -136,13 +136,12 @@ fn understood(line: &str, (code, out, err): &(i32, String, String), json: bool) 
 fn expected(command: &Command) -> i32 {
     match command.action {
         Action::InstallNvRs => 4,
-        Action::Ttw => 2,
+        // TTW and a run: no folder, and no engine installed in the fixture, so even a dry run is refused.
+        Action::Ttw | Action::Run => 2,
         Action::Lod if command.words.first() == Some(&"generate") => 2,
         Action::Doctor => 1,
         // No engine is installed in the fixture, so the install does not verify.
         Action::Verify => 3,
-        // No engine is installed, so even a dry run is refused.
-        Action::Run => 2,
         _ => 0,
     }
 }
