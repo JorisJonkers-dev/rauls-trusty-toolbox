@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794938176804,
+  "lastUpdate": 1794938567931,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -2253,6 +2253,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 11.001873,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "51e787f8248f5a0ff0ffcc2c9614f92a6282804e",
+          "message": "feat(gui): copy the details of every error (#189)\n\n* feat(gui): copy the details of every error\n\n* wip\n\n* fix(gui): clear the failed status once the settings read again",
+          "timestamp": "2026-11-17T19:01:35+01:00",
+          "tree_id": "8da8b7d821c8d1ecd497814ab1fdd88f43f22a61",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/51e787f8248f5a0ff0ffcc2c9614f92a6282804e"
+        },
+        "date": 1794938567608,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.092964,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.625882000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.567262,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.49378,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.85272,
             "unit": "ms"
           }
         ]
