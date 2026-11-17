@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794944097433,
+  "lastUpdate": 1794945602521,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -2449,6 +2449,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 11.400864,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "625bf7fd2084c29d8ca6d3c324be0c11579de9c2",
+          "message": "feat(gui): show no command lines on the Load order page (#218)",
+          "timestamp": "2026-11-17T20:58:45+01:00",
+          "tree_id": "f62ce93c54b2d5d8cfa98e13021f824b2c99fdd7",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/625bf7fd2084c29d8ca6d3c324be0c11579de9c2"
+        },
+        "date": 1794945601979,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.1594680000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.898625,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 22.309359,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.516558,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.77938,
             "unit": "ms"
           }
         ]
