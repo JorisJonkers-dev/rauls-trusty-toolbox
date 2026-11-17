@@ -34,6 +34,8 @@ nvmod-instance = { path = "components/nvmod-rs/crates/nvmod-instance" }
 nvmod-pe = { path = "components/nvmod-rs/crates/nvmod-pe" }
 nvmod-runlog = { path = "components/nvmod-rs/crates/nvmod-runlog" }
 nvmod-testkit = { path = "components/nvmod-rs/crates/nvmod-testkit" }
+jsonschema = { version = "0.30", default-features = false }
+schemars = { version = "1", features = ["derive"] }
 semver = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

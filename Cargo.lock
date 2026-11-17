@@ -1075,10 +1075,12 @@ dependencies = [
 name = "raul-core"
 version = "0.0.0"
 dependencies = [
+ "jsonschema",
  "nvmod-instance",
  "nvmod-pe",
  "nvmod-testkit",
  "raul-runner",
+ "schemars",
  "semver",
  "serde",
  "serde_json",

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "contract": "raul-config",
+  "file": "/users/player/config/raul/config.toml",
+  "entries": [],
+  "error": {
+    "code": "invalid_value",
+    "key": "game.newvegas",
+    "message": "/users/player/Downloads is not a Fallout: New Vegas folder: no FalloutNV.exe in it"
+  }
+}
