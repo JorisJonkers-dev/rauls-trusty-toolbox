@@ -95,13 +95,18 @@ jobs:
           version="${TAG#v}"
           if [ -z "$version" ]; then version="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
-          perl -0pi -e "s/^version = \".*?\"$/version = \"$version\"/m" Cargo.toml
+          perl -0pi -e "s/^version = \".*?\"$/version = \"$version\"/m" Cargo.toml crates/raul-gui/Cargo.toml
           cargo update --workspace
-          grep -m1 '^version' Cargo.toml
+          # The GUI workspace's lock also names the umbrella crates it uses by path; resolving it again records their
+          # new version without touching any other entry.
+          cargo update --workspace --manifest-path crates/raul-gui/Cargo.toml
+          cargo metadata --format-version 1 --manifest-path crates/raul-gui/Cargo.toml >/dev/null
+          grep -m1 '^version' Cargo.toml crates/raul-gui/Cargo.toml
 
       - name: Linux packaging tools
         if: ${{ runner.os == 'Linux' }}
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse2 file
+        # libfuse2 and file for the AppImage; Xvfb and Mesa's software OpenGL for the window's smoke test.
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse2 file xvfb libgl1-mesa-dri libegl1 libxkbcommon-x11-0
 
       - name: Install cargo-packager
         run: cargo install --locked cargo-packager --version "$CARGO_PACKAGER_VERSION"
@@ -126,7 +131,9 @@ jobs:
             macOS) targets=(aarch64-apple-darwin x86_64-apple-darwin); exe="" ;;
           esac
           OUT=target/release; mkdir -p "$OUT"
-          build Cargo.toml raul-cli "raul$exe" "${targets[@]}"
+          # The release raul is the GUI workspace's (ADR-0004): the same command line as raul-cli's, plus the window
+          # it opens when started with no arguments. cargo-packager takes it from target/release.
+          build crates/raul-gui/Cargo.toml raul-gui "raul$exe" "${targets[@]}"
           OUT=target/bundle/components
           build components/lodwright-rs/Cargo.toml lodwright-cli "lodwright$exe" "${targets[@]}"
           # From ttwright-rs v0.3.0 the TTW installer is the package ttwright-cli and the program ttwright.
@@ -178,7 +185,18 @@ jobs:
             echo
             echo "| Crate | Version | Licence |"
             echo "| --- | --- | --- |"
-            cargo metadata --format-version 1 --locked | jq -r '.packages[] | "| \(.name) | \(.version) | \(.license // "see source") |"' | sort -u
+            { cargo metadata --format-version 1 --locked
+              cargo metadata --format-version 1 --locked --manifest-path crates/raul-gui/Cargo.toml
+            } | jq -r '.packages[] | "| \(.name) | \(.version) | \(.license // "see source") |"' | sort -u
+            echo
+            echo "## Inter"
+            echo
+            echo "The interface typeface, Inter 4.1 (https://github.com/rsms/inter), is compiled into raul under the SIL Open"
+            echo "Font License 1.1:"
+            echo
+            echo '```text'
+            cat crates/raul-gui/assets/fonts/OFL.txt
+            echo '```'
           } > target/bundle/THIRD-PARTY-NOTICES.md
           cp LICENSE target/bundle/LICENSE
 
@@ -241,13 +259,17 @@ jobs:
           esac
           find target/packages -maxdepth 1 -type f -print
 
-      # Each artefact must start and report its version. The GUI smoke test (xvfb) joins when the GUI ships in
-      # `raul` (ADR-0004); today `raul` is the CLI build.
+      # Each artefact must start and report its version. On Linux the window must also open: `raul` with no
+      # arguments under Xvfb, on Mesa's software OpenGL; RAUL_GUI_SMOKE closes it after its first frames.
       - name: Smoke test
         run: |
           set -euo pipefail
           # Git Bash on Windows has no /dev/stderr, so the output is captured and printed instead of tee'd.
           check() { local out; out="$("$@" --version)"; echo "$out"; head -1 <<<"$out" | grep -qx "raul $VERSION"; }
+          window() {
+            local out; out="$(RAUL_GUI_SMOKE=1 LIBGL_ALWAYS_SOFTWARE=1 timeout 120 xvfb-run -a "$@")"; echo "$out"
+            [ "$out" = "raul: the window opened and closed" ]
+          }
           # The bundled ttwright must start, report the version of the shipped set, and speak the ttwright-result
           # and ttwright-events v1 Contracts raul ttw reads.
           raul_bin="target/release/raul"; [ "$RUNNER_OS" = Windows ] && raul_bin="$raul_bin.exe"
@@ -266,10 +288,14 @@ jobs:
             Linux)
               app="$(realpath target/packages/*.AppImage)"; chmod +x "$app"
               check "$app" --appimage-extract-and-run
+              window "$app" --appimage-extract-and-run
               (cd "$RUNNER_TEMP" && "$app" --appimage-extract >/dev/null)
               check_ttwright "$(find "$RUNNER_TEMP/squashfs-root" -path '*/components/ttwright' -print -quit)"
               dpkg-deb -x target/packages/*.deb "$RUNNER_TEMP/deb" && check "$RUNNER_TEMP/deb/usr/bin/raul"
+              window "$RUNNER_TEMP/deb/usr/bin/raul"
               tar -xzf target/packages/*.tar.gz -C "$RUNNER_TEMP" && check "$RUNNER_TEMP/raul-$VERSION-linux-x64/raul"
+              window "$RUNNER_TEMP/raul-$VERSION-linux-x64/raul"
+              grep -q "SIL Open Font License" "$RUNNER_TEMP/raul-$VERSION-linux-x64/THIRD-PARTY-NOTICES.md"
               check_ttwright "$RUNNER_TEMP/raul-$VERSION-linux-x64/components/ttwright"
               # The Linux packages carry it too; raul looks for it in ../lib/<package>/components next to raul.
               deb_ttwright="$(find "$RUNNER_TEMP/deb/usr/lib" -path '*/components/ttwright' -print -quit)"
