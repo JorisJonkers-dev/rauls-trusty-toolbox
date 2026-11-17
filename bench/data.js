@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794899967063,
+  "lastUpdate": 1794900588549,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1175,6 +1175,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.337442,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "da41bcd11aaa2f0e85c3efe55e551483a72c1a5f",
+          "message": "chore(deps): bump lodwright-rs to v0.3.0 (#142)\n\nlodwright-rs v0.3.0 adds `lodwright generate` and publishes the lodwright-request and lodwright-result v1\nschemas as release assets. The new Known-good set 2026-11-d moves only lodwright-rs and names the three\nContracts it speaks.\n\nThe snapshots in contracts/snapshots/lodwright-rs/ are already byte for byte the v0.3.0 release assets; a new\ntest keeps every snapshot equal to the schema its pinned Component publishes. lodwright-rs is GPL-3.0-only\nfrom this release, so the release notices and the plan's licence table say so.",
+          "timestamp": "2026-11-17T08:28:36+01:00",
+          "tree_id": "6646a93a1eda4e3136b7a8065ce082f3a6963f98",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/da41bcd11aaa2f0e85c3efe55e551483a72c1a5f"
+        },
+        "date": 1794900588276,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.073517,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.617177,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.198960999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.503272,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.008821999999999,
             "unit": "ms"
           }
         ]
