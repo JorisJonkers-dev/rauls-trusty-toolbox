@@ -2,7 +2,7 @@
 //! `raul ttw`: Tale of Two Wastelands through ttwright-rs. This module holds the `raul-ttw-result` v1 Contract, the
 //! document the `result` event of `raul ttw --json` carries, and the driver that produces it.
 
-mod driver;
+pub(crate) mod driver;
 
 use std::path::PathBuf;
 

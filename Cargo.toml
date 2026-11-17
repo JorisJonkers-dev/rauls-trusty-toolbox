@@ -37,6 +37,7 @@ nvmod-modinstall = { path = "components/nvmod-rs/crates/nvmod-modinstall" }
 nvmod-pe = { path = "components/nvmod-rs/crates/nvmod-pe" }
 nvmod-runlog = { path = "components/nvmod-rs/crates/nvmod-runlog" }
 nvmod-testkit = { path = "components/nvmod-rs/crates/nvmod-testkit" }
+lodwright-testkit = { path = "components/lodwright-rs/crates/lodwright-testkit" }
 jsonschema = { version = "=0.30.0", default-features = false }
 schemars = { version = "=1.2.3", features = ["derive"] }
 semver = "=1.0.28"

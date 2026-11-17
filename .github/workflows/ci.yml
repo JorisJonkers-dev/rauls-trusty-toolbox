@@ -113,6 +113,25 @@ jobs:
         if: ${{ !cancelled() }}
         run: mise exec -- cargo llvm-cov nextest --workspace --locked --lcov --output-path lcov.info
 
+      # `raul lod generate` against the real lodwright of the shipped Known-good set, on a synthetic world from
+      # lodwright's own test kit (crates/raul-cli/tests/lod_generate_real.rs). The program is the Linux release asset
+      # of that version, checked against the release's SHA256SUMS.
+      - name: raul lod generate with the real lodwright
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="$(cargo run --quiet --locked -p raul-cli -- version --json | jq -er '.components["lodwright-rs"]')"
+          asset=lodwright-x86_64-unknown-linux-gnu
+          dir="$RUNNER_TEMP/lodwright-$tag"
+          mkdir -p "$dir"
+          gh release download "$tag" -R JorisJonkers-dev/lodwright-rs -p "$asset" -p SHA256SUMS -D "$dir" --clobber
+          (cd "$dir" && grep -E "^[0-9a-f]{64}  $asset\$" SHA256SUMS | sha256sum --check --strict -)
+          chmod +x "$dir/$asset"
+          cargo clippy --locked -p raul-cli --features real-lodwright --all-targets -- -D warnings
+          RAUL_TEST_LODWRIGHT="$dir/$asset" cargo test --locked -p raul-cli --features real-lodwright --test lod_generate_real
+
       # 70% of the executable lines a change adds or edits in the Toolbox's crates must run in a test
       # (docs/COVERAGE.md). Submodule moves change no line here, so a Component bump has nothing to gate.
       - name: Changed-line coverage gate (70%)

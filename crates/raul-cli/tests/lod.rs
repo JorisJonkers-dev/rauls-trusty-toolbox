@@ -166,7 +166,6 @@ fn a_profile_that_cannot_give_a_request_is_refused() {
     assert_eq!(out.status.code(), Some(2), "no Instance named anywhere");
     assert_eq!(f.raul(&["lod", "plan", "--bogus"]).status.code(), Some(5));
     assert_eq!(f.raul(&["lod"]).status.code(), Some(5));
-    assert_eq!(f.raul(&["lod", "generate"]).status.code(), Some(2));
     // lodwright refuses an output folder inside a git working tree, so the plan does too.
     std::fs::create_dir_all(f.path(".git")).unwrap();
     assert!(
@@ -189,6 +188,5 @@ fn lod_is_the_toolboxs_own_command_and_never_reaches_nvmod() {
     let logs = f.path("state/logs");
     std::fs::remove_dir_all(&logs).unwrap();
     assert_eq!(f.plan(&[]).0, Some(0));
-    assert_eq!(f.raul(&["lod", "generate"]).status.code(), Some(2));
     assert!(!logs.exists(), "nvmod ran");
 }

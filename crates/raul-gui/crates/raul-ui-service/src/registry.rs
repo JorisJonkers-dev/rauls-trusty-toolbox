@@ -386,7 +386,7 @@ pub const COMMANDS: &[Command] = &[
         words: &["generate"],
         flags: &["--instance", "--profile", "--world", "--dry-run", "--json"],
         writes: true,
-        awaits: Some("#127"),
+        awaits: None,
     },
     Command {
         id: "run",
