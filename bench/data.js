@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794954560624,
+  "lastUpdate": 1794955326457,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -2939,6 +2939,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.028468999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e4548b08fb25dd29ca02dce922f2be3cc8e443c6",
+          "message": "fix(gui): fit the Home page to the smallest window (#229)",
+          "timestamp": "2026-11-17T23:40:45+01:00",
+          "tree_id": "079ddbed73b9d89fd9463306b46f52af5f13fec9",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e4548b08fb25dd29ca02dce922f2be3cc8e443c6"
+        },
+        "date": 1794955325716,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.0968600000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.597708,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.29882,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.502834,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.944703,
             "unit": "ms"
           }
         ]
