@@ -87,6 +87,7 @@ crate::texts!(TEXTS {
     DONE = "Done";
     WAITS_FOR_CHECK = "Install waits for the checks.";
     PHASE_STARTING = "Starting";
+    PHASE_WORKING = "Working";
     PHASE_PACKAGE = "Reading the package";
     PHASE_ASSETS = "Building the files";
     PHASE_ARCHIVES = "Packing the archives";
@@ -142,6 +143,8 @@ pub struct Ttw {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Job {
     Sources,
+    /// The sources read again when the page is shown again; the flow stays unless they changed.
+    Refresh,
     Check,
     Install,
 }
@@ -160,7 +163,7 @@ impl Ttw {
     fn command(&self, job: Job) -> Option<Command> {
         let i = self.state.instance.as_deref()?;
         Some(match job {
-            Job::Sources => Command::config_list(),
+            Job::Sources | Job::Refresh => Command::config_list(),
             Job::Check => check_command(i),
             Job::Install => install_command(i, self.state.resuming),
         })
@@ -176,6 +179,7 @@ impl Ttw {
                 self.state.loading();
                 Ok(())
             }
+            Job::Refresh => Ok(()),
             Job::Check => self.state.checking(),
             Job::Install => self.state.installing(),
         };
@@ -200,6 +204,8 @@ impl Ttw {
                         self.state.sources_failed(e.what.to_owned());
                         Ok(())
                     }
+                    // The flow keeps the sources it has.
+                    Job::Refresh => Ok(()),
                     Job::Check => self.state.check_failed(problem(e)),
                     Job::Install => self.state.install_failed(problem(e)),
                 };
@@ -233,6 +239,12 @@ impl Ttw {
                     match read_config(&result) {
                         Ok(c) => self.state.sources_read(Sources::of(&c)),
                         Err(why) => self.state.sources_failed(why),
+                    }
+                    Ok(())
+                }
+                Job::Refresh => {
+                    if let Ok(c) = read_config(&result) {
+                        self.state.refreshed(Sources::of(&c));
                     }
                     Ok(())
                 }
@@ -500,7 +512,11 @@ impl Ttw {
                         }
                     }
                     step => {
-                        let label = if step == Step::Review { INSTALL } else { NEXT };
+                        let label = match step {
+                            Step::Review if self.state.resuming => RESUME,
+                            Step::Review => INSTALL,
+                            _ => NEXT,
+                        };
                         let next =
                             ui.add_enabled(self.state.can_next(), shell::primary_button(t, label));
                         let next = match (step, self.state.instance.as_deref()) {
@@ -604,13 +620,9 @@ impl Page for Ttw {
             if self.state.sources == Fetch::Idle {
                 self.run(cx, Job::Sources);
             }
-        } else if back
-            && !self.state.busy()
-            && !(self.state.step == Step::Install && self.state.done())
-        {
-            // Opened again: the sources may have changed in Settings, so the flow starts over from them.
-            self.state = State::new(self.state.instance.clone());
-            self.run(cx, Job::Sources);
+        } else if back && self.state.sources.ready().is_some() && !self.state.busy() {
+            // Shown again: the sources may have changed in Settings; the flow starts over only if they did.
+            self.run(cx, Job::Refresh);
         }
         self.take_answers(cx);
         self.follow_install(cx);
@@ -713,7 +725,8 @@ fn phase_words(phase: &str) -> &'static str {
         "archives" => PHASE_ARCHIVES,
         "post_install" => PHASE_POST,
         "add_mod" => PHASE_ADD_MOD,
-        _ => PHASE_STARTING,
+        "" => PHASE_STARTING,
+        _ => PHASE_WORKING,
     }
 }
 
@@ -1035,7 +1048,8 @@ mod tests {
         );
         assert_eq!(Ttw::with(done).state_line(), STATE_INSTALLED);
         assert_eq!(percent(2.0), 100);
-        assert_eq!(phase_words("something new"), PHASE_STARTING);
+        assert_eq!(phase_words("something new"), PHASE_WORKING);
+        assert_eq!(phase_words(""), PHASE_STARTING);
     }
 
     #[test]

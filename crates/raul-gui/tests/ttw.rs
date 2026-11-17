@@ -417,7 +417,8 @@ fn a_stopped_install_resumes_where_it_left_off() {
     f.mode("success");
     h.get_by_label(RESUME).click();
     settle(&mut h);
-    h.get_by_role_and_label(Role::Button, INSTALL).click();
+    // Back on the review, whose one button now continues the stopped run.
+    h.get_by_role_and_label(Role::Button, RESUME).click();
     settle(&mut h);
     let args = std::fs::read_to_string(f.path("tools/args")).unwrap();
     assert!(args.contains("--resume"), "{args}");

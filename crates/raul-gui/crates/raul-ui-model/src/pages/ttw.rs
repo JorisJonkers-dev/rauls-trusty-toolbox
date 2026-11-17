@@ -209,6 +209,20 @@ impl State {
         self.sources = Fetch::Failed(why);
     }
 
+    /// The sources were read again, as when the page is shown again after Settings. When they changed, the flow
+    /// starts over from Sources with them; when they did not, or while a command runs or after the install ended,
+    /// the flow stays where it is.
+    pub fn refreshed(&mut self, sources: Sources) {
+        if self.busy() || self.done() || self.sources.ready() == Some(&sources) {
+            return;
+        }
+        *self = State {
+            step: Step::Sources,
+            ..State::new(self.instance.take())
+        };
+        self.sources_read(sources);
+    }
+
     /// What is still missing before the flow can go past Sources; nothing is known missing before the read.
     pub fn missing(&self) -> Vec<TtwNeed> {
         if self.sources.ready().is_some() {
@@ -512,6 +526,29 @@ mod tests {
             s.progress.as_ref().is_some_and(|p| p.done == 1),
             "late progress is dropped"
         );
+    }
+
+    #[test]
+    fn sources_read_again_start_over_only_when_they_changed() {
+        let mut s = ready();
+        s.next();
+        let same = s.sources.ready().cloned().unwrap();
+        s.refreshed(same.clone());
+        assert_eq!(s.step, Step::Output, "unchanged sources keep the step");
+        let changed = Sources {
+            package: Some("/other.mpi".into()),
+            ..same.clone()
+        };
+        s.step = Step::Review;
+        s.checking().unwrap();
+        s.refreshed(changed.clone());
+        assert_eq!(s.step, Step::Review, "a running check is not cut off");
+        s.checked(success(true), problem()).unwrap();
+        s.refreshed(changed.clone());
+        assert_eq!(s.step, Step::Sources);
+        assert!(s.check.is_none() && s.instance.as_deref() == Some("/i"));
+        assert_eq!(s.wizard.package(), Some("/other.mpi"));
+        assert!(s.can_next());
     }
 
     #[test]
