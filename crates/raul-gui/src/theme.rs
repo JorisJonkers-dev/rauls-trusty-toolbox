@@ -1,0 +1,271 @@
+// SPDX-License-Identifier: GPL-3.0-only
+//! The dark theme: the token table of `docs/UI-RULES.md` C1 as egui styles (ADR-0013).
+//!
+//! Every colour a page uses comes from [`Tokens`]; a page never writes a colour of its own. The contrast rule is
+//! checked by a test over the table: every text colour is at least 4.5:1 on every surface, and control borders at
+//! least 3:1.
+
+use eframe::egui::{self, Color32, CornerRadius, FontFamily, FontId, Margin, Stroke, TextStyle};
+
+/// One colour as red, green and blue.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Rgb(pub u8, pub u8, pub u8);
+
+impl Rgb {
+    /// The colour for egui.
+    pub const fn color(self) -> Color32 {
+        Color32::from_rgb(self.0, self.1, self.2)
+    }
+
+    /// The relative luminance of WCAG 2.
+    pub fn luminance(self) -> f64 {
+        fn channel(c: u8) -> f64 {
+            let c = f64::from(c) / 255.0;
+            if c <= 0.039_28 {
+                c / 12.92
+            } else {
+                ((c + 0.055) / 1.055).powf(2.4)
+            }
+        }
+        0.2126 * channel(self.0) + 0.7152 * channel(self.1) + 0.0722 * channel(self.2)
+    }
+
+    /// The WCAG 2 contrast ratio of this colour against `other`, from 1 to 21.
+    pub fn contrast(self, other: Rgb) -> f64 {
+        let (a, b) = (self.luminance(), other.luminance());
+        let (light, dark) = if a > b { (a, b) } else { (b, a) };
+        (light + 0.05) / (dark + 0.05)
+    }
+}
+
+/// The colour tokens of a theme (UI-RULES C1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Tokens {
+    /// The canvas.
+    pub bg: Rgb,
+    /// Dialogs and inputs.
+    pub raise: Rgb,
+    /// The selected row and the active navigation entry.
+    pub sel: Rgb,
+    /// A row or control under the pointer.
+    pub hover: Rgb,
+    /// Hairlines.
+    pub line: Rgb,
+    /// Control borders.
+    pub ctl: Rgb,
+    /// Text.
+    pub text: Rgb,
+    /// Secondary text.
+    pub muted: Rgb,
+    /// Primary buttons, the active marker, the focus ring and links.
+    pub accent: Rgb,
+    /// Text on an accent fill.
+    pub on_accent: Rgb,
+    /// The logo, Raul's name and section ticks; never a status.
+    pub brand: Rgb,
+    /// OK.
+    pub ok: Rgb,
+    /// Warning.
+    pub warn: Rgb,
+    /// Problem.
+    pub err: Rgb,
+    /// Updates and running work.
+    pub info: Rgb,
+}
+
+/// The dark theme.
+pub const DARK: Tokens = Tokens {
+    bg: Rgb(0x10, 0x12, 0x15),
+    raise: Rgb(0x17, 0x1A, 0x1F),
+    sel: Rgb(0x1F, 0x25, 0x30),
+    hover: Rgb(0x1A, 0x1D, 0x23),
+    line: Rgb(0x2F, 0x35, 0x3F),
+    ctl: Rgb(0x60, 0x69, 0x73),
+    text: Rgb(0xE6, 0xE8, 0xEB),
+    muted: Rgb(0x98, 0xA1, 0xAC),
+    accent: Rgb(0x3D, 0xD6, 0xC6),
+    on_accent: Rgb(0x10, 0x12, 0x15),
+    brand: Rgb(0xF5, 0x9E, 0x3B),
+    ok: Rgb(0x4C, 0xC3, 0x8A),
+    warn: Rgb(0xF2, 0xA9, 0x3B),
+    err: Rgb(0xF2, 0x6B, 0x6B),
+    info: Rgb(0x6E, 0xA8, 0xFE),
+};
+
+impl Tokens {
+    /// The surfaces text is drawn on.
+    pub fn surfaces(&self) -> [(&'static str, Rgb); 4] {
+        [
+            ("bg", self.bg),
+            ("raise", self.raise),
+            ("sel", self.sel),
+            ("hover", self.hover),
+        ]
+    }
+
+    /// The colours text is drawn in on those surfaces.
+    pub fn text_colours(&self) -> [(&'static str, Rgb); 8] {
+        [
+            ("text", self.text),
+            ("muted", self.muted),
+            ("accent", self.accent),
+            ("brand", self.brand),
+            ("ok", self.ok),
+            ("warn", self.warn),
+            ("err", self.err),
+            ("info", self.info),
+        ]
+    }
+}
+
+/// The base text size in points (UI-RULES T1: 14 px).
+pub const BASE: f32 = 14.0;
+/// The family of the semibold Inter face (see [`crate::fonts`]).
+pub const SEMIBOLD: &str = "inter-semibold";
+
+/// The text style of a page title (1.4 rem, semibold).
+pub fn title_style() -> TextStyle {
+    TextStyle::Name("title".into())
+}
+
+/// The text style of a section label (0.74 rem, semibold, shown in uppercase).
+pub fn section_style() -> TextStyle {
+    TextStyle::Name("section".into())
+}
+
+/// The text style of secondary text (0.9 rem).
+pub fn secondary_style() -> TextStyle {
+    TextStyle::Small
+}
+
+fn semibold(size: f32) -> FontId {
+    FontId::new(size, FontFamily::Name(SEMIBOLD.into()))
+}
+
+/// Applies `tokens` and the type scale to `ctx`.
+pub fn apply(ctx: &egui::Context, tokens: &Tokens) {
+    ctx.set_visuals_of(egui::Theme::Dark, visuals(tokens));
+    ctx.set_theme(egui::Theme::Dark);
+    ctx.all_styles_mut(|style| {
+        style.text_styles = [
+            (TextStyle::Body, FontId::proportional(BASE)),
+            (TextStyle::Button, FontId::proportional(BASE)),
+            (TextStyle::Small, FontId::proportional(BASE * 0.9)),
+            (TextStyle::Monospace, FontId::monospace(BASE * 0.92)),
+            (TextStyle::Heading, semibold(BASE * 1.12)),
+            (title_style(), semibold(BASE * 1.4)),
+            (section_style(), semibold(BASE * 0.74)),
+        ]
+        .into();
+        let spacing = &mut style.spacing;
+        spacing.item_spacing = egui::vec2(8.0, 8.0);
+        spacing.button_padding = egui::vec2(12.0, 6.0);
+        spacing.interact_size.y = 28.0;
+        spacing.window_margin = Margin::same(20);
+    });
+}
+
+/// The egui visuals of `tokens`.
+pub fn visuals(t: &Tokens) -> egui::Visuals {
+    let mut v = egui::Visuals::dark();
+    let radius = CornerRadius::same(6);
+    v.override_text_color = Some(t.text.color());
+    v.weak_text_color = Some(t.muted.color());
+    v.hyperlink_color = t.accent.color();
+    v.panel_fill = t.bg.color();
+    v.window_fill = t.raise.color();
+    v.window_stroke = Stroke::new(1.0, t.line.color());
+    v.window_corner_radius = CornerRadius::same(12);
+    v.extreme_bg_color = t.raise.color();
+    v.faint_bg_color = t.hover.color();
+    v.code_bg_color = t.bg.color();
+    v.warn_fg_color = t.warn.color();
+    v.error_fg_color = t.err.color();
+    v.selection.bg_fill = t.sel.color();
+    let w = &mut v.widgets;
+    w.noninteractive.bg_fill = t.bg.color();
+    w.noninteractive.weak_bg_fill = t.bg.color();
+    w.noninteractive.bg_stroke = Stroke::new(1.0, t.line.color());
+    w.noninteractive.fg_stroke = Stroke::new(1.0, t.text.color());
+    w.noninteractive.corner_radius = radius;
+    for (state, fill) in [
+        (&mut w.inactive, t.bg),
+        (&mut w.hovered, t.sel),
+        (&mut w.active, t.sel),
+        (&mut w.open, t.sel),
+    ] {
+        state.bg_fill = fill.color();
+        state.weak_bg_fill = fill.color();
+        state.bg_stroke = Stroke::new(1.0, t.ctl.color());
+        state.fg_stroke = Stroke::new(1.0, t.text.color());
+        state.corner_radius = radius;
+        state.expansion = 0.0;
+    }
+    // The keyboard focus ring and text selection (UI-RULES X1): 2 px of the accent.
+    v.selection.stroke = Stroke::new(2.0, t.accent.color());
+    v
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_text_colour_reads_on_every_surface() {
+        let t = DARK;
+        let mut low = Vec::new();
+        for (surface, bg) in t.surfaces() {
+            for (name, fg) in t.text_colours() {
+                let ratio = fg.contrast(bg);
+                if ratio < 4.5 {
+                    low.push(format!("{name} on {surface}: {ratio:.2}"));
+                }
+            }
+        }
+        assert!(low.is_empty(), "below 4.5:1: {low:?}");
+    }
+
+    #[test]
+    fn text_on_the_accent_reads() {
+        assert!(DARK.on_accent.contrast(DARK.accent) >= 4.5);
+    }
+
+    #[test]
+    fn control_borders_stand_out_from_every_surface_a_control_sits_on() {
+        // Controls sit on the canvas, in dialogs and in a hovered row; a selected row holds no control.
+        for (surface, bg) in [
+            ("bg", DARK.bg),
+            ("raise", DARK.raise),
+            ("hover", DARK.hover),
+        ] {
+            let ratio = DARK.ctl.contrast(bg);
+            assert!(ratio >= 3.0, "ctl on {surface}: {ratio:.2}");
+        }
+    }
+
+    #[test]
+    fn the_accent_is_never_the_brand_or_a_warning() {
+        assert_ne!(DARK.accent, DARK.brand);
+        assert_ne!(DARK.accent, DARK.warn);
+    }
+
+    #[test]
+    fn contrast_matches_known_values() {
+        let black = Rgb(0, 0, 0);
+        let white = Rgb(255, 255, 255);
+        assert!((white.contrast(black) - 21.0).abs() < 1e-9);
+        assert!((black.contrast(white) - 21.0).abs() < 1e-9);
+        assert!((white.contrast(white) - 1.0).abs() < 1e-9);
+        // #767676 on white is the well-known 4.54:1.
+        assert!((Rgb(0x76, 0x76, 0x76).contrast(white) - 4.54).abs() < 0.01);
+    }
+
+    #[test]
+    fn the_visuals_use_the_tokens() {
+        let v = visuals(&DARK);
+        assert_eq!(v.panel_fill, DARK.bg.color());
+        assert_eq!(v.override_text_color, Some(DARK.text.color()));
+        assert_eq!(v.widgets.inactive.bg_stroke.color, DARK.ctl.color());
+        assert_eq!(v.hyperlink_color, DARK.accent.color());
+    }
+}

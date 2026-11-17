@@ -13,3 +13,23 @@ path = "docs/design/mockup.html"
 what = "GUI mockup, including its inline line icons drawn for it from generic shapes"
 source = "this repository"
 license = "GPL-3.0-only"
+
+[[asset]]
+path = "crates/raul-gui/assets/fonts/Inter-Regular.ttf"
+what = "Inter 4.1, regular: the interface typeface, compiled into the release raul"
+source = "https://github.com/rsms/inter/releases/tag/v4.1"
+license = "OFL-1.1"
+attribution = "Copyright (c) 2016 The Inter Project Authors"
+
+[[asset]]
+path = "crates/raul-gui/assets/fonts/Inter-SemiBold.ttf"
+what = "Inter 4.1, semibold: titles and labels, compiled into the release raul"
+source = "https://github.com/rsms/inter/releases/tag/v4.1"
+license = "OFL-1.1"
+attribution = "Copyright (c) 2016 The Inter Project Authors"
+
+[[asset]]
+path = "crates/raul-gui/assets/fonts/OFL.txt"
+what = "the SIL Open Font License 1.1 text that comes with Inter, shown in the About dialog"
+source = "https://github.com/rsms/inter/releases/tag/v4.1"
+license = "OFL-1.1"

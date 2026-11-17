@@ -74,7 +74,7 @@ scanline, Pip-Boy look was tried and rejected because it read like a 1990s websi
   | raise | `#171A1F` | dialogs, inputs |
   | sel | `#1F2530` | selected row, active navigation |
   | line | `#2F353F` | hairlines |
-  | ctl | `#5C6570` | control borders |
+  | ctl | `#606973` | control borders |
   | text | `#E6E8EB` | text |
   | muted | `#98A1AC` | secondary text |
   | accent | `#3DD6C6` | primary buttons, active marker, focus ring, links |

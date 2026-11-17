@@ -1,6 +1,8 @@
 # The GUI workspace (crates/raul-gui, ADR-0004) has its own lock file, so ci.yml's workspace steps never see it.
 # This workflow runs its checks: format, lint, tests with the 70% changed-line coverage gate (docs/COVERAGE.md),
-# licences and advisories. It runs when the GUI or anything it builds on changes.
+# the page snapshots, a headless start of the release `raul` (#16), licences and advisories. It runs when the GUI or
+# anything it builds on changes. There is no GPU: snapshots render on Mesa's software Vulkan (lavapipe) and the
+# window opens under Xvfb on Mesa's software OpenGL (llvmpipe).
 name: GUI
 
 on:
@@ -59,6 +61,9 @@ jobs:
           workspaces: crates/raul-gui
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
 
+      - name: Software rendering and a virtual display
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mesa-vulkan-drivers libgl1-mesa-dri libegl1 xvfb libxkbcommon-x11-0
+
       - name: Format
         if: ${{ !cancelled() }}
         run: cargo fmt --all --check
@@ -67,10 +72,21 @@ jobs:
         if: ${{ !cancelled() }}
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
+      # The snapshot tests are among them; a changed picture fails and leaves .new.png and .diff.png files.
       - name: Tests with coverage
         id: tests
         if: ${{ !cancelled() }}
         run: mise exec -- cargo llvm-cov nextest --workspace --locked --lcov --output-path lcov.info
+
+      - name: Snapshot differences
+        if: ${{ failure() && steps.tests.outcome == 'failure' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: snapshot-differences
+          path: |
+            crates/raul-gui/tests/snapshots/**/*.new.png
+            crates/raul-gui/tests/snapshots/**/*.diff.png
+          if-no-files-found: ignore
 
       - name: Changed-line coverage gate (70%)
         if: ${{ !cancelled() && steps.tests.outcome == 'success' }}
@@ -88,6 +104,20 @@ jobs:
       - name: Doc tests
         if: ${{ !cancelled() }}
         run: cargo test --workspace --doc --locked
+
+      # `raul` with no arguments opens the window; RAUL_GUI_SMOKE closes it after its first frames.
+      - name: Headless start of the GUI
+        if: ${{ !cancelled() }}
+        env:
+          RAUL_GUI_SMOKE: "1"
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          cargo build --locked --bin raul
+          out=$(timeout 120 xvfb-run -a target/debug/raul)
+          echo "$out"
+          test "$out" = "raul: the window opened and closed"
+          target/debug/raul --version
 
       - name: Licences, bans, sources and advisories
         if: ${{ !cancelled() }}

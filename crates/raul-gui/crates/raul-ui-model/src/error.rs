@@ -107,7 +107,7 @@ impl ViewError {
     }
 }
 
-/// The states every screen defines (document 02): empty, loading, ready, partial and failed.
+/// The states every screen defines (UI-RULES S1): empty, loading, ready, partial and failed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Load<T> {
     /// Nothing to show; the hint says what to do next.
