@@ -172,6 +172,7 @@ fn a_dry_run_writes_nothing() {
         })
         .unwrap();
     assert!(report.dry_run, "{report:?}");
+    assert_eq!(report.status, Status::Success);
     assert!(report.mod_name.is_none());
     assert!(!f.path("instance/mods/Tale of Two Wastelands").exists());
 }

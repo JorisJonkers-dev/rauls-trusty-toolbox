@@ -719,26 +719,31 @@ impl<E: Exec> CliService<E> {
     }
 }
 
-/// Reads the `raul-ttw-result` from the `raul-events` stream `raul ttw --json` printed.
+/// Reads the `raul-ttw-result` from the `raul-events` stream `raul ttw --json` printed. The stream must end with
+/// `finished`, and its status must be the result's: a stream cut short (the command was killed after its result)
+/// or one that disagrees with itself is not a report.
 fn ttw_report(out: &Output, args: &[String]) -> Result<TtwReport, ServiceError> {
-    let mut document = None;
+    use raul_ui_model::events::{Event, LineError, parse_line};
+    let unreadable = |class: ExitClass, what: String| {
+        let mut e = ViewError::new(class, what, effect_of(class));
+        e.repro = Some(repro(args));
+        ServiceError::Failed(e)
+    };
+    let (mut document, mut finished) = (None, None);
     for line in out.stdout.lines().filter(|l| !l.trim().is_empty()) {
-        match raul_ui_model::events::parse_line(line) {
-            Ok(parsed) => {
-                if let raul_ui_model::events::Event::Result { result } = parsed.event {
-                    document = Some(result);
-                }
-            }
-            Err(raul_ui_model::events::LineError::Newer(v)) => {
-                let mut e = ViewError::new(
-                    ExitClass::Refused,
+        match parse_line(line) {
+            Ok(parsed) => match parsed.event {
+                Event::Result { result } => document = Some(result),
+                Event::Finished { status, .. } => finished = Some(status),
+                _ => {}
+            },
+            Err(LineError::Newer(v)) => {
+                return Err(unreadable(
+                    ExitClass::Internal,
                     format!(
                         "`raul ttw` speaks raul-events version {v}; this build reads version 1"
                     ),
-                    "Nothing was read",
-                );
-                e.repro = Some(repro(args));
-                return Err(ServiceError::Failed(e));
+                ));
             }
             Err(_) => {}
         }
@@ -746,15 +751,26 @@ fn ttw_report(out: &Output, args: &[String]) -> Result<TtwReport, ServiceError> 
     let Some(document) = document else {
         return Err(failure(out, "ttw", args));
     };
-    TtwReport::from_value(document).map_err(|why| {
-        let mut e = ViewError::new(
+    let report = TtwReport::from_value(document).map_err(|why| {
+        unreadable(
             ExitClass::Internal,
             format!("The result of `raul ttw` could not be read: {why}"),
-            effect_of(ExitClass::Internal),
-        );
-        e.repro = Some(repro(args));
-        ServiceError::Failed(e)
-    })
+        )
+    })?;
+    match finished {
+        Some(status) if status == report.status => Ok(report),
+        Some(status) => Err(unreadable(
+            ExitClass::Internal,
+            format!(
+                "`raul ttw` ended as {status:?} but its result says {:?}",
+                report.status
+            ),
+        )),
+        None => Err(unreadable(
+            ExitClass::Internal,
+            "`raul ttw` stopped before it said how it ended".to_owned(),
+        )),
+    }
 }
 
 pub(crate) fn push(args: &mut Vec<String>, name: &str, value: &str) {

@@ -162,10 +162,9 @@ pub fn parse_line(text: &str) -> Result<Line, LineError> {
     let version = value
         .get("schema_version")
         .and_then(serde_json::Value::as_u64)
-        .and_then(|v| u32::try_from(v).ok())
         .ok_or_else(|| LineError::Unreadable("no schema_version".into()))?;
-    if version > VERSION {
-        return Err(LineError::Newer(version));
+    if version > u64::from(VERSION) {
+        return Err(LineError::Newer(u32::try_from(version).unwrap_or(u32::MAX)));
     }
     serde_json::from_value(value).map_err(|e| LineError::Unreadable(e.to_string()))
 }
@@ -256,6 +255,10 @@ mod tests {
             parse_line(&LINE.replace("\"progress\"", "\"teleport\"")),
             Err(LineError::Unreadable(_))
         ));
+        assert_eq!(
+            parse_line(&LINE.replace("\"schema_version\":1", "\"schema_version\":99999999999")),
+            Err(LineError::Newer(u32::MAX))
+        );
         assert!(matches!(
             parse_line(r#"{"contract":"raul-events"}"#),
             Err(LineError::Unreadable(_))
