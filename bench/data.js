@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794894952160,
+  "lastUpdate": 1794895342287,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -685,6 +685,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.938031,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "552c447550d5aee96e354edf7e831988af85ff76",
+          "message": "docs: cite only this repository's ADR in the update check (#131)\n\nCloses #129.",
+          "timestamp": "2026-11-17T07:01:08+01:00",
+          "tree_id": "7712e8f75bd395f218ab694f75e7f30991748c60",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/552c447550d5aee96e354edf7e831988af85ff76"
+        },
+        "date": 1794895342002,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.0822939999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.649832,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.386472,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.4885689999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.060243,
             "unit": "ms"
           }
         ]
