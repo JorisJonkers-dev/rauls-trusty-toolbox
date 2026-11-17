@@ -25,6 +25,8 @@ env:
   CARGO_PACKAGER_VERSION: 0.11.8
   # 0.5.10 is under the 7-day cooldown on 2026-11-16; Renovate moves this pin.
   CARGO_CYCLONEDX_VERSION: 0.5.9
+  # SHA-256 of that release's x86_64-unknown-linux-gnu archive (the release's own .sha256 file); change it with the version.
+  CARGO_CYCLONEDX_SHA256: fb8dbee9f182173e062a64a387b21a0badc6fab8b2abf9294973f012972bf6d8
 
 jobs:
   release-please:
@@ -108,7 +110,16 @@ jobs:
         # libfuse2 and file for the AppImage; Xvfb and Mesa's software OpenGL for the window's smoke test.
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libfuse2 file xvfb libgl1-mesa-dri libegl1 libxkbcommon-x11-0
 
+      # cargo-packager publishes no binary, so the one `cargo install` builds is cached by version and system.
+      - name: Cache cargo-packager
+        id: packager-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/cargo-packager${{ runner.os == 'Windows' && '.exe' || '' }}
+          key: cargo-packager-${{ runner.os }}-${{ runner.arch }}-${{ env.CARGO_PACKAGER_VERSION }}
+
       - name: Install cargo-packager
+        if: ${{ steps.packager-cache.outputs.cache-hit != 'true' }}
         run: cargo install --locked cargo-packager --version "$CARGO_PACKAGER_VERSION"
 
       - name: Build raul and the bundled Components
@@ -377,7 +388,15 @@ jobs:
       - name: SBOM
         run: |
           set -euo pipefail
-          cargo install --locked cargo-cyclonedx --version "$CARGO_CYCLONEDX_VERSION"
+          # The project's own prebuilt binary, pinned by version and SHA-256, instead of a build from source (about 2.5 minutes).
+          archive="cargo-cyclonedx-x86_64-unknown-linux-gnu.tar.xz"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$archive" \
+            "https://github.com/CycloneDX/cyclonedx-rust-cargo/releases/download/cargo-cyclonedx-${CARGO_CYCLONEDX_VERSION}/$archive"
+          echo "$CARGO_CYCLONEDX_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/cyclonedx"
+          tar -xJf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/cyclonedx" --strip-components=1
+          mkdir -p "$HOME/.cargo/bin"
+          install -m 0755 "$RUNNER_TEMP/cyclonedx/cargo-cyclonedx" "$HOME/.cargo/bin/cargo-cyclonedx"
           cargo cyclonedx --format json --spec-version 1.5 --manifest-path crates/raul-cli/Cargo.toml
           cp crates/raul-cli/raul-cli.cdx.json dist/raul.cdx.json
 
