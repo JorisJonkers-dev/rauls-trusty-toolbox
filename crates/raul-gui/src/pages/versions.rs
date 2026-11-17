@@ -55,7 +55,6 @@ crate::texts!(TEXTS {
     INSTALL_COST = "Downloads the latest nv-rs release, checks its checksum and runs its check. Your game folder is not changed; if anything fails, it is rolled back.";
     REINSTALL_COST = "Downloads the latest nv-rs release and puts it in place of the installed one after it passes its check. Your game folder is not changed; if anything fails, it is rolled back.";
     INSTALL_ACTION = "Install";
-    INSTALL_SHAPE = "raul install-nv-rs --instance <dir> --release";
     TOOLBOX_LABEL = "Toolbox";
     CHECK_UPDATES = "Check for updates";
     UPDATE = "Update";
@@ -65,7 +64,7 @@ crate::texts!(TEXTS {
     UPDATE_FOUND = "Version {version} is out; you run {current}.";
     UPDATE_OPEN = "Release page";
     READING = "Reading";
-    WAITING_NOTE = "This build cannot read it from the window yet. The command below shows it in a terminal.";
+    WAITING_NOTE = "This build cannot read it from the window yet.";
 });
 
 crate::errors!(ERRORS {
@@ -375,11 +374,7 @@ impl Versions {
             } else {
                 egui::Button::new(label)
             };
-            if ui
-                .add_enabled(can, button)
-                .on_hover_text(update_command().shown())
-                .clicked()
-            {
+            if ui.add_enabled(can, button).clicked() {
                 self.check_updates(cx);
             }
         });
@@ -420,11 +415,9 @@ impl Versions {
             match &self.state.shipped {
                 Fetch::Failed(why) if why == WAITING.what => {
                     ui.label(RichText::new(WAITING_NOTE).color(t.muted.color()));
-                    shell::command_line(ui, &t, &version_command().shown());
                 }
                 Fetch::Failed(why) => {
                     error_block(ui, &t, &VERSION_UNREADABLE, Some(why));
-                    shell::command_line(ui, &t, &version_command().shown());
                 }
                 Fetch::Idle | Fetch::Loading => {
                     waiting(ui, &t, UPDATE_READING, &version_command());
@@ -432,7 +425,6 @@ impl Versions {
                 Fetch::Ready(_) => {}
             }
         }
-        shell::command_line(ui, &t, &update_command().shown());
     }
 
     fn engine_section(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
@@ -466,16 +458,12 @@ impl Versions {
             Fetch::Failed(why) => error_block(ui, &t, &ENGINE_UNREADABLE, Some(why)),
             Fetch::Idle | Fetch::Loading => {}
         }
-        if let Some(instance) = self.state.instance() {
-            shell::command_line(ui, &t, &verify_command(instance).shown());
-        }
         ui.add_space(8.0);
         if self.state.config.ready().is_some() && self.state.instance().is_none() {
             ui.label(RichText::new(NO_STORAGE).color(t.muted.color()));
             if ui.button(OPEN_SETTINGS).clicked() {
                 cx.shell.go_to = Some(View::Page(PageId::Settings));
             }
-            shell::command_line(ui, &t, INSTALL_SHAPE);
             return;
         }
         if running {
@@ -519,11 +507,6 @@ impl Versions {
                 .with_command(command.shown()),
             );
         }
-        shell::command_line(
-            ui,
-            &t,
-            &command.map_or_else(|| INSTALL_SHAPE.to_owned(), |c| c.shown()),
-        );
     }
 }
 
