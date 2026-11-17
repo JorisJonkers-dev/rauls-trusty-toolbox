@@ -48,6 +48,10 @@ scanline, Pip-Boy look was tried and rejected because it read like a 1990s websi
 - **A4 MUST:** section labels are small uppercase text with the amber bracket tick.
 - **A5 MUST:** nothing scrolls sideways at 402 px; long paths truncate with an ellipsis and show in full in a
   tooltip or the detail pane. *Check: narrow-width snapshot of every page.*
+- **A6 MUST:** the smallest supported window is 402 by 480 px (the window's minimum size); every page lays out to the
+  space it has, content taller than the window scrolls inside its own area, and nothing reaches past the right edge.
+  *Check: `crates/raul-gui/tests/fits_window.rs` checks every page fixture at 402 by 480 and at 1920 by 1080; a page
+  that does not fit yet is listed there with its ticket.*
 
 ## 3. Global elements and attention
 
