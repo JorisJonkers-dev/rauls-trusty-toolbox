@@ -33,6 +33,9 @@ pub struct ShellState {
     pub engine: Option<String>,
     /// The polite status line of the footer (UI-RULES G4).
     pub status: Option<String>,
+    /// Set when the status line reports a failure: the footer then shows it as an error with a "Copy details"
+    /// button. The page that reports a failure sets it; a status line is replaced by the next report.
+    pub status_error: Option<ErrorText>,
     /// Why Play is blocked, shown under it and when it is pressed (UI-RULES G3); `None` when it is not.
     pub play_blocked: Option<ErrorText>,
     /// Set by the shell when Play was pressed and is not blocked; the page that starts the game clears it.

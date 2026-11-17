@@ -8,6 +8,7 @@
 //! * [`route`]: the screens, the left rail and the `Ctrl+1` to `Ctrl+8` mapping.
 //! * [`events`]: the `raul-events` stream of the driver commands (`raul ttw`, `raul lod generate`).
 //! * [`error`]: exit classes of the command line and the error shape every screen shows.
+//! * [`copy`]: the plain, self-contained text an error's "Copy details" button puts on the clipboard.
 //! * [`job`]: the job events and the table that orders and de-duplicates them.
 //! * [`doctor`] and [`mods`]: the state of the Doctor and Mods screens.
 //! * [`setup`]: the real `raul setup --json` event stream and the setup wizard it drives.
@@ -18,6 +19,7 @@
 #![allow(clippy::must_use_candidate, clippy::module_name_repetitions)]
 #![cfg_attr(test, allow(clippy::assert_is_empty))]
 
+pub mod copy;
 pub mod doctor;
 pub mod error;
 pub mod events;
@@ -30,5 +32,6 @@ pub mod route;
 pub mod setup;
 pub mod wizard;
 
+pub use copy::copy_details;
 pub use error::{ExitClass, Load, ViewError};
 pub use route::{Route, Screen};

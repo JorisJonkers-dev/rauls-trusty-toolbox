@@ -11,9 +11,9 @@
 //! and the wizard.
 
 use super::settings::{
-    Pending, Visits, error_block, failure_of, read_config, settle, share_config, start,
+    Pending, UNREADABLE, Visits, error_block, failure_of, read_config, settle, share_config, start,
 };
-use super::{Fixture, Page, PageCx};
+use super::{Fixture, Page, PageCx, ShellState};
 use crate::catalogue::{self as msg, ErrorText};
 use crate::dialog::{Answer, Dialog};
 use crate::shell;
@@ -273,12 +273,9 @@ impl Home {
         }
         if let Some((why, fix)) = self.stop() {
             self.blocked_fix = Some(fix);
-            cx.dialogs.open(Dialog::confirm(
-                BLOCKED_DIALOG,
-                msg::PLAY_BLOCKED_TITLE,
-                why,
-                FIX,
-            ));
+            let dialog = Dialog::confirm(BLOCKED_DIALOG, msg::PLAY_BLOCKED_TITLE, why, FIX)
+                .with_error(self.blocked_error());
+            cx.dialogs.open(dialog);
             return;
         }
         if !self.state.can_play() {
@@ -294,6 +291,13 @@ impl Home {
             }
             Err(e) => self.state.launch = Launch::Failed(e.what.to_owned()),
         }
+    }
+
+    /// The error the blocked dialog shows and copies: the blocking problem, or the one the reads hit.
+    fn blocked_error(&self) -> ErrorText {
+        self.state
+            .block()
+            .map_or(super::settings::UNREADABLE, block_text)
     }
 
     /// What stands between this press and a game that starts, and the view whose control fixes it: `None` when
@@ -511,14 +515,31 @@ impl Home {
         }
         if let Some(b) = block {
             let e = block_text(b);
-            ui.horizontal_wrapped(|ui| {
-                icon(ui, &t, Mark::Problem);
-                ui.label(RichText::new(e.what).color(t.err.color()));
-                if ui.button(FIX).clicked() {
-                    cx.shell.go_to = Some(b.fix());
-                }
-            });
-            ui.label(RichText::new(e.detail).color(t.muted.color()));
+            let fix = ui
+                .horizontal_top(|ui| {
+                    icon(ui, &t, Mark::Problem);
+                    ui.vertical(|ui| {
+                        ui.add(
+                            egui::Label::new(RichText::new(e.what).color(t.err.color()))
+                                .wrap()
+                                .selectable(true),
+                        );
+                        ui.add(
+                            egui::Label::new(RichText::new(e.detail).color(t.muted.color()))
+                                .wrap()
+                                .selectable(true),
+                        );
+                    });
+                    ui.button(FIX).clicked()
+                })
+                .inner;
+            if ui.button(msg::COPY_DETAILS).clicked() {
+                let text = shell::copy_text(e.detail, e.what, e.detail);
+                ui.ctx().copy_text(text);
+            }
+            if fix {
+                cx.shell.go_to = Some(b.fix());
+            }
         }
         // The step that no row marks, said once under Play with the page that sets it up (UI-RULES G2, G3). A step
         // that is known to be missing is named even while other reads run, so the header's "Not ready yet" always
@@ -878,16 +899,21 @@ pub fn fixtures() -> Vec<Fixture> {
                 ..State::default()
             }),
         ),
-        Fixture::new(
-            "error",
-            seen(State {
+        Fixture {
+            name: "error",
+            page: Box::new(seen(State {
                 config: Fetch::Failed(
                     "the configuration file has schema_version 2; this raul reads 1".into(),
                 ),
                 engine: Fetch::Ready(Engine::missing()),
                 ..State::default()
-            }),
-        ),
+            })),
+            shell: ShellState {
+                status: Some(UNREADABLE.detail.to_owned()),
+                status_error: Some(UNREADABLE),
+                ..ShellState::default()
+            },
+        },
         Fixture::new(
             "starting",
             seen(State {
@@ -993,7 +1019,10 @@ mod tests {
         h.get_by_label(PLAY_BIG).click();
         h.run();
         let dialog = h.state().dialogs().current().cloned().unwrap();
+        assert_eq!(dialog.error, Some(PLAY_NO_ENGINE));
         assert_eq!(dialog.body[0], PLAY_NO_ENGINE.detail);
+        // The error is an error surface of its own: it can be copied from the dialog.
+        assert!(h.query_all_by_label(msg::COPY_DETAILS).next().is_some());
         h.get_all_by_label(FIX).last().unwrap().click();
         h.run();
         assert_eq!(h.state().view(), View::Page(PageId::Versions));
