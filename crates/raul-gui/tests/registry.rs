@@ -91,7 +91,8 @@ impl Fixture {
             }
             (Action::Sort, _) => vec!["--instance", &instance, "--masterlist", "MASTERLIST"],
             (Action::Ttw, _) => vec!["--instance", &instance, "--dry-run"],
-            (Action::Config, _) => vec![],
+            (Action::Detect, _) => vec!["--folder", "BASE"],
+            (Action::Config | Action::Version, _) => vec![],
             _ => vec!["--instance", &instance],
         };
         let mut rest: Vec<String> = words
@@ -125,13 +126,15 @@ fn understood(line: &str, (code, out, err): &(i32, String, String), json: bool) 
 }
 
 /// The exit code each command gives on the fixture: an engine fetch from an address that refuses fails (4), TTW
-/// with no Fallout 3 folder is refused (2), the Doctor finds the fixture's missing pieces (1), the rest succeed;
+/// with no Fallout 3 folder is refused (2), verify finds no engine (3), the Doctor finds the fixture's missing pieces (1), the rest succeed;
 /// the rollback undoes the sort that ran before it.
 fn expected(command: &Command) -> i32 {
     match command.action {
         Action::InstallNvRs => 4,
         Action::Ttw => 2,
         Action::Doctor => 1,
+        // No engine is installed in the fixture, so the install does not verify.
+        Action::Verify => 3,
         _ => 0,
     }
 }

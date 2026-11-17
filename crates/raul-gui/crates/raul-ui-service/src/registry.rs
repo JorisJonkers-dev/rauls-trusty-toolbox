@@ -50,11 +50,15 @@ pub enum Action {
     Lod,
     /// `raul run`: start the game on nv-rs, only through the memory-capped run guard.
     Run,
+    /// `raul version`: the Toolbox version and the Known-good set it ships.
+    Version,
+    /// `raul detect`: find New Vegas and Fallout 3 copies, or check one folder.
+    Detect,
 }
 
 impl Action {
     /// Every action.
-    pub const ALL: [Action; 19] = [
+    pub const ALL: [Action; 21] = [
         Action::Setup,
         Action::ImportMo2,
         Action::InstallMod,
@@ -74,6 +78,8 @@ impl Action {
         Action::Init,
         Action::Lod,
         Action::Run,
+        Action::Version,
+        Action::Detect,
     ];
 
     /// The subcommand word of the command line.
@@ -98,6 +104,8 @@ impl Action {
             Self::Init => "init",
             Self::Lod => "lod",
             Self::Run => "run",
+            Self::Version => "version",
+            Self::Detect => "detect",
         }
     }
 
@@ -136,6 +144,8 @@ impl Action {
             Self::Init => "Create the Instance",
             Self::Lod => "Distant land",
             Self::Run => "Play",
+            Self::Version => "Versions",
+            Self::Detect => "Find the games",
         }
     }
 
@@ -189,14 +199,7 @@ pub fn planned_screens() -> Vec<Screen> {
 /// Whether `help` (the output of `raul nvmod-help`, whose lines name the program `nvmod`) lists the action's
 /// command. `raul` runs every nvmod command in process, so either program name counts.
 pub fn help_lists(help: &str, action: Action) -> bool {
-    let command = action.command();
-    help.lines().any(|l| {
-        let Some((program, rest)) = l.trim_start().split_once(' ') else {
-            return false;
-        };
-        matches!(program, "raul" | "nvmod")
-            && (rest == command || rest.starts_with(&format!("{command} ")))
-    })
+    help_block(help, &action.invocation()).is_some()
 }
 
 /// The `raul` command a command string such as `raul ttw --instance <dir>` starts, if it is one of the
@@ -252,6 +255,30 @@ impl Command {
 
 /// Every command the pages of the minimum viable Toolbox start (#117).
 pub const COMMANDS: &[Command] = &[
+    Command {
+        id: "verify",
+        action: Action::Verify,
+        words: &[],
+        flags: &["--instance", "--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "version",
+        action: Action::Version,
+        words: &[],
+        flags: &["--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "detect",
+        action: Action::Detect,
+        words: &[],
+        flags: &["--folder", "--json"],
+        writes: false,
+        awaits: None,
+    },
     Command {
         id: "config-list",
         action: Action::Config,
@@ -364,7 +391,8 @@ pub const COMMANDS: &[Command] = &[
     Command {
         id: "run",
         action: Action::Run,
-        words: &[],
+        // The target: Play runs the game on the engine.
+        words: &["nv-rs"],
         flags: &["--instance", "--dry-run", "--json"],
         writes: false,
         awaits: Some("#124"),
@@ -401,14 +429,16 @@ pub const COMMANDS: &[Command] = &[
 /// `None` when the help does not list it.
 pub fn help_block(help: &str, line: &str) -> Option<String> {
     let rest = line.strip_prefix("raul ")?;
+    // A usage line may name two forms (`raul --version | raul version [--json]`); either counts.
     let starts = |l: &str| {
-        let l = l.trim_start();
-        ["raul ", "nvmod "].iter().any(|p| {
-            l.strip_prefix(p).is_some_and(|r| {
-                r == rest
-                    || r.starts_with(&format!("{rest} "))
-                    || r.starts_with(&format!("{rest}|"))
-                    || alternatives_match(r, rest)
+        l.trim_start().split(" | ").any(|form| {
+            ["raul ", "nvmod "].iter().any(|p| {
+                form.strip_prefix(p).is_some_and(|r| {
+                    r == rest
+                        || r.starts_with(&format!("{rest} "))
+                        || r.starts_with(&format!("{rest}|"))
+                        || alternatives_match(r, rest)
+                })
             })
         })
     };
@@ -438,12 +468,14 @@ fn alternatives_match(usage: &str, command: &str) -> bool {
     let Some(alts) = usage.strip_prefix(&format!("{first} ")) else {
         return false;
     };
-    alts.split_whitespace()
-        .next()
-        .is_some_and(|w| w.split('|').any(|a| a == sub))
-        || alts
+    // A placeholder such as `<title|path|game|nv-rs>` lists the values a positional takes.
+    alts.split_whitespace().next().is_some_and(|w| {
+        w.trim_matches(['<', '>', '[', ']'])
             .split('|')
-            .any(|a| a.split_whitespace().next() == Some(sub))
+            .any(|a| a == sub)
+    }) || alts
+        .split('|')
+        .any(|a| a.split_whitespace().next() == Some(sub))
 }
 
 /// The command `id` names in [`COMMANDS`].
