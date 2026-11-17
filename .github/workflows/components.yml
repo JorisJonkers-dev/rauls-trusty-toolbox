@@ -55,4 +55,6 @@ jobs:
           RENOVATE_TOKEN: ${{ steps.app-token.outputs.token }}
           RENOVATE_CONFIG_FILE: ${{ github.workspace }}/.github/renovate-components.json
           LOG_LEVEL: debug
+          # The commands Renovate starts see only this variable, not the job environment: the cargo registry token.
+          RENOVATE_CUSTOM_ENV_VARIABLES: ${{ format('{{"CARGO_REGISTRIES_JORISJONKERS_PACKAGES_TOKEN":"{0}"}}', secrets.PACKAGES_PROXY_TOKEN) }}
         run: npx --yes renovate@44.224.1
