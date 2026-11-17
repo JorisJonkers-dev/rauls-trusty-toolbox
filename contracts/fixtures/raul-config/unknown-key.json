@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "contract": "raul-config",
+  "file": "/users/player/config/raul/config.toml",
+  "entries": [],
+  "error": {
+    "code": "unknown_key",
+    "key": "game.oblivion",
+    "message": "unknown key `game.oblivion`; the keys are game.newvegas, game.fallout3, ttw.package, storage.root, instance"
+  }
+}

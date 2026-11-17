@@ -3,6 +3,7 @@
 //! by `nvmod_cli` in this process (ADR-0002), so everything the GUI does is reachable from a shell.
 
 mod bench;
+mod config;
 mod detect;
 mod known_good;
 mod update;
@@ -14,11 +15,43 @@ use std::io::Write;
 pub const OK: u8 = nvmod_cli::OK;
 /// Exit code for a check that ran and found a problem.
 pub const FOUND: u8 = nvmod_cli::FOUND;
+/// Exit code for a command that was refused before it changed anything.
+pub const REFUSED: u8 = nvmod_cli::REFUSED;
+/// Exit code for a step that failed; what it had changed was put back.
+pub const FAILED: u8 = nvmod_cli::ROLLED_BACK;
 /// Exit code for a command line that could not be understood.
 pub const USAGE: u8 = nvmod_cli::USAGE;
 
-/// The commands `raul` owns; anything else goes to nvmod. The GUI build exposes the same list (ADR-0004).
-pub const OWN_COMMANDS: &[&str] = &["version", "known-good", "detect", "bench", "update", "help"];
+/// The commands `raul` owns; anything else goes to nvmod. The GUI build exposes the same list (ADR-0004). An own
+/// command takes precedence over an nvmod command of the same name, which `raul` then never reaches.
+pub const OWN_COMMANDS: &[&str] = &[
+    "version",
+    "known-good",
+    "detect",
+    "bench",
+    "update",
+    "config",
+    "help",
+];
+
+/// Who runs a command line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Route {
+    /// One of the Toolbox's own commands ([`OWN_COMMANDS`], plus `--version`, `--help` and no command at all).
+    Own,
+    /// nvmod, in this process.
+    Nvmod,
+}
+
+/// Who runs `args`.
+#[must_use]
+pub fn route(args: &[String]) -> Route {
+    match args.first().map(String::as_str) {
+        None | Some("--help" | "-h" | "--version" | "-V") => Route::Own,
+        Some(command) if OWN_COMMANDS.contains(&command) => Route::Own,
+        Some(_) => Route::Nvmod,
+    }
+}
 
 const HELP: &str = "raul: Raul's tRusty Toolbox
 
@@ -37,6 +70,9 @@ usage:
                               compare two reports; slower cases are warnings, never failures
   raul update check [--json]  look for a newer Toolbox release on GitHub (nothing is downloaded or sent)
   raul update auto [on|off]   show or set the GUI's update check at start (off until turned on)
+  raul config list|get <key>|set <key> <path>|unset <key> [--json]
+                              the game folders, the TTW package and the storage folder (game.newvegas,
+                              game.fallout3, ttw.package, storage.root; instance is derived)
   raul <nvmod command> ...    every nvmod command (install, sort, lod, ttw, run, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";
@@ -51,7 +87,12 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("detect") => detect::run(&args[1..], out, err),
         Some("bench") => bench::run(&args[1..], out, err),
         Some("update") => update::run(&args[1..], out, err),
+        Some("config") => config::run(&args[1..], out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
+        Some(_) if route(args) == Route::Own => {
+            let _ = writeln!(err, "raul: {} has no handler", args[0]);
+            FAILED
+        }
         Some(_) => nvmod_cli::run_logged(args, out, err),
     }
 }
@@ -68,4 +109,31 @@ pub(crate) fn write_or_fail(out: &mut dyn Write, err: &mut dyn Write, text: &str
 pub(crate) fn usage(err: &mut dyn Write, message: &str) -> u8 {
     let _ = writeln!(err, "raul: {message}\n\n{HELP}");
     USAGE
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn words(line: &[&str]) -> Vec<String> {
+        line.iter().map(|w| (*w).to_owned()).collect()
+    }
+
+    #[test]
+    fn every_own_command_is_routed_to_the_toolbox_and_the_rest_to_nvmod() {
+        for command in OWN_COMMANDS {
+            assert_eq!(route(&words(&[command, "--json"])), Route::Own, "{command}");
+        }
+        for line in [&[][..], &["--help"], &["-V"]] {
+            assert_eq!(route(&words(line)), Route::Own);
+        }
+        for command in ["catalog", "sort", "init", "plugins", "nvmod-help"] {
+            assert_eq!(route(&words(&[command])), Route::Nvmod, "{command}");
+        }
+    }
+
+    #[test]
+    fn the_commands_that_moved_from_nvmod_are_own_commands() {
+        assert!(OWN_COMMANDS.contains(&"config"));
+    }
 }

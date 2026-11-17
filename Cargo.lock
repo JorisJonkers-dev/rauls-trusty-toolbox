@@ -1063,22 +1063,26 @@ dependencies = [
 name = "raul-cli"
 version = "0.0.0"
 dependencies = [
+ "jsonschema",
  "nvmod-cli",
  "nvmod-testkit",
  "raul-bench",
  "raul-core",
  "raul-runner",
  "serde_json",
+ "toml",
 ]
 
 [[package]]
 name = "raul-core"
 version = "0.0.0"
 dependencies = [
+ "jsonschema",
  "nvmod-instance",
  "nvmod-pe",
  "nvmod-testkit",
  "raul-runner",
+ "schemars",
  "semver",
  "serde",
  "serde_json",

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The opt-in update check (ADR-0005; nv-linux ADR-0010): pull-only, run only when the person asks or has turned
+//! The opt-in update check (ADR-0005): pull-only, run only when the person asks or has turned
 //! it on, and it sends nothing that identifies them. It reads the Toolbox's GitHub Releases and offers the newest
 //! published release that is newer than the running one; drafts and pre-releases are never offered.
 
@@ -49,25 +49,11 @@ pub struct Settings {
 }
 
 impl Settings {
-    /// The settings file under the platform's configuration folder (`$XDG_CONFIG_HOME`, `~/.config`,
-    /// `%APPDATA%` or `~/Library/Application Support`), or `None` when the environment names no such folder
-    /// (a relative fallback would scatter settings files across working folders).
+    /// The settings file in the Toolbox's configuration folder ([`crate::config::folder`]), or `None` when the
+    /// environment names no such folder (a relative fallback would scatter settings files across working folders).
     #[must_use]
     pub fn default_path() -> Option<PathBuf> {
-        let env = |k| {
-            std::env::var_os(k)
-                .filter(|v| !v.is_empty())
-                .map(PathBuf::from)
-        };
-        let base = if cfg!(windows) {
-            env("APPDATA")
-        } else if cfg!(target_os = "macos") {
-            env("HOME").map(|h| h.join("Library/Application Support"))
-        } else {
-            env("XDG_CONFIG_HOME").or_else(|| env("HOME").map(|h| h.join(".config")))
-        };
-        base.filter(|b| b.is_absolute())
-            .map(|b| b.join("raul/settings.toml"))
+        crate::config::folder().map(|f| f.join("settings.toml"))
     }
 
     /// Reads `path`; a missing or unreadable file gives the defaults (checks off).
