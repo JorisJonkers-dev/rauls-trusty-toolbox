@@ -1,0 +1,78 @@
+---
+status: accepted
+date: 2026-11-17
+---
+# Components are incorporated: raul links and calls them in process
+
+nvmod, lodwright-rs, ttwright-rs and loot-rs (through nvmod) are libraries that `raul` links and calls in process.
+`raul` does not start them as commands, and nothing the person sees (a screen, a message, a log line) shows a command
+being run. A process is started only where the thing is a program: the game, and any tool that only exists as a
+Windows program. The nv-rs engine is the game, so it stays a separate process; it ships as a package that `raul`
+installs (nv-rs#353). One `raul` version carries one set of Component versions, and the person sees only `raul`'s.
+
+This supersedes the "Runner starts the tools" parts of earlier ADRs (the note in each says where).
+
+## Per Component
+
+| Component | In `raul` | Stays a program | Reason |
+|---|---|---|---|
+| nvmod | linked: mods, load order, saves, run plan | its own CLI, for standalone use | already linked (ADR-0002) |
+| loot-rs | linked through nvmod (ADR-0015) | its own CLI | as above |
+| lodwright-rs | linked: LOD generation | its own CLI | no reason to isolate it any more |
+| ttwright-rs | linked: the TTW install | its own CLI | as above |
+| nv-rs | not linked | the game and its release package | it is the game; its build profiles only apply at its own workspace root |
+
+## The in-process job interface
+
+Each linked Component exposes a documented library API (nvmod-rs#115 is the first). Every long action has the same
+shape, defined in the Component and wrapped by one adapter in the Toolbox:
+
+- **Request and result**: plain typed Rust structs, `serde`-serialisable so a Plan can be shown and a journal entry
+  written. A call is `run(request, &mut dyn Progress, &CancelToken) -> Result<Output, Error>`. `Progress` and
+  `CancelToken` are small types each Component defines for itself, so Components stay independent of the Toolbox.
+- **Progress**: events with a step id, a stable label key (the GUI words it in Raul's voice), and optional done and
+  total counts. The adapter forwards them to the existing `raul-events` stream and the journal (ADR-0007), now over an
+  in-process channel with the same event schema. The GUI reads only that stream.
+- **Cancel**: cooperative. The call checks the token at least once per file or per second and stops at the next safe
+  point, leaving the journal resumable. A cancelled job returns `Cancelled`, which is a result, not an error.
+- **Where it runs**: a worker thread per job. One writer per Instance is enforced by a lock file in the Instance, not
+  by a mutex shared in memory, so a dead job leaves nothing poisoned; the game launcher takes the same lock and
+  refuses to start while a job holds it. The release profile keeps `panic = "unwind"`, so a panic in a job is caught
+  at the thread boundary and becomes an `Internal` error. A job that never checks the cancel token cannot be
+  stopped; the adapter shows it as not responding and keeps the window usable, and the lock file records who holds it.
+- **Errors**: one typed `JobError` with a stable `kind`, a plain `summary`, a technical `detail` (source chain, paths
+  with the home directory shown as `~`), the Component, `raul`'s version and the job id. `copy_text()` renders it as
+  one block for pasting into a bug report. It never contains a command line (#170).
+
+The CLI subcommands of `raul` and of each Component are thin wrappers over the same calls. A test fails when a GUI
+action starts a process other than the game.
+
+## What changes
+
+- `raul-runner` and the rule "only `raul-runner` may start a process" (ADR-0007) narrow to the game launcher and any
+  Windows-only tool. The GUI no longer runs writes as a `raul` subprocess (ADR-0003); it calls the job interface.
+- Wire Contracts of linked Components (`contracts --json`, ADR-0008, ADR-0009) become Rust types; Cargo.lock and the
+  submodule pin decide what is compatible, checked at compile time. On-disk Contracts stay: they define what is kept
+  and its migration.
+- Precedence of compatibility checks: the compiler (Rust types) first, then the on-disk Contract migrations, then
+  `known-good.toml` and `raul e2e` for sets. A Component's API version is part of its release and the lockfile.
+- `known-good.toml` stays as the record of which Component versions passed the end-to-end tests together. A Known-good
+  set is no longer shown to the person and no longer lists per-platform fetch rows for linked Components.
+  `supply.toml` keeps rows only for packages `raul` installs: the engine.
+- ADR-0011 (Rolling channel) stands. A newer engine build is still opt-in; its build id shows only on that page.
+
+## Consequences
+
+- An out-of-memory kill, a stack overflow or an abort in a linked job takes the window down; a panic does not. The
+  lock file may then be stale, so the next start checks that its holder is gone before it takes the lock. Mitigations: jobs bound
+  their memory over untrusted input (archive limits), every step is journaled, and the next start resumes. This
+  gives up the crash isolation ADR-0002 chose; the epic (#166) prefers one self-contained app over it.
+- Installers no longer contain the lodwright-rs and ttwright-rs programs, only the engine package.
+- A Component release reaches the person only in the next `raul` release.
+- Licences are unchanged: `raul` is GPL-3.0-only, and MPL-2.0 lodwright-rs may be linked into it (ADR-0002).
+
+## Considered options
+
+- Keep the Runner and start Components as commands: rejected, it shows commands, parses text for every screen, and
+  gives each Component its own version, fetch and failure to explain.
+- A shared `progress` crate used by every Component: rejected for now, a fifth repository for about forty lines.
