@@ -418,7 +418,9 @@ impl App {
 
     fn footer(&mut self, ui: &mut egui::Ui) {
         let t = self.tokens;
-        ui.horizontal(|ui| {
+        // Wrapped, so a long status line and its "Copy details" button move onto the next line rather than past
+        // the right edge at the smallest window (UI-RULES A5, A6).
+        ui.horizontal_wrapped(|ui| {
             let status = self
                 .shell
                 .status
