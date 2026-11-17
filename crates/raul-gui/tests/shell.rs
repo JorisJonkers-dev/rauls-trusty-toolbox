@@ -117,8 +117,16 @@ fn play_with_a_game_asks_home_to_start_it() {
     let mut h = harness(1280.0, app);
     h.get_by_label(msg::PLAY).click();
     h.run();
-    assert!(!h.state().dialogs().is_open());
     assert_eq!(h.state().view(), View::Page(PageId::Home));
+    // Home has the press now. The game folder is known, but in this fixture the setup is not complete, so Play
+    // explains what is missing instead of doing nothing, and that is not the game folder.
+    let d = h
+        .state()
+        .dialogs()
+        .current()
+        .expect("Play explains the missing step");
+    assert_eq!(d.title, msg::PLAY_BLOCKED_TITLE);
+    assert!(!d.body.join(" ").contains("game folder"), "{:?}", d.body);
 }
 
 #[test]
