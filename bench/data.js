@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794900588549,
+  "lastUpdate": 1794901992149,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1224,6 +1224,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.008821999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "296335e0dd3e09467fb17d5ae2fd722919d8206d",
+          "message": "feat(gui): Settings, Versions and Home pages (#143)\n\n* feat(gui): Settings, Versions and Home pages\n\nSettings holds the paths and saves each through raul config set when its\nfield is left. Versions shows the active engine build and installs the\nnv-rs release after a confirm. Home shows readiness, the attention chips\nand the launch panel, and starts the game with raul run nv-rs. Every\naction shows its raul command and starts through the command registry.\n\n* fix(gui): pass the nv-rs target through the run entry, and test the engine install\n\n* fix(gui): drop a stale Play, show Home again after a launch, and say when a path is cleared\n\nA Play that waited for the reads is dropped when the person opens another\npage meanwhile. Home returns to readiness after raul run has started the\ngame. A failed engine check reads as not known, and the top bar stops\nshowing an engine. Emptying a path reports that it was cleared. The\nversion list is read once, and a page does not start a read while one\nruns.",
+          "timestamp": "2026-11-17T08:51:52+01:00",
+          "tree_id": "38ca915309547cad69fd75418ce7b3ed77fc4782",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/296335e0dd3e09467fb17d5ae2fd722919d8206d"
+        },
+        "date": 1794901990808,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.4698669999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.383589000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.967669,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.011681,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.835089,
             "unit": "ms"
           }
         ]
