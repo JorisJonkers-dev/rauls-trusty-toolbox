@@ -11,7 +11,8 @@
 //! * [`doctor`] and [`mods`]: the state of the Doctor and Mods screens.
 //! * [`setup`]: the real `raul setup --json` event stream and the setup wizard it drives.
 //! * [`wizard`]: the install and FOMOD, MO2 import and TTW wizards.
-//! * [`keymap`] and [`palette`]: shortcuts of document 05 and the command palette with CLI equivalents.
+//! * [`keymap`] and [`palette`]: the shortcuts and the command palette with CLI equivalents.
+//! * [`pages`]: the pages and flows of the minimum viable Toolbox, one module each.
 
 #![allow(clippy::must_use_candidate, clippy::module_name_repetitions)]
 #![cfg_attr(test, allow(clippy::assert_is_empty))]
@@ -21,6 +22,7 @@ pub mod error;
 pub mod job;
 pub mod keymap;
 pub mod mods;
+pub mod pages;
 pub mod palette;
 pub mod route;
 pub mod setup;

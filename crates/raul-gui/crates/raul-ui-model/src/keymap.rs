@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The shortcuts of document 05 and the rebinding of them.
+//! The shortcuts and the rebinding of them.
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -186,7 +186,7 @@ pub struct Keymap {
 }
 
 impl Default for Keymap {
-    /// The defaults of document 05, section 1.
+    /// The default bindings.
     fn default() -> Self {
         let mut b = vec![
             (Chord::ctrl(Key::Char('K')), Command::Palette),

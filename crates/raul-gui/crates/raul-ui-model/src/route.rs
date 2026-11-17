@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! Screens and the left rail (document 02).
+//! The screens and the left rail of the earlier nvmod GUI, which the command-parity registry still covers.
 
 use serde::{Deserialize, Serialize};
 
-/// Every screen of the inventory in document 02.
+/// Every screen of the earlier inventory.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Screen {
     /// Home: the install spine and health.
