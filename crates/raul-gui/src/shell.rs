@@ -744,6 +744,18 @@ fn home() -> Option<PathBuf> {
         .filter(|h| !h.as_os_str().is_empty())
 }
 
+/// `line` without the command a tool names at its start (`raul update check: the list could not be read` shows as
+/// `the list could not be read`); the copied details keep the whole line.
+fn without_command(line: &str) -> &str {
+    let mut words = line.split_whitespace();
+    if matches!(words.next(), Some("raul" | "nvmod"))
+        && let Some((_, rest)) = line.split_once(": ")
+    {
+        return rest;
+    }
+    line
+}
+
 /// An error anywhere in the window (UI-RULES W3, G4): what was being done, what went wrong, its detail lines as
 /// selectable text, and a "Copy details" button that puts the plain, complete text on the clipboard.
 ///
@@ -762,7 +774,7 @@ pub fn error_widget(ui: &mut egui::Ui, t: &Tokens, what: &str, title: &str, deta
             );
             for line in detail.lines() {
                 ui.add(
-                    egui::Label::new(RichText::new(line).color(t.muted.color()))
+                    egui::Label::new(RichText::new(without_command(line)).color(t.muted.color()))
                         .wrap()
                         .selectable(true),
                 );
