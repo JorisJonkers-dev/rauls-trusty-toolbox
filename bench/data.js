@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794896414226,
+  "lastUpdate": 1794896836969,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -930,6 +930,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.983109000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9f936ce5ef202226af1d0e68d6df54edf241513d",
+          "message": "feat(lod): build lodwright's request from the Profile and show it with raul lod plan (#123)\n\n* feat(lod): build lodwright's request from the Profile and show it with raul lod plan\n\n* fix(lod): refuse an output folder in the data folder or a git working tree, and say plugin for one\n\n* test(lod): a synthetic world name in the fixture\n\n* style(lod): rustfmt\n\n* test(lod): compare the output folder as a path, not as text",
+          "timestamp": "2026-11-17T07:25:55+01:00",
+          "tree_id": "06653547476b46018a7501366d428f6aad89cbb6",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/9f936ce5ef202226af1d0e68d6df54edf241513d"
+        },
+        "date": 1794896836252,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.110498,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.776403,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 22.031852,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.536754,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.059385,
             "unit": "ms"
           }
         ]
