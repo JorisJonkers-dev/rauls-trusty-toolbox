@@ -411,7 +411,7 @@ impl Exec for ScriptedExec {
 /// Reports for tests: small, valid values.
 pub mod sample {
     use super::{ImportReport, InstallReport, RollbackReport, SortReport, ToolsReport, TtwReport};
-    use crate::dto::{SortRow, ToolRow, TtwRecord};
+    use crate::dto::{SortRow, ToolRow};
 
     /// A sort of two plugins that was only proposed.
     pub fn sort() -> SortReport {
@@ -493,19 +493,37 @@ pub mod sample {
     /// A TTW install that worked.
     pub fn ttw() -> TtwReport {
         TtwReport {
-            status: "installed".into(),
-            mod_name: "Tale of Two Wastelands".into(),
+            status: raul_ui_model::events::Status::Success,
+            dry_run: false,
+            resumed: false,
+            instance: "/inst".into(),
             profile: "Default".into(),
-            files: 2,
-            plugins: vec!["TaleOfTwoWastelands.esm".into()],
-            journal: Some("j2".into()),
-            result: TtwRecord {
-                outcome: "success".into(),
-                exit_code: 0,
-                fallout3_verified: true,
-                files_written: 2,
-                messages: Vec::new(),
-            },
+            mod_name: Some("Tale of Two Wastelands".into()),
+            plugins_enabled: vec!["Example.esm".into()],
+            files: Some(2),
+            staging: None,
+            resumable: false,
+            tool: None,
+            ttwright: None,
+            error: None,
+        }
+    }
+
+    /// A TTW install that ttwright failed, with the code `code`; `--resume` continues it.
+    pub fn ttw_failed(code: &str) -> TtwReport {
+        TtwReport {
+            status: raul_ui_model::events::Status::Failed,
+            mod_name: None,
+            plugins_enabled: Vec::new(),
+            files: None,
+            staging: Some("/inst/.raul/staging/ttw".into()),
+            resumable: true,
+            error: Some(crate::dto::TtwError {
+                code: code.into(),
+                message: format!("synthetic {code}"),
+                ttwright_code: Some("check_failed".into()),
+            }),
+            ..ttw()
         }
     }
 }

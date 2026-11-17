@@ -140,6 +140,18 @@ pub fn cancel_job(table: &mut JobTable, id: JobId, handle: &CancelHandle) -> Res
     Ok(())
 }
 
+/// The job event one line of a command's output becomes: the driver commands (`ttw`, `lod generate`) print the
+/// raul-events stream, `setup` its own.
+fn line_event(spec: &JobSpec, line: &str) -> Option<JobEvent> {
+    match raul_ui_model::events::parse_line(line) {
+        Ok(parsed) => raul_ui_model::events::to_job_event(spec.id, &parsed, spec.dry_run),
+        Err(raul_ui_model::events::LineError::NotAnEvent) => parse_line(line)
+            .ok()
+            .and_then(|parsed| to_job_event(spec.id, &parsed)),
+        Err(_) => None,
+    }
+}
+
 impl<E: Exec> CliService<E> {
     /// Runs `spec` as a job, handing each [`JobEvent`] to `sink` as it happens. The command line is run with
     /// `--json`.
@@ -213,9 +225,8 @@ impl<E: Exec> CliService<E> {
             .run_cancellable(
                 &args,
                 &mut |line| {
-                    if let Ok(parsed) = parse_line(line)
-                        && let Some(event) = to_job_event(spec.id, &parsed)
-                    {
+                    let event = line_event(spec, line);
+                    if let Some(event) = event {
                         feed.streamed = true;
                         feed.emit(event);
                     }

@@ -6,6 +6,7 @@
 //! `cargo test`. A toolkit adapter renders these values and forwards user intent as inputs.
 //!
 //! * [`route`]: the screens, the left rail and the `Ctrl+1` to `Ctrl+8` mapping.
+//! * [`events`]: the `raul-events` stream of the driver commands (`raul ttw`, `raul lod generate`).
 //! * [`error`]: exit classes of the command line and the error shape every screen shows.
 //! * [`job`]: the job events and the table that orders and de-duplicates them.
 //! * [`doctor`] and [`mods`]: the state of the Doctor and Mods screens.
@@ -19,6 +20,7 @@
 
 pub mod doctor;
 pub mod error;
+pub mod events;
 pub mod job;
 pub mod keymap;
 pub mod mods;
