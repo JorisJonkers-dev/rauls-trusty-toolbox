@@ -58,6 +58,8 @@ pub struct Jobs {
     cancels: HashMap<JobId, CancelHandle>,
     outputs: HashMap<JobId, Output>,
     failures: HashMap<JobId, ViewError>,
+    /// The writing job started but not ended yet; the table learns of it only when its first event arrives.
+    writer: Option<JobId>,
     repaint: Option<egui::Context>,
 }
 
@@ -82,6 +84,7 @@ impl Jobs {
             cancels: HashMap::new(),
             outputs: HashMap::new(),
             failures: HashMap::new(),
+            writer: None,
             repaint: None,
         }
     }
@@ -107,6 +110,9 @@ impl Jobs {
         writes: bool,
     ) -> Result<JobId, JobError> {
         if writes {
+            if let Some(busy) = self.writer {
+                return Err(JobError::Busy(busy));
+            }
             self.table.check_can_start_writer()?;
         }
         let id = JobId(self.next);
@@ -114,6 +120,7 @@ impl Jobs {
         let mut spec = JobSpec::new(id, action, args);
         if writes {
             spec = spec.writing();
+            self.writer = Some(id);
         }
         let cancel = CancelHandle::new();
         self.cancels.insert(id, cancel.clone());
@@ -125,14 +132,24 @@ impl Jobs {
                     ctx.request_repaint();
                 }
             };
-            let result = service.run_job_cancellable(
-                &spec,
-                &mut |event| {
-                    let _ = tx.send(Report::Event(event));
-                    wake();
-                },
-                &cancel,
-            );
+            // A panic in the command's handling ends this job, never the window, and its end is still reported.
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                service.run_job_cancellable(
+                    &spec,
+                    &mut |event| {
+                        let _ = tx.send(Report::Event(event));
+                        wake();
+                    },
+                    &cancel,
+                )
+            }))
+            .unwrap_or_else(|_| {
+                Err(ServiceError::Failed(ViewError::new(
+                    raul_ui_model::ExitClass::Internal,
+                    "the job stopped unexpectedly",
+                    "The state is not known; run the Doctor",
+                )))
+            });
             let _ = tx.send(Report::Done(spec.id, result));
             wake();
         });
@@ -157,6 +174,9 @@ impl Jobs {
                 }
                 Report::Done(id, result) => {
                     self.cancels.remove(&id);
+                    if self.writer == Some(id) {
+                        self.writer = None;
+                    }
                     match result {
                         Ok(out) => {
                             self.outputs.insert(id, out);
@@ -270,6 +290,41 @@ mod tests {
         assert!(jobs.wait_all(Duration::from_secs(10)));
         let why = jobs.failure(id).unwrap();
         assert!(why.what.contains("could not start raul"), "{why:?}");
+    }
+
+    #[test]
+    fn a_second_writer_is_refused_before_the_first_reports() {
+        let mut jobs = Jobs::new(Arc::new(Answering::default()));
+        let first = jobs.start(Action::Sort, vec![], true).unwrap();
+        assert_eq!(
+            jobs.start(Action::Rollback, vec![], true),
+            Err(JobError::Busy(first))
+        );
+        assert!(jobs.start(Action::Doctor, vec![], false).is_ok());
+        assert!(jobs.wait_all(Duration::from_secs(10)));
+        assert!(jobs.start(Action::Rollback, vec![], true).is_ok());
+        assert!(jobs.wait_all(Duration::from_secs(10)));
+    }
+
+    /// Panics on every command.
+    struct Panicking;
+
+    impl Exec for Panicking {
+        fn run(&self, _args: &[String]) -> Result<Output, String> {
+            panic!("a bug in the command's handling")
+        }
+    }
+
+    #[test]
+    fn a_panicking_job_still_ends() {
+        let mut jobs = Jobs::new(Arc::new(Panicking));
+        let id = jobs.start(Action::Sort, vec![], true).unwrap();
+        assert!(jobs.wait_all(Duration::from_secs(10)));
+        assert!(jobs.failure(id).is_some());
+        assert!(
+            jobs.start(Action::Sort, vec![], true).is_ok(),
+            "the writer slot was freed"
+        );
     }
 
     #[test]
