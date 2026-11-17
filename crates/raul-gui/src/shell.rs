@@ -2,6 +2,9 @@
 //! The app shell of `docs/design/mockup.html` (UI-RULES P1, A1, A2, G1 to G6): the top bar with the setup strip
 //! and Play, the sidebar of two groups, the page header, the footer status line, routing by number keys, and the
 //! dialog layer. Below 860 px the sidebar becomes a wrapping bar under the top bar.
+//!
+//! It also holds the one error widget every error surface draws through ([`error_widget`]): selectable text and a
+//! "Copy details" button whose text [`copy_text`] builds.
 
 use crate::catalogue as msg;
 use crate::dialog::{Answer, Dialog, Dialogs};
@@ -12,6 +15,7 @@ use eframe::egui::{self, Color32, RichText, Stroke};
 use raul_ui_model::job::{JobId, JobState};
 use raul_ui_model::pages::{Group, PageId, Severity, View};
 use std::collections::HashSet;
+use std::path::PathBuf;
 
 /// Below this width the sidebar wraps into a bar under the top bar (UI-RULES P1).
 pub const NARROW: f32 = 860.0;
@@ -324,12 +328,15 @@ impl App {
     /// Play: blocked, it explains why and offers the fix (UI-RULES G3); otherwise Home starts the game.
     fn play(&mut self, blocked: Option<msg::ErrorText>) {
         if let Some(why) = blocked {
-            self.dialogs.open(Dialog::confirm(
-                "play-blocked",
-                msg::PLAY_BLOCKED_TITLE,
-                format!("{} {}", sentence(why.what), why.detail),
-                msg::PAGE_SETTINGS,
-            ));
+            self.dialogs.open(
+                Dialog::confirm(
+                    "play-blocked",
+                    msg::PLAY_BLOCKED_TITLE,
+                    why.detail,
+                    msg::PAGE_SETTINGS,
+                )
+                .with_error(why),
+            );
         } else {
             self.shell.play_requested = true;
             self.view = View::Page(PageId::Home);
@@ -424,7 +431,25 @@ impl App {
                 .iter()
                 .filter(|j| matches!(j.state, raul_ui_model::job::JobState::Running))
                 .count();
-            ui.add(egui::Label::new(RichText::new(status).color(t.text.color())).truncate());
+            // A status line that reports a failure is an error surface too: it can be selected and copied.
+            let failed = self.shell.status_error;
+            let colour = if failed.is_some() {
+                t.err.color()
+            } else {
+                t.text.color()
+            };
+            let line = ui.add(
+                egui::Label::new(RichText::new(status).color(colour))
+                    .truncate()
+                    .selectable(failed.is_some()),
+            );
+            if let Some(why) = failed {
+                line.on_hover_text(why.detail);
+                if ui.button(msg::COPY_DETAILS).clicked() {
+                    ui.ctx()
+                        .copy_text(copy_text(why.what, why.what, why.detail));
+                }
+            }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui
                     .add(
@@ -491,10 +516,6 @@ pub fn instance_of(stdout: &str) -> Option<Option<String>> {
         serde_json::Value::String(path) => Some(Some(path.clone())),
         _ => None,
     }
-}
-
-fn sentence(text: &str) -> String {
-    format!("{text}.")
 }
 
 /// The title of a sidebar page.
@@ -699,6 +720,59 @@ pub fn command_line(ui: &mut egui::Ui, t: &Tokens, command: &str) {
                 egui::Label::new(RichText::new(command).monospace().color(t.text.color())).wrap(),
             );
         });
+}
+
+/// The text an error's "Copy details" button puts on the clipboard: the shared shape of
+/// [`raul_ui_model::copy_details`], with this build's version and the system it runs on.
+pub fn copy_text(doing: &str, title: &str, detail: &str) -> String {
+    let system = format!("{} {}", std::env::consts::OS, std::env::consts::ARCH);
+    raul_ui_model::copy_details(
+        doing,
+        title,
+        detail,
+        env!("CARGO_PKG_VERSION"),
+        &system,
+        home().as_deref(),
+    )
+}
+
+/// The user's home folder, so a copy writes it as `~`; `None` when the system does not say.
+fn home() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
+        .filter(|h| !h.as_os_str().is_empty())
+}
+
+/// An error anywhere in the window (UI-RULES W3, G4): what was being done, what went wrong, its detail lines as
+/// selectable text, and a "Copy details" button that puts the plain, complete text on the clipboard.
+///
+/// A short error block, a dialog, the status line and a failed job all draw through here, so every one of them can
+/// be read with the mouse and the keyboard and copied the same way. `what` is what was being done, `title` what
+/// went wrong, and `detail` its lines.
+pub fn error_widget(ui: &mut egui::Ui, t: &Tokens, what: &str, title: &str, detail: &str) {
+    ui.horizontal_top(|ui| {
+        crate::pages::home::icon(ui, t, crate::pages::home::Mark::Problem);
+        ui.vertical(|ui| {
+            ui.label(RichText::new(what).color(t.muted.color()));
+            ui.add(
+                egui::Label::new(RichText::new(title).color(t.err.color()))
+                    .wrap()
+                    .selectable(true),
+            );
+            for line in detail.lines() {
+                ui.add(
+                    egui::Label::new(RichText::new(line).color(t.muted.color()))
+                        .wrap()
+                        .selectable(true),
+                );
+            }
+            ui.add_space(4.0);
+            if ui.button(msg::COPY_DETAILS).clicked() {
+                ui.ctx().copy_text(copy_text(what, title, detail));
+            }
+        });
+    });
 }
 
 /// Raul's one short line, only in calm places: the wizard, the Home launch panel and all-clear states (UI-RULES G5).

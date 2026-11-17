@@ -86,6 +86,7 @@ texts!(SHELL {
     RAUL_ALL_CLEAR = "Nothing needs fixing.";
     JOB_RUNNING = "running";
     JOB_DONE = "finished";
+    COPY_DETAILS = "Copy details";
 });
 
 errors!(SHELL_ERRORS {
@@ -100,6 +101,14 @@ errors!(SHELL_ERRORS {
     PLAY_NO_GAME = (
         "No New Vegas folder is set",
         "Set it in Settings, then press Play again."
+    );
+    JOB_FAILED = (
+        "A change did not finish",
+        "The lines below say what it reported."
+    );
+    STATUS_FAILED = (
+        "The last change did not finish",
+        "The lines below say what it reported."
     );
 });
 

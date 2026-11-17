@@ -5,6 +5,7 @@
 //! later frame. Esc and the backdrop close a dialog with [`Answer::Closed`], unless it is marked as busy (files
 //! are being copied); a confirm dialog states its cost and offers its action and Cancel.
 
+use crate::catalogue::ErrorText;
 use eframe::egui;
 
 /// How a dialog was answered.
@@ -33,6 +34,9 @@ pub struct Dialog {
     pub danger: bool,
     /// Whether the dialog must stay open (work that cannot be interrupted); Esc does nothing then.
     pub busy: bool,
+    /// The error it shows, when it is one: what went wrong and its detail, drawn as selectable text with a "Copy
+    /// details" button.
+    pub error: Option<ErrorText>,
 }
 
 impl Dialog {
@@ -52,6 +56,7 @@ impl Dialog {
             action: None,
             danger: false,
             busy: false,
+            error: None,
         }
     }
 
@@ -79,6 +84,15 @@ impl Dialog {
     #[must_use]
     pub fn danger(mut self) -> Dialog {
         self.danger = true;
+        self
+    }
+
+    /// The same dialog showing `error` as an error surface: its title and detail are selectable text and it has a
+    /// "Copy details" button.
+    #[must_use]
+    pub fn with_error(mut self, error: ErrorText) -> Dialog {
+        self.body = vec![error.detail.to_owned()];
+        self.error = Some(error);
         self
     }
 }
@@ -146,14 +160,24 @@ impl Dialogs {
             .backdrop_color(egui::Color32::from_black_alpha(184))
             .show(ctx, |ui| {
                 ui.set_max_width(560.0);
-                ui.label(
-                    egui::RichText::new(&dialog.title)
-                        .text_style(crate::theme::title_style())
-                        .size(crate::theme::BASE * 1.1),
+                ui.add(
+                    egui::Label::new(
+                        egui::RichText::new(&dialog.title)
+                            .text_style(crate::theme::title_style())
+                            .size(crate::theme::BASE * 1.1),
+                    )
+                    .wrap()
+                    .selectable(true),
                 );
                 ui.add_space(6.0);
-                for paragraph in &dialog.body {
-                    ui.label(paragraph);
+                if let Some(error) = &dialog.error {
+                    // The dialog's own paragraphs are the detail; the shared widget adds the copy button.
+                    let detail = dialog.body.join("\n");
+                    crate::shell::error_widget(ui, tokens, error.detail, error.what, &detail);
+                } else {
+                    for paragraph in &dialog.body {
+                        ui.add(egui::Label::new(paragraph).wrap().selectable(true));
+                    }
                 }
                 if let Some(command) = &dialog.command {
                     ui.add_space(4.0);
@@ -243,6 +267,15 @@ mod tests {
         assert_eq!(d.current().map(|x| x.id), Some("copy"));
         assert_eq!(d.take_answer("about"), Some(Answer::Closed));
         assert_eq!(d.take_answer("copy"), None);
+    }
+
+    #[test]
+    fn an_error_dialog_shows_the_error_and_its_detail() {
+        let e = crate::catalogue::PLAY_NO_GAME;
+        let d = Dialog::confirm("play", "Blocked", "gone", "Fix").with_error(e);
+        assert_eq!(d.error, Some(e));
+        assert_eq!(d.body, [e.detail]);
+        assert!(Dialog::info("about", "About", vec![]).error.is_none());
     }
 
     #[test]

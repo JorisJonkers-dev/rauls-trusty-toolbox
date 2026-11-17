@@ -39,6 +39,27 @@ fn harness(width: f32, app: App) -> Harness<'static, App> {
         })
 }
 
+/// The text "Copy details" put on the clipboard: steps the frames after a click until one carries a copy, since a
+/// frame's output is replaced by the next frame's.
+fn copied<S>(h: &mut Harness<'_, S>) -> Option<String> {
+    for _ in 0..8 {
+        h.step();
+        let found = h
+            .output()
+            .platform_output
+            .commands
+            .iter()
+            .find_map(|c| match c {
+                egui::OutputCommand::CopyText(text) => Some(text.clone()),
+                _ => None,
+            });
+        if found.is_some() {
+            return found;
+        }
+    }
+    None
+}
+
 #[test]
 fn the_shell_opens_on_home_with_the_five_pages_in_the_sidebar() {
     let h = harness(1280.0, app());
@@ -256,6 +277,68 @@ fn a_page_can_ask_the_shell_to_open_another_view() {
     let mut h = harness(1280.0, app);
     h.run();
     assert_eq!(h.state().view(), View::Page(PageId::LoadOrder));
+}
+
+#[test]
+fn an_error_block_offers_copy_details_and_puts_the_fixed_text_on_the_clipboard() {
+    let e = msg::PLAY_NO_GAME;
+    let mut h = Harness::builder()
+        .with_size([600.0, 300.0])
+        .with_context_setup(raul_gui::set_up)
+        .build_ui(|ui| {
+            let t = raul_gui::theme::DARK;
+            raul_gui::shell::error_widget(ui, &t, "Starting the game", e.what, e.detail);
+        });
+    h.run();
+    assert!(h.query_by_label(msg::COPY_DETAILS).is_some());
+    assert!(h.query_by_label(e.what).is_some());
+    assert!(h.query_by_label(e.detail).is_some());
+    h.get_by_label(msg::COPY_DETAILS).click();
+    let text = copied(&mut h).expect("Copy details put the text on the clipboard");
+    let expected = format!(
+        "What: Starting the game\nError: {}\nDetail:\n{}\nraul: {}\nSystem: {} {}\n",
+        e.what,
+        e.detail,
+        env!("CARGO_PKG_VERSION"),
+        std::env::consts::OS,
+        std::env::consts::ARCH
+    );
+    assert_eq!(text, expected);
+}
+
+#[test]
+fn a_blocked_play_dialog_can_copy_its_details() {
+    let mut h = harness(1280.0, app());
+    h.get_by_label(msg::PLAY).click();
+    h.run();
+    assert!(h.query_all_by_label(msg::COPY_DETAILS).next().is_some());
+    h.get_all_by_label(msg::COPY_DETAILS)
+        .last()
+        .expect("a Copy details button")
+        .click();
+    let text = copied(&mut h).expect("the dialog put its details on the clipboard");
+    assert!(text.starts_with("What: "), "{text}");
+    assert!(text.contains("\nError: "), "{text}");
+    assert!(text.contains("\nDetail:\n"), "{text}");
+    assert!(
+        text.contains(&format!("raul: {}", env!("CARGO_PKG_VERSION"))),
+        "{text}"
+    );
+}
+
+#[test]
+fn a_failed_status_line_can_copy_its_details() {
+    let mut app = app();
+    app.shell_mut().status = Some(msg::STATUS_FAILED.what.into());
+    app.shell_mut().status_error = Some(msg::STATUS_FAILED);
+    let mut h = harness(1280.0, app);
+    h.run();
+    h.get_all_by_label(msg::COPY_DETAILS)
+        .last()
+        .expect("a Copy details button")
+        .click();
+    let text = copied(&mut h).expect("the status line put its details on the clipboard");
+    assert!(text.contains("System: "), "{text}");
 }
 
 #[test]

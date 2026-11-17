@@ -191,6 +191,12 @@ impl Page for Settings {
         }
         self.take_answers(cx);
         let t = *cx.tokens;
+        // What the footer's status line says is a failure too, and can be copied there.
+        if let Fetch::Failed(_) = &self.state.config {
+            cx.shell.status_error = Some(UNREADABLE);
+        } else {
+            cx.shell.status_error = None;
+        }
         match &self.state.config {
             Fetch::Idle | Fetch::Loading => {
                 waiting(ui, &t, STATE_READING, &Command::config_list());
@@ -359,9 +365,8 @@ pub(crate) fn path_field(
     ui.horizontal(|ui| {
         ui.add_space(LABEL_WIDTH + ui.spacing().item_spacing.x);
         ui.vertical(|ui| {
-            match &f.save {
-                Save::Refused(why) | Save::Failed(why) => error_block(ui, t, &NOT_SAVED, Some(why)),
-                _ => {}
+            if let Save::Refused(why) | Save::Failed(why) = &f.save {
+                error_block(ui, t, &NOT_SAVED, Some(why));
             }
             ui.add(
                 egui::Label::new(
@@ -570,19 +575,11 @@ pub(crate) fn waiting(ui: &mut egui::Ui, t: &Tokens, what: &str, command: &Comma
 }
 
 /// An error where it occurred (UI-RULES W3, G4): what went wrong, the plain detail, and what the command said.
+/// The shared error widget draws it, so its text is selectable and it has a "Copy details" button.
 pub(crate) fn error_block(ui: &mut egui::Ui, t: &Tokens, e: &ErrorText, said: Option<&str>) {
-    ui.horizontal_top(|ui| {
-        super::home::icon(ui, t, super::home::Mark::Problem);
-        ui.vertical(|ui| {
-            ui.label(RichText::new(e.what).color(t.err.color()));
-            ui.label(RichText::new(e.detail).color(t.muted.color()));
-            if let Some(said) = said {
-                ui.add(
-                    egui::Label::new(RichText::new(said).monospace().color(t.muted.color())).wrap(),
-                );
-            }
-        });
-    });
+    let detail = said.map(|said| format!("{}\n{said}", e.detail));
+    let detail = detail.as_deref().unwrap_or(e.detail);
+    shell::error_widget(ui, t, e.detail, e.what, detail);
 }
 
 /// The states the snapshot tests render.
