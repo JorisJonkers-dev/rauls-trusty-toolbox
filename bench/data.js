@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794896128622,
+  "lastUpdate": 1794896414226,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -881,6 +881,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.447308999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "15dd1ca4789af6803800d2b968e2ccdc64450ad8",
+          "message": "feat(ttw): raul ttw installs TTW through ttwright-rs and adds it to the Instance (#122)\n\n* feat(ttw): raul ttw installs TTW through ttwright-rs and adds it to the Instance\n\n* test(ttw): bundled program layouts, the event tail and the result version check; absolute paths\n\n* fix(ttw): a stop asked for while ttwright finishes adds nothing\n\n* fix(ttw): never follow a link when clearing or counting the work folder, and refuse a zero timeout\n\n* fix(ttw): cap --timeout-secs at a week",
+          "timestamp": "2026-11-17T07:19:08+01:00",
+          "tree_id": "fabbd41ec63add757c7959596a1dc1f76d02c005",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/15dd1ca4789af6803800d2b968e2ccdc64450ad8"
+        },
+        "date": 1794896413947,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.106593,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.670967,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.591188000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.511391,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.983109000000001,
             "unit": "ms"
           }
         ]
