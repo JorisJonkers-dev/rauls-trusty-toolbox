@@ -391,6 +391,7 @@ impl App {
             shell: &mut self.shell,
             dialogs: &mut self.dialogs,
             jobs: &mut self.jobs,
+            repaint: Some(ui.ctx().clone()),
         };
         // The header (UI-RULES A1): title, one-line state, tools on the right, then a hairline.
         ui.horizontal_wrapped(|ui| {

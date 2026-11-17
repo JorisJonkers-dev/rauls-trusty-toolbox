@@ -17,14 +17,16 @@ use eframe::egui::{self, RichText};
 use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobId, JobState, Outcome};
 use raul_ui_model::pages::load_order::Problem;
-use raul_ui_model::pages::settings::{Command, Fetch};
+use raul_ui_model::pages::settings::{Answer, Command, Fetch, Key};
 use raul_ui_model::pages::ttw::{
-    Progress, Report, Sources, State, Step, check_command, install_command,
+    DOWNLOAD_URL, Found, Progress, Report, Sources, State, Step, check_command, default_downloads,
+    find_package, install_command,
 };
 use raul_ui_model::pages::{Flow, PageId, View};
 use raul_ui_model::wizard::{Step as FlowStep, TtwNeed};
 use raul_ui_service::Output;
 use raul_ui_service::dto::TtwReport;
+use std::path::PathBuf;
 
 crate::texts!(TEXTS {
     STATE_NO_INSTANCE = "No Instance yet";
@@ -53,9 +55,19 @@ crate::texts!(TEXTS {
     FROM_INSTANCE = "From the Instance";
     NEW_VEGAS_DEFAULT = "The Instance's own copy";
     CHANGE = "Change in Settings";
-    MISSING_BOTH = "To continue, set the Fallout 3 folder and the TTW package in Settings.";
+    MISSING_BOTH = "To continue, set the Fallout 3 folder in Settings, and add the TTW package below.";
     MISSING_FALLOUT3 = "To continue, set the Fallout 3 folder in Settings.";
-    MISSING_PACKAGE = "To continue, set the TTW package in Settings.";
+    MISSING_PACKAGE = "To continue, add the TTW package below.";
+    SECTION_PACKAGE = "The TTW package";
+    PACKAGE_WHAT = "Download the Tale of Two Wastelands installer package from the TTW website. Its file name starts with TTW_ and ends in .mpi. If what you downloaded ends in .7z, unpack it first.";
+    OPEN_DOWNLOAD = "Open the download page";
+    FIND_IT = "Find it for me";
+    FINDING = "Looking for the TTW package in your Downloads folder";
+    FOUND = "Found the newest TTW package in your Downloads folder:";
+    USE_THIS = "Use this file";
+    NOT_FOUND = "No TTW package in your Downloads folder or in the folders inside it. Download it, unpack it if it came in an archive, then find it again.";
+    LOOKED_IN = "Looked in";
+    PACKAGE_SAVED = "TTW package saved.";
     SECTION_OUTPUT = "Output";
     FACT_INTO = "Installs into";
     FACT_AS = "Added as";
@@ -127,6 +139,10 @@ crate::errors!(ERRORS {
         "Cancel was not taken",
         "The install keeps going. Try again in a moment."
     );
+    PACKAGE_NOT_SAVED = (
+        "The TTW package was not saved",
+        "Nothing changed. The line below says why."
+    );
 });
 
 /// The TTW flow.
@@ -138,6 +154,12 @@ pub struct Ttw {
     visits: Visits,
     /// The install's job, for its progress and Cancel.
     install: Option<JobId>,
+    /// Where the search for the package looks; the shell's, so a test can point it at a fake Downloads folder.
+    downloads: Option<PathBuf>,
+    /// The search that runs, with the folder it looks in and what it found.
+    search: Option<std::sync::mpsc::Receiver<(PathBuf, Option<PathBuf>)>>,
+    /// Why the package found was not saved.
+    save_failed: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -147,6 +169,8 @@ enum Job {
     Refresh,
     Check,
     Install,
+    /// `raul config set ttw.package`, as Settings saves it.
+    Save,
 }
 
 impl Ttw {
@@ -160,12 +184,30 @@ impl Ttw {
         page
     }
 
+    /// Looks for the package in `folder` rather than in the Downloads folder of the home folder.
+    #[must_use]
+    pub fn looking_in(mut self, folder: impl Into<PathBuf>) -> Ttw {
+        self.downloads = Some(folder.into());
+        self
+    }
+
+    /// The folder the search looks in.
+    fn downloads(&self) -> PathBuf {
+        self.downloads
+            .clone()
+            .unwrap_or_else(|| PathBuf::from(default_downloads()))
+    }
+
     fn command(&self, job: Job) -> Option<Command> {
         let i = self.state.instance.as_deref()?;
         Some(match job {
             Job::Sources | Job::Refresh => Command::config_list(),
             Job::Check => check_command(i),
             Job::Install => install_command(i, self.state.resuming),
+            Job::Save => {
+                let file = self.state.wizard.package()?;
+                Command::config_save(Key::TtwPackage, file)
+            }
         })
     }
 
@@ -182,6 +224,10 @@ impl Ttw {
             Job::Refresh => Ok(()),
             Job::Check => self.state.checking(),
             Job::Install => self.state.installing(),
+            Job::Save => {
+                self.save_failed = None;
+                Ok(())
+            }
         };
         if moved.is_err() {
             return;
@@ -208,8 +254,61 @@ impl Ttw {
                     Job::Refresh => Ok(()),
                     Job::Check => self.state.check_failed(problem(e)),
                     Job::Install => self.state.install_failed(problem(e)),
+                    Job::Save => {
+                        self.save_failed = Some(e.what.to_owned());
+                        Ok(())
+                    }
                 };
             }
+        }
+    }
+
+    /// Looks for the package in the Downloads folder, off the UI thread: a listing of two levels is quick, but a
+    /// network share is not.
+    fn find(&mut self, cx: &mut PageCx<'_>) {
+        if self.state.found == Found::Searching {
+            return;
+        }
+        self.state.searching();
+        let folder = self.downloads();
+        let (tx, rx) = std::sync::mpsc::channel();
+        let repaint = cx.repaint.clone();
+        std::thread::spawn(move || {
+            let found = find_package(&folder);
+            let _ = tx.send((folder, found));
+            if let Some(repaint) = repaint {
+                repaint.request_repaint();
+            }
+        });
+        self.search = Some(rx);
+    }
+
+    /// Takes in the answer of the search, once it is there.
+    fn take_search(&mut self) {
+        let Some(rx) = &self.search else {
+            return;
+        };
+        if let Ok((folder, found)) = rx.try_recv() {
+            self.state.searched(&folder, found.as_deref());
+            self.search = None;
+        }
+    }
+
+    /// Saves the package found as the TTW package, with the same `raul config set` Settings runs for that key. The
+    /// flow uses the file only once it is saved; when it is not, the state says why and the file stays as it was.
+    fn use_found(&mut self, cx: &mut PageCx<'_>) {
+        let Found::Found { file, .. } = &self.state.found else {
+            return;
+        };
+        let file = file.clone();
+        self.save_failed = None;
+        let command = Command::config_save(Key::TtwPackage, &file);
+        match start(cx, &command) {
+            Ok(id) => {
+                self.pending.add(Job::Save, id);
+                self.state.use_package(&file);
+            }
+            Err(e) => self.save_failed = Some(e.what.to_owned()),
         }
     }
 
@@ -221,6 +320,8 @@ impl Ttw {
         }
         self.state = State::new(cx.shell.instance.clone());
         self.install = None;
+        self.search = None;
+        self.save_failed = None;
         if self.state.instance.is_some() {
             self.run(cx, Job::Sources);
         }
@@ -272,6 +373,20 @@ impl Ttw {
                         Err(why) => self.state.install_failed(problem(&INSTALL_UNKNOWN, why)),
                     }
                 }
+                Job::Save => match super::settings::config_answer(&result) {
+                    Ok(Answer::Refused(r)) => {
+                        self.save_failed = Some(r.message.clone());
+                        Ok(())
+                    }
+                    Ok(Answer::Entries(_)) => {
+                        cx.shell.status = Some(PACKAGE_SAVED.to_owned());
+                        Ok(())
+                    }
+                    Err(why) => {
+                        self.save_failed = Some(why);
+                        Ok(())
+                    }
+                },
             };
         }
     }
@@ -324,7 +439,7 @@ impl Ttw {
         ui.add_space(12.0);
     }
 
-    fn sources(ui: &mut egui::Ui, t: &Tokens, cx: &mut PageCx<'_>, s: &Sources) {
+    fn sources(&mut self, ui: &mut egui::Ui, t: &Tokens, cx: &mut PageCx<'_>, s: &Sources) {
         ui.label(RichText::new(INTRO).color(t.muted.color()));
         ui.add_space(12.0);
         shell::section_label(ui, t, SECTION_SOURCES, true);
@@ -342,6 +457,67 @@ impl Ttw {
         if ui.button(CHANGE).clicked() {
             cx.shell.go_to = Some(View::Page(PageId::Settings));
         }
+        ui.add_space(16.0);
+        self.package(ui, t, cx);
+    }
+
+    /// Where the package comes from (the download page) and how to find it on this machine once it is there.
+    fn package(&mut self, ui: &mut egui::Ui, t: &Tokens, cx: &mut PageCx<'_>) {
+        shell::section_label(ui, t, SECTION_PACKAGE, true);
+        ui.scope(|ui| {
+            ui.set_max_width(ui.available_width().min(560.0));
+            ui.add(egui::Label::new(RichText::new(PACKAGE_WHAT).color(t.muted.color())).wrap());
+        });
+        ui.add_space(8.0);
+        ui.horizontal_wrapped(|ui| {
+            if ui.button(OPEN_DOWNLOAD).clicked() {
+                ui.ctx().open_url(egui::OpenUrl::new_tab(DOWNLOAD_URL));
+            }
+            let finding = self.state.found == Found::Searching;
+            if ui
+                .add_enabled(!finding, egui::Button::new(FIND_IT))
+                .clicked()
+            {
+                self.find(cx);
+            }
+        });
+        match self.state.found.clone() {
+            Found::Idle => {}
+            Found::Searching => {
+                ui.add_space(8.0);
+                note(ui, t, Mark::Info, FINDING, None);
+            }
+            Found::Found { file, .. } => {
+                ui.add_space(8.0);
+                note(ui, t, Mark::Ok, FOUND, Some(&file));
+                ui.add_space(4.0);
+                if ui.button(USE_THIS).clicked() {
+                    self.use_found(cx);
+                }
+            }
+            Found::NotFound { folder } => {
+                ui.add_space(8.0);
+                ui.scope(|ui| {
+                    ui.set_max_width(ui.available_width().min(560.0));
+                    ui.add(egui::Label::new(RichText::new(NOT_FOUND).color(t.text.color())).wrap());
+                });
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new(LOOKED_IN).color(t.muted.color()));
+                    ui.add(
+                        egui::Label::new(RichText::new(&folder).monospace().color(t.muted.color()))
+                            .truncate(),
+                    )
+                    .on_hover_text(&folder);
+                });
+            }
+        }
+        if let Some(why) = &self.save_failed {
+            error_block(ui, t, &PACKAGE_NOT_SAVED, Some(why));
+        }
+        if let Some(file) = self.state.wizard.package() {
+            shell::command_line(ui, t, &Command::config_save(Key::TtwPackage, file).shown());
+        }
+        ui.add_space(12.0);
     }
 
     fn output(ui: &mut egui::Ui, t: &Tokens, instance: &str) {
@@ -614,6 +790,7 @@ impl Page for Ttw {
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
         let back = self.visits.returned(ui.ctx());
+        self.take_search();
         self.follow_instance(cx);
         if !self.visits.loaded {
             self.visits.loaded = true;
@@ -658,7 +835,7 @@ impl Page for Ttw {
         ui.add_space(14.0);
         self.problem_block(ui, &t);
         match self.state.step {
-            Step::Sources => Ttw::sources(ui, &t, cx, &sources),
+            Step::Sources => self.sources(ui, &t, cx, &sources),
             Step::Output => Ttw::output(ui, &t, &instance),
             Step::Review => self.review(ui, &t, &instance),
             Step::Install => self.install(ui, &t, &instance),
@@ -851,7 +1028,8 @@ fn note(ui: &mut egui::Ui, t: &Tokens, m: Mark, line: &str, detail: Option<&str>
 
 const INSTANCE: &str = "/users/player/raul-storage/instance";
 const FALLOUT3: &str = "/games/steamapps/common/Fallout 3 goty";
-const PACKAGE: &str = "/users/player/Downloads/ttw-installer.mpi";
+const PACKAGE: &str = "/users/player/Downloads/TTW_3.4.0.mpi";
+const DOWNLOADS: &str = "/users/player/Downloads";
 
 fn sources(fallout3: Option<&str>, package: Option<&str>) -> Sources {
     Sources {
@@ -912,6 +1090,14 @@ fn fixture(name: &'static str, state: State) -> Fixture {
     }
 }
 
+/// A fixture of the flow in `state`, looking for the package in the Downloads folder of the example player.
+fn looking(name: &'static str, state: State) -> Fixture {
+    Fixture {
+        page: Box::new(Ttw::with(state).looking_in(DOWNLOADS)),
+        ..fixture(name, State::default())
+    }
+}
+
 /// The states the snapshot tests render.
 pub fn fixtures() -> Vec<Fixture> {
     let mut loading = State::new(Some(INSTANCE.to_owned()));
@@ -968,6 +1154,16 @@ pub fn fixtures() -> Vec<Fixture> {
         )
     });
     let long_path = "/users/player/a folder with a very long name that keeps going on and on/and another one/Fallout 3 goty";
+    // The search runs: its answer is not in yet, so the page shows it looking.
+    let mut searching = at(Step::Sources, sources(Some(FALLOUT3), None));
+    searching.searching();
+    let mut found = at(Step::Sources, sources(Some(FALLOUT3), None));
+    found.searched(
+        std::path::Path::new(DOWNLOADS),
+        Some(std::path::Path::new(PACKAGE)),
+    );
+    let mut not_found = at(Step::Sources, sources(Some(FALLOUT3), None));
+    not_found.searched(std::path::Path::new(DOWNLOADS), None);
     vec![
         Fixture {
             name: "no-instance",
@@ -981,6 +1177,9 @@ pub fn fixtures() -> Vec<Fixture> {
             "sources-ready",
             at(Step::Sources, sources(Some(FALLOUT3), Some(PACKAGE))),
         ),
+        looking("sources-search", searching),
+        looking("sources-found", found),
+        looking("sources-not-found", not_found),
         fixture(
             "long-text",
             at(Step::Sources, sources(Some(long_path), Some(PACKAGE))),
@@ -1065,5 +1264,131 @@ mod tests {
         let mut checking = at(Step::Review, sources(Some(FALLOUT3), Some(PACKAGE)));
         let _ = checking.checking();
         assert_eq!(Ttw::with(checking).waits_for(), Some(WAITS_FOR_CHECK));
+    }
+
+    /// Answers `raul config set` as the contract does and records every command.
+    #[derive(Default)]
+    struct Recording {
+        calls: std::sync::Mutex<Vec<Vec<String>>>,
+    }
+
+    impl raul_ui_service::Exec for Recording {
+        fn run(&self, args: &[String]) -> Result<Output, String> {
+            self.calls.lock().unwrap().push(args.to_vec());
+            let value = args.get(3).cloned().unwrap_or_default();
+            Ok(Output {
+                code: Some(0),
+                stdout: format!(
+                    r#"{{"schema_version":1,"contract":"raul-config","file":"/c","entries":[{{"key":"ttw.package","value":"{value}","read_only":false}}],"error":null}}"#
+                ),
+                stderr: String::new(),
+            })
+        }
+    }
+
+    /// A fake Downloads folder with one package in it, and the recorder of the commands the page runs.
+    fn fake_downloads(label: &str) -> (std::path::PathBuf, std::sync::Arc<Recording>) {
+        let root =
+            std::env::temp_dir().join(format!("raul-ttw-gui-{label}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(root.join("unpacked")).unwrap();
+        std::fs::write(root.join("notes.txt"), b"not a package").unwrap();
+        std::fs::write(root.join("unpacked/TTW_3.4.0.mpi"), b"synthetic").unwrap();
+        (root, std::sync::Arc::new(Recording::default()))
+    }
+
+    fn harness(
+        fixture: Fixture,
+        exec: std::sync::Arc<Recording>,
+    ) -> egui_kittest::Harness<'static, crate::shell::App> {
+        let app = crate::shell::App::fixture(fixture, crate::jobs::Jobs::new(exec));
+        egui_kittest::Harness::builder()
+            .with_size([1280.0, 800.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            })
+    }
+
+    #[test]
+    fn find_it_for_me_shows_the_package_it_found_and_use_this_file_saves_it() {
+        use egui_kittest::kittest::Queryable;
+        let (downloads, exec) = fake_downloads("found");
+        let file = format!("{}/unpacked/TTW_3.4.0.mpi", downloads.display());
+        let mut h = harness(
+            Fixture {
+                page: Box::new(
+                    Ttw::with(at(Step::Sources, sources(Some(FALLOUT3), None)))
+                        .looking_in(downloads.clone()),
+                ),
+                ..fixture("sources-missing", State::default())
+            },
+            exec.clone(),
+        );
+        h.run();
+        h.get_by_label(FIND_IT).click();
+        for _ in 0..100 {
+            h.run_steps(2);
+            if h.query_by_label(FOUND).is_some() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert!(h.query_by_label(FOUND).is_some(), "the found state");
+        assert!(
+            h.query_by_label(&file).is_some(),
+            "the file it found is named"
+        );
+        h.get_by_label(USE_THIS).click();
+        for _ in 0..100 {
+            if !exec.calls.lock().unwrap().is_empty() {
+                break;
+            }
+            h.run_steps(2);
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert_eq!(
+            exec.calls.lock().unwrap().first().cloned(),
+            Some(
+                ["config", "set", "ttw.package", file.as_str(), "--json"]
+                    .map(String::from)
+                    .to_vec()
+            )
+        );
+        let _ = std::fs::remove_dir_all(&downloads);
+    }
+
+    #[test]
+    fn find_it_for_me_says_where_it_looked_when_there_is_no_package() {
+        use egui_kittest::kittest::Queryable;
+        let empty = std::env::temp_dir().join(format!("raul-ttw-gui-empty-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&empty);
+        std::fs::create_dir_all(&empty).unwrap();
+        let exec = std::sync::Arc::new(Recording::default());
+        let mut h = harness(
+            Fixture {
+                page: Box::new(
+                    Ttw::with(at(Step::Sources, sources(Some(FALLOUT3), None)))
+                        .looking_in(empty.clone()),
+                ),
+                ..fixture("sources-missing", State::default())
+            },
+            exec,
+        );
+        h.run();
+        h.get_by_label(FIND_IT).click();
+        for _ in 0..100 {
+            h.run_steps(2);
+            if h.query_by_label(NOT_FOUND).is_some() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert!(h.query_by_label(NOT_FOUND).is_some(), "the not found state");
+        assert!(
+            h.query_by_label(&empty.display().to_string()).is_some(),
+            "it says where it looked"
+        );
+        let _ = std::fs::remove_dir_all(&empty);
     }
 }
