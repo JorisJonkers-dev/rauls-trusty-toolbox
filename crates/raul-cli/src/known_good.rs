@@ -42,9 +42,13 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
             };
             bump_command(&repo, component, version, &month, out, err)
         }
+        [cmd, component, version] if cmd == "apply" => {
+            let month = month.unwrap_or_else(current_month);
+            apply_command(&repo, component, version, &month, out, err)
+        }
         _ => crate::usage(
             err,
-            "known-good takes `check` or `bump <component> <version> --month YYYY-MM`",
+            "known-good takes `check`, `bump <component> <version> --month YYYY-MM` or `apply <component> <version> [--month YYYY-MM]`",
         ),
     }
 }
@@ -98,6 +102,97 @@ fn bump_command(
     }
 }
 
+/// This month in UTC as `YYYY-MM`.
+fn current_month() -> String {
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs());
+    month_of_days(i64::try_from(secs / 86_400).unwrap_or(0))
+}
+
+/// The `YYYY-MM` of a day count since 1970-01-01 (Howard Hinnant's civil-from-days).
+fn month_of_days(days: i64) -> String {
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    format!("{year:04}-{month:02}")
+}
+
+/// Moves a Component to a release the way a bump pull request does: its submodule goes to the tag, a new
+/// Known-good set is added, and when the Component is nvmod the loot-rs it links moves too (submodule, set and the
+/// workspace `loot-rs` tag, ADR-0015). Lock files are not touched: the caller runs `cargo update` after.
+fn apply_command(
+    repo: &Path,
+    component: &str,
+    version: &str,
+    month: &str,
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> u8 {
+    match apply(repo, component, version, month) {
+        Ok(moved) => crate::write_or_fail(out, err, &format!("moved {}\n", moved.join(", "))),
+        Err(e) => {
+            let _ = writeln!(err, "{e}");
+            crate::FOUND
+        }
+    }
+}
+
+fn apply(repo: &Path, component: &str, version: &str, month: &str) -> Result<Vec<String>, String> {
+    if !COMPONENTS.contains(&component) {
+        return Err(format!("{component} is not a Component"));
+    }
+    if !version.starts_with('v')
+        || !version
+            .chars()
+            .skip(1)
+            .all(|c| c.is_ascii_digit() || c == '.')
+    {
+        return Err(format!("{version} is not a vX.Y.Z tag"));
+    }
+    check_out_tag(repo, component, version)?;
+    let mut moves = vec![(component.to_string(), version.to_string())];
+    if component == "nvmod" {
+        let lock = std::fs::read_to_string(repo.join("components/nvmod-rs/tools.lock.toml"))
+            .map_err(|e| format!("nvmod tools.lock.toml: {e}"))?;
+        let loot = raul_core::known_good::linked_loot_tag(&lock)
+            .ok_or("nvmod's tools.lock.toml has no loot-rs entry")?;
+        check_out_tag(repo, "loot-rs", &loot)?;
+        let cargo_path = repo.join("Cargo.toml");
+        let cargo = std::fs::read_to_string(&cargo_path).map_err(|e| format!("Cargo.toml: {e}"))?;
+        if let Some(text) = raul_core::known_good::with_loot_tag(&cargo, &loot) {
+            std::fs::write(&cargo_path, text).map_err(|e| format!("Cargo.toml: {e}"))?;
+        }
+        moves.push(("loot-rs".to_string(), loot));
+    }
+    let path = repo.join("known-good.toml");
+    let text = std::fs::read_to_string(&path).map_err(|e| format!("known-good.toml: {e}"))?;
+    let pairs: Vec<(&str, &str)> = moves
+        .iter()
+        .map(|(c, v)| (c.as_str(), v.as_str()))
+        .collect();
+    let text = raul_core::known_good::bump_all(&text, &pairs, month)?;
+    std::fs::write(&path, text).map_err(|e| format!("known-good.toml: {e}"))?;
+    Ok(moves.into_iter().map(|(c, v)| format!("{c} {v}")).collect())
+}
+
+fn check_out_tag(repo: &Path, component: &str, tag: &str) -> Result<(), String> {
+    let dir = repo.join("components").join(component_dir(component));
+    git(&dir, &["fetch", "--quiet", "--tags", "origin"])
+        .ok_or_else(|| format!("{component}: could not fetch the tags"))?;
+    git(&dir, &["checkout", "--quiet", &format!("refs/tags/{tag}")])
+        .ok_or_else(|| format!("{component}: could not check out {tag}"))?;
+    match pin(&dir) {
+        Some(Pin::Tag(now)) if now == tag => Ok(()),
+        _ => Err(format!("{component}: {tag} is not a tag of its repository")),
+    }
+}
+
 fn check(repo: &Path) -> Vec<String> {
     let text = match std::fs::read_to_string(repo.join("known-good.toml")) {
         Ok(t) => t,
@@ -139,4 +234,18 @@ fn pin(dir: &Path) -> Option<Pin> {
         return Some(Pin::Tag(tag.to_string()));
     }
     git(dir, &["rev-parse", "--short", "HEAD"]).map(Pin::Untagged)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::month_of_days;
+
+    #[test]
+    fn the_month_of_a_day_count() {
+        assert_eq!(month_of_days(0), "1970-01");
+        assert_eq!(month_of_days(20_409), "2025-11");
+        assert_eq!(month_of_days(20_454), "2026-01");
+        assert_eq!(month_of_days(20_789), "2026-12");
+        assert_eq!(month_of_days(11_016), "2000-02");
+    }
 }

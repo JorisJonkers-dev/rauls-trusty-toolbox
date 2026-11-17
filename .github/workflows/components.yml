@@ -1,0 +1,53 @@
+# Follows the Components' releases (nv-rs, nvmod, lodwright-rs, ttwright-rs; loot-rs moves with nvmod, ADR-0015) and
+# opens one pull request per release that moves the submodule, adds a Known-good set and refreshes both lock files.
+# Pipeline Complete decides whether it merges; auto-merge lands it. A Component's repository sends nothing: this run
+# finds the release itself, with the self-hosted Renovate configured in .github/renovate-components.json (the hosted
+# Renovate app reads renovate.json only and cannot run the post-upgrade steps). Replaces component-bump.yml.
+name: Components
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: components
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  follow:
+    name: Follow Component releases
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # The pull requests are opened with the App token so CI runs on them.
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app-token
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Crates come through the estate packages proxy (7-day minimum age); the hygiene guard requires it.
+      - uses: JorisJonkers-dev/github-workflows/actions/setup-package-proxy@b14d5e031f1abd5bec45e50c898e9e73f3ffc534 # v0.50.4
+        with:
+          token: ${{ secrets.PACKAGES_PROXY_TOKEN }}
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: Renovate
+        env:
+          RENOVATE_TOKEN: ${{ steps.app-token.outputs.token }}
+          RENOVATE_CONFIG_FILE: ${{ github.workspace }}/.github/renovate-components.json
+          LOG_LEVEL: info
+        run: npx --yes renovate@44.224.1
