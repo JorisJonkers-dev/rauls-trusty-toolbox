@@ -14,6 +14,11 @@ use crate::error::{ExitClass, ViewError};
 use crate::events::Status;
 use crate::job::Outcome;
 use crate::wizard::{FlowError, Step as FlowStep, TtwNeed, TtwWizard};
+use std::path::{Path, PathBuf};
+use std::time::SystemTime;
+
+/// Where the TTW package is downloaded from: the one place the page links to.
+pub const DOWNLOAD_URL: &str = "https://taleoftwowastelands.com/";
 
 /// `raul ttw --instance <dir> --dry-run`: reads the package and checks the game copies; nothing is written.
 pub fn check_command(instance: &str) -> Command {
@@ -128,6 +133,83 @@ impl Report {
     }
 }
 
+/// What the search for the package on this machine found.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum Found {
+    /// The search did not run.
+    #[default]
+    Idle,
+    /// The search runs: a listing of two levels of the folder.
+    Searching,
+    /// The newest package found, and the folder it was looked for in.
+    Found {
+        /// The package file.
+        file: String,
+        /// The folder the search looked in.
+        folder: String,
+    },
+    /// No package was found, and the folder it was looked for in.
+    NotFound {
+        /// The folder the search looked in.
+        folder: String,
+    },
+}
+
+/// Where the package is looked for when the shell does not say: the Downloads folder of the home folder.
+pub fn default_downloads() -> String {
+    let home = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map_or_else(|| PathBuf::from("Downloads"), PathBuf::from);
+    home.join("Downloads").to_string_lossy().into_owned()
+}
+
+/// Whether `name` is a TTW installer package: `TTW_*.mpi`, in any case.
+pub fn is_package(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    let Some(rest) = lower.strip_prefix("ttw_") else {
+        return false;
+    };
+    rest.strip_suffix(".mpi")
+        .is_some_and(|stem| !stem.is_empty())
+}
+
+/// The newest TTW installer package in `folder` and in one level of folders under it, as its path; `None` when
+/// there is none. A package that is not there is skipped, and of two of the same age the one that comes first.
+pub fn find_package(folder: &Path) -> Option<PathBuf> {
+    let mut best: Option<(SystemTime, PathBuf)> = None;
+    for dir in std::iter::once(folder.to_path_buf()).chain(subfolders(folder)) {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if !is_package(&name) {
+                continue;
+            }
+            let Ok(modified) = entry.metadata().and_then(|m| m.modified()) else {
+                continue;
+            };
+            if best.as_ref().is_none_or(|(age, _)| modified > *age) {
+                best = Some((modified, entry.path()));
+            }
+        }
+    }
+    best.map(|(_, path)| path)
+}
+
+/// The folders directly under `folder`, in the order the file system lists them.
+fn subfolders(folder: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(folder) else {
+        return Vec::new();
+    };
+    entries
+        .flatten()
+        .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
+        .map(|e| e.path())
+        .collect()
+}
+
 /// How far the install is, from the job's progress events.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Progress {
@@ -170,6 +252,8 @@ pub struct State {
     pub problem: Option<Problem>,
     /// The install runs with `--resume`, continuing a stopped run.
     pub resuming: bool,
+    /// The search for the package on this machine.
+    pub found: Found,
 }
 
 impl State {
@@ -207,6 +291,31 @@ impl State {
     /// The sources could not be read; the command's message.
     pub fn sources_failed(&mut self, why: String) {
         self.sources = Fetch::Failed(why);
+    }
+
+    /// The search for the package started.
+    pub fn searching(&mut self) {
+        self.found = Found::Searching;
+    }
+
+    /// The search ended: with the package it found, or with nothing and the folder it looked in.
+    pub fn searched(&mut self, folder: &Path, found: Option<&Path>) {
+        let folder = folder.to_string_lossy().into_owned();
+        self.found = match found {
+            Some(file) => Found::Found {
+                file: file.to_string_lossy().into_owned(),
+                folder,
+            },
+            None => Found::NotFound { folder },
+        };
+    }
+
+    /// The package found was chosen: it is the package the flow uses, until the sources are read again.
+    pub fn use_package(&mut self, file: &str) {
+        self.wizard.set_package(file);
+        if let Fetch::Ready(sources) = &mut self.sources {
+            sources.package = Some(file.to_owned());
+        }
     }
 
     /// The sources were read again, as when the page is shown again after Settings. When they changed, the flow
@@ -634,6 +743,101 @@ mod tests {
             "raul ttw --instance /i --resume"
         );
         assert_eq!(Step::ALL.map(Step::number), [1, 2, 3, 4]);
+    }
+
+    fn touching(dir: &Path, name: &str, age: u64) {
+        let path = dir.join(name);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, b"synthetic package").unwrap();
+        let time = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000 + age);
+        std::fs::File::options()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_modified(time)
+            .unwrap();
+    }
+
+    /// A folder of its own for one test, removed when it ends.
+    struct Scratch(PathBuf);
+
+    impl Scratch {
+        fn new(label: &str) -> Scratch {
+            let root =
+                std::env::temp_dir().join(format!("raul-ttw-{label}-{}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&root);
+            std::fs::create_dir_all(&root).unwrap();
+            Scratch(root)
+        }
+    }
+
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn a_package_is_a_ttw_mpi_file_in_any_case() {
+        assert!(is_package("TTW_3.4.0.mpi"));
+        assert!(is_package("ttw_something.MPI"));
+        assert!(!is_package("TTW_3.4.0.7z"));
+        assert!(!is_package("other.mpi"));
+        assert!(!is_package("TTW_.mpi"));
+        assert!(default_downloads().ends_with("Downloads"));
+    }
+
+    #[test]
+    fn the_search_takes_the_newest_package_of_two_levels() {
+        let scratch = Scratch::new("search");
+        let root = &scratch.0;
+        assert_eq!(find_package(root), None, "an empty folder");
+        touching(root, "notes.txt", 500);
+        touching(root, "TTW_old.mpi", 100);
+        touching(root, "ttw_other.MPI", 300);
+        assert_eq!(
+            find_package(root).unwrap().file_name().unwrap(),
+            "ttw_other.MPI"
+        );
+        // One level under the folder counts; two do not.
+        touching(root, "unpacked/TTW_new.mpi", 900);
+        touching(root, "unpacked/deeper/TTW_deepest.mpi", 9_999);
+        assert_eq!(
+            find_package(root).unwrap().file_name().unwrap(),
+            "TTW_new.mpi"
+        );
+        assert_eq!(find_package(&root.join("missing")), None);
+    }
+
+    #[test]
+    fn a_package_found_is_used_until_the_sources_are_read_again() {
+        let mut s = ready();
+        assert_eq!(s.found, Found::Idle);
+        s.searching();
+        assert_eq!(s.found, Found::Searching);
+        s.searched(Path::new("/d"), None);
+        assert_eq!(
+            s.found,
+            Found::NotFound {
+                folder: "/d".into()
+            }
+        );
+        s.searched(Path::new("/d"), Some(Path::new("/d/TTW_1.mpi")));
+        assert_eq!(
+            s.found,
+            Found::Found {
+                file: "/d/TTW_1.mpi".into(),
+                folder: "/d".into()
+            }
+        );
+        s.use_package("/d/TTW_1.mpi");
+        assert_eq!(s.wizard.package(), Some("/d/TTW_1.mpi"));
+        assert_eq!(
+            s.sources.ready().and_then(|f| f.package.as_deref()),
+            Some("/d/TTW_1.mpi")
+        );
+        assert!(s.missing().is_empty());
+        assert_eq!(DOWNLOAD_URL, "https://taleoftwowastelands.com/");
     }
 
     #[test]

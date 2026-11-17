@@ -660,6 +660,53 @@ impl ImportWizard {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// The setup plan
+
+/// The name of the profile every Instance gets when it is made, so nothing ever asks a person for one.
+pub const DEFAULT_PROFILE: &str = "Default";
+
+/// One step of the setup plan, as the setup wizard shows it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SetupStep {
+    /// The step's name, from the command's stream (`init`, `profile`, `nv-rs`, ...).
+    pub name: String,
+    /// What it does, in words.
+    pub description: String,
+}
+
+/// The steps a first run always plans, in order: the Instance skeleton, then the default profile it gets. The
+/// plan the command prints is checked against this, so a setup that would leave an Instance without a profile is
+/// caught before it runs rather than by a page that then has nothing to read.
+const OWN_STEPS: [(&str, &str); 2] = [
+    ("init", "Make the Instance"),
+    (
+        "profile",
+        "Make the profile the Mods and the load order live in",
+    ),
+];
+
+/// The plan of a first run: the steps the command printed, with the two every first run must have (the Instance
+/// and its profile) added in their place when the command did not print them. The Instance's profile is made by
+/// the setup itself, so no screen ever asks for one.
+pub fn setup_plan(steps: Vec<SetupStep>) -> Vec<SetupStep> {
+    let mut plan = steps;
+    for (at, (name, description)) in OWN_STEPS.iter().enumerate() {
+        if plan.iter().any(|s| s.name == *name) {
+            continue;
+        }
+        let at = at.min(plan.len());
+        plan.insert(
+            at,
+            SetupStep {
+                name: (*name).to_owned(),
+                description: (*description).to_owned(),
+            },
+        );
+    }
+    plan
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // TTW
 
 /// What the TTW install needs before it can be planned.
@@ -1053,6 +1100,38 @@ mod tests {
         assert_eq!(w.flow.step(), Step::Review);
         assert!(!w.flow.can_apply(), "blocked and not reviewed again");
         assert_eq!(w.blockers().len(), 1);
+    }
+
+    #[test]
+    fn a_first_run_plan_makes_the_instance_and_its_profile() {
+        let printed = vec![
+            SetupStep {
+                name: "nv-rs".into(),
+                description: "Install nv-rs".into(),
+            },
+            SetupStep {
+                name: "sort".into(),
+                description: "Sort the load order".into(),
+            },
+        ];
+        let plan = setup_plan(printed.clone());
+        let names: Vec<&str> = plan.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(names, ["init", "profile", "nv-rs", "sort"]);
+        assert!(plan.iter().all(|s| !s.description.is_empty()));
+        assert_eq!(DEFAULT_PROFILE, "Default");
+        // A plan that already names them keeps its own order and words.
+        let own = vec![
+            SetupStep {
+                name: "init".into(),
+                description: "Make it".into(),
+            },
+            SetupStep {
+                name: "profile".into(),
+                description: "Make the list".into(),
+            },
+        ];
+        assert_eq!(setup_plan(own.clone()), own);
+        assert_eq!(setup_plan(Vec::new()).len(), 2);
     }
 
     #[test]

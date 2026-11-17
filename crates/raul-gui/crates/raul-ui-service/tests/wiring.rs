@@ -14,7 +14,7 @@ use raul_ui_service::wiring::{
     ImportContext, InstallContext, TtwContext, apply_import, apply_install, apply_ttw, plan_import,
     plan_install, plan_ttw,
 };
-use raul_ui_service::{FakeService, InstallResult, ServiceError};
+use raul_ui_service::{FakeService, InstallResult, ProfileRequest, Service, ServiceError};
 
 fn refused(what: &str) -> ServiceError {
     let mut e = ViewError::new(ExitClass::Refused, what, "Nothing was changed");
@@ -47,6 +47,24 @@ fn question() -> FomodQuestion {
             })
             .collect(),
     }
+}
+
+#[test]
+fn the_default_profile_is_made_for_an_instance_that_has_none() {
+    let svc = FakeService::new();
+    svc.on_profile_create(Ok(()));
+    svc.profile_create(&ProfileRequest::default_for("/inst"))
+        .unwrap();
+    let calls = svc.profile_create_calls();
+    assert_eq!(calls.len(), 1);
+    assert_eq!(
+        (calls[0].instance.as_str(), calls[0].name.as_str()),
+        ("/inst", "Default")
+    );
+    assert_eq!(
+        calls[0].args(),
+        ["create", "--name", "Default", "--instance", "/inst"]
+    );
 }
 
 #[test]

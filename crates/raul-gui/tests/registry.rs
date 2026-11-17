@@ -95,6 +95,8 @@ impl Fixture {
             (Action::Sort, _) => vec!["--instance", &instance, "--masterlist", "MASTERLIST"],
             (Action::Ttw, _) => vec!["--instance", &instance, "--dry-run"],
             (Action::Detect, _) => vec!["--folder", "BASE"],
+            // The default profile of an Instance that already has one: nothing changes.
+            (Action::Profile, _) => vec!["--name", "Default", "--instance", &instance],
             // A dry run: the launch plan is printed and nothing is started.
             (Action::Run, _) => vec!["nv-rs", "--instance", &instance, "--dry-run"],
             (Action::Config | Action::Version | Action::Update | Action::Tools, _) => vec![],
@@ -137,7 +139,8 @@ fn expected(command: &Command) -> i32 {
     match command.action {
         Action::InstallNvRs => 4,
         // TTW and a run: no folder, and no engine installed in the fixture, so even a dry run is refused.
-        Action::Ttw | Action::Run => 2,
+        // The fixture's Instance has its default profile already: a second one is refused.
+        Action::Ttw | Action::Run | Action::Profile => 2,
         Action::Lod if command.words.first() == Some(&"generate") => 2,
         Action::Doctor => 1,
         // No engine is installed in the fixture, so the install does not verify.

@@ -75,6 +75,10 @@ impl Command {
 
 /// `word` quoted for a POSIX shell when it needs it.
 fn quote(word: &str) -> String {
+    // The joint of two commands that run one after the other (the setup's Instance step).
+    if word == "&&" {
+        return word.to_owned();
+    }
     let plain = !word.is_empty()
         && word
             .chars()

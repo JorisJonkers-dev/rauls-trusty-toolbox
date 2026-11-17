@@ -5,7 +5,7 @@
 use super::home::{Mark, icon, mark};
 use super::settings::{
     LABEL_WIDTH, Pending, Visits, WAITING, available, config_answer, error_block, failure_of,
-    path_field, read_config, settle, share_config, start, waiting,
+    path_field, read_config, settle, share_config, start, start_then, waiting,
 };
 use super::{Fixture, Page, PageCx};
 use crate::catalogue::{self as msg, ErrorText};
@@ -15,7 +15,8 @@ use eframe::egui::{self, RichText, Stroke};
 use raul_ui_model::pages::settings::{Answer, Command, Config, Fetch, Field, Key, Save};
 use raul_ui_model::pages::setup::{
     Checks, EngineStep, Finding, Missing, State, Step, detect_command, doctor_command,
-    init_command, parse_detect, parse_doctor, suggest_storage,
+    init_and_profile_command, init_and_profile_commands, parse_detect, parse_doctor,
+    suggest_storage,
 };
 use raul_ui_model::pages::versions::install_command;
 use raul_ui_model::pages::{Flow, PageId, View};
@@ -188,28 +189,30 @@ impl Setup {
         }
     }
 
-    /// Install: `raul init` first when there is no Instance yet, then `raul install-nv-rs`. `made` says the init
-    /// of this install already succeeded, so it is not run again whatever the folder looks like.
+    /// Install: `raul init` first when there is no Instance yet, then the default profile, then
+    /// `raul install-nv-rs`. `made` says the init of this install already succeeded, so it is not run again
+    /// whatever the folder looks like. The profile is made by the wizard itself, so no step ever asks for one.
     fn install(&mut self, cx: &mut PageCx<'_>, made: bool) {
         let (Some(instance), Some(game)) = (self.state.instance(), self.state.game.saved.clone())
         else {
             return;
         };
         let has_instance = made || std::path::Path::new(&instance).exists();
-        let (job, command, step) = if has_instance {
+        let (job, started, step) = if has_instance {
             (
                 Job::Install,
-                install_command(&instance),
+                start(cx, &install_command(&instance)),
                 EngineStep::Installing,
             )
         } else {
+            let [init, profile] = init_and_profile_commands(&game, &instance);
             (
                 Job::Init,
-                init_command(&game, &instance),
+                start_then(cx, &init, Some(&profile)),
                 EngineStep::Initialising,
             )
         };
-        match start(cx, &command) {
+        match started {
             Ok(id) => {
                 self.pending.add(job, id);
                 self.state.engine = step;
@@ -575,7 +578,7 @@ impl Setup {
         let game = self.state.game.saved.clone().unwrap_or_default();
         let has_instance = std::path::Path::new(&instance).exists();
         let install = install_command(&instance);
-        let init = init_command(&game, &instance);
+        let init = init_and_profile_command(&game, &instance);
         match &self.state.engine {
             EngineStep::Idle | EngineStep::Failed(_) => {
                 let label = if matches!(self.state.engine, EngineStep::Failed(_)) {
@@ -1048,6 +1051,10 @@ mod tests {
                 Some("doctor") => {
                     r#"{"base":"/g","findings":[{"code":"a.b","severity":"warning","subject":"loadorder.txt","message":"out of order"}],"summary":{"info":0,"warnings":1,"errors":0}}"#
                 }
+                // `raul profile create` prints its profile as JSON.
+                Some("profile") => {
+                    r#"{"schema_version":1,"name":"Default","instance":"/i","created":true}"#
+                }
                 _ => "",
             };
             Ok(Output {
@@ -1099,12 +1106,12 @@ mod tests {
         h.run_steps(2);
         h.get_by_label(INSTALL).click();
         let calls = exec.clone();
-        wait_for(&mut h, move |_| calls.calls.lock().unwrap().len() >= 2);
+        wait_for(&mut h, move |_| calls.calls.lock().unwrap().len() >= 3);
         std::thread::sleep(std::time::Duration::from_millis(50));
         h.run_steps(4);
         h.get_by_label(NEXT).click();
         let calls = exec.clone();
-        wait_for(&mut h, move |_| calls.calls.lock().unwrap().len() >= 3);
+        wait_for(&mut h, move |_| calls.calls.lock().unwrap().len() >= 4);
         std::thread::sleep(std::time::Duration::from_millis(50));
         h.run_steps(4);
         h.get_by_label(NEXT).click();
@@ -1129,8 +1136,20 @@ mod tests {
                 instance.as_str()
             ]
         );
+        // The Instance step makes the default profile itself: no step ever asks for one.
         assert_eq!(
             calls[1],
+            [
+                "profile",
+                "create",
+                "--name",
+                "Default",
+                "--instance",
+                instance.as_str()
+            ]
+        );
+        assert_eq!(
+            calls[2],
             [
                 "install-nv-rs",
                 "--instance",
@@ -1139,7 +1158,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            calls[2],
+            calls[3],
             ["doctor", "--instance", instance.as_str(), "--json"]
         );
     }

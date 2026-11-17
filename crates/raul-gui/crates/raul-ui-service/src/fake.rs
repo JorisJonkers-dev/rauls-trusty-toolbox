@@ -10,9 +10,9 @@ use crate::dto::{
 };
 use crate::exec::{CancelHandle, Exec, Output};
 use crate::service::{
-    DoctorRequest, ImportRequest, InstallRequest, InstallResult, ModsRequest, RollbackRequest,
-    Service, ServiceError, SetupRequest, SortRequest, TargetRequest, ToolsRequest, TtwRequest,
-    UpdateReport, VerifyRequest,
+    DoctorRequest, ImportRequest, InstallRequest, InstallResult, ModsRequest, ProfileRequest,
+    RollbackRequest, Service, ServiceError, SetupRequest, SortRequest, TargetRequest, ToolsRequest,
+    TtwRequest, UpdateReport, VerifyRequest,
 };
 use std::cell::RefCell;
 use std::collections::VecDeque;
@@ -72,6 +72,7 @@ pub struct FakeService {
     trees: Script<TreeRequest, TreeReport>,
     plugin_lists: Script<PluginsRequest, PluginsReport>,
     update_checks: Script<(), UpdateReport>,
+    profiles: Script<ProfileRequest, ()>,
 }
 
 impl FakeService {
@@ -179,6 +180,17 @@ impl FakeService {
     /// How many `update_check` calls were made.
     pub fn update_check_calls(&self) -> usize {
         self.update_checks.calls().len()
+    }
+
+    /// Queues the answer of the next `profile_create` call.
+    pub fn on_profile_create(&self, answer: Result<(), ServiceError>) -> &Self {
+        self.profiles.queue(answer);
+        self
+    }
+
+    /// The `profile_create` requests so far.
+    pub fn profile_create_calls(&self) -> Vec<ProfileRequest> {
+        self.profiles.calls()
     }
 
     /// The `mods_change` requests so far.
@@ -316,6 +328,10 @@ impl Service for FakeService {
 
     fn update_check(&self) -> Result<UpdateReport, ServiceError> {
         self.update_checks.call(&(), "update_check")
+    }
+
+    fn profile_create(&self, request: &ProfileRequest) -> Result<(), ServiceError> {
+        self.profiles.call(request, "profile_create")
     }
 }
 

@@ -56,6 +56,9 @@ pub enum Action {
     Update,
     /// `raul detect`: find New Vegas and Fallout 3 copies, or check one folder.
     Detect,
+    /// `raul profile create`: the default profile of an Instance that has none. Setup makes it with its own
+    /// steps; this action is the one place a screen asks for it when an Instance made another way has none.
+    Profile,
 }
 
 impl Action {
@@ -83,6 +86,7 @@ impl Action {
         Action::Version,
         Action::Update,
         Action::Detect,
+        Action::Profile,
     ];
 
     /// The subcommand word of the command line.
@@ -110,6 +114,7 @@ impl Action {
             Self::Version => "version",
             Self::Update => "update",
             Self::Detect => "detect",
+            Self::Profile => "profile",
         }
     }
 
@@ -123,7 +128,7 @@ impl Action {
 
     /// Whether the command takes `--json`. `init` and `install-nv-rs` print text only.
     pub fn takes_json(self) -> bool {
-        !matches!(self, Self::Init | Self::InstallNvRs)
+        !matches!(self, Self::Init | Self::InstallNvRs | Self::Profile)
     }
 
     /// What the GUI calls it.
@@ -151,6 +156,7 @@ impl Action {
             Self::Version => "Versions",
             Self::Update => "Check for updates",
             Self::Detect => "Find the games",
+            Self::Profile => "Make the default profile",
         }
     }
 
@@ -436,6 +442,14 @@ pub const COMMANDS: &[Command] = &[
         words: &["list"],
         flags: &["--json"],
         writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "profile-create",
+        action: Action::Profile,
+        words: &["create"],
+        flags: &["--name", "--instance"],
+        writes: true,
         awaits: None,
     },
     Command {

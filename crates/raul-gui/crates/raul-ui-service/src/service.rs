@@ -14,7 +14,7 @@ use crate::registry::Action;
 use raul_ui_model::error::{ExitClass, Retry, ViewError};
 use raul_ui_model::mods::ModStep;
 use raul_ui_model::setup::{FinishStatus, Phase, SetupWizard};
-use raul_ui_model::wizard::FomodQuestion;
+use raul_ui_model::wizard::{DEFAULT_PROFILE, FomodQuestion};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use std::path::PathBuf;
@@ -26,6 +26,35 @@ pub enum ServiceError {
     Disagree(Vec<Finding>),
     /// The call failed; the error is what a screen shows.
     Failed(ViewError),
+}
+
+/// What a screen says when an Instance has no profile and making the default one did not work either. The
+/// headline and the guidance are plain words: the internal name of a profile never reaches a person.
+pub const NO_PROFILE_WHAT: &str = "This Instance has no mod list yet";
+/// What the same screen says about the effect: nothing changed, and what to do.
+pub const NO_PROFILE_EFFECT: &str =
+    "Nothing changed. Set the storage folder in Settings, then try again.";
+
+/// Whether the words of a command name the profile an Instance does not have. The commands of nvmod refuse with
+/// `the Instance has no profile`; that is the one refusal the Toolbox fixes itself.
+pub(crate) fn names_a_missing_profile(words: &str) -> bool {
+    let lower = words.to_lowercase();
+    lower.contains("profile")
+        && (lower.contains("no profile")
+            || lower.contains("not have")
+            || lower.contains("does not exist"))
+}
+
+/// The error a screen shows for a refusal that names a missing profile: the plain words above, with the command's
+/// own line kept as the detail.
+pub(crate) fn no_profile_error(said: &str) -> ViewError {
+    let mut e = ViewError::new(ExitClass::Refused, NO_PROFILE_WHAT, NO_PROFILE_EFFECT);
+    e.retry = Retry::AfterFix("set the storage folder, then try again".to_owned());
+    let said = said.trim();
+    if !said.is_empty() && !said.to_lowercase().contains("profile") {
+        e.effect = format!("{NO_PROFILE_EFFECT} {said}");
+    }
+    e
 }
 
 impl ServiceError {
@@ -447,6 +476,33 @@ impl RollbackRequest {
     }
 }
 
+/// What `raul profile create` needs: the default profile of an Instance that has none.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProfileRequest {
+    /// The Instance folder.
+    pub instance: String,
+    /// The profile's name; [`DEFAULT_PROFILE`] for the one setup makes.
+    pub name: String,
+}
+
+impl ProfileRequest {
+    /// The default profile of `instance`.
+    pub fn default_for(instance: &str) -> Self {
+        Self {
+            instance: instance.to_owned(),
+            name: DEFAULT_PROFILE.to_owned(),
+        }
+    }
+
+    /// The words after `raul profile`.
+    pub fn args(&self) -> Vec<String> {
+        let mut rest = vec!["create".to_owned()];
+        push(&mut rest, "name", &self.name);
+        push(&mut rest, "instance", &self.instance);
+        rest
+    }
+}
+
 /// The answer of an install call.
 #[derive(Debug, Clone, PartialEq)]
 pub enum InstallResult {
@@ -557,6 +613,13 @@ pub trait Service {
     /// # Errors
     /// [`ServiceError::Failed`] when the check could not run, or its answer could not be read.
     fn update_check(&self) -> Result<UpdateReport, ServiceError>;
+
+    /// `raul profile create`: the default profile of an Instance that has none. Setup makes it with its own
+    /// steps, so a screen only asks for it when an Instance made another way has none.
+    ///
+    /// # Errors
+    /// [`ServiceError::Failed`] when the command refused or failed.
+    fn profile_create(&self, request: &ProfileRequest) -> Result<(), ServiceError>;
 }
 
 /// What `raul update check --json` answered.
@@ -641,7 +704,7 @@ fn failure_error(out: &Output, command: &str) -> ViewError {
             why.clone_into(&mut cause);
         }
     }
-    let mut e = ViewError::new(class, cause, effect_of(class));
+    let mut e = ViewError::new(class, cause.clone(), effect_of(class));
     e.retry = match class {
         ExitClass::StepFailedRolledBack => Retry::Yes,
         ExitClass::Refused | ExitClass::Usage | ExitClass::ProblemsFound => {
@@ -649,6 +712,12 @@ fn failure_error(out: &Output, command: &str) -> ViewError {
         }
         _ => Retry::No,
     };
+    if names_a_missing_profile(&cause) {
+        // A profile is an internal name: the headline and the guidance stay plain.
+        let mut plain = no_profile_error(&cause);
+        plain.repro = e.repro.take();
+        return plain;
+    }
     e
 }
 
@@ -660,6 +729,13 @@ fn unreadable(what: &str, why: &serde_json::Error, args: &[String]) -> ServiceEr
     );
     e.repro = Some(repro(args));
     ServiceError::Failed(e)
+}
+
+/// Whether a command refused because the Instance has no profile: the one refusal the Toolbox answers by making
+/// the default profile itself.
+fn is_missing_profile(out: &Output) -> bool {
+    out.code != Some(0)
+        && (names_a_missing_profile(&out.stderr) || names_a_missing_profile(&out.stdout))
 }
 
 /// A scratch file holding the FOMOD answers, removed when dropped.
@@ -851,17 +927,20 @@ impl<E: Exec> Service for CliService<E> {
 
     fn install_mod(&self, r: &InstallRequest) -> Result<InstallResult, ServiceError> {
         let answers = r.answers.as_ref().map(AnswersFile::write).transpose()?;
-        let mut rest = vec![r.archive.clone()];
-        push(&mut rest, "instance", &r.instance);
-        push_opt(&mut rest, "profile", r.profile.as_ref());
-        push_opt(&mut rest, "name", r.name.as_ref());
-        if r.dry_run {
-            rest.push("--dry-run".to_owned());
-        }
-        if let Some(file) = &answers {
-            push(&mut rest, "answers", &file.0.display().to_string());
-        }
-        let (out, args) = self.invoke(Action::InstallMod, rest)?;
+        let rest = || {
+            let mut rest = vec![r.archive.clone()];
+            push(&mut rest, "instance", &r.instance);
+            push_opt(&mut rest, "profile", r.profile.as_ref());
+            push_opt(&mut rest, "name", r.name.as_ref());
+            if r.dry_run {
+                rest.push("--dry-run".to_owned());
+            }
+            if let Some(file) = &answers {
+                push(&mut rest, "answers", &file.0.display().to_string());
+            }
+            rest
+        };
+        let (out, args) = self.with_profile(Action::InstallMod, &r.instance, rest)?;
         match out.code {
             Some(0) => Self::parse::<InstallReport>(Action::InstallMod, &out, &args)
                 .map(InstallResult::Report),
@@ -876,16 +955,23 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn ttw(&self, r: &TtwRequest) -> Result<TtwReport, ServiceError> {
-        let (out, args) = self.invoke(Action::Ttw, r.args())?;
+        let (out, args) = self.with_profile(
+            Action::Ttw,
+            r.instance.as_deref().unwrap_or_default(),
+            || r.args(),
+        )?;
         ttw_report(&out, Some(&args))
     }
 
     fn doctor(&self, r: &DoctorRequest) -> Result<DoctorReport, ServiceError> {
-        let mut rest = Vec::new();
-        push(&mut rest, "instance", &r.instance);
-        push_opt(&mut rest, "profile", r.profile.as_ref());
-        push_opt(&mut rest, "masterlist", r.masterlist.as_ref());
-        let (out, args) = self.invoke(Action::Doctor, rest)?;
+        let rest = || {
+            let mut rest = Vec::new();
+            push(&mut rest, "instance", &r.instance);
+            push_opt(&mut rest, "profile", r.profile.as_ref());
+            push_opt(&mut rest, "masterlist", r.masterlist.as_ref());
+            rest
+        };
+        let (out, args) = self.with_profile(Action::Doctor, &r.instance, rest)?;
         match out.code {
             // Exit 1 is "findings at or above the failing severity": the report is on standard output.
             Some(0 | 1) => match serde_json::from_str::<DoctorReport>(&out.stdout) {
@@ -914,7 +1000,7 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn sort(&self, r: &SortRequest) -> Result<SortReport, ServiceError> {
-        let (out, args) = self.invoke(Action::Sort, r.args())?;
+        let (out, args) = self.with_profile(Action::Sort, &r.instance, || r.args())?;
         match out.code {
             Some(0) => Self::parse(Action::Sort, &out, &args),
             _ => Err(failure(&out, "sort", &args)),
@@ -922,7 +1008,7 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn verify(&self, r: &VerifyRequest) -> Result<VerifyReport, ServiceError> {
-        let (out, args) = self.invoke(Action::Verify, r.args())?;
+        let (out, args) = self.with_profile(Action::Verify, &r.instance, || r.args())?;
         match out.code {
             // Exit 3 is "not verified": the report is on standard output.
             Some(0 | 3) => Self::parse(Action::Verify, &out, &args),
@@ -958,7 +1044,7 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn mods_change(&self, r: &ModsRequest) -> Result<ModsReport, ServiceError> {
-        let (out, args) = self.invoke(Action::Mods, r.args())?;
+        let (out, args) = self.with_profile(Action::Mods, &r.instance, || r.args())?;
         match out.code {
             Some(0) => Self::parse(Action::Mods, &out, &args),
             _ => Err(failure(&out, "mods", &args)),
@@ -966,7 +1052,7 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn conflicts(&self, r: &ConflictsRequest) -> Result<ConflictsReport, ServiceError> {
-        let (out, args) = self.invoke(Action::Conflicts, r.args())?;
+        let (out, args) = self.with_profile(Action::Conflicts, &r.instance, || r.args())?;
         match out.code {
             Some(0) => Self::parse(Action::Conflicts, &out, &args),
             _ => Err(failure(&out, "conflicts", &args)),
@@ -974,7 +1060,7 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn tree(&self, r: &TreeRequest) -> Result<TreeReport, ServiceError> {
-        let (out, args) = self.invoke(Action::Tree, r.args())?;
+        let (out, args) = self.with_profile(Action::Tree, &r.instance, || r.args())?;
         match out.code {
             Some(0) => Self::parse(Action::Tree, &out, &args),
             _ => Err(failure(&out, "tree", &args)),
@@ -982,7 +1068,7 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn plugins_list(&self, r: &PluginsRequest) -> Result<PluginsReport, ServiceError> {
-        let (out, args) = self.invoke(Action::Plugins, r.args())?;
+        let (out, args) = self.with_profile(Action::Plugins, &r.instance, || r.args())?;
         match out.code {
             Some(0) => Self::parse(Action::Plugins, &out, &args),
             _ => Err(failure(&out, "plugins", &args)),
@@ -1000,9 +1086,44 @@ impl<E: Exec> Service for CliService<E> {
             _ => Err(failure(&out, "update check", &args)),
         }
     }
+
+    fn profile_create(&self, r: &ProfileRequest) -> Result<(), ServiceError> {
+        self.profile_create_checked(r)
+    }
 }
 
 impl<E: Exec> CliService<E> {
+    /// Runs `action` with `rest`; when it refused because the Instance has no profile, makes the default one and
+    /// runs it once more. This is the one place a missing profile is handled, so no screen has to know about it.
+    fn with_profile(
+        &self,
+        action: Action,
+        instance: &str,
+        rest: impl Fn() -> Vec<String>,
+    ) -> Result<(Output, Vec<String>), ServiceError> {
+        let (out, args) = self.invoke(action, rest())?;
+        if !is_missing_profile(&out) {
+            return Ok((out, args));
+        }
+        self.profile_create_checked(&ProfileRequest::default_for(instance))?;
+        self.invoke(action, rest())
+    }
+
+    /// Makes the default profile of an Instance that has none, and says plainly when that did not work.
+    fn profile_create_checked(&self, r: &ProfileRequest) -> Result<(), ServiceError> {
+        let (out, args) = self.invoke(Action::Profile, r.args())?;
+        if out.code == Some(0) {
+            return Ok(());
+        }
+        // A profile that is already there is what was asked for: the command refuses nothing when it is.
+        if is_missing_profile(&out) {
+            return Ok(());
+        }
+        let mut e = no_profile_error(&cause_of(&out.stderr, "profile"));
+        e.repro = Some(repro(&args));
+        Err(ServiceError::Failed(e))
+    }
+
     fn setup_report(&self, r: &SetupRequest) -> Result<SetupReport, ServiceError> {
         let (out, args) = self.invoke(Action::Setup, r.args())?;
         let mut wizard = SetupWizard::new();
@@ -1042,5 +1163,150 @@ impl<E: Exec> CliService<E> {
             }
             _ => Err(failure(&out, "tools", &args)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::fake::ScriptedExec;
+
+    fn refused(why: &str) -> Output {
+        Output {
+            code: Some(2),
+            stdout: String::new(),
+            stderr: format!("raul plugins: refused: {why}\n"),
+        }
+    }
+
+    #[test]
+    fn a_missing_profile_is_made_before_the_command_runs_again() {
+        let exec = ScriptedExec::new();
+        exec.on_run(
+            &[],
+            2,
+            "raul plugins: refused: the Instance has no profile\n",
+        )
+        .on_run(&[], 0, "")
+        .on_run(
+            &["{\"schema_version\":1,\"profile\":\"Default\",\"plugins\":[],\"locks\":[]}"],
+            0,
+            "",
+        );
+        let svc = CliService::new(exec);
+        let report = svc
+            .plugins_list(&PluginsRequest {
+                instance: "/i".into(),
+                profile: None,
+            })
+            .unwrap();
+        assert!(report.plugins.is_empty());
+        let calls = svc.exec().calls();
+        assert_eq!(calls.len(), 3);
+        assert_eq!(calls[0], ["plugins", "list", "--instance", "/i", "--json"]);
+        assert_eq!(
+            calls[1],
+            [
+                "profile",
+                "create",
+                "--name",
+                "Default",
+                "--instance",
+                "/i",
+                "--json"
+            ]
+        );
+        assert_eq!(calls[2], calls[0], "the command runs again once it can");
+    }
+
+    #[test]
+    fn a_command_that_works_first_time_never_makes_a_profile() {
+        let exec = ScriptedExec::new();
+        exec.on_run(
+            &["{\"schema_version\":1,\"profile\":\"Default\",\"plugins\":[],\"locks\":[]}"],
+            0,
+            "",
+        );
+        let svc = CliService::new(exec);
+        let report = svc
+            .plugins_list(&PluginsRequest {
+                instance: "/i".into(),
+                profile: None,
+            })
+            .unwrap();
+        assert!(report.plugins.is_empty());
+        assert_eq!(svc.exec().calls().len(), 1);
+    }
+
+    #[test]
+    fn a_profile_that_cannot_be_made_is_a_plain_error() {
+        let exec = ScriptedExec::new();
+        exec.on_run(
+            &[],
+            2,
+            "raul plugins: refused: the Instance has no profile\n",
+        )
+        .on_run(
+            &[],
+            2,
+            "raul profile: refused: the Instance folder is not there\n",
+        )
+        .on_run(
+            &[],
+            2,
+            "raul plugins: refused: the Instance has no profile\n",
+        )
+        .on_run(
+            &[],
+            2,
+            "raul profile: refused: the Instance folder is not there\n",
+        );
+        let svc = CliService::new(exec);
+        let err = svc
+            .plugins_list(&PluginsRequest {
+                instance: "/i".into(),
+                profile: None,
+            })
+            .unwrap_err();
+        let e = err.view_error();
+        assert_eq!(e.what, NO_PROFILE_WHAT);
+        assert!(e.effect.starts_with(NO_PROFILE_EFFECT));
+        assert!(
+            !e.what.to_lowercase().contains("profile")
+                && !NO_PROFILE_EFFECT.to_lowercase().contains("profile"),
+            "the headline and the guidance stay plain"
+        );
+        assert_eq!(svc.exec().calls().len(), 2, "it is not tried again");
+
+        // A command that is refused for the same reason on its own says the same plain thing.
+        let err = svc
+            .plugins_list(&PluginsRequest {
+                instance: "/i".into(),
+                profile: None,
+            })
+            .unwrap_err();
+        assert_eq!(err.view_error().what, NO_PROFILE_WHAT);
+        assert_eq!(svc.exec().calls().len(), 4, "a run and its fix, twice");
+    }
+
+    #[test]
+    fn a_refusal_naming_a_profile_is_plain_and_keeps_its_detail() {
+        let e = failure_error(&refused("the Instance has no profile"), "plugins");
+        assert_eq!(e.what, NO_PROFILE_WHAT);
+        assert_eq!(e.exit, ExitClass::Refused);
+        assert!(
+            !e.effect.to_lowercase().contains("profile"),
+            "the detail that repeats the internal name is dropped: {}",
+            e.effect
+        );
+        let other = failure_error(&refused("no such plugin"), "plugins");
+        assert_eq!(other.what, "no such plugin");
+        assert!(names_a_missing_profile("the Instance has no profile"));
+        assert!(!names_a_missing_profile("no such plugin"));
+        assert_eq!(ProfileRequest::default_for("/i").name, DEFAULT_PROFILE);
+        assert_eq!(
+            ProfileRequest::default_for("/i").args(),
+            ["create", "--name", "Default", "--instance", "/i"]
+        );
     }
 }
