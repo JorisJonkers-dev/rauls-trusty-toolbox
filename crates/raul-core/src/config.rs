@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The Toolbox's configuration: the paths the GUI needs and nothing else (the game folders, the TTW package and the
 //! storage folder). This module holds the `raul-config` v1 Contract, the document `raul config get|set|list --json`
-//! prints; its schema is `contracts/raul-config.v1.json` at the repository root.
+//! prints (its schema is `contracts/raul-config.v1.json` at the repository root), and the file it describes.
+
+mod store;
 
 use std::path::PathBuf;
+
+pub use store::{
+    Config, ConfigError, FILE_NAME, FOLDER_ENV, INSTANCE_FOLDER, check, default_file, folder,
+};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
