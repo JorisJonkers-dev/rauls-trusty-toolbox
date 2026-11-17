@@ -15,7 +15,7 @@ use crate::events::Status;
 use crate::job::Outcome;
 use crate::wizard::{FlowError, Step as FlowStep, TtwNeed, TtwWizard};
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 /// Where the TTW package is downloaded from: the one place the page links to.
 pub const DOWNLOAD_URL: &str = "https://taleoftwowastelands.com/";
@@ -175,6 +175,61 @@ pub fn is_package(name: &str) -> bool {
     };
     rest.strip_suffix(".mpi")
         .is_some_and(|stem| !stem.is_empty())
+}
+
+/// How long the size of a watched file of the Downloads folder must stay the same before it counts as complete.
+pub const SETTLE: Duration = Duration::from_secs(3);
+
+/// Tells whether one file is complete from the sizes a caller reads for it; the type reads nothing of the file
+/// system itself. A name that ends in `.part`, `.crdownload` or `.tmp` is never complete; any other file is once
+/// it is there, is not empty and its size has stayed the same for [`SETTLE`] in total.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Settling {
+    /// The file watched, as it was given.
+    path: PathBuf,
+    /// Its size on the last poll; `None` before the first and while it is not there.
+    size: Option<u64>,
+    /// For how long its size has stayed the same; a change or a missing file puts it back to zero.
+    stable_for: Duration,
+}
+
+impl Settling {
+    /// Watches `path` as it is given: the name of a file that is still being written is kept, and never settles.
+    pub fn new(path: PathBuf) -> Settling {
+        Settling {
+            path,
+            size: None,
+            stable_for: Duration::ZERO,
+        }
+    }
+
+    /// One poll: `now_elapsed` is the time passed since the last poll, and `size_now` the file's current size,
+    /// `None` when it is not there. True only when the file is there, is not empty and its size is the one of
+    /// the last poll and has stayed the same for [`SETTLE`] in total; a change of size or a missing file puts
+    /// the stable time back to zero.
+    pub fn poll(&mut self, now_elapsed: Duration, size_now: Option<u64>) -> bool {
+        if is_partial(&self.path) {
+            return false;
+        }
+        let settled = self.size.is_some_and(|s| Some(s) == size_now && s > 0);
+        if settled {
+            self.stable_for += now_elapsed;
+        } else {
+            self.stable_for = Duration::ZERO;
+        }
+        self.size = size_now;
+        settled && self.stable_for >= SETTLE
+    }
+}
+
+/// Whether `path` is named as a file that is still being written: one that ends in `.part`, `.crdownload` or
+/// `.tmp`, in any case. Such a file never settles.
+fn is_partial(path: &Path) -> bool {
+    path.extension().is_some_and(|ext| {
+        ext.eq_ignore_ascii_case("part")
+            || ext.eq_ignore_ascii_case("crdownload")
+            || ext.eq_ignore_ascii_case("tmp")
+    })
 }
 
 /// The newest TTW installer package in `folder` and in one level of folders under it, as its path; `None` when
@@ -897,5 +952,92 @@ mod tests {
             Report::of(Status::Unverifiable, false).exit(),
             ExitClass::VerificationFailed
         );
+    }
+
+    #[test]
+    fn a_download_settles_only_when_its_size_stays_the_same() {
+        let mut s = Settling::new(PathBuf::from("/d/TTW_3.4.0.mpi"));
+        let sec = Duration::from_secs(1);
+        assert!(!s.poll(sec, Some(0)), "an empty file is nothing yet");
+        assert!(
+            !s.poll(sec, Some(64)),
+            "nothing to compare with on the first poll"
+        );
+        assert!(!s.poll(sec, Some(192)), "the download grows");
+        assert!(
+            !s.poll(sec, Some(192)),
+            "its size stayed for less than SETTLE"
+        );
+        assert!(
+            !s.poll(sec, Some(192)),
+            "its size stayed for less than SETTLE"
+        );
+        assert!(
+            s.poll(sec, Some(192)),
+            "its size stayed for SETTLE: complete"
+        );
+        assert!(s.poll(sec, Some(192)), "a complete file stays complete");
+        assert!(!s.poll(sec, Some(320)), "it grows again");
+        assert!(
+            !s.poll(sec, Some(320)),
+            "the wait starts over after a change"
+        );
+        assert!(!s.poll(sec, Some(320)), "less than SETTLE has passed since");
+        assert!(
+            s.poll(sec, Some(320)),
+            "after a new wait of SETTLE it is complete again"
+        );
+    }
+
+    #[test]
+    fn a_missing_file_starts_the_wait_over() {
+        let mut s = Settling::new(PathBuf::from("/d/TTW_3.4.0.mpi"));
+        let sec = Duration::from_secs(1);
+        s.poll(sec, Some(64));
+        s.poll(sec, Some(64));
+        s.poll(sec, Some(64));
+        assert!(
+            !s.poll(sec, None),
+            "a file that is not there is not complete"
+        );
+        assert_eq!(s.size, None, "its last size is forgotten");
+        assert!(
+            !s.poll(sec, Some(64)),
+            "nothing to compare with after it came back"
+        );
+        assert!(
+            !s.poll(SETTLE.saturating_sub(sec), Some(64)),
+            "less than SETTLE passed since it came back"
+        );
+        assert!(s.poll(sec, Some(64)), "the whole wait ran again");
+    }
+
+    #[test]
+    fn an_empty_file_is_never_complete() {
+        let mut s = Settling::new(PathBuf::from("/d/empty.mpi"));
+        assert!(!s.poll(Duration::from_secs(1), Some(0)));
+        assert!(
+            !s.poll(SETTLE, Some(0)),
+            "a file with nothing in it stays nothing"
+        );
+        assert_eq!(s.stable_for, Duration::ZERO, "an empty file never waits");
+    }
+
+    #[test]
+    fn a_name_that_is_still_being_written_is_never_complete() {
+        for name in [
+            "TTW_3.4.0.mpi.part",
+            "ttw_3.4.0.mpi.crdownload",
+            "ttw_3.4.0.mpi.tmp",
+            "TTW_3.4.0.mpi.PART",
+        ] {
+            let mut s = Settling::new(PathBuf::from(name));
+            assert_eq!(s.path, PathBuf::from(name), "the name is kept as it is");
+            s.poll(Duration::from_secs(1), Some(64));
+            assert!(
+                !s.poll(Duration::from_secs(10 * SETTLE.as_secs()), Some(64)),
+                "{name} is never complete"
+            );
+        }
     }
 }
