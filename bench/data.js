@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794911939060,
+  "lastUpdate": 1794913379851,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1959,6 +1959,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.800451,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7ede4bcb28458f5ff32edfba20348a5647f8d8d0",
+          "message": "docs(adr): components are incorporated; where packages are published (#183)",
+          "timestamp": "2026-11-17T12:01:40+01:00",
+          "tree_id": "c4cd7a09e529dd78b2657007c67ed05d8506e144",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7ede4bcb28458f5ff32edfba20348a5647f8d8d0"
+        },
+        "date": 1794913379193,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.526224,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.288581,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.704197,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.141251,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.172638,
             "unit": "ms"
           }
         ]
