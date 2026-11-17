@@ -669,15 +669,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "constant_time_eq"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9eb6feb175df65d0a3ccd3e73484e940d0ac664e8034f0519fd49a93db3071d9"
-dependencies = [
- "rustversion",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2289,7 +2280,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-backup"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "nvmod-core",
  "nvmod-instance",
@@ -2301,14 +2292,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-bsa"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "nvmod-catalog"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "serde",
  "toml",
@@ -2316,7 +2307,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-cli"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "ctrlc",
  "loot-rs",
@@ -2346,7 +2337,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-conflicts"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "nvmod-bsa",
  "nvmod-core",
@@ -2359,7 +2350,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-core"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "schemars",
  "serde",
@@ -2368,7 +2359,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-doctor"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "nvmod-catalog",
  "nvmod-conflicts",
@@ -2384,7 +2375,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-formats"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "flate2",
  "nvmod-core",
@@ -2392,7 +2383,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-import"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "nvmod-core",
  "nvmod-formats",
@@ -2403,8 +2394,9 @@ dependencies = [
 
 [[package]]
 name = "nvmod-install"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
+ "nvmod-core",
  "nvmod-instance",
  "nvmod-runner",
  "nvmod-tools",
@@ -2414,7 +2406,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-instance"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "nvmod-core",
  "serde",
@@ -2423,7 +2415,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-loadorder"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "loot-rs",
  "nvmod-core",
@@ -2431,11 +2423,12 @@ dependencies = [
  "nvmod-instance",
  "nvmod-modinstall",
  "nvmod-stage",
+ "winapi-util",
 ]
 
 [[package]]
 name = "nvmod-modinstall"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "nvmod-core",
  "nvmod-formats",
@@ -2451,14 +2444,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-pe"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "nvmod-plugins"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "nvmod-conflicts",
  "nvmod-core",
@@ -2473,7 +2466,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-profile"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "nvmod-backup",
  "nvmod-core",
@@ -2487,8 +2480,9 @@ dependencies = [
 
 [[package]]
 name = "nvmod-run"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
+ "nix",
  "nvmod-core",
  "nvmod-formats",
  "nvmod-instance",
@@ -2500,7 +2494,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-runlog"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -2510,7 +2504,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-runner"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "nvmod-core",
  "nvmod-runlog",
@@ -2520,7 +2514,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-saves"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "nvmod-backup",
  "nvmod-core",
@@ -2534,7 +2528,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-stage"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "nvmod-core",
  "nvmod-formats",
@@ -2545,11 +2539,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-testkit"
-version = "0.6.0"
+version = "0.6.2"
+dependencies = [
+ "winapi-util",
+]
 
 [[package]]
 name = "nvmod-tools"
-version = "0.6.0"
+version = "0.6.2"
 dependencies = [
  "jsonschema",
  "nvmod-core",
@@ -5147,26 +5144,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "zeroize"
-version = "1.9.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e13084392c5e4bc371903e2935a5eaeed24905a7511356b883835e18a78f6879"
-dependencies = [
- "zeroize_derive",
-]
-
-[[package]]
-name = "zeroize_derive"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c50655cbb0fe3fc43170059e702f1ce5e19b84cec58dc87b037a09935c2f328"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
 name = "zerotrie"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5201,11 +5178,10 @@ dependencies = [
 
 [[package]]
 name = "zip"
-version = "9.5.0"
+version = "9.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0700e6c427aff64acdbf02e85fbfd946c2ee12319d1af013092f3a2178914ff8"
+checksum = "23f17fbc870bfac28c6228aed7d6e6df352e26bf7015c4313727e16a7a01ce5e"
 dependencies = [
- "constant_time_eq",
  "crc32fast",
  "flate2",
  "getrandom 0.4.3",
@@ -5215,7 +5191,6 @@ dependencies = [
  "nix",
  "typed-path",
  "windows-sys 0.61.2",
- "zeroize",
  "zopfli",
 ]
 
