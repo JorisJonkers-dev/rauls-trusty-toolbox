@@ -168,6 +168,23 @@ pub fn default_downloads() -> String {
     .into_owned()
 }
 
+/// The folders the package is looked in for: the Downloads folder of `home`, then its Desktop folder,
+/// then the folders set in Settings, without duplicates and in that order. Without a home folder only
+/// the folders set in Settings come.
+pub fn usual_folders(home: Option<&Path>, extra: &[PathBuf]) -> Vec<PathBuf> {
+    let mut folders: Vec<PathBuf> = Vec::new();
+    if let Some(home) = home {
+        folders.push(home.join("Downloads"));
+        folders.push(home.join("Desktop"));
+    }
+    for folder in extra {
+        if !folders.contains(folder) {
+            folders.push(folder.clone());
+        }
+    }
+    folders
+}
+
 /// Whether `name` is a TTW installer package: `TTW_*.mpi`, in any case.
 pub fn is_package(name: &str) -> bool {
     let lower = name.to_lowercase();
@@ -233,10 +250,11 @@ fn is_partial(path: &Path) -> bool {
     })
 }
 
-/// The newest TTW installer package in `folder` and in one level of folders under it, as its path; `None` when
-/// there is none. A package that is not there is skipped, and of two of the same age the one that comes first.
-pub fn find_package(folder: &Path) -> Option<PathBuf> {
-    let mut best: Option<(SystemTime, PathBuf)> = None;
+/// The packages in `folder` and in one level of folders under it, with the time each was last written,
+/// newest first: a package that is not there is skipped, and of two of the same age the one that comes
+/// first.
+fn candidates(folder: &Path) -> Vec<(SystemTime, PathBuf)> {
+    let mut found: Vec<(SystemTime, PathBuf)> = Vec::new();
     for dir in std::iter::once(folder.to_path_buf()).chain(subfolders(folder)) {
         let Ok(entries) = std::fs::read_dir(&dir) else {
             continue;
@@ -250,12 +268,17 @@ pub fn find_package(folder: &Path) -> Option<PathBuf> {
             let Ok(modified) = entry.metadata().and_then(|m| m.modified()) else {
                 continue;
             };
-            if best.as_ref().is_none_or(|(age, _)| modified > *age) {
-                best = Some((modified, entry.path()));
-            }
+            found.push((modified, entry.path()));
         }
     }
-    best.map(|(_, path)| path)
+    found.sort_by_key(|(age, _)| std::cmp::Reverse(*age));
+    found
+}
+
+/// The newest TTW installer package in `folder` and in one level of folders under it, as its path; `None` when
+/// there is none. A package that is not there is skipped, and of two of the same age the one that comes first.
+pub fn find_package(folder: &Path) -> Option<PathBuf> {
+    candidates(folder).into_iter().next().map(|(_, path)| path)
 }
 
 /// The smallest size a finished package has: a smaller file is a partial download.
@@ -329,6 +352,21 @@ pub fn check_package(path: &Path) -> Result<PackageInfo, PackageProblem> {
         path: path.to_path_buf(),
         size,
     })
+}
+
+/// The newest package over all of `folders` that [`check_package`] accepts, with its path and size;
+/// `None` when no folder holds one. Every candidate of every folder is tried from the newest to the
+/// oldest: one that fails the check (a partial download, a file that is not a package) is skipped and
+/// the next one is tried.
+pub fn find_in(folders: &[PathBuf]) -> Option<PackageInfo> {
+    let mut found: Vec<(SystemTime, PathBuf)> = Vec::new();
+    for folder in folders {
+        found.extend(candidates(folder));
+    }
+    found.sort_by_key(|(age, _)| std::cmp::Reverse(*age));
+    found
+        .into_iter()
+        .find_map(|(_, path)| check_package(&path).ok())
 }
 
 /// The folders directly under `folder`, in the order the file system lists them.
@@ -890,17 +928,30 @@ mod tests {
         assert_eq!(Step::ALL.map(Step::number), [1, 2, 3, 4]);
     }
 
+    /// The modification time of `path`, `age` seconds after the base time the tests use.
+    fn stamp(path: &Path, age: u64) {
+        let time = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000 + age);
+        std::fs::File::options()
+            .write(true)
+            .open(path)
+            .unwrap()
+            .set_modified(time)
+            .unwrap();
+    }
+
     fn touching(dir: &Path, name: &str, age: u64) {
         let path = dir.join(name);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(&path, b"synthetic package").unwrap();
-        let time = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000 + age);
-        std::fs::File::options()
-            .write(true)
-            .open(&path)
-            .unwrap()
-            .set_modified(time)
-            .unwrap();
+        stamp(&path, age);
+    }
+
+    /// A file that passes the check, in `dir`, last written `age` seconds after the base time.
+    fn putting(dir: &Path, name: &str, age: u64) {
+        let path = dir.join(name);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, package_body(big())).unwrap();
+        stamp(&path, age);
     }
 
     /// A folder of its own for one test, removed when it ends.
@@ -952,6 +1003,99 @@ mod tests {
             "TTW_new.mpi"
         );
         assert_eq!(find_package(&root.join("missing")), None);
+    }
+
+    #[test]
+    fn the_usual_folders_are_downloads_then_desktop_then_the_settings_ones() {
+        let home = Path::new("/home/person");
+        assert_eq!(
+            usual_folders(Some(home), &[]),
+            vec![home.join("Downloads"), home.join("Desktop")]
+        );
+        let extra = vec![
+            PathBuf::from("/media/usb"),
+            home.join("Downloads"),
+            PathBuf::from("/media/usb"),
+        ];
+        assert_eq!(
+            usual_folders(Some(home), &extra),
+            vec![
+                home.join("Downloads"),
+                home.join("Desktop"),
+                PathBuf::from("/media/usb"),
+            ],
+            "the folders of Settings come last, each one once"
+        );
+        assert_eq!(
+            usual_folders(None, &extra),
+            vec![PathBuf::from("/media/usb"), home.join("Downloads")],
+            "without a home folder only the folders of Settings come"
+        );
+        assert_eq!(usual_folders(None, &[]), Vec::<PathBuf>::new());
+    }
+
+    #[test]
+    fn the_search_finds_a_package_in_the_desktop_folder() {
+        let scratch = Scratch::new("desktop");
+        let home = scratch.0.join("home");
+        let folders = usual_folders(Some(&home), &[]);
+        putting(&home.join("Desktop"), "TTW_3.4.0.mpi", 500);
+        let info = find_in(&folders).unwrap();
+        assert_eq!(
+            info.path,
+            home.join("Desktop").join("TTW_3.4.0.mpi"),
+            "Downloads is empty, the Desktop folder holds it"
+        );
+        assert_eq!(info.size, MIN_PACKAGE_BYTES);
+    }
+
+    #[test]
+    fn the_newest_package_of_all_the_folders_wins() {
+        let scratch = Scratch::new("newest");
+        let first = scratch.0.join("first");
+        let second = scratch.0.join("second");
+        putting(&first, "TTW_old.mpi", 100);
+        putting(&second, "TTW_new.mpi", 900);
+        let folders = vec![first.clone(), second.clone()];
+        assert_eq!(find_in(&folders).unwrap().path, second.join("TTW_new.mpi"));
+        let flipped = vec![second, first];
+        assert_eq!(
+            find_in(&flipped).unwrap().path.file_name().unwrap(),
+            "TTW_new.mpi",
+            "the order of the folders does not decide"
+        );
+    }
+
+    #[test]
+    fn a_partial_file_is_skipped_in_favour_of_an_older_good_one() {
+        let scratch = Scratch::new("partial");
+        let folder = scratch.0.join("folder");
+        putting(&folder, "TTW_good.mpi", 100);
+        // Newer than the good one, but a download that did not finish.
+        touching(&folder, "TTW_partial.mpi", 900);
+        let info = find_in(std::slice::from_ref(&folder)).unwrap();
+        assert_eq!(info.path, folder.join("TTW_good.mpi"));
+        assert_eq!(info.size, MIN_PACKAGE_BYTES);
+        // Big enough, but it does not start like a package; an older good one still wins.
+        let wrong = folder.join("TTW_wrong.mpi");
+        let mut body = package_body(big());
+        body[..PACKAGE_HEADER.len()].copy_from_slice(b"notz");
+        std::fs::write(&wrong, body).unwrap();
+        stamp(&wrong, 800);
+        assert_eq!(
+            find_in(std::slice::from_ref(&folder)).unwrap().path,
+            folder.join("TTW_good.mpi")
+        );
+        // Only files that fail the check: nothing is offered.
+        std::fs::remove_file(folder.join("TTW_good.mpi")).unwrap();
+        assert_eq!(find_in(&[folder]), None);
+    }
+
+    #[test]
+    fn no_folders_gives_no_package() {
+        assert_eq!(find_in(&[]), None);
+        let scratch = Scratch::new("no-folders");
+        assert_eq!(find_in(&[scratch.0.join("missing")]), None);
     }
 
     #[test]
