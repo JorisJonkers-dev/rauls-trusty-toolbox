@@ -322,6 +322,18 @@ impl State {
         }
     }
 
+    /// Puts back the package the flow had before the one found was chosen, as when its save was refused or failed:
+    /// `wizard` is the package the wizard had and `sources` the one the sources had, `None` when there was none.
+    pub fn restore_package(&mut self, wizard: Option<String>, sources: Option<String>) {
+        match wizard {
+            Some(file) => self.wizard.set_package(file),
+            None => self.wizard.clear_package(),
+        }
+        if let Fetch::Ready(s) = &mut self.sources {
+            s.package = sources;
+        }
+    }
+
     /// The sources were read again, as when the page is shown again after Settings. When they changed, the flow
     /// starts over from Sources with them; when they did not, or while a command runs or after the install ended,
     /// the flow stays where it is.
@@ -842,6 +854,25 @@ mod tests {
         );
         assert!(s.missing().is_empty());
         assert_eq!(DOWNLOAD_URL, "https://taleoftwowastelands.com/");
+    }
+
+    #[test]
+    fn a_package_that_was_not_saved_is_put_back() {
+        let mut s = ready();
+        s.use_package("/d/TTW_1.mpi");
+        assert_eq!(s.wizard.package(), Some("/d/TTW_1.mpi"));
+        s.restore_package(Some("/p.mpi".into()), Some("/p.mpi".into()));
+        assert_eq!(s.wizard.package(), Some("/p.mpi"));
+        assert_eq!(
+            s.sources.ready().and_then(|f| f.package.as_deref()),
+            Some("/p.mpi")
+        );
+        // The flow had no package at all: the one found is not used.
+        s.use_package("/d/TTW_1.mpi");
+        s.restore_package(None, None);
+        assert_eq!(s.wizard.package(), None);
+        assert_eq!(s.sources.ready().and_then(|f| f.package.as_deref()), None);
+        assert_eq!(s.missing(), vec![TtwNeed::Package]);
     }
 
     #[test]

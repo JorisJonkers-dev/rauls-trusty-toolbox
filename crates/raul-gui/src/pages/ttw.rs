@@ -161,6 +161,9 @@ pub struct Ttw {
     search: Option<std::sync::mpsc::Receiver<(PathBuf, Option<PathBuf>)>>,
     /// Why the package found was not saved.
     save_failed: Option<String>,
+    /// The package the flow had before the one found was chosen: the wizard's and the sources', put back when the
+    /// save is refused or fails.
+    unsaved_from: Option<(Option<String>, Option<String>)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -307,9 +310,20 @@ impl Ttw {
         match start(cx, &command) {
             Ok(id) => {
                 self.pending.add(Job::Save, id);
+                self.unsaved_from = Some((
+                    self.state.wizard.package().map(str::to_owned),
+                    self.state.sources.ready().and_then(|s| s.package.clone()),
+                ));
                 self.state.use_package(&file);
             }
             Err(e) => self.save_failed = Some(e.what.to_owned()),
+        }
+    }
+
+    /// Puts back the package the flow had before the one found was chosen, when its save did not go through.
+    fn restore_unsaved(&mut self) {
+        if let Some((wizard, sources)) = self.unsaved_from.take() {
+            self.state.restore_package(wizard, sources);
         }
     }
 
@@ -323,6 +337,7 @@ impl Ttw {
         self.install = None;
         self.search = None;
         self.save_failed = None;
+        self.unsaved_from = None;
         if self.state.instance.is_some() {
             self.run(cx, Job::Sources);
         }
@@ -377,14 +392,17 @@ impl Ttw {
                 Job::Save => match super::settings::config_answer(&result) {
                     Ok(Answer::Refused(r)) => {
                         self.save_failed = Some(r.message.clone());
+                        self.restore_unsaved();
                         Ok(())
                     }
                     Ok(Answer::Entries(_)) => {
+                        self.unsaved_from = None;
                         cx.shell.status = Some(PACKAGE_SAVED.to_owned());
                         Ok(())
                     }
                     Err(why) => {
                         self.save_failed = Some(why);
+                        self.restore_unsaved();
                         Ok(())
                     }
                 },
@@ -1264,6 +1282,27 @@ mod tests {
         }
     }
 
+    /// Answers `raul config set` with a refusal, as the contract does, and records every command.
+    #[derive(Default)]
+    struct Refusing {
+        calls: std::sync::Mutex<Vec<Vec<String>>>,
+    }
+
+    impl raul_ui_service::Exec for Refusing {
+        fn run(&self, args: &[String]) -> Result<Output, String> {
+            self.calls.lock().unwrap().push(args.to_vec());
+            Ok(Output {
+                code: Some(1),
+                stdout: concat!(
+                    r#"{"schema_version":1,"contract":"raul-config","file":"/c","entries":[],"#,
+                    r#""error":{"code":"invalid_value","key":"ttw.package","message":"the package is not a TTW installer"}}"#,
+                )
+                .to_owned(),
+                stderr: String::new(),
+            })
+        }
+    }
+
     /// A fake Downloads folder with one package in it, and the recorder of the commands the page runs.
     fn fake_downloads(label: &str) -> (std::path::PathBuf, std::sync::Arc<Recording>) {
         let root =
@@ -1275,10 +1314,13 @@ mod tests {
         (root, std::sync::Arc::new(Recording::default()))
     }
 
-    fn harness(
+    fn harness<E>(
         fixture: Fixture,
-        exec: std::sync::Arc<Recording>,
-    ) -> egui_kittest::Harness<'static, crate::shell::App> {
+        exec: std::sync::Arc<E>,
+    ) -> egui_kittest::Harness<'static, crate::shell::App>
+    where
+        E: raul_ui_service::Exec + Send + Sync + 'static,
+    {
         let app = crate::shell::App::fixture(fixture, crate::jobs::Jobs::new(exec));
         egui_kittest::Harness::builder()
             .with_size([1280.0, 800.0])
@@ -1332,6 +1374,66 @@ mod tests {
                     .map(String::from)
                     .to_vec()
             )
+        );
+        let _ = std::fs::remove_dir_all(&downloads);
+    }
+
+    #[test]
+    fn a_refused_save_says_so_and_does_not_use_the_file() {
+        use egui_kittest::kittest::Queryable;
+        let (downloads, _) = fake_downloads("refused");
+        let file = format!("{}/unpacked/TTW_3.4.0.mpi", downloads.display());
+        let exec = std::sync::Arc::new(Refusing::default());
+        let mut h = harness(
+            Fixture {
+                page: Box::new(
+                    Ttw::with(at(Step::Sources, sources(Some(FALLOUT3), None)))
+                        .looking_in(downloads.clone()),
+                ),
+                ..fixture("sources-missing", State::default())
+            },
+            exec.clone(),
+        );
+        h.run();
+        h.get_by_label(FIND_IT).click();
+        for _ in 0..100 {
+            h.run_steps(2);
+            if h.query_by_label(FOUND).is_some() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert!(h.query_by_label(FOUND).is_some(), "the found state");
+        h.get_by_label(USE_THIS).click();
+        for _ in 0..100 {
+            if !exec.calls.lock().unwrap().is_empty() {
+                break;
+            }
+            h.run_steps(2);
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert_eq!(
+            exec.calls.lock().unwrap().first().cloned(),
+            Some(
+                ["config", "set", "ttw.package", file.as_str(), "--json"]
+                    .map(String::from)
+                    .to_vec()
+            )
+        );
+        for _ in 0..100 {
+            h.run_steps(2);
+            if h.query_by_label(PACKAGE_NOT_SAVED.what).is_some() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert!(
+            h.query_by_label(PACKAGE_NOT_SAVED.what).is_some(),
+            "the save failure is shown"
+        );
+        assert!(
+            h.query_by_label(MISSING_PACKAGE).is_some(),
+            "the file is not used"
         );
         let _ = std::fs::remove_dir_all(&downloads);
     }

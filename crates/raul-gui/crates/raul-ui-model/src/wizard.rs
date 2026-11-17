@@ -758,6 +758,11 @@ impl TtwWizard {
         self.package = Some(path.into());
     }
 
+    /// Forgets the chosen TTW package file, as when the one chosen was not saved.
+    pub fn clear_package(&mut self) {
+        self.package = None;
+    }
+
     /// The chosen TTW package file.
     pub fn package(&self) -> Option<&str> {
         self.package.as_deref()
