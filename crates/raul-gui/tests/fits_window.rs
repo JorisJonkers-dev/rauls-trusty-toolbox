@@ -23,7 +23,6 @@ const LARGE: [f32; 2] = [1920.0, 1080.0];
 
 /// Views that do not fit yet, and the ticket that fixes each.
 const KNOWN: &[(&str, &str)] = &[
-    ("lod", "#207"),
     ("settings", "#209"),
     ("ttw", "#210"),
     ("setup", "#211"),

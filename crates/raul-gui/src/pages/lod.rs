@@ -356,10 +356,11 @@ impl Lod {
         shell::section_label(ui, t, SECTION_BLOCKS, true);
         let progress = self.state.progress.percent();
         let width = ui.available_width();
-        let name_width = (width * 0.3).clamp(120.0, 320.0);
+        let narrow = width < 480.0;
+        let name_width = (width * 0.28).clamp(if narrow { 56.0 } else { 120.0 }, 320.0);
         egui::Grid::new("lod-blocks")
             .num_columns(4)
-            .spacing([18.0, 10.0])
+            .spacing([if narrow { 8.0 } else { 18.0 }, 10.0])
             .min_row_height(28.0)
             .show(ui, |ui| {
                 for h in [COL_BLOCK, COL_STATUS, COL_PROGRESS, COL_FILES] {
@@ -399,7 +400,9 @@ impl Lod {
                     };
                     ui.add(
                         egui::ProgressBar::new(share)
-                            .desired_width((width * 0.32).clamp(120.0, 360.0))
+                            .desired_width(
+                                (width * 0.3).clamp(if narrow { 64.0 } else { 120.0 }, 360.0),
+                            )
                             .text(text),
                     );
                     let files = if b.files > 0 {
