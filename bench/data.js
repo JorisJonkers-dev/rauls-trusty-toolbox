@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794913379851,
+  "lastUpdate": 1794913675556,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -2008,6 +2008,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.172638,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b05d8e21c4abd323d07055c90cb87731acc474ed",
+          "message": "fix(ci): read the cargo registry token from the job environment (#184)\n\nThe follower's bump command now sees the token but the registry answers 401: the proxy step writes the token in the form cargo expects, and the secret is not. Pass the variable that step set.",
+          "timestamp": "2026-11-17T12:06:53+01:00",
+          "tree_id": "229fd475a34a0faee7d0ef2374e05344b27e0d5a",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b05d8e21c4abd323d07055c90cb87731acc474ed"
+        },
+        "date": 1794913675089,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.926613,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.663411,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.663492,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.715333,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 11.09866,
             "unit": "ms"
           }
         ]
