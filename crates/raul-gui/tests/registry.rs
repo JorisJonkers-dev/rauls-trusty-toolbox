@@ -55,6 +55,9 @@ impl Fixture {
             .args(args)
             .env("RAUL_CONFIG_DIR", self.root.path().join("config"))
             .env("NVMOD_STATE_DIR", self.root.path().join("state"))
+            // A home of its own, so no nv-rs build of the machine running the tests is found.
+            .env("HOME", self.root.path().join("home"))
+            .env("USERPROFILE", self.root.path().join("home"))
             .output()
             .expect("run raul");
         (
@@ -92,6 +95,8 @@ impl Fixture {
             (Action::Sort, _) => vec!["--instance", &instance, "--masterlist", "MASTERLIST"],
             (Action::Ttw, _) => vec!["--instance", &instance, "--dry-run"],
             (Action::Detect, _) => vec!["--folder", "BASE"],
+            // A dry run: the launch plan is printed and nothing is started.
+            (Action::Run, _) => vec!["nv-rs", "--instance", &instance, "--dry-run"],
             (Action::Config | Action::Version | Action::Tools, _) => vec![],
             _ => vec!["--instance", &instance],
         };
@@ -126,12 +131,13 @@ fn understood(line: &str, (code, out, err): &(i32, String, String), json: bool) 
 }
 
 /// The exit code each command gives on the fixture: an engine fetch from an address that refuses fails (4), TTW
-/// with no Fallout 3 folder is refused (2), LOD generation with no lodwright program in the fixture is refused (2), verify finds no engine (3), the Doctor finds the fixture's missing pieces (1), the rest succeed;
-/// the rollback undoes the sort that ran before it.
+/// with no Fallout 3 folder is refused (2), LOD generation with no lodwright program in the fixture is refused (2), verify finds no engine (3), a run with no engine is refused (2),
+/// the Doctor finds the fixture's missing pieces (1), the rest succeed; the rollback undoes the sort that ran before it.
 fn expected(command: &Command) -> i32 {
     match command.action {
         Action::InstallNvRs => 4,
-        Action::Ttw => 2,
+        // TTW and a run: no folder, and no engine installed in the fixture, so even a dry run is refused.
+        Action::Ttw | Action::Run => 2,
         Action::Lod if command.words.first() == Some(&"generate") => 2,
         Action::Doctor => 1,
         // No engine is installed in the fixture, so the install does not verify.
