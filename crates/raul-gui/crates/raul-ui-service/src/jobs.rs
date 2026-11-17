@@ -80,6 +80,9 @@ struct Feed<'a> {
     started: bool,
     finished: bool,
     streamed: bool,
+    /// The `Finished` the command reported in its stream, kept back ([`Feed::stream`]) while a second one may
+    /// still sign the job off.
+    held: Option<JobEvent>,
     last_seq: u64,
 }
 
@@ -120,6 +123,16 @@ impl Feed<'_> {
     fn next_seq(&mut self) -> u64 {
         self.last_seq += 1;
         self.last_seq
+    }
+
+    /// Lets a command's streamed event in. The `Finished` of a first command that has a second one is held
+    /// back: that second one signs the job off, or, when it never runs, the held one does.
+    fn stream(&mut self, event: JobEvent) {
+        if self.spec.then.is_some() && matches!(event, JobEvent::Finished { .. }) {
+            self.held = Some(event);
+        } else {
+            self.emit(event);
+        }
     }
 }
 
@@ -211,6 +224,7 @@ impl<E: Exec> CliService<E> {
             started: false,
             finished: false,
             streamed: false,
+            held: None,
             last_seq: 0,
         };
         if cancel.is_requested() {
@@ -241,7 +255,7 @@ impl<E: Exec> CliService<E> {
                     let event = line_event(spec, line);
                     if let Some(event) = event {
                         feed.streamed = true;
-                        feed.emit(event);
+                        feed.stream(event);
                     }
                 },
                 cancel,
@@ -255,16 +269,26 @@ impl<E: Exec> CliService<E> {
         let out = match (&spec.then, out.code) {
             (Some(then), Some(0)) if !cancel.is_requested() => {
                 let args = then.clone();
-                self.exec()
+                let out = self
+                    .exec()
                     .run_cancellable(&args, &mut |_| {}, cancel)
                     .map_err(|why| {
                         let mut e = ViewError::new(ExitClass::Internal, why, "Nothing was started");
                         e.repro = Some(repro(&args));
                         ServiceError::Failed(e)
-                    })?
+                    })?;
+                // The second command signs the job off: the end the first one reported does not.
+                feed.held = None;
+                out
             }
             _ => out,
         };
+        // No second command ran: the end the first command reported in its stream is the job's end.
+        if !feed.finished
+            && let Some(event) = feed.held.take()
+        {
+            feed.emit(event);
+        }
         if !feed.finished {
             let cut_off = out.code.is_none() && cancel.is_requested();
             let class = out.code.map_or(ExitClass::Internal, ExitClass::from_code);
@@ -617,6 +641,56 @@ mod tests {
         let spec = JobSpec::new(JobId(2), Action::Init, vec![]).then(vec!["create".into()]);
         svc.run_job(&spec, &mut |_| {}).unwrap();
         assert_eq!(svc.exec().calls().len(), 3, "nothing ran after the failure");
+    }
+
+    /// The Instance step of the wizard: a first command that reports its own end in its stream, then a
+    /// `create` of the profile.
+    fn then_spec(id: u64) -> JobSpec {
+        JobSpec::new(
+            JobId(id),
+            Action::Init,
+            vec!["--instance".into(), "/i".into()],
+        )
+        .then(vec![
+            "create".into(),
+            "--name".into(),
+            "Default".into(),
+            "--instance".into(),
+            "/i".into(),
+        ])
+        .writing()
+    }
+
+    #[test]
+    fn a_second_command_signs_the_job_off_even_when_the_first_one_streamed_its_end() {
+        let exec = ScriptedExec::new();
+        exec.on_run(&[PLAN, STEP_STARTED, STEP_DONE, FINISHED], 0, "")
+            .on_run(&[], 1, "raul create: the profile is taken");
+        let svc = CliService::new(exec);
+        let mut table = JobTable::default();
+        svc.run_job_in(&then_spec(1), &mut table).unwrap();
+        assert_eq!(
+            svc.exec().calls(),
+            [
+                vec!["init", "--instance", "/i"],
+                vec!["create", "--name", "Default", "--instance", "/i"]
+            ]
+        );
+        // The first command's streamed `finished` said `ok`; the failing second one decides instead.
+        let job = table.get(JobId(1)).unwrap();
+        assert_eq!(job.state, JobState::Finished(Outcome::Failed));
+        assert_eq!(job.exit, Some(ExitClass::ProblemsFound));
+        assert!(table.writing().is_none(), "the Instance is free again");
+
+        // A second command that went through ends the job completed, not as the first one's end.
+        svc.exec()
+            .on_run(&[PLAN, STEP_STARTED, STEP_DONE, FINISHED], 0, "")
+            .on_run(&[], 0, "");
+        svc.run_job_in(&then_spec(2), &mut table).unwrap();
+        assert_eq!(
+            table.get(JobId(2)).unwrap().state,
+            JobState::Finished(Outcome::Completed)
+        );
     }
 
     #[test]
