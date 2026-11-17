@@ -195,3 +195,99 @@ fn helpers_draw_a_command_and_a_section_label() {
     assert!(h.query_by_label("raul sort --apply").is_some());
     assert!(h.query_by_label("Remove").is_some());
 }
+
+/// Answers `config get instance` with the Instance it holds, and `config set` by changing it.
+struct Config {
+    instance: std::sync::Mutex<Option<String>>,
+    calls: std::sync::Mutex<Vec<Vec<String>>>,
+}
+
+impl Exec for Config {
+    fn run(&self, args: &[String]) -> Result<Output, String> {
+        self.calls.lock().unwrap().push(args.to_vec());
+        let mut instance = self.instance.lock().unwrap();
+        if args.get(1).map(String::as_str) == Some("set") {
+            *instance = Some("/synthetic/second/instance".into());
+        }
+        let doc = serde_json::json!({
+            "schema_version": 1,
+            "contract": "raul-config",
+            "file": "/synthetic/config.toml",
+            "entries": [{ "key": "instance", "value": *instance, "read_only": true }],
+            "error": null,
+        });
+        Ok(Output {
+            code: Some(0),
+            stdout: doc.to_string(),
+            stderr: String::new(),
+        })
+    }
+}
+
+#[test]
+fn the_shell_reads_the_instance_at_start_and_after_a_config_change() {
+    let exec = Arc::new(Config {
+        instance: std::sync::Mutex::new(Some("/synthetic/instance".into())),
+        calls: std::sync::Mutex::new(Vec::new()),
+    });
+    let mut h = harness(1280.0, App::new(Jobs::new(exec.clone())));
+    let settle = |h: &mut Harness<'static, App>| {
+        for _ in 0..3 {
+            h.run();
+            assert!(
+                h.state_mut()
+                    .wait_for_jobs(std::time::Duration::from_secs(10))
+            );
+        }
+        h.run();
+    };
+    settle(&mut h);
+    assert_eq!(
+        h.state_mut().shell_mut().instance.as_deref(),
+        Some("/synthetic/instance")
+    );
+    assert_eq!(
+        exec.calls.lock().unwrap()[0],
+        ["config", "get", "instance", "--json"]
+    );
+    let set = raul_ui_service::registry::command("config-set").unwrap();
+    h.state_mut()
+        .start_job(set, vec!["storage.root".into(), "/synthetic/second".into()])
+        .unwrap();
+    settle(&mut h);
+    assert_eq!(
+        h.state_mut().shell_mut().instance.as_deref(),
+        Some("/synthetic/second/instance")
+    );
+    let gets = exec
+        .calls
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|c| c[1] == "get")
+        .count();
+    assert_eq!(gets, 2, "one lookup at start and one after the change");
+}
+
+#[test]
+fn only_a_raul_config_document_names_the_instance() {
+    use raul_gui::shell::instance_of;
+    let doc = |value: &str| {
+        format!(
+            r#"{{"schema_version":1,"contract":"raul-config","file":"/c","entries":[{{"key":"instance","value":{value},"read_only":true}}],"error":null}}"#
+        )
+    };
+    assert_eq!(instance_of(&doc(r#""/i""#)), Some(Some("/i".into())));
+    assert_eq!(instance_of(&doc("null")), Some(None));
+    assert_eq!(instance_of("{}"), None);
+    assert_eq!(
+        instance_of(&doc(r#""/i""#).replace("\"error\":null", "\"error\":\"no config\"")),
+        None,
+        "a document with an error names nothing"
+    );
+    assert_eq!(instance_of("not json"), None);
+    assert_eq!(
+        instance_of(&doc(r#""/i""#).replace("\"schema_version\":1", "\"schema_version\":2")),
+        None
+    );
+}

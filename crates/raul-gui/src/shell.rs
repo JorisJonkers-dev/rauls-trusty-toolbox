@@ -9,7 +9,9 @@ use crate::jobs::Jobs;
 use crate::pages::{self, Page, PageCx, ShellState};
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, Color32, RichText, Stroke};
+use raul_ui_model::job::{JobId, JobState};
 use raul_ui_model::pages::{Group, PageId, Severity, View};
+use std::collections::HashSet;
 
 /// Below this width the sidebar wraps into a bar under the top bar (UI-RULES P1).
 pub const NARROW: f32 = 860.0;
@@ -26,6 +28,23 @@ pub struct App {
     jobs: Jobs,
     styled: bool,
     smoke: Option<u32>,
+    instance: InstanceLookup,
+}
+
+/// How the shell keeps [`ShellState::instance`] current: one `raul config get instance` at start, and another after
+/// each `raul config set` or `unset` job ends.
+#[derive(Debug, Default)]
+struct InstanceLookup {
+    /// Whether the first lookup was started.
+    asked: bool,
+    /// The Instance is given, as in a fixture: nothing looks it up.
+    fixed: bool,
+    /// The lookup that runs.
+    job: Option<JobId>,
+    /// Configuration changes already seen to end.
+    seen: HashSet<JobId>,
+    /// A configuration change ended while a lookup ran: look again once it ends.
+    again: bool,
 }
 
 impl std::fmt::Debug for App {
@@ -48,6 +67,7 @@ impl App {
             jobs,
             styled: false,
             smoke: None,
+            instance: InstanceLookup::default(),
         }
     }
 
@@ -66,7 +86,27 @@ impl App {
         *slot = fixture.page;
         app.view = view;
         app.shell = fixture.shell;
+        // A fixture's shell state is given; nothing looks the Instance up behind it.
+        app.instance.fixed = true;
         app
+    }
+
+    /// Starts `command` with `rest` as a page would; for tests.
+    ///
+    /// # Errors
+    /// As [`Jobs::start`].
+    pub fn start_job(
+        &mut self,
+        command: &raul_ui_service::registry::Command,
+        rest: Vec<String>,
+    ) -> Result<JobId, raul_ui_model::job::JobError> {
+        self.jobs
+            .start(command.action, command.args(rest), command.writes)
+    }
+
+    /// Waits until every job started so far has ended, as tests do before they look.
+    pub fn wait_for_jobs(&mut self, timeout: std::time::Duration) -> bool {
+        self.jobs.wait_all(timeout)
     }
 
     /// Closes the window after `frames` frames: the headless smoke test of the release build.
@@ -110,6 +150,7 @@ impl App {
             return;
         }
         self.jobs.poll();
+        self.track_instance();
         let narrow = ctx.content_rect().width() < NARROW;
         let t = self.tokens;
         let bar = egui::Frame::new()
@@ -161,6 +202,54 @@ impl App {
             } else {
                 *left -= 1;
                 ctx.request_repaint();
+            }
+        }
+    }
+
+    /// Keeps [`ShellState::instance`] current (see [`InstanceLookup`]).
+    fn track_instance(&mut self) {
+        let lookup = &mut self.instance;
+        if lookup.fixed {
+            return;
+        }
+        if let Some(id) = lookup.job
+            && self.jobs.is_over(id)
+        {
+            lookup.job = None;
+            if let Some(found) = self
+                .jobs
+                .output(id)
+                .filter(|o| o.code == Some(0))
+                .and_then(|o| instance_of(&o.stdout))
+            {
+                self.shell.instance = found;
+            }
+        }
+        let changed = self
+            .jobs
+            .table()
+            .jobs()
+            .iter()
+            .filter(|j| {
+                j.op == raul_ui_service::registry::Action::Config.command()
+                    && j.writes
+                    && matches!(j.state, JobState::Finished(_))
+            })
+            .filter(|j| lookup.seen.insert(j.id))
+            .count()
+            > 0;
+        if changed {
+            lookup.again = true;
+        }
+        let first = !lookup.asked;
+        if lookup.job.is_none() && (first || lookup.again) {
+            lookup.asked = true;
+            lookup.again = false;
+            if let Some(cmd) = raul_ui_service::registry::command("config-get") {
+                lookup.job = self
+                    .jobs
+                    .start(cmd.action, cmd.args(["instance".to_owned()]), cmd.writes)
+                    .ok();
             }
         }
     }
@@ -371,6 +460,32 @@ pub fn about() -> Dialog {
             .map(|n| format!("{}, {}, {}", n.name, n.license, n.source)),
     );
     Dialog::info("about", msg::ABOUT_TITLE, body)
+}
+
+/// The Instance a `raul config get instance --json` document names: `Some(None)` when it is not set, `None` when
+/// the output is not such a document, carries an error or has no `instance` entry (the shell then keeps what it
+/// had).
+pub fn instance_of(stdout: &str) -> Option<Option<String>> {
+    let doc: serde_json::Value = serde_json::from_str(stdout).ok()?;
+    if doc.get("contract").and_then(serde_json::Value::as_str) != Some("raul-config")
+        || doc
+            .get("schema_version")
+            .and_then(serde_json::Value::as_u64)
+            != Some(1)
+        || !doc.get("error").is_none_or(serde_json::Value::is_null)
+    {
+        return None;
+    }
+    let entry = doc
+        .get("entries")?
+        .as_array()?
+        .iter()
+        .find(|e| e.get("key").and_then(serde_json::Value::as_str) == Some("instance"))?;
+    match entry.get("value")? {
+        serde_json::Value::Null => Some(None),
+        serde_json::Value::String(path) => Some(Some(path.clone())),
+        _ => None,
+    }
 }
 
 fn sentence(text: &str) -> String {

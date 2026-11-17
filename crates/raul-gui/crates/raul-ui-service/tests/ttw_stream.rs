@@ -3,7 +3,8 @@
 //! disagrees with itself, or that is newer than this build.
 
 use raul_ui_model::events::Status;
-use raul_ui_service::{CliService, ScriptedExec, Service, TtwRequest};
+use raul_ui_service::dto::TtwReport;
+use raul_ui_service::{CliService, Output, ScriptedExec, Service, TtwRequest};
 
 fn fixture(name: &str) -> String {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -56,4 +57,54 @@ fn a_stream_cut_short_or_at_odds_with_itself_is_not_a_report() {
     let newer = full.replacen("\"schema_version\": 1", "\"schema_version\": 2", 1);
     assert!(answer(&newer, 0).unwrap_err().contains("version 2"));
     assert!(answer("", 4).is_err(), "no result at all");
+}
+
+fn output(stream: &str, code: i64) -> Output {
+    Output {
+        code: Some(code),
+        stdout: stream.to_owned(),
+        stderr: String::new(),
+    }
+}
+
+#[test]
+fn a_finished_job_output_reads_as_the_service_reads_it() {
+    let full = fixture("ttw-success.ndjson");
+    let report = TtwReport::from_output(&output(&full, 0)).unwrap();
+    assert_eq!(report, answer(&full, 0).unwrap());
+    let cut: String = full
+        .lines()
+        .filter(|l| !l.contains("\"finished\""))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let e = TtwReport::from_output(&output(&cut, 0))
+        .unwrap_err()
+        .view_error();
+    assert!(e.what.contains("before it said how it ended"), "{e:?}");
+    assert_eq!(e.repro, None, "the caller adds the command line");
+    let odd = full.replace(
+        "\"event\": \"finished\", \"status\": \"success\"",
+        "\"event\": \"finished\", \"status\": \"failed\"",
+    );
+    assert!(TtwReport::from_output(&output(&odd, 4)).is_err());
+    let none = TtwReport::from_output(&Output {
+        code: Some(2),
+        stdout: String::new(),
+        stderr: "raul ttw: refused: no Instance".into(),
+    })
+    .unwrap_err()
+    .view_error();
+    assert_eq!(none.what, "no Instance");
+    assert_eq!(none.repro, None);
+}
+
+#[test]
+fn the_service_still_names_the_command_line() {
+    let exec = ScriptedExec::new();
+    exec.on_run(&[], 4, "raul ttw: it broke");
+    let err = CliService::new(exec)
+        .ttw(&TtwRequest::default())
+        .unwrap_err()
+        .view_error();
+    assert_eq!(err.repro.as_deref(), Some("raul ttw --json"));
 }
