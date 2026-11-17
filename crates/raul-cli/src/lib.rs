@@ -6,6 +6,7 @@ mod bench;
 mod config;
 mod detect;
 mod known_good;
+mod lod;
 mod ttw;
 mod update;
 mod version;
@@ -33,6 +34,7 @@ pub const OWN_COMMANDS: &[&str] = &[
     "update",
     "config",
     "ttw",
+    "lod",
     "help",
 ];
 
@@ -79,7 +81,10 @@ usage:
            [--ttwright <path>] [--dry-run] [--resume] [--json]
                               install TTW with the bundled ttwright and add it to the Instance as one Mod; what
                               the flags leave open comes from `raul config`; --json streams raul-events lines
-  raul <nvmod command> ...    every nvmod command (install, sort, lod, run, profile, doctor, ...);
+  raul lod plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]
+                              the lodwright request a LOD run would send for the Profile (its active plugins,
+                              its Staging tree and its raul-lod.toml); nothing is run
+  raul <nvmod command> ...    every nvmod command (install, sort, run, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";
 
@@ -95,6 +100,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("update") => update::run(&args[1..], out, err),
         Some("config") => config::run(&args[1..], out, err),
         Some("ttw") => ttw::run(&args[1..], out, err),
+        Some("lod") => lod::run(&args[1..], out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
         Some(_) if route(args) == Route::Own => {
             let _ = writeln!(err, "raul: {} has no handler", args[0]);
@@ -141,7 +147,7 @@ mod tests {
 
     #[test]
     fn the_commands_that_moved_from_nvmod_are_own_commands() {
-        for command in ["config", "ttw"] {
+        for command in ["config", "ttw", "lod"] {
             assert!(OWN_COMMANDS.contains(&command), "{command}");
         }
     }

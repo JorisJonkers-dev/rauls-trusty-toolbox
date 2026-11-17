@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Request",
+  "description": "Request v1.",
+  "type": "object",
+  "properties": {
+    "contract": {
+      "description": "The contract name, `lodwright-request`.",
+      "type": "string",
+      "const": "lodwright-request"
+    },
+    "data_folder": {
+      "description": "The game's data folder (read only).",
+      "type": "string"
+    },
+    "inclusion": {
+      "description": "Inclusion rules.",
+      "$ref": "#/$defs/Inclusion",
+      "default": {
+        "exclude_models": [],
+        "exclude_plugins": [],
+        "exclude_records": [],
+        "only_plugins": []
+      }
+    },
+    "limits": {
+      "description": "Limits.",
+      "$ref": "#/$defs/Limits",
+      "default": {}
+    },
+    "objects": {
+      "description": "Object LOD settings.",
+      "$ref": "#/$defs/ObjectsRequest",
+      "default": {
+        "enabled": true
+      }
+    },
+    "output_dir": {
+      "description": "The output folder: must not lie inside the data folder or a git working tree.",
+      "type": "string"
+    },
+    "plugins": {
+      "description": "Plugin file names in load order, masters first.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "schema_version": {
+      "description": "The document version; 1.",
+      "type": "integer",
+      "format": "uint32",
+      "const": 1,
+      "minimum": 0
+    },
+    "terrain": {
+      "description": "Terrain settings.",
+      "$ref": "#/$defs/TerrainRequest",
+      "default": {
+        "enabled": true,
+        "land_textures": true,
+        "levels": [],
+        "water": true
+      }
+    },
+    "trees": {
+      "description": "Tree LOD settings.",
+      "$ref": "#/$defs/TreesRequest",
+      "default": {
+        "enabled": true
+      }
+    },
+    "worlds": {
+      "description": "Worlds to generate (editor ids); empty means every world with terrain.",
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "contract",
+    "data_folder",
+    "plugins",
+    "output_dir"
+  ],
+  "$defs": {
+    "Inclusion": {
+      "description": "Which objects enter object LOD, beyond the game's own rule (visible when distant).",
+      "type": "object",
+      "properties": {
+        "exclude_models": {
+          "description": "Leave out models whose path (relative to `meshes`, lower case, forward slashes) matches one of these\npatterns; `*` matches any run of characters.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclude_plugins": {
+          "description": "Leave out objects whose reference or base object comes from one of these plugins (file names).",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclude_records": {
+          "description": "Leave out these records: absolute `FormID`s of a reference or a base object, eight hex digits.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        },
+        "only_plugins": {
+          "description": "When not empty, keep only objects whose reference or base object comes from one of these plugins.",
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "LevelRequest": {
+      "description": "Settings of one terrain level.",
+      "type": "object",
+      "properties": {
+        "diffuse_size": {
+          "description": "Edge of the diffuse map in pixels, a power of two from 4 to 4096.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "level": {
+          "description": "Cells per block edge: 4, 8, 16 or 32.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "max_vertices": {
+          "description": "Vertex cap per block mesh, 3 to 32767.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "normal_size": {
+          "description": "Edge of the normal map in pixels, a power of two from 4 to 4096.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "quality": {
+          "description": "Quality: the allowed vertical error is twice this many world units.",
+          "type": "number",
+          "format": "float"
+        }
+      },
+      "required": [
+        "level",
+        "quality",
+        "max_vertices",
+        "diffuse_size",
+        "normal_size"
+      ]
+    },
+    "Limits": {
+      "description": "Resource limits.",
+      "type": "object",
+      "properties": {
+        "memory_mib": {
+          "description": "A memory budget in MiB, advisory: the run refuses early when the plugins alone are expected to need more.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "threads": {
+          "description": "Worker threads; omitted means the machine decides (at most four).",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        }
+      }
+    },
+    "ObjectsRequest": {
+      "description": "Object LOD settings.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Write object LOD.",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "TerrainRequest": {
+      "description": "Terrain settings.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Write terrain LOD.",
+          "type": "boolean",
+          "default": true
+        },
+        "land_textures": {
+          "description": "Blend the land textures into the diffuse maps (off: vertex colours only).",
+          "type": "boolean",
+          "default": true
+        },
+        "levels": {
+          "description": "Levels; empty means the defaults (4, 8, 16 and 32).",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/LevelRequest"
+          }
+        },
+        "water": {
+          "description": "Write water planes into the terrain blocks that have ground below water.",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "TreesRequest": {
+      "description": "Tree LOD settings.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Write tree LOD: billboard atlas, type list and block files. Needs billboard textures that mods ship in\nthe data folder (see docs/spec/object-lod.md); a world without any gets no tree LOD.",
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  }
+}

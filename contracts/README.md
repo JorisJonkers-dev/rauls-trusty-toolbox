@@ -17,6 +17,8 @@ removing, renaming or retyping one is.
 
 `snapshots/` holds the schemas of the Component Contracts the Toolbox reads, as their releases published them:
 `snapshots/ttwright-rs/` is ttwright-rs v0.3.0 (`ttwright-result`, `ttwright-events`, `ttwright-contracts`, all v1).
+`snapshots/lodwright-rs/` holds `lodwright-request` and `lodwright-result` v1 from lodwright-rs `main` (commit
+`a60a65d`); they are replaced by the lodwright-rs 0.3.0 release assets when that release enters the Known-good set.
 
 ## `raul-config`
 
@@ -93,3 +95,39 @@ wrote to. A cancelled or failed install keeps the staging folder, so `raul ttw -
 
 `error.ttwright_code` is ttwright's own `error.code` when ttwright gave one. In every case but `success` the
 Instance is as it was before the command. A command line `raul` cannot read exits 5 and prints no events.
+
+## `lodwright-request`, as `raul lod plan` builds it
+
+`raul lod plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]` prints the `lodwright-request` v1
+document `raul lod generate` will pass to `lodwright generate --request <file>`. It is lodwright's Contract; `raul`
+checks every request against the snapshot before it prints or passes it. The request holds:
+
+- `data_folder`: the Profile's Staging tree `Data` folder;
+- `plugins`: the Profile's active plugins, in Load order;
+- `worlds`: the `--world` flags, else the Profile's settings, else empty (every world with terrain);
+- `output_dir`: `<instance>/.raul/lod/out`, where lodwright keeps its manifest between runs;
+- the switches, inclusion rules and limits of the Profile's settings.
+
+The settings are `raul-lod.toml` in the Profile's folder; every key is optional:
+
+```toml
+worlds = ["SyntheticWorld"]
+threads = 2            # unset: lodwright decides
+memory_mib = 4096      # advisory
+
+[inclusion]
+exclude_plugins = []
+only_plugins = []
+exclude_records = []   # FormIDs, eight hex digits
+exclude_models = []    # patterns relative to meshes/, `*` matches any run
+
+[output]
+terrain = true
+land_textures = true
+water = true
+objects = true
+trees = true
+```
+
+`contracts/fixtures/lodwright-request/profile-settings.json` is the request of a Profile with the settings in its
+test, with the two folders written as `<data>` and `<output>`.
