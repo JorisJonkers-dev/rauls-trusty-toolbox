@@ -25,7 +25,6 @@ const LARGE: [f32; 2] = [1920.0, 1080.0];
 const KNOWN: &[(&str, &str)] = &[
     ("load-order", "#206"),
     ("lod", "#207"),
-    ("versions", "#208"),
     ("settings", "#209"),
     ("ttw", "#210"),
     ("setup", "#211"),
