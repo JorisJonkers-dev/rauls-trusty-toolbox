@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "contract": "raul-lod-result",
+  "status": "refused",
+  "up_to_date": false,
+  "dry_run": false,
+  "instance": "/users/player/raul-storage/instance",
+  "profile": "Default",
+  "mod": null,
+  "files": null,
+  "worlds": [
+    "SyntheticWorld"
+  ],
+  "request": null,
+  "tool": null,
+  "lodwright": null,
+  "error": {
+    "code": "plan_refused",
+    "lodwright_code": null,
+    "message": "profile `Default` has no Staging tree; run `raul stage --instance <dir> --profile Default` first"
+  }
+}

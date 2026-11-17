@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "contract": "raul-lod-result",
+  "status": "failed",
+  "up_to_date": false,
+  "dry_run": false,
+  "instance": "/users/player/raul-storage/instance",
+  "profile": "Default",
+  "mod": null,
+  "files": null,
+  "worlds": [
+    "SyntheticWorld"
+  ],
+  "request": "/users/player/raul-storage/instance/.raul/lod/request.json",
+  "tool": {
+    "name": "lodwright",
+    "version": "0.3.0",
+    "path": "/opt/raul/components/lodwright",
+    "sha256": "9a1c0e2a9d4b7c3e8f6a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6b"
+  },
+  "lodwright": {
+    "schema_version": 1,
+    "contract": "lodwright-result",
+    "tool": {
+      "name": "lodwright",
+      "version": "0.3.0"
+    },
+    "status": "failed",
+    "code": "output_not_empty",
+    "reason": "the output folder is not empty and has no manifest"
+  },
+  "error": {
+    "code": "lodwright_failed",
+    "lodwright_code": "output_not_empty",
+    "message": "lodwright failed (output_not_empty): the output folder is not empty and has no manifest"
+  }
+}

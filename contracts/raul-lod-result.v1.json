@@ -1,0 +1,265 @@
+{
+  "$defs": {
+    "LodError": {
+      "description": "Why `raul lod generate` did not succeed.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/LodErrorCode",
+          "description": "The stable code callers match on."
+        },
+        "lodwright_code": {
+          "description": "For `lodwright_failed` and `unsupported`: lodwright's own `code`, for example `output_not_empty`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "message": {
+          "description": "Prose for people; never matched on.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "lodwright_code",
+        "message"
+      ],
+      "type": "object"
+    },
+    "LodErrorCode": {
+      "description": "The stable error codes of `raul lod generate`. The exit code of each is in `contracts/README.md`.",
+      "oneOf": [
+        {
+          "const": "instance_invalid",
+          "description": "The Instance does not exist or cannot be opened (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "profile_missing",
+          "description": "The Profile does not exist (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "plan_refused",
+          "description": "No request can be built from the Profile: no Load order, no Staging tree, settings that cannot be read, or\nan output folder lodwright refuses (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "tool_missing",
+          "description": "No lodwright program: none is bundled next to `raul` and `--lodwright` was not given (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "tool_unverifiable",
+          "description": "The lodwright program changed between its checksum and its start (exit code 3); it was not started.",
+          "type": "string"
+        },
+        {
+          "const": "tool_failed",
+          "description": "lodwright could not be started, ended without a result, or printed one that is not a `lodwright-result`\n(exit code 4).",
+          "type": "string"
+        },
+        {
+          "const": "contract_refused",
+          "description": "lodwright printed a `lodwright-result` or left a manifest of a version this build does not read (exit\ncode 2).",
+          "type": "string"
+        },
+        {
+          "const": "lodwright_failed",
+          "description": "lodwright ran and failed (its exit code 1 or 2; exit code 4); `lodwright_code` says why.",
+          "type": "string"
+        },
+        {
+          "const": "unsupported",
+          "description": "lodwright cannot do what the request asks yet (its exit code 3; exit code 2). Nothing was written.",
+          "type": "string"
+        },
+        {
+          "const": "cancelled",
+          "description": "The run was cancelled (exit code 4); the Instance is as it was.",
+          "type": "string"
+        },
+        {
+          "const": "add_mod_failed",
+          "description": "lodwright succeeded but putting its output into the Instance failed and was rolled back (exit code 4).",
+          "type": "string"
+        }
+      ]
+    },
+    "Status": {
+      "description": "How a driver command ended.",
+      "oneOf": [
+        {
+          "const": "success",
+          "description": "Done (exit code 0). For a dry run: everything checked, nothing written.",
+          "type": "string"
+        },
+        {
+          "const": "refused",
+          "description": "Refused before anything was written (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "unsupported",
+          "description": "The Component refused the input as one it does not support (exit code 2); nothing was written.",
+          "type": "string"
+        },
+        {
+          "const": "unverifiable",
+          "description": "The program could not be verified against its checksum (exit code 3); it was not started.",
+          "type": "string"
+        },
+        {
+          "const": "failed",
+          "description": "A step failed (exit code 4); the Instance is as it was.",
+          "type": "string"
+        },
+        {
+          "const": "cancelled",
+          "description": "Cancelled (exit code 4); the Instance is as it was, and `--resume` continues.",
+          "type": "string"
+        }
+      ]
+    },
+    "ToolInfo": {
+      "description": "The Component program a driver runs.",
+      "properties": {
+        "name": {
+          "description": "The program's name, for example `ttwright`.",
+          "type": "string"
+        },
+        "path": {
+          "description": "The file that ran.",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "The SHA-256 of that file, checked again right before it was started.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Its version as the program reported it in its result; `null` in the `started` event, before it ran.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "path",
+        "sha256",
+        "version"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The result of `raul lod generate` (Contract `raul-lod-result`, version 1), carried by the `result` event.",
+  "properties": {
+    "contract": {
+      "const": "raul-lod-result",
+      "description": "Always `raul-lod-result`.",
+      "type": "string"
+    },
+    "dry_run": {
+      "description": "A dry run: the request was built and checked, and nothing was run or written.",
+      "type": "boolean"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LodError"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Set unless the status is `success`."
+    },
+    "files": {
+      "description": "Files in the Mod, or `null` when no Mod was written.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "instance": {
+      "description": "The Instance.",
+      "type": "string"
+    },
+    "lodwright": {
+      "description": "The `lodwright-result` document lodwright printed, as it printed it, or `null` when it printed none."
+    },
+    "mod": {
+      "description": "The LOD Mod (`LOD (lodwright)`), or `null` when the run did not get that far.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "profile": {
+      "description": "The Profile.",
+      "type": "string"
+    },
+    "request": {
+      "description": "The request file passed to lodwright, or `null` when none was written.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "const": 1,
+      "description": "The document version; 1.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "status": {
+      "$ref": "#/$defs/Status",
+      "description": "How the run ended; the same as the `finished` event's."
+    },
+    "tool": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ToolInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The lodwright program that ran, or `null` when none did."
+    },
+    "up_to_date": {
+      "description": "lodwright found its earlier output current for the same request and inputs and wrote nothing, and the Mod\nwas already there: nothing changed.",
+      "type": "boolean"
+    },
+    "worlds": {
+      "description": "The worlds the request names; empty for every world with terrain.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract",
+    "dry_run",
+    "error",
+    "files",
+    "instance",
+    "lodwright",
+    "mod",
+    "profile",
+    "request",
+    "schema_version",
+    "status",
+    "tool",
+    "up_to_date",
+    "worlds"
+  ],
+  "title": "LodResult",
+  "type": "object"
+}

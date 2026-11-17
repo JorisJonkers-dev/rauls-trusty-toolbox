@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use raul_core::config::{ConfigDoc, Key};
 use raul_core::contracts::OWN;
 use raul_drivers::events::{Event, EventLine};
+use raul_drivers::lod::LodResult;
 use raul_drivers::ttw::TtwResult;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -128,6 +129,7 @@ fn every_event_stream_is_numbered_from_one_and_ends_with_finished() {
         .collect();
     assert!(streams.len() >= 4);
     let ttw = validator(&raul_drivers::ttw::schema());
+    let lod = validator(&raul_drivers::lod::schema());
     for stream in streams {
         assert!(matches!(
             stream.last().unwrap().event,
@@ -136,7 +138,11 @@ fn every_event_stream_is_numbered_from_one_and_ends_with_finished() {
         for (i, line) in stream.iter().enumerate() {
             assert_eq!(line.seq, i as u64 + 1, "{line:?}");
             if let Event::Result { result } = &line.event {
-                assert_valid(&ttw, result, "the result event of a ttw stream");
+                match line.command.as_str() {
+                    "ttw" => assert_valid(&ttw, result, "the result event of a ttw stream"),
+                    "lod" => assert_valid(&lod, result, "the result event of a lod stream"),
+                    other => panic!("no result schema for {other}"),
+                }
                 let Event::Finished { status, .. } = &stream.last().unwrap().event else {
                     unreachable!()
                 };
@@ -147,7 +153,12 @@ fn every_event_stream_is_numbered_from_one_and_ends_with_finished() {
                 else {
                     unreachable!()
                 };
-                assert_eq!(result["resumable"], *resumable);
+                // A command whose runs cannot be resumed has no `resumable` in its result.
+                if let Some(r) = result.get("resumable") {
+                    assert_eq!(r, resumable);
+                } else {
+                    assert!(!resumable);
+                }
                 assert_eq!(result["error"]["code"].as_str(), code.as_deref());
             }
         }
@@ -198,4 +209,29 @@ fn a_config_document_of_another_version_or_contract_is_not_valid() {
     let mut other = good;
     other["contract"] = "ttwright-result".into();
     assert!(!validator.is_valid(&other));
+}
+
+#[test]
+fn lod_result_fixtures_read_back_and_carry_valid_lodwright_results() {
+    let snapshot = std::fs::read_to_string(
+        contracts_dir().join("snapshots/lodwright-rs/lodwright-result.v1.json"),
+    )
+    .unwrap();
+    let lodwright = validator(&snapshot);
+    for doc in reads_back::<LodResult>("raul-lod-result") {
+        if let Some(inner) = &doc.lodwright {
+            assert_valid(&lodwright, inner, "lodwright-result");
+        }
+        assert_eq!(
+            doc.error.is_none(),
+            doc.status == raul_drivers::events::Status::Success
+        );
+        assert!(
+            !doc.up_to_date
+                || doc
+                    .lodwright
+                    .as_ref()
+                    .is_some_and(|l| l["code"] == "up_to_date")
+        );
+    }
 }

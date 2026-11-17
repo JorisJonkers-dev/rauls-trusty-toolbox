@@ -14,6 +14,7 @@ removing, renaming or retyping one is.
 | `raul-config` | 1 | `raul config list\|get\|set\|unset --json` |
 | `raul-events` | 1 | the JSON lines of a driver command: `raul ttw --json` |
 | `raul-ttw-result` | 1 | the `result` event of `raul ttw --json` |
+| `raul-lod-result` | 1 | the `result` event of `raul lod generate --json` |
 
 `snapshots/` holds the schemas of the Component Contracts the Toolbox reads, as their releases published them:
 `snapshots/ttwright-rs/` is ttwright-rs v0.3.0 (`ttwright-result`, `ttwright-events`, `ttwright-contracts`, all v1).
@@ -59,16 +60,16 @@ scripts run one `set` at a time.
 
 ## `raul-events`
 
-`raul ttw --json` prints one `raul-events` line per event on standard output while it runs. Each line has
+`raul ttw --json` and `raul lod generate --json` print one `raul-events` line per event on standard output while they run. Each line has
 `schema_version`, `contract`, `seq` (from 1), `command` and `event`:
 
 | `event` | Fields | When |
 | --- | --- | --- |
 | `started` | `dry_run`, `resume`, `instance`, `profile`, `tool` (`name`, `version` (`null` until the result names it), `path`, `sha256`) | the checks passed and the program starts |
-| `phase` | `phase` | a phase began: ttwright's `package`, `preflight`, `checks`, `assets`, `post_install`, then `add_mod` |
+| `phase` | `phase` | a phase began: for `ttw` ttwright's `package`, `preflight`, `checks`, `assets`, `post_install`; for `lod` `terrain`; then `add_mod` |
 | `progress` | `phase`, `done`, `of` (0 when unknown), `message` | progress within the phase |
 | `warning` | `message` | something went wrong, but the run goes on |
-| `result` | `result` | the command's result document (`raul-ttw-result`) |
+| `result` | `result` | the command's result document (`raul-ttw-result`, `raul-lod-result`) |
 | `finished` | `status`, `exit_code`, `code`, `message`, `resumable`, `changed` | always the last line |
 
 A command refused before it starts prints only `result` and `finished`. The process exits with `finished.exit_code`.
@@ -131,3 +132,26 @@ trees = true
 
 `contracts/fixtures/lodwright-request/profile-settings.json` is the request of a Profile with the settings in its
 test, with the two folders written as `<data>` and `<output>`.
+
+## `raul-lod-result`
+
+`raul lod generate` builds the request (above), writes it to `<instance>/.raul/lod/request.json`, runs
+`lodwright generate --request <file> --json --events <file>`, reads the `lodwright-result` and the manifest, and keeps
+the output as the Mod `LOD (lodwright)`, enabled in the Profile, so the next run loads it. A second run over an
+unchanged Load order: lodwright answers `up_to_date`, the Mod is already there, and nothing is written
+(`up_to_date: true`, `changed: false`). lodwright's block progress becomes `progress` events of the phase `terrain`.
+
+| `status` | Exit code | `error.code` | lodwright |
+| --- | --- | --- | --- |
+| `success` | 0 | | exit code 0; the Mod holds the output (or a dry run, or `up_to_date`) |
+| `refused` | 2 | `instance_invalid`, `profile_missing`, `plan_refused`, `tool_missing` | not started |
+| `refused` | 2 | `contract_refused` | printed a `lodwright-result`, or left a manifest, of a newer version |
+| `unsupported` | 2 | `unsupported` | exit code 3; nothing was written |
+| `unverifiable` | 3 | `tool_unverifiable` | changed after its checksum was taken; not started |
+| `failed` | 4 | `lodwright_failed` | exit code 1, or 2 (a usage error) |
+| `failed` | 4 | `tool_failed` | could not start, was ended by a signal, or printed no valid result |
+| `failed` | 4 | `add_mod_failed` | exit code 0, but replacing the Mod failed and was rolled back |
+| `cancelled` | 4 | `cancelled` | stopped by `raul` on SIGINT or SIGTERM |
+
+In every case but `success` the Instance is as it was before the command. lodwright keeps its own output folder
+between runs (that is how it knows a later run is `up_to_date`); the Mod is a copy of it.
