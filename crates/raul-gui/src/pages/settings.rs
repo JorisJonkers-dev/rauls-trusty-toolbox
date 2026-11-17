@@ -569,7 +569,7 @@ impl Visits {
 /// A read on its way: a spinner and what is read. The command that reads it is kept as a parameter so callers
 /// still compile, but is no longer drawn on screen.
 pub(crate) fn waiting(ui: &mut egui::Ui, t: &Tokens, what: &str, _command: &Command) {
-    ui.horizontal(|ui| {
+    ui.horizontal_wrapped(|ui| {
         super::home::icon(ui, t, super::home::Mark::Info);
         ui.label(RichText::new(what).color(t.muted.color()));
     });
