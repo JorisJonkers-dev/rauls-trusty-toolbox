@@ -1,0 +1,98 @@
+# The GUI workspace (crates/raul-gui, ADR-0004) has its own lock file, so ci.yml's workspace steps never see it.
+# This workflow runs its checks: format, lint, tests with the 70% changed-line coverage gate (docs/COVERAGE.md),
+# licences and advisories. It runs when the GUI or anything it builds on changes.
+name: GUI
+
+on:
+  pull_request:
+    paths:
+      - "crates/raul-gui/**"
+      - "crates/raul-cli/**"
+      - "crates/raul-core/**"
+      - "crates/raul-runner/**"
+      - "components/**"
+      - "rust-toolchain.toml"
+      - ".github/workflows/gui.yml"
+  push:
+    branches: [main]
+    paths:
+      - "crates/raul-gui/**"
+      - "crates/raul-cli/**"
+      - "crates/raul-core/**"
+      - "crates/raul-runner/**"
+      - "components/**"
+      - "rust-toolchain.toml"
+      - ".github/workflows/gui.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: gui-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  gui:
+    name: GUI workspace
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: crates/raul-gui
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      # Crates come through the estate packages proxy (7-day minimum age); the hygiene guard requires it.
+      - uses: JorisJonkers-dev/github-workflows/actions/setup-package-proxy@b14d5e031f1abd5bec45e50c898e9e73f3ffc534 # v0.50.4
+        with:
+          token: ${{ secrets.PACKAGES_PROXY_TOKEN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: crates/raul-gui
+      - uses: jdx/mise-action@d5574b52816a478f9d4e6529a3f6ff17a8a36785 # v5
+
+      - name: Format
+        if: ${{ !cancelled() }}
+        run: cargo fmt --all --check
+
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Tests with coverage
+        id: tests
+        if: ${{ !cancelled() }}
+        run: mise exec -- cargo llvm-cov nextest --workspace --locked --lcov --output-path lcov.info
+
+      - name: Changed-line coverage gate (70%)
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' }}
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE:-}" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "No base commit to compare with: nothing to gate." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          cargo run --quiet --locked --manifest-path ../../tools/coverage-gate/Cargo.toml -- \
+            --lcov lcov.info --base "$BASE" --min 70 --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Doc tests
+        if: ${{ !cancelled() }}
+        run: cargo test --workspace --doc --locked
+
+      - name: Licences, bans, sources and advisories
+        if: ${{ !cancelled() }}
+        run: mise exec -- cargo deny --locked check
+
+      - name: Advisories (cargo audit)
+        if: ${{ !cancelled() }}
+        run: mise exec -- cargo audit
