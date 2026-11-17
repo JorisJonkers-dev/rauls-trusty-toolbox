@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794948284539,
+  "lastUpdate": 1794949296575,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -2596,6 +2596,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.522285,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3ffdd65076d01fa13d7eb63987778bfadeae65ef",
+          "message": "fix(gui): use the found TTW package only after it is saved (#221)",
+          "timestamp": "2026-11-17T22:00:27+01:00",
+          "tree_id": "a25ab3ef195d74e8eda8e7f21cca05b2169aa136",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3ffdd65076d01fa13d7eb63987778bfadeae65ef"
+        },
+        "date": 1794949295796,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.95028,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.642768,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.40583,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.6163289999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.364134,
             "unit": "ms"
           }
         ]
