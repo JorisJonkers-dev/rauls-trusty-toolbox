@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794897333547,
+  "lastUpdate": 1794897960873,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -1028,6 +1028,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.00194,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c5105cde5cb5a8599e5707334264fd044b84a39b",
+          "message": "feat(gui): open the egui shell from raul with no arguments (#136)\n\n* feat(gui): open the egui shell from raul with no arguments\n\n* test(gui): run the release raul against raul_cli::run and cover the shell helpers\n\n* fix(gui): refuse a second writer before the first reports, and end a job whose handling panics\n\n* fix(gui): follow main: drop the end-to-end case of the old TTW command and allow the toolkit fonts\n\nraul ttw is now the Toolbox command that drives ttwright, so the service test\nthat ran the earlier installer contract through it no longer applies; the TTW\nflow is rewired to the new command with its page. cargo deny allows the\nlicences of the fonts egui bundles and reports unmaintained crates only when\nthe GUI depends on them directly.\n\n* fix(gui): keep a busy dialog open only while it has an action, read keys after the frame, and prove the smoke frame",
+          "timestamp": "2026-11-17T07:44:41+01:00",
+          "tree_id": "d3a18f721c31db2c122135855204719d59945724",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/c5105cde5cb5a8599e5707334264fd044b84a39b"
+        },
+        "date": 1794897960152,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.0964200000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.61377,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.376735,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.5036509999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.891584,
             "unit": "ms"
           }
         ]
