@@ -2,9 +2,9 @@
 //! The Load order page (UI-RULES P3, T4, T5, G6): the Profile's plugins, a sort preview with the moves it makes and
 //! each plugin's group and messages, Apply, and Undo.
 //!
-//! Every step is a `raul` command from the registry, shown on the page: `raul plugins list`, `raul sort
-//! --fetch-masterlist` for the preview (nothing is written), the same with `--apply`, and `raul rollback` for Undo.
-//! A sort is reversible, so Apply does not ask; Undo is offered until the page reads another order.
+//! Each step runs through the command registry. The preview makes no changes; Apply writes the sorted order; Undo
+//! restores the previous one. A sort is reversible, so Apply does not ask; Undo is offered until the page reads
+//! another order.
 
 use super::home::{Mark, icon};
 use super::settings::{Pending, Visits, error_block, failure_of, start, waiting};
@@ -40,6 +40,9 @@ crate::texts!(TEXTS {
     APPLY_ONE = "Apply 1 move";
     CANCEL = "Cancel";
     UNDO = "Undo";
+    SORT_HOVER = "Sorts the plugins with the masterlist. Nothing is written until Apply.";
+    APPLY_HOVER = "Writes the sorted order.";
+    UNDO_HOVER = "Restores the previous order.";
     NO_INSTANCE = "The Load order belongs to the Instance, which lives in the storage folder. Set the storage folder in Settings first.";
     OPEN_SETTINGS = "Settings";
     EMPTY = "Your mod list has no plugins yet.";
@@ -290,7 +293,7 @@ impl LoadOrder {
             });
     }
 
-    /// The note under the header and the command the next step runs (UI-RULES G6).
+    /// The note under the header for the current step.
     fn step_note(&self, ui: &mut egui::Ui, t: &Tokens, instance: &str) -> bool {
         match self.state.phase {
             Phase::Loading if self.state.current.is_empty() => {
@@ -309,16 +312,14 @@ impl LoadOrder {
                         PREVIEW_NOTE.replace("{n}", &n.to_string())
                     };
                     note(ui, t, Mark::Warning, &head, Some(PREVIEW_DETAIL));
-                    shell::command_line(ui, t, &apply_command(instance).shown());
                 }
             },
             Phase::Applied => {
                 note(ui, t, Mark::Ok, APPLIED_NOTE, None);
-                shell::command_line(ui, t, &undo_command(instance).shown());
             }
-            // A problem already shows the command that failed.
+            // A problem already shows its details.
             _ if self.state.problem.is_some() => return true,
-            _ => shell::command_line(ui, t, &preview_command(instance).shown()),
+            _ => {}
         }
         ui.add_space(12.0);
         true
@@ -370,9 +371,9 @@ impl Page for LoadOrder {
 
     fn tools(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
-        let Some(instance) = self.state.instance.clone() else {
+        if self.state.instance.is_none() {
             return;
-        };
+        }
         // The layout runs right to left: the primary button comes first.
         match self.state.phase {
             Phase::Preview => {
@@ -385,7 +386,7 @@ impl Page for LoadOrder {
                     };
                     if ui
                         .add(shell::primary_button(&t, &label))
-                        .on_hover_text(apply_command(&instance).shown())
+                        .on_hover_text(APPLY_HOVER)
                         .clicked()
                     {
                         self.run(cx, Job::Apply);
@@ -401,17 +402,11 @@ impl Page for LoadOrder {
                 } else {
                     ui.add(shell::primary_button(&t, SORT))
                 };
-                if sort
-                    .on_hover_text(preview_command(&instance).shown())
-                    .clicked()
-                {
+                if sort.on_hover_text(SORT_HOVER).clicked() {
                     self.run(cx, Job::Preview);
                 }
                 if self.state.journal.is_some()
-                    && ui
-                        .button(UNDO)
-                        .on_hover_text(undo_command(&instance).shown())
-                        .clicked()
+                    && ui.button(UNDO).on_hover_text(UNDO_HOVER).clicked()
                 {
                     self.run(cx, Job::Undo);
                 }
@@ -445,9 +440,6 @@ impl Page for LoadOrder {
                 .copied()
                 .unwrap_or(LIST_FAILED);
             error_block(ui, &t, &e, Some(&p.cause));
-            if let Some(c) = &p.command {
-                shell::command_line(ui, &t, c);
-            }
             ui.add_space(12.0);
         }
         if !self.step_note(ui, &t, &instance) {
