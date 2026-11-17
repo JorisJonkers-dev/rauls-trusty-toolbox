@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794938567931,
+  "lastUpdate": 1794939629335,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -2302,6 +2302,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.85272,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d412a152916d93b592777c0ae6f731c95abbe722",
+          "message": "fix(gui): search Downloads once without a home folder (#192)\n\n* fix(gui): search the Downloads folder once when there is no home folder\n\n* test(gui): wait for the update answer on screen instead of a fixed number of frames",
+          "timestamp": "2026-11-17T19:19:15+01:00",
+          "tree_id": "9c563a45f7dfb62340af871f7ff571bd867353b7",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d412a152916d93b592777c0ae6f731c95abbe722"
+        },
+        "date": 1794939629019,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.085582,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.628972,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.468883,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.482489,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.12256,
             "unit": "ms"
           }
         ]
