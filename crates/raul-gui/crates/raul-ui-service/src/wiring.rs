@@ -36,18 +36,18 @@ pub struct ImportContext {
 /// What the TTW wizard needs besides what it holds itself.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct TtwContext {
-    /// The Instance folder.
-    pub instance: String,
+    /// The Instance folder; `None` for the one `raul config` derives.
+    pub instance: Option<String>,
     /// The profile.
     pub profile: Option<String>,
-    /// The lock file.
-    pub lock: Option<String>,
-    /// The tool store.
-    pub store: Option<String>,
-    /// The TTW package file.
+    /// The New Vegas folder; `None` for the one in `raul config`.
+    pub newvegas: Option<String>,
+    /// The TTW package file; `None` for the one in `raul config`.
     pub package: Option<String>,
-    /// The installer to run instead of the pinned one (a path), `None` for the pinned one.
-    pub installer: Option<String>,
+    /// Another ttwright program, for development; `None` for the bundled one.
+    pub ttwright: Option<String>,
+    /// Continue an interrupted run.
+    pub resume: bool,
 }
 
 /// How an apply ended, by the exit class of the command.
@@ -168,7 +168,9 @@ pub fn plan_ttw(w: &mut TtwWizard) -> Result<(), FlowError> {
     w.flow.plan_ready(0)
 }
 
-/// Runs the TTW install. A report whose installer record says `failed` ends as a failure.
+/// Runs the TTW install. The report's status is the outcome: a refusal or an unsupported package is
+/// [`Outcome::Refused`], a failure [`Outcome::RolledBack`] (the Instance is as it was) and a cancel
+/// [`Outcome::Cancelled`].
 ///
 /// # Errors
 /// See [`TtwWizard::apply`].
@@ -180,18 +182,27 @@ pub fn apply_ttw(
     w.apply()?;
     let request = TtwRequest {
         instance: ctx.instance.clone(),
-        fallout3: w.fallout3().unwrap_or_default().to_owned(),
-        package: ctx.package.clone(),
-        installer: ctx.installer.clone(),
         profile: ctx.profile.clone(),
-        lock: ctx.lock.clone(),
-        store: ctx.store.clone(),
+        fallout3: w.fallout3().map(str::to_owned),
+        newvegas: ctx.newvegas.clone(),
+        package: ctx.package.clone(),
+        ttwright: ctx.ttwright.clone(),
+        dry_run: false,
+        resume: ctx.resume,
     };
     match service.ttw(&request) {
-        Ok(report) if report.result.outcome == "success" => {
-            w.flow.finish(ExitClass::Ok, Outcome::Completed)
+        Ok(report) => {
+            let outcome = report.status.outcome(report.dry_run);
+            let class = match report.status {
+                raul_ui_model::events::Status::Success => ExitClass::Ok,
+                raul_ui_model::events::Status::Refused
+                | raul_ui_model::events::Status::Unsupported => ExitClass::Refused,
+                raul_ui_model::events::Status::Unverifiable => ExitClass::VerificationFailed,
+                raul_ui_model::events::Status::Failed
+                | raul_ui_model::events::Status::Cancelled => ExitClass::StepFailedRolledBack,
+            };
+            w.flow.finish(class, outcome)
         }
-        Ok(_) => w.flow.finish(ExitClass::Internal, Outcome::Failed),
         Err(e) => finish_failed(&mut w.flow, &e.view_error()),
     }
 }

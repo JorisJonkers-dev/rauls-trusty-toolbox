@@ -77,23 +77,47 @@ pub struct InstallRequest {
     pub answers: Option<serde_json::Value>,
 }
 
-/// What `raul ttw` needs.
+/// What `raul ttw` needs. Anything left `None` comes from `raul config` (the game folders and the TTW package)
+/// or the bundled ttwright.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[allow(clippy::struct_excessive_bools)] // One bool per flag of the command line.
 pub struct TtwRequest {
-    /// The Instance folder.
-    pub instance: String,
+    /// The Instance folder; `None` for the one `raul config` derives.
+    pub instance: Option<String>,
+    /// The Profile that gets the Mod; `None` for `Default`.
+    pub profile: Option<String>,
     /// The Fallout 3 folder.
-    pub fallout3: String,
+    pub fallout3: Option<String>,
+    /// The New Vegas folder.
+    pub newvegas: Option<String>,
     /// The TTW package file.
     pub package: Option<String>,
-    /// The installer to run instead of the fetched one.
-    pub installer: Option<String>,
-    /// The profile.
-    pub profile: Option<String>,
-    /// The lock file.
-    pub lock: Option<String>,
-    /// The tool store.
-    pub store: Option<String>,
+    /// Another ttwright program, for development.
+    pub ttwright: Option<String>,
+    /// Read the package and check the game copies only; nothing is written.
+    pub dry_run: bool,
+    /// Continue an interrupted run.
+    pub resume: bool,
+}
+
+impl TtwRequest {
+    /// The words after `raul ttw`, before `--json`.
+    pub fn args(&self) -> Vec<String> {
+        let mut rest = Vec::new();
+        push_opt(&mut rest, "instance", self.instance.as_ref());
+        push_opt(&mut rest, "profile", self.profile.as_ref());
+        push_opt(&mut rest, "fallout3", self.fallout3.as_ref());
+        push_opt(&mut rest, "newvegas", self.newvegas.as_ref());
+        push_opt(&mut rest, "package", self.package.as_ref());
+        push_opt(&mut rest, "ttwright", self.ttwright.as_ref());
+        if self.dry_run {
+            rest.push("--dry-run".to_owned());
+        }
+        if self.resume {
+            rest.push("--resume".to_owned());
+        }
+        rest
+    }
 }
 
 /// How `raul setup` is started.
@@ -446,10 +470,11 @@ pub trait Service {
     /// [`ServiceError::Failed`] when the command refused or failed.
     fn install_mod(&self, request: &InstallRequest) -> Result<InstallResult, ServiceError>;
 
-    /// `raul ttw`.
+    /// `raul ttw`. Every run that printed its `raul-ttw-result` is a report, whatever its status (refused, failed,
+    /// cancelled); its `error.code` says why, and `resumable` whether `--resume` continues it.
     ///
     /// # Errors
-    /// [`ServiceError::Failed`] when the command refused or failed.
+    /// [`ServiceError::Failed`] when the command could not run or printed no readable result.
     fn ttw(&self, request: &TtwRequest) -> Result<TtwReport, ServiceError>;
 
     /// `raul doctor --instance`. Findings of error severity are a report, not an error.
@@ -694,6 +719,44 @@ impl<E: Exec> CliService<E> {
     }
 }
 
+/// Reads the `raul-ttw-result` from the `raul-events` stream `raul ttw --json` printed.
+fn ttw_report(out: &Output, args: &[String]) -> Result<TtwReport, ServiceError> {
+    let mut document = None;
+    for line in out.stdout.lines().filter(|l| !l.trim().is_empty()) {
+        match raul_ui_model::events::parse_line(line) {
+            Ok(parsed) => {
+                if let raul_ui_model::events::Event::Result { result } = parsed.event {
+                    document = Some(result);
+                }
+            }
+            Err(raul_ui_model::events::LineError::Newer(v)) => {
+                let mut e = ViewError::new(
+                    ExitClass::Refused,
+                    format!(
+                        "`raul ttw` speaks raul-events version {v}; this build reads version 1"
+                    ),
+                    "Nothing was read",
+                );
+                e.repro = Some(repro(args));
+                return Err(ServiceError::Failed(e));
+            }
+            Err(_) => {}
+        }
+    }
+    let Some(document) = document else {
+        return Err(failure(out, "ttw", args));
+    };
+    TtwReport::from_value(document).map_err(|why| {
+        let mut e = ViewError::new(
+            ExitClass::Internal,
+            format!("The result of `raul ttw` could not be read: {why}"),
+            effect_of(ExitClass::Internal),
+        );
+        e.repro = Some(repro(args));
+        ServiceError::Failed(e)
+    })
+}
+
 pub(crate) fn push(args: &mut Vec<String>, name: &str, value: &str) {
     args.push(format!("--{name}"));
     args.push(value.to_owned());
@@ -753,19 +816,8 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn ttw(&self, r: &TtwRequest) -> Result<TtwReport, ServiceError> {
-        let mut rest = Vec::new();
-        push(&mut rest, "instance", &r.instance);
-        push(&mut rest, "fallout3", &r.fallout3);
-        push_opt(&mut rest, "package", r.package.as_ref());
-        push_opt(&mut rest, "installer", r.installer.as_ref());
-        push_opt(&mut rest, "profile", r.profile.as_ref());
-        push_opt(&mut rest, "lock", r.lock.as_ref());
-        push_opt(&mut rest, "store", r.store.as_ref());
-        let (out, args) = self.invoke(Action::Ttw, rest)?;
-        match out.code {
-            Some(0) => Self::parse(Action::Ttw, &out, &args),
-            _ => Err(failure(&out, "ttw", &args)),
-        }
+        let (out, args) = self.invoke(Action::Ttw, r.args())?;
+        ttw_report(&out, &args)
     }
 
     fn doctor(&self, r: &DoctorRequest) -> Result<DoctorReport, ServiceError> {

@@ -129,39 +129,79 @@ pub(crate) struct DisagreeDoc {
     pub(crate) disagreements: Vec<Finding>,
 }
 
-/// The installer's own result record inside the TTW report (`ttw-installer-result.v1`).
+/// Why `raul ttw` did not succeed (`raul-ttw-result` v1).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-pub struct TtwRecord {
-    /// `success` or `failed`.
-    pub outcome: String,
-    /// The installer's exit code.
-    pub exit_code: i64,
-    /// Whether the installer verified Fallout 3.
-    pub fallout3_verified: bool,
-    /// Files the installer wrote.
-    pub files_written: u64,
-    /// What the installer said.
-    pub messages: Vec<String>,
+pub struct TtwError {
+    /// The stable code to match on, such as `missing_input` or `ttwright_failed` (`contracts/README.md`).
+    pub code: String,
+    /// Prose for people; never matched on.
+    pub message: String,
+    /// For `ttwright_failed`, `unsupported` and `cancelled`: ttwright's own error code.
+    pub ttwright_code: Option<String>,
 }
 
-/// `raul ttw --json` on success.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+/// The result of `raul ttw` (Contract `raul-ttw-result`, version 1), whatever its status.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct TtwReport {
-    /// `installed`.
-    pub status: String,
-    /// The Mod's folder name.
-    #[serde(rename = "mod")]
-    pub mod_name: String,
-    /// The profile.
+    /// How the run ended.
+    pub status: raul_ui_model::events::Status,
+    /// A dry run: the package was read and the game copies checked; nothing was written.
+    pub dry_run: bool,
+    /// The run continued an interrupted one.
+    pub resumed: bool,
+    /// The Instance.
+    pub instance: String,
+    /// The Profile that got the Mod.
     pub profile: String,
-    /// How many files the Mod has.
-    pub files: usize,
-    /// Plugins newly activated.
-    pub plugins: Vec<String>,
-    /// The journal entry `raul rollback` uses.
-    pub journal: Option<String>,
-    /// The installer's result record.
-    pub result: TtwRecord,
+    /// The Mod added (`Tale of Two Wastelands`), or `None` when none was.
+    #[serde(rename = "mod")]
+    pub mod_name: Option<String>,
+    /// The plugins the Profile enabled with the Mod, in load order.
+    pub plugins_enabled: Vec<String>,
+    /// Files in the Mod, or `None` when no Mod was added.
+    pub files: Option<u64>,
+    /// The folder ttwright wrote to, kept after a cancelled or failed run so `--resume` can continue there.
+    pub staging: Option<String>,
+    /// `raul ttw --resume` with the same arguments continues this run.
+    pub resumable: bool,
+    /// The ttwright program that ran, or `None` when none did.
+    pub tool: Option<raul_ui_model::events::ToolInfo>,
+    /// ttwright's own `ttwright-result` document, as it printed it.
+    pub ttwright: Option<serde_json::Value>,
+    /// Set unless the status is `success`.
+    pub error: Option<TtwError>,
+}
+
+impl TtwReport {
+    /// The contract name.
+    pub const CONTRACT: &'static str = "raul-ttw-result";
+    /// The version this build reads.
+    pub const VERSION: u64 = 1;
+
+    /// Reads a `raul-ttw-result` document.
+    ///
+    /// # Errors
+    /// The document is another contract, a newer version, or does not match version 1; the reason is in words.
+    pub fn from_value(value: serde_json::Value) -> Result<TtwReport, String> {
+        if value.get("contract").and_then(serde_json::Value::as_str) != Some(Self::CONTRACT) {
+            return Err(format!("the result is not a {} document", Self::CONTRACT));
+        }
+        match value
+            .get("schema_version")
+            .and_then(serde_json::Value::as_u64)
+        {
+            Some(Self::VERSION) => {}
+            Some(v) => {
+                return Err(format!(
+                    "the result is {} version {v}; this build reads version {}",
+                    Self::CONTRACT,
+                    Self::VERSION
+                ));
+            }
+            None => return Err("the result has no schema_version".to_owned()),
+        }
+        serde_json::from_value(value).map_err(|e| e.to_string())
+    }
 }
 
 /// Counts of a Doctor run.

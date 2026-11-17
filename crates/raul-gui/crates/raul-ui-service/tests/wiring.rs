@@ -178,7 +178,7 @@ fn an_import_whose_profile_files_disagree_returns_to_the_review_with_blockers() 
 }
 
 #[test]
-fn ttw_needs_its_inputs_then_runs_and_a_failed_record_is_a_failure() {
+fn ttw_needs_its_inputs_then_runs_and_its_status_is_the_outcome() {
     let mut w = TtwWizard::new();
     assert!(plan_ttw(&mut w).is_err());
     w.set_fallout3("/fo3");
@@ -186,19 +186,24 @@ fn ttw_needs_its_inputs_then_runs_and_a_failed_record_is_a_failure() {
     plan_ttw(&mut w).unwrap();
     w.flow.mark_reviewed().unwrap();
     let svc = FakeService::new();
-    let mut failed = sample::ttw();
-    failed.result.outcome = "failed".into();
-    svc.on_ttw(Ok(failed));
+    svc.on_ttw(Ok(sample::ttw_failed("ttwright_failed")));
     let c = TtwContext {
-        instance: "/inst".into(),
+        instance: Some("/inst".into()),
+        resume: true,
         ..TtwContext::default()
     };
     apply_ttw(&mut w, &svc, &c).unwrap();
     assert_eq!(
         w.flow.result(),
-        Some((ExitClass::Internal, Outcome::Failed))
+        Some((ExitClass::StepFailedRolledBack, Outcome::RolledBack))
     );
-    assert_eq!(svc.ttw_calls()[0].fallout3, "/fo3");
+    let call = &svc.ttw_calls()[0];
+    assert_eq!(call.fallout3.as_deref(), Some("/fo3"));
+    assert!(call.resume && !call.dry_run);
+    assert_eq!(
+        call.args(),
+        ["--instance", "/inst", "--fallout3", "/fo3", "--resume"]
+    );
 
     let mut w = TtwWizard::new();
     w.set_fallout3("/fo3");

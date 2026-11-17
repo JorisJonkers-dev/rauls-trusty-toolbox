@@ -219,3 +219,37 @@ fn ids_are_unique_and_json_follows_the_action() {
     assert!(!command("sort-preview").unwrap().writes);
     assert!(command("nothing").is_none());
 }
+
+/// Every published `raul-ttw-result` fixture reads as a report; another contract or a newer version does not.
+#[test]
+fn every_published_ttw_result_reads() {
+    use raul_ui_service::dto::TtwReport;
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../../contracts/fixtures/raul-ttw-result");
+    let mut read = 0;
+    for entry in std::fs::read_dir(&dir).unwrap() {
+        let path = entry.unwrap().path();
+        let value: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        let report = TtwReport::from_value(value.clone())
+            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        assert_eq!(
+            report.error.is_none(),
+            report.status == raul_ui_model::events::Status::Success,
+            "{}",
+            path.display()
+        );
+        let mut newer = value.clone();
+        newer["schema_version"] = 2.into();
+        assert!(
+            TtwReport::from_value(newer)
+                .unwrap_err()
+                .contains("version 2")
+        );
+        let mut other = value;
+        other["contract"] = "raul-lod-result".into();
+        assert!(TtwReport::from_value(other).is_err());
+        read += 1;
+    }
+    assert!(read >= 6, "{read}");
+}
