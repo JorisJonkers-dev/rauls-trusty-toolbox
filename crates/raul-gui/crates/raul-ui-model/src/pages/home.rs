@@ -4,6 +4,11 @@
 //! Home owns no data (UI-RULES P3): it reads the paths of Settings and the engine of Versions and shows them, each
 //! row one click from the page that fixes it. Play is blocked only for a blocking problem, and the reason says
 //! which. Play runs `raul run nv-rs`.
+//!
+//! [`State::readiness`] is the one definition of "ready to play": the game folder is found, the storage folder is
+//! set, the Instance folder exists, the engine is installed and matches its install record, and the load order is
+//! valid. Nothing that Home has not read counts as read: while a read is on its way Home is checking, and when a
+//! read cannot be asked for at all it has stopped checking and names what is missing.
 
 use super::load_order;
 use super::settings::{Command, Config, Fetch, Key};
@@ -221,7 +226,14 @@ impl State {
     }
 
     /// Whether any read is still on its way.
+    ///
+    /// A settings file that could not be read ends the reading: every other read runs against the paths it holds,
+    /// so those reads cannot even be asked for. Waiting for them anyway would leave Home saying "Checking" with no
+    /// read running, its Check again disabled forever.
     pub fn reading(&self) -> bool {
+        if matches!(self.config, Fetch::Failed(_)) {
+            return false;
+        }
         self.config.is_pending()
             || self.engine.is_pending()
             || (self.instance_exists.is_none()
@@ -232,8 +244,9 @@ impl State {
             || self.load_order.is_pending()
     }
 
-    /// The one definition of "ready to play": the game is found, the Instance exists, the engine is installed and
-    /// matches its record, and the load order is valid. Otherwise the first missing step.
+    /// The one definition of "ready to play": the game is found, the storage folder is set, the Instance exists,
+    /// the engine is installed and matches its record, and the load order is valid. Otherwise the first missing
+    /// step. A step whose read has not been asked for, has not come back, or came back unread is not met.
     pub fn readiness(&self) -> Readiness {
         if self.reading() {
             // A known missing step is still worth naming while other reads run.
@@ -363,6 +376,9 @@ impl State {
 
     /// Why Play is blocked, if it is; `None` also while Home is still reading (UI-RULES G3: only a known blocking
     /// problem blocks).
+    ///
+    /// What the game needs to start is [`State::readiness`]'s business: a step no row marks as a problem, a
+    /// missing Instance folder or a load order that cannot be read, still keeps Play from starting anything.
     pub fn block(&self) -> Option<Block> {
         match &self.config {
             Fetch::Failed(_) => return Some(Block::Unreadable),
@@ -385,10 +401,11 @@ impl State {
             .map(run_command)
     }
 
-    /// Whether Play can start the game now: nothing blocks, the reads are in and no launch runs.
+    /// Whether Play can start the game now: readiness holds in full, nothing blocks and no launch runs. Play
+    /// never starts a game that readiness says cannot start.
     pub fn can_play(&self) -> bool {
         self.block().is_none()
-            && self.engine.ready().is_some()
+            && self.readiness() == Readiness::Ready
             && self.launch != Launch::Starting
             && self.run_command().is_some()
     }
@@ -554,5 +571,119 @@ mod tests {
         };
         assert_eq!(checking.readiness(), Readiness::Checking);
         assert_eq!(State::default().readiness(), Readiness::Checking);
+    }
+
+    /// Everything readiness asks of a setup, so a test can break exactly one condition.
+    fn sound() -> State {
+        State::ready(all_set(), Engine::active())
+    }
+
+    #[test]
+    fn not_ready_without_a_game_folder_and_play_does_not_run() {
+        let no_game = State::ready(
+            Config::with("/c", &[(Key::Instance, "/s/instance")]),
+            Engine::active(),
+        );
+        assert_eq!(no_game.readiness(), Readiness::Next(Step::Game));
+        assert_eq!(no_game.first_missing(), Some(Step::Game));
+        assert_eq!(no_game.block(), Some(Block::NoGame));
+        assert!(!no_game.can_play());
+    }
+
+    #[test]
+    fn not_ready_without_a_storage_folder_and_play_does_not_run() {
+        let no_storage = State::ready(Config::with("/c", &[(Key::NewVegas, "/nv")]), Engine::active());
+        assert_eq!(no_storage.readiness(), Readiness::Next(Step::Storage));
+        assert_eq!(no_storage.first_missing(), Some(Step::Storage));
+        assert_eq!(no_storage.block(), Some(Block::NoStorage));
+        assert!(!no_storage.can_play());
+    }
+
+    #[test]
+    fn not_ready_when_the_instance_folder_is_missing_and_play_does_not_run() {
+        // The one condition no row marks as a problem, so only readiness can keep Play from starting a game that
+        // cannot start. It used to run it anyway.
+        let mut no_instance = sound();
+        no_instance.instance_exists = Some(false);
+        assert_eq!(no_instance.readiness(), Readiness::Next(Step::Instance));
+        assert_eq!(no_instance.block(), None);
+        assert!(no_instance.attention().is_empty());
+        assert!(!no_instance.can_play());
+    }
+
+    #[test]
+    fn not_ready_when_the_engine_is_not_installed_or_does_not_match_and_play_does_not_run() {
+        let no_engine = sound();
+        assert_eq!(no_engine.readiness(), Readiness::Ready);
+        let mut not_installed = sound();
+        not_installed.engine = Fetch::Ready(Engine::missing());
+        assert_eq!(not_installed.readiness(), Readiness::Next(Step::Engine));
+        assert!(!not_installed.can_play());
+        let differs = State::ready(
+            all_set(),
+            Engine {
+                installed: true,
+                verified: false,
+                message: "differs".into(),
+            },
+        );
+        assert_eq!(differs.readiness(), Readiness::Next(Step::Engine));
+        assert!(!differs.can_play());
+    }
+
+    #[test]
+    fn not_ready_when_the_engine_could_not_be_read_and_play_does_not_run() {
+        let mut unread_engine = sound();
+        unread_engine.engine = Fetch::Failed("the install record could not be read".into());
+        assert_eq!(unread_engine.readiness(), Readiness::Next(Step::Engine));
+        assert!(!unread_engine.can_play());
+    }
+
+    #[test]
+    fn not_ready_when_the_load_order_cannot_be_read_and_play_does_not_run() {
+        let mut unread_order = sound();
+        unread_order.load_order = Fetch::Failed("the load order could not be read".into());
+        assert_eq!(unread_order.readiness(), Readiness::Next(Step::LoadOrder));
+        assert_eq!(unread_order.block(), None);
+        assert!(!unread_order.can_play());
+    }
+
+    #[test]
+    fn not_ready_while_the_load_order_has_not_been_read_and_play_does_not_run() {
+        // An order that was never asked for, or is still on its way, is not an order that is valid. Play used to
+        // start the game on the strength of the engine alone.
+        for order in [Fetch::Idle, Fetch::Loading] {
+            let mut unread = sound();
+            unread.load_order = order;
+            assert!(unread.reading());
+            assert_eq!(unread.readiness(), Readiness::Checking);
+            assert!(!unread.can_play());
+        }
+    }
+
+    #[test]
+    fn home_stops_reading_when_the_settings_could_not_be_read() {
+        // The paths every other read runs against live in the settings, so without them nothing is on its way
+        // any more. Home used to wait forever: "Checking" with no read running and Check again disabled.
+        let mut unreadable = sound();
+        unreadable.config = Fetch::Failed("the settings file could not be read".into());
+        unreadable.engine = Fetch::Idle;
+        unreadable.load_order = Fetch::Idle;
+        assert!(!unreadable.reading());
+        assert_eq!(unreadable.readiness(), Readiness::Next(Step::Storage));
+        assert_eq!(unreadable.block(), Some(Block::Unreadable));
+        assert!(!unreadable.can_play());
+    }
+
+    #[test]
+    fn home_stops_reading_when_the_settings_hold_no_paths() {
+        // A settings answer that read as empty is a read that came back; the other reads were never asked for.
+        let mut no_paths = sound();
+        no_paths.config = Fetch::Ready(Config::with("/c", &[]));
+        no_paths.engine = Fetch::Idle;
+        no_paths.load_order = Fetch::Idle;
+        assert!(!no_paths.reading());
+        assert_eq!(no_paths.readiness(), Readiness::Next(Step::Game));
+        assert!(!no_paths.can_play());
     }
 }

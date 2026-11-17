@@ -3,8 +3,9 @@
 //!
 //! The readiness rows show the paths of Settings, the engine of Versions, TTW and the two pages of the Play group,
 //! each one click from the page that fixes it. The chips above them list what needs attention. Play runs
-//! `raul run nv-rs`; when something blocks it, the reason is shown under it with a Fix button, and pressing it
-//! explains the reason too. On a first run, with no New Vegas folder set, Home opens the setup wizard once.
+//! `raul run nv-rs`; when the setup misses a step, Play says which and its Fix opens the page that sets it up
+//! (UI-RULES G3). The panel and the header say "Ready to play" and "All set" only when readiness holds.
+//! On a first run, with no New Vegas folder set, Home opens the setup wizard once.
 //!
 //! The status mark at the end of this file (colour, icon and word, UI-RULES C3) is shared with Settings, Versions
 //! and the wizard.
@@ -31,12 +32,15 @@ crate::texts!(TEXTS {
     STATE_ONE = "One thing to look at";
     STATE_MANY = "{n} things to look at";
     STATE_RUNNING = "The game is running";
+    STATE_NOT_READY = "Not ready yet";
     STATE_NEXT = "Not ready yet: {step}";
     STEP_GAME = "set the game folder";
     STEP_STORAGE = "set the storage folder";
     STEP_INSTANCE = "set up the Instance";
-    STEP_ENGINE = "install the engine";
+    STEP_ENGINE = "check the engine";
     STEP_LOAD_ORDER = "fix the load order";
+    WHY_NO_SETTINGS = "the settings could not be read";
+    WHY_NO_INSTANCE = "the Instance folder is not there yet";
     CHECK_AGAIN = "Check again";
     SECTION_READINESS = "Readiness";
     SECTION_LAUNCH = "Launch";
@@ -110,6 +114,8 @@ pub struct Home {
     visits: Visits,
     /// The shell's Play arrived while the reads were still on their way.
     play_waiting: bool,
+    /// What the dialog under Play offered to fix, so its Fix opens that page even when the state moved on.
+    blocked_fix: Option<View>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -144,25 +150,37 @@ impl Home {
                 }
             }
             Err(e) => {
+                // Without the settings there are no paths, so no other read could even be asked for. Home settles
+                // on this answer instead of waiting for reads that were never started.
                 self.state.config = Fetch::Failed(e.what.to_owned());
-                self.state.instance_exists = Some(false);
-                self.state.load_order = Fetch::Ready(());
+                self.settle_without_paths(WHY_NO_SETTINGS.to_owned());
             }
         }
+    }
+
+    /// Settles the reads that run against the settings' paths, with the reason they were not asked for.
+    fn settle_without_paths(&mut self, why: String) {
+        self.state.instance_exists = Some(false);
+        self.state.engine = Fetch::Failed(why.clone());
+        self.state.load_order = Fetch::Failed(why);
+    }
+
+    /// Settles the reads that run against the Instance folder: an Instance that is not there holds no engine and
+    /// has no load order to read.
+    fn settle_without_instance(&mut self) {
+        self.state.instance_exists = Some(false);
+        self.state.engine = Fetch::Ready(Engine::missing());
+        self.state.load_order = Fetch::Failed(WHY_NO_INSTANCE.to_owned());
     }
 
     /// Reads the engine once the Instance is known: an Instance that does not exist yet holds no engine.
     fn load_engine(&mut self, cx: &mut PageCx<'_>, config: &Config) {
         let Some(instance) = config.get(Key::Instance) else {
-            self.state.engine = Fetch::Ready(Engine::missing());
-            self.state.instance_exists = Some(false);
-            self.state.load_order = Fetch::Ready(());
+            self.settle_without_instance();
             return;
         };
         if !std::path::Path::new(instance).exists() {
-            self.state.engine = Fetch::Ready(Engine::missing());
-            self.state.instance_exists = Some(false);
-            self.state.load_order = Fetch::Ready(());
+            self.settle_without_instance();
             return;
         }
         self.state.instance_exists = Some(true);
@@ -191,9 +209,9 @@ impl Home {
                         self.state.config = Fetch::Ready(config);
                     }
                     Err(why) => {
+                        // The answer said no: the paths are not known, so nothing else was read.
                         self.state.config = Fetch::Failed(why);
-                        self.state.instance_exists = Some(false);
-                        self.state.load_order = Fetch::Ready(());
+                        self.settle_without_paths(WHY_NO_SETTINGS.to_owned());
                     }
                 },
                 Job::LoadOrder => {
@@ -242,18 +260,27 @@ impl Home {
         }
     }
 
+    /// Pressing Play: start the game, or say what stands in the way and offer the page that fixes it. A press is
+    /// never a silent no-op (UI-RULES G3), and a setup that misses a step never starts a game.
     fn play(&mut self, cx: &mut PageCx<'_>) {
-        if let Some(block) = self.state.block() {
-            let e = block_text(block);
-            cx.dialogs.open(Dialog::confirm(
-                BLOCKED_DIALOG,
-                msg::PLAY_BLOCKED_TITLE,
-                e.detail,
-                FIX,
-            ));
+        if self.state.launch == Launch::Starting {
+            return; // A launch is on its way; the panel says Starting.
+        }
+        if self.state.reading() {
+            // A Play from the top bar that arrived while the reads run starts as soon as they settle.
+            self.play_waiting = true;
             return;
         }
-        let Some(command) = self.state.run_command().filter(|_| self.state.can_play()) else {
+        if let Some((why, fix)) = self.stop() {
+            self.blocked_fix = Some(fix);
+            cx.dialogs
+                .open(Dialog::confirm(BLOCKED_DIALOG, msg::PLAY_BLOCKED_TITLE, why, FIX));
+            return;
+        }
+        if !self.state.can_play() {
+            return; // Readiness has the last word on starting; `stop` has already explained the rest.
+        }
+        let Some(command) = self.state.run_command() else {
             return;
         };
         match start(cx, &command) {
@@ -262,6 +289,23 @@ impl Home {
                 self.state.launch = Launch::Starting;
             }
             Err(e) => self.state.launch = Launch::Failed(e.what.to_owned()),
+        }
+    }
+
+    /// What stands between this press and a game that starts, and the view whose control fixes it: `None` when
+    /// nothing does. A known blocking problem says more than the step does; otherwise the step is what readiness
+    /// missed, and the sentence under Play says the same thing (rule 2: named once).
+    fn stop(&self) -> Option<(String, View)> {
+        if let Some(block) = self.state.block() {
+            return Some((block_text(block).detail.to_owned(), block.fix()));
+        }
+        match self.state.readiness() {
+            // Checking is not reached: a press during the reads waits in `play` instead.
+            Readiness::Ready | Readiness::Checking => None,
+            Readiness::Next(step) => Some((
+                STATE_NEXT.replace("{step}", step_text(step)),
+                step.fix(),
+            )),
         }
     }
 }
@@ -300,10 +344,12 @@ impl Page for Home {
         if self.state.launch == Launch::Started {
             return STATE_RUNNING.to_owned();
         }
-        if let Readiness::Next(step) = self.state.readiness()
+        // The header counts what the rows say and leaves the step that no row marks to the line under Play, so a
+        // missing step is named once (UI-RULES G5).
+        if matches!(self.state.readiness(), Readiness::Next(_))
             && self.state.attention().is_empty()
         {
-            return STATE_NEXT.replace("{step}", step_text(step));
+            return STATE_NOT_READY.to_owned();
         }
         if self.state.reading() {
             return STATE_CHECKING.to_owned();
@@ -357,10 +403,22 @@ impl Page for Home {
             self.state.offered_setup = true;
             cx.shell.go_to = Some(View::Flow(raul_ui_model::pages::Flow::Setup));
         }
-        if cx.dialogs.take_answer(BLOCKED_DIALOG) == Some(Answer::Confirmed)
-            && let Some(block) = self.state.block()
-        {
-            cx.shell.go_to = Some(block.fix());
+        match cx.dialogs.take_answer(BLOCKED_DIALOG) {
+            // Fix opens the page the dialog named, even when the reads moved the state on since it opened.
+            Some(Answer::Confirmed) => {
+                if let Some(fix) = self.blocked_fix.take() {
+                    cx.shell.go_to = Some(fix);
+                }
+            }
+            Some(Answer::Closed) => {
+                self.blocked_fix = None;
+                // The dialog closed, so the press it answered is answered too: it must not reopen the dialog.
+                if cx.shell.play_requested && !self.state.reading() {
+                    cx.shell.play_requested = false;
+                    self.play_waiting = false;
+                }
+            }
+            None => {}
         }
         // The shell's Play: start once the reads are in; a block found by then is explained, not started.
         if cx.shell.play_requested {
@@ -418,17 +476,20 @@ impl Home {
         shell::section_label(ui, &t, SECTION_LAUNCH, true);
         let block = self.state.block();
         let checking = self.state.reading();
-        let line = match (&self.state.launch, block) {
-            (Launch::Started, _) => Some(RAUL_STARTED),
-            (Launch::Failed(_), _) | (_, Some(_)) => None,
-            _ if checking => None,
-            _ if self.state.readiness() == Readiness::Ready
-                && self.state.attention().is_empty() =>
-            {
-                Some(RAUL_READY)
-            }
-            _ if self.state.attention().is_empty() => None,
-            _ => Some(RAUL_WARNINGS),
+        let readiness = self.state.readiness();
+        let warned = !self.state.attention().is_empty();
+        // Raul's line is the panel's headline, so it does not say twice what the error line or the step line under
+        // Play already says (UI-RULES G5). "All set" shows only when readiness holds in full (rule 1).
+        let line = match &self.state.launch {
+            Launch::Started => Some(RAUL_STARTED),
+            Launch::Failed(_) => None,
+            _ if checking || block.is_some() => None,
+            _ if readiness == Readiness::Ready => Some(if warned {
+                RAUL_WARNINGS
+            } else {
+                RAUL_READY
+            }),
+            _ => None,
         };
         if let Some(line) = line {
             shell::raul_line(ui, &t, line);
@@ -458,8 +519,11 @@ impl Home {
             });
             ui.label(RichText::new(e.detail).color(t.muted.color()));
         }
-        if let Readiness::Next(step) = self.state.readiness()
+        // The step that no row marks, said once under Play with the page that sets it up (UI-RULES G2, G3). While
+        // the reads run, the header says Checking and this waits: a step is only missing once it is known.
+        if let Readiness::Next(step) = readiness
             && block.is_none()
+            && !checking
         {
             ui.horizontal_wrapped(|ui| {
                 icon(ui, &t, Mark::Warning);

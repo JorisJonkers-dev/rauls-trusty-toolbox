@@ -117,8 +117,12 @@ fn play_with_a_game_asks_home_to_start_it() {
     let mut h = harness(1280.0, app);
     h.get_by_label(msg::PLAY).click();
     h.run();
-    assert!(!h.state().dialogs().is_open());
     assert_eq!(h.state().view(), View::Page(PageId::Home));
+    // Home has the press now. The game folder is known, so if Home explains a step, it is not that one; in this
+    // fixture the storage folder is still missing, and Play says so instead of doing nothing.
+    if let Some(d) = h.state().dialogs().current() {
+        assert!(!d.body.join(" ").contains("game folder"), "{:?}", d.body);
+    }
 }
 
 #[test]
