@@ -127,6 +127,10 @@ enum Job {
 
 const BLOCKED_DIALOG: &str = "home-play-blocked";
 
+/// The room the Fix button beside a blocking problem needs, so the text next to it wraps instead of pushing the
+/// button past the right edge at the smallest window (UI-RULES A5, A6).
+const FIX_ROOM: f32 = 72.0;
+
 impl Home {
     /// Home in `state`, as a fixture shows it.
     pub fn with(state: State) -> Home {
@@ -519,6 +523,9 @@ impl Home {
                 .horizontal_top(|ui| {
                     icon(ui, &t, Mark::Problem);
                     ui.vertical(|ui| {
+                        // The text keeps room for the Fix button beside it, so the row never reaches past the
+                        // page at the smallest window (UI-RULES A5, A6).
+                        ui.set_max_width((ui.available_width() - FIX_ROOM).max(80.0));
                         ui.add(
                             egui::Label::new(RichText::new(e.what).color(t.err.color()))
                                 .wrap()
