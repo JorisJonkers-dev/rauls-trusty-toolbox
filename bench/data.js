@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794937424426,
+  "lastUpdate": 1794938176804,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -2204,6 +2204,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.741294,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "66275e383f60bf1ac8af4eadf226624af9a7eb04",
+          "message": "fix(gui): show one version and drop known-good from the UI (#188)\n\n* fix(gui): show one version and take the known-good set out of the UI\n\n* test(gui): leave the network answer of the update check out of the registry test\n\n* fix(gui): follow main's profile and update seams after the merge",
+          "timestamp": "2026-11-17T18:55:08+01:00",
+          "tree_id": "9d3ac96624bc20389eb7d48a183061eb91afeb3c",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/66275e383f60bf1ac8af4eadf226624af9a7eb04"
+        },
+        "date": 1794938176147,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.959583,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.730478,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.529195,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.6329839999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 11.001873,
             "unit": "ms"
           }
         ]
