@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794896836969,
+  "lastUpdate": 1794897333547,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -979,6 +979,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.059385,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "92320af83ab66ad125f4269d161d85213f5d9608",
+          "message": "feat(lod): publish the raul-lod-result v1 Contract with fixtures (#126)",
+          "timestamp": "2026-11-17T07:33:10+01:00",
+          "tree_id": "e61f884331682fcdda32a259d5abc90e056cfa5f",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/92320af83ab66ad125f4269d161d85213f5d9608"
+        },
+        "date": 1794897332786,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.063302,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.623278,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.557454,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.495345,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.00194,
             "unit": "ms"
           }
         ]
