@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The Toolbox's own Contracts: the schema files in `contracts/` equal the ones generated from the Rust types, and
-//! every fixture in `contracts/fixtures/<name>/` is valid against its schema and reads back into its type unchanged.
+//! every fixture in `contracts/fixtures/<name>/` (a `.json` document, or a `.ndjson` stream of one per line) is
+//! valid against its schema and reads back into its type unchanged. The `ttwright-result` documents the fixtures
+//! carry are valid against the snapshot of ttwright-rs v0.3.0's schema in `contracts/snapshots/`.
 //! `RAUL_BLESS_CONTRACTS=1 cargo test -p raul-core --test contracts` rewrites the schema files.
 
 use std::path::{Path, PathBuf};
 
 use raul_core::config::{ConfigDoc, Key};
 use raul_core::contracts::OWN;
+use raul_drivers::events::{Event, EventLine};
+use raul_drivers::ttw::TtwResult;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 fn contracts_dir() -> PathBuf {
@@ -18,16 +24,49 @@ fn fixtures(name: &str) -> Vec<(PathBuf, Value)> {
     let mut files: Vec<PathBuf> = std::fs::read_dir(&dir)
         .unwrap_or_else(|e| panic!("{}: {e}", dir.display()))
         .map(|e| e.unwrap().path())
-        .filter(|p| p.extension().is_some_and(|e| e == "json"))
+        .filter(|p| p.extension().is_some_and(|e| e == "json" || e == "ndjson"))
         .collect();
     files.sort();
-    files
+    let mut found = Vec::new();
+    for p in files {
+        let text = std::fs::read_to_string(&p).unwrap();
+        let parse = |t: &str| -> Value {
+            serde_json::from_str(t).unwrap_or_else(|e| panic!("{}: {e}", p.display()))
+        };
+        if p.extension().is_some_and(|e| e == "ndjson") {
+            found.extend(text.lines().map(|l| (p.clone(), parse(l))));
+        } else {
+            found.push((p.clone(), parse(&text)));
+        }
+    }
+    found
+}
+
+fn validator(schema_text: &str) -> jsonschema::Validator {
+    jsonschema::validator_for(&serde_json::from_str(schema_text).unwrap()).unwrap()
+}
+
+fn assert_valid(validator: &jsonschema::Validator, value: &Value, what: &str) {
+    let errors: Vec<String> = validator
+        .iter_errors(value)
+        .map(|e| e.to_string())
+        .collect();
+    assert!(errors.is_empty(), "{what}: {errors:?}");
+}
+
+fn reads_back<T: Serialize + DeserializeOwned>(name: &str) -> Vec<T> {
+    fixtures(name)
         .into_iter()
-        .map(|p| {
-            let text = std::fs::read_to_string(&p).unwrap();
-            let value =
-                serde_json::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", p.display()));
-            (p, value)
+        .map(|(path, value)| {
+            let doc: T = serde_json::from_value(value.clone())
+                .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+            assert_eq!(
+                serde_json::to_value(&doc).unwrap(),
+                value,
+                "{}",
+                path.display()
+            );
+            doc
         })
         .collect()
 }
@@ -54,31 +93,20 @@ fn every_schema_file_equals_the_generated_schema() {
 #[test]
 fn every_fixture_is_valid_against_its_schema() {
     for own in OWN {
-        let schema: Value = serde_json::from_str(&(own.schema)()).unwrap();
-        let validator = jsonschema::validator_for(&schema).unwrap();
+        let validator = validator(&(own.schema)());
         let found = fixtures(own.name);
         assert!(!found.is_empty(), "no fixture for {}", own.name);
         for (path, value) in found {
-            let errors: Vec<String> = validator
-                .iter_errors(&value)
-                .map(|e| e.to_string())
-                .collect();
-            assert!(errors.is_empty(), "{}: {errors:?}", path.display());
+            assert_valid(&validator, &value, &path.display().to_string());
         }
     }
 }
 
 #[test]
 fn config_fixtures_read_back_unchanged() {
+    reads_back::<ConfigDoc>("raul-config");
     for (path, value) in fixtures("raul-config") {
-        let doc: ConfigDoc = serde_json::from_value(value.clone())
-            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-        assert_eq!(
-            serde_json::to_value(&doc).unwrap(),
-            value,
-            "{}",
-            path.display()
-        );
+        let doc: ConfigDoc = serde_json::from_value(value).unwrap();
         for entry in &doc.entries {
             assert_eq!(entry.read_only, entry.key.read_only(), "{}", path.display());
         }
@@ -89,6 +117,58 @@ fn config_fixtures_read_back_unchanged() {
             let keys: Vec<Key> = doc.entries.iter().map(|e| e.key).collect();
             assert_eq!(keys, Key::ALL, "{}", path.display());
         }
+    }
+}
+
+#[test]
+fn every_event_stream_is_numbered_from_one_and_ends_with_finished() {
+    let lines = reads_back::<EventLine>("raul-events");
+    let streams: Vec<&[EventLine]> = lines
+        .split_inclusive(|l| matches!(l.event, Event::Finished { .. }))
+        .collect();
+    assert!(streams.len() >= 4);
+    let ttw = validator(&raul_drivers::ttw::schema());
+    for stream in streams {
+        assert!(matches!(
+            stream.last().unwrap().event,
+            Event::Finished { .. }
+        ));
+        for (i, line) in stream.iter().enumerate() {
+            assert_eq!(line.seq, i as u64 + 1, "{line:?}");
+            if let Event::Result { result } = &line.event {
+                assert_valid(&ttw, result, "the result event of a ttw stream");
+                let Event::Finished { status, .. } = &stream.last().unwrap().event else {
+                    unreachable!()
+                };
+                assert_eq!(result["status"], serde_json::to_value(status).unwrap());
+                let Event::Finished {
+                    code, resumable, ..
+                } = &stream.last().unwrap().event
+                else {
+                    unreachable!()
+                };
+                assert_eq!(result["resumable"], *resumable);
+                assert_eq!(result["error"]["code"].as_str(), code.as_deref());
+            }
+        }
+    }
+}
+
+#[test]
+fn ttw_result_fixtures_read_back_and_carry_valid_ttwright_results() {
+    let snapshot = std::fs::read_to_string(
+        contracts_dir().join("snapshots/ttwright-rs/ttwright-result.v1.json"),
+    )
+    .unwrap();
+    let ttwright = validator(&snapshot);
+    for doc in reads_back::<TtwResult>("raul-ttw-result") {
+        if let Some(inner) = &doc.ttwright {
+            assert_valid(&ttwright, inner, "ttwright-result");
+        }
+        assert_eq!(
+            doc.error.is_none(),
+            doc.status == raul_drivers::events::Status::Success
+        );
     }
 }
 
@@ -110,8 +190,7 @@ fn a_config_document_without_file_or_value_is_not_valid() {
 
 #[test]
 fn a_config_document_of_another_version_or_contract_is_not_valid() {
-    let schema: Value = serde_json::from_str(&raul_core::config::schema()).unwrap();
-    let validator = jsonschema::validator_for(&schema).unwrap();
+    let validator = validator(&raul_core::config::schema());
     let (_, good) = fixtures("raul-config").remove(0);
     let mut newer = good.clone();
     newer["schema_version"] = 2.into();

@@ -1,0 +1,289 @@
+{
+  "$defs": {
+    "Status": {
+      "description": "How a driver command ended.",
+      "oneOf": [
+        {
+          "const": "success",
+          "description": "Done (exit code 0). For a dry run: everything checked, nothing written.",
+          "type": "string"
+        },
+        {
+          "const": "refused",
+          "description": "Refused before anything was written (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "unsupported",
+          "description": "The Component refused the input as one it does not support (exit code 2); nothing was written.",
+          "type": "string"
+        },
+        {
+          "const": "unverifiable",
+          "description": "The program could not be verified against its checksum (exit code 3); it was not started.",
+          "type": "string"
+        },
+        {
+          "const": "failed",
+          "description": "A step failed (exit code 4); the Instance is as it was.",
+          "type": "string"
+        },
+        {
+          "const": "cancelled",
+          "description": "Cancelled (exit code 4); the Instance is as it was, and `--resume` continues.",
+          "type": "string"
+        }
+      ]
+    },
+    "ToolInfo": {
+      "description": "The Component program a driver runs.",
+      "properties": {
+        "name": {
+          "description": "The program's name, for example `ttwright`.",
+          "type": "string"
+        },
+        "path": {
+          "description": "The file that ran.",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "The SHA-256 of that file, checked again right before it was started.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Its version as the program reported it in its result; `null` in the `started` event, before it ran.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "path",
+        "sha256",
+        "version"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "One line of the stream.",
+  "oneOf": [
+    {
+      "description": "The checks passed and the Component program is about to start.",
+      "properties": {
+        "dry_run": {
+          "description": "Nothing is written.",
+          "type": "boolean"
+        },
+        "event": {
+          "const": "started",
+          "type": "string"
+        },
+        "instance": {
+          "description": "The Instance.",
+          "type": "string"
+        },
+        "profile": {
+          "description": "The Profile that gets the result.",
+          "type": "string"
+        },
+        "resume": {
+          "description": "The run continues an interrupted one (`--resume`).",
+          "type": "boolean"
+        },
+        "tool": {
+          "$ref": "#/$defs/ToolInfo",
+          "description": "The program that runs."
+        }
+      },
+      "required": [
+        "dry_run",
+        "event",
+        "instance",
+        "profile",
+        "resume",
+        "tool"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "A phase of the Component's work began. The phases are the Component's own (for `ttw`: `package`,\n`preflight`, `checks`, `assets`, `post_install`), then the Toolbox's: `add_mod`.",
+      "properties": {
+        "event": {
+          "const": "phase",
+          "type": "string"
+        },
+        "phase": {
+          "description": "The phase.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event",
+        "phase"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "Progress within the current phase.",
+      "properties": {
+        "done": {
+          "description": "Items done so far.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "event": {
+          "const": "progress",
+          "type": "string"
+        },
+        "message": {
+          "description": "What is being worked on, for people.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "of": {
+          "description": "Items in total; 0 when the total is not known yet.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "phase": {
+          "description": "The phase.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "done",
+        "event",
+        "message",
+        "of",
+        "phase"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "Something did not go as planned, but the run goes on.",
+      "properties": {
+        "event": {
+          "const": "warning",
+          "type": "string"
+        },
+        "message": {
+          "description": "For people.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event",
+        "message"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "The command's result document: a `raul-ttw-result` for `ttw`.",
+      "properties": {
+        "event": {
+          "const": "result",
+          "type": "string"
+        },
+        "result": {
+          "description": "The document."
+        }
+      },
+      "required": [
+        "event",
+        "result"
+      ],
+      "type": "object"
+    },
+    {
+      "description": "The run ended. Always the last line; the exit code of the process equals `exit_code`.",
+      "properties": {
+        "changed": {
+          "description": "Whether the Instance was changed.",
+          "type": "boolean"
+        },
+        "code": {
+          "description": "The stable error code of the command's result, unless the status is `success`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "event": {
+          "const": "finished",
+          "type": "string"
+        },
+        "exit_code": {
+          "description": "The exit code of `raul`.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "message": {
+          "description": "For people; never matched on.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resumable": {
+          "description": "`--resume` continues the run.",
+          "type": "boolean"
+        },
+        "status": {
+          "$ref": "#/$defs/Status",
+          "description": "How it ended."
+        }
+      },
+      "required": [
+        "changed",
+        "code",
+        "event",
+        "exit_code",
+        "message",
+        "resumable",
+        "status"
+      ],
+      "type": "object"
+    }
+  ],
+  "properties": {
+    "command": {
+      "description": "The `raul` command that prints the stream, for example `ttw`.",
+      "type": "string"
+    },
+    "contract": {
+      "const": "raul-events",
+      "description": "Always `raul-events`.",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "description": "The line's version; 1.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "seq": {
+      "description": "The line's number in the stream, from 1.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "command",
+    "contract",
+    "schema_version",
+    "seq"
+  ],
+  "title": "EventLine",
+  "type": "object"
+}

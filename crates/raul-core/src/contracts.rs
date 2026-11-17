@@ -23,36 +23,26 @@ impl Own {
 }
 
 /// Every Contract the Toolbox produces.
-pub const OWN: &[Own] = &[Own {
-    name: crate::config::CONTRACT,
-    version: crate::config::SCHEMA_VERSION,
-    schema: crate::config::schema,
-}];
+pub const OWN: &[Own] = &[
+    Own {
+        name: crate::config::CONTRACT,
+        version: crate::config::SCHEMA_VERSION,
+        schema: crate::config::schema,
+    },
+    Own {
+        name: raul_drivers::events::CONTRACT,
+        version: raul_drivers::events::SCHEMA_VERSION,
+        schema: raul_drivers::events::schema,
+    },
+    Own {
+        name: raul_drivers::ttw::CONTRACT,
+        version: raul_drivers::ttw::SCHEMA_VERSION,
+        schema: raul_drivers::ttw::schema,
+    },
+];
 
-/// A schema as pretty JSON with a final newline, the form the files in `contracts/` have. Every property of every
-/// object is listed as required: the Toolbox always prints every field, with `null` for one that has no value.
+/// A schema as pretty JSON with a final newline, the form the files in `contracts/` have (see
+/// [`raul_drivers::schema_text`]).
 pub(crate) fn schema_text(schema: &schemars::Schema) -> String {
-    let mut value = schema.as_value().clone();
-    require_every_property(&mut value);
-    let mut text = serde_json::to_string_pretty(&value).expect("a schema is JSON");
-    text.push('\n');
-    text
-}
-
-fn require_every_property(value: &mut serde_json::Value) {
-    match value {
-        serde_json::Value::Object(map) => {
-            if let Some(serde_json::Value::Object(properties)) = map.get("properties") {
-                let names: Vec<serde_json::Value> = properties
-                    .keys()
-                    .cloned()
-                    .map(serde_json::Value::String)
-                    .collect();
-                map.insert("required".into(), serde_json::Value::Array(names));
-            }
-            map.values_mut().for_each(require_every_property);
-        }
-        serde_json::Value::Array(items) => items.iter_mut().for_each(require_every_property),
-        _ => {}
-    }
+    raul_drivers::schema_text(schema)
 }

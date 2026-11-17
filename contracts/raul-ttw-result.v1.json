@@ -1,0 +1,275 @@
+{
+  "$defs": {
+    "Status": {
+      "description": "How a driver command ended.",
+      "oneOf": [
+        {
+          "const": "success",
+          "description": "Done (exit code 0). For a dry run: everything checked, nothing written.",
+          "type": "string"
+        },
+        {
+          "const": "refused",
+          "description": "Refused before anything was written (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "unsupported",
+          "description": "The Component refused the input as one it does not support (exit code 2); nothing was written.",
+          "type": "string"
+        },
+        {
+          "const": "unverifiable",
+          "description": "The program could not be verified against its checksum (exit code 3); it was not started.",
+          "type": "string"
+        },
+        {
+          "const": "failed",
+          "description": "A step failed (exit code 4); the Instance is as it was.",
+          "type": "string"
+        },
+        {
+          "const": "cancelled",
+          "description": "Cancelled (exit code 4); the Instance is as it was, and `--resume` continues.",
+          "type": "string"
+        }
+      ]
+    },
+    "ToolInfo": {
+      "description": "The Component program a driver runs.",
+      "properties": {
+        "name": {
+          "description": "The program's name, for example `ttwright`.",
+          "type": "string"
+        },
+        "path": {
+          "description": "The file that ran.",
+          "type": "string"
+        },
+        "sha256": {
+          "description": "The SHA-256 of that file, checked again right before it was started.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Its version as the program reported it in its result; `null` in the `started` event, before it ran.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "path",
+        "sha256",
+        "version"
+      ],
+      "type": "object"
+    },
+    "TtwError": {
+      "description": "Why `raul ttw` did not succeed.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/TtwErrorCode",
+          "description": "The stable code callers match on."
+        },
+        "message": {
+          "description": "Prose for people; never matched on.",
+          "type": "string"
+        },
+        "ttwright_code": {
+          "description": "For `ttwright_failed`, `unsupported` and `cancelled`: ttwright's own `error.code`, for example\n`check_failed` or `unsupported_version`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "ttwright_code"
+      ],
+      "type": "object"
+    },
+    "TtwErrorCode": {
+      "description": "The stable error codes of `raul ttw`. The exit code of each is in `contracts/README.md`.",
+      "oneOf": [
+        {
+          "const": "instance_invalid",
+          "description": "The Instance does not exist or cannot be opened (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "profile_missing",
+          "description": "The Profile does not exist (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "missing_input",
+          "description": "A game folder or the TTW package was given neither as a flag nor in `raul config`, or is not what it\nshould be (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "mod_exists",
+          "description": "The Instance already has a `Tale of Two Wastelands` Mod (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "tool_missing",
+          "description": "No ttwright program: none is bundled next to `raul` and `--ttwright` was not given (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "tool_unverifiable",
+          "description": "The ttwright program changed between its checksum and its start (exit code 3); it was not started.",
+          "type": "string"
+        },
+        {
+          "const": "tool_failed",
+          "description": "ttwright could not be started, ended without a result, or printed one that is not a `ttwright-result`\n(exit code 4).",
+          "type": "string"
+        },
+        {
+          "const": "contract_refused",
+          "description": "ttwright printed a `ttwright-result` of a version this build does not read (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "ttwright_failed",
+          "description": "ttwright ran and failed (its exit code 1 or 2; exit code 4); `ttwright_code` says why.",
+          "type": "string"
+        },
+        {
+          "const": "unsupported",
+          "description": "ttwright does not support the package or one of its features (its exit code 3; exit code 2). Nothing was\nwritten.",
+          "type": "string"
+        },
+        {
+          "const": "cancelled",
+          "description": "The run was cancelled (exit code 4); `--resume` continues it.",
+          "type": "string"
+        },
+        {
+          "const": "add_mod_failed",
+          "description": "ttwright succeeded but adding its output to the Instance failed and was rolled back (exit code 4).",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The result of `raul ttw` (Contract `raul-ttw-result`, version 1).",
+  "properties": {
+    "contract": {
+      "const": "raul-ttw-result",
+      "description": "Always `raul-ttw-result`.",
+      "type": "string"
+    },
+    "dry_run": {
+      "description": "A dry run: ttwright read the package and checked the game copies, and nothing was written.",
+      "type": "boolean"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TtwError"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Set unless the status is `success`."
+    },
+    "files": {
+      "description": "Files in the Mod, or `null` when no Mod was added.",
+      "format": "uint64",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "instance": {
+      "description": "The Instance.",
+      "type": "string"
+    },
+    "mod": {
+      "description": "The Mod added to the Instance (`Tale of Two Wastelands`), or `null` when none was.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "plugins_enabled": {
+      "description": "The plugins the Profile enabled with the Mod, in load order.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "profile": {
+      "description": "The Profile that got the Mod.",
+      "type": "string"
+    },
+    "resumable": {
+      "description": "`raul ttw --resume` with the same arguments continues this run.",
+      "type": "boolean"
+    },
+    "resumed": {
+      "description": "The run continued an interrupted one.",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": 1,
+      "description": "The document version; 1.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "staging": {
+      "description": "The folder ttwright wrote to. It is kept after a cancelled or failed run so `--resume` can continue there,\nand removed after a successful one.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "$ref": "#/$defs/Status",
+      "description": "How the run ended; the same as the `finished` event's."
+    },
+    "tool": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ToolInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The ttwright program that ran, or `null` when none did."
+    },
+    "ttwright": {
+      "description": "The `ttwright-result` v1 document ttwright printed, as it printed it, or `null` when it printed none."
+    }
+  },
+  "required": [
+    "contract",
+    "dry_run",
+    "error",
+    "files",
+    "instance",
+    "mod",
+    "plugins_enabled",
+    "profile",
+    "resumable",
+    "resumed",
+    "schema_version",
+    "staging",
+    "status",
+    "tool",
+    "ttwright"
+  ],
+  "title": "TtwResult",
+  "type": "object"
+}
