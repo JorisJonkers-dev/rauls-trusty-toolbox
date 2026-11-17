@@ -36,7 +36,7 @@ crate::texts!(TEXTS {
     RAIL_CHECK = "Check";
     RAIL_CHECK_SUB = "Quick health check";
     RAIL_READY = "Ready";
-    RAIL_READY_SUB = "Open the Toolbox";
+    RAIL_READY_SUB = "What was set up";
     DONE = "Done";
     TITLE_NEW_VEGAS = "Where's New Vegas?";
     SUB_NEW_VEGAS = "Point the Toolbox at your game folder, and pick where it keeps its own files.";
@@ -185,12 +185,14 @@ impl Setup {
         }
     }
 
-    fn install(&mut self, cx: &mut PageCx<'_>) {
+    /// Install: `raul init` first when there is no Instance yet, then `raul install-nv-rs`. `made` says the init
+    /// of this install already succeeded, so it is not run again whatever the folder looks like.
+    fn install(&mut self, cx: &mut PageCx<'_>, made: bool) {
         let (Some(instance), Some(game)) = (self.state.instance(), self.state.game.saved.clone())
         else {
             return;
         };
-        let has_instance = std::path::Path::new(&instance).exists();
+        let has_instance = made || std::path::Path::new(&instance).exists();
         let (job, command, step) = if has_instance {
             (
                 Job::Install,
@@ -286,7 +288,7 @@ impl Setup {
                     }
                 }
                 Job::Init => match &result {
-                    Ok(out) if out.code == Some(0) => self.install(cx),
+                    Ok(out) if out.code == Some(0) => self.install(cx, true),
                     Ok(out) => self.state.engine = EngineStep::Failed(failure_of(out)),
                     Err(why) => self.state.engine = EngineStep::Failed(why.clone()),
                 },
@@ -566,7 +568,7 @@ impl Setup {
                     .add_enabled(can, shell::primary_button(&t, label))
                     .clicked()
                 {
-                    self.install(cx);
+                    self.install(cx, false);
                 }
             }
             EngineStep::Initialising => {
@@ -986,4 +988,110 @@ pub fn fixtures() -> Vec<Fixture> {
             ),
         ),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::jobs::Jobs;
+    use crate::shell::App;
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable;
+    use raul_ui_service::{Exec, Output};
+    use std::sync::{Arc, Mutex};
+
+    /// Answers each command as `raul` does on success and records them.
+    #[derive(Default)]
+    struct Script {
+        calls: Mutex<Vec<Vec<String>>>,
+    }
+
+    impl Exec for Script {
+        fn run(&self, args: &[String]) -> Result<Output, String> {
+            self.calls.lock().unwrap().push(args.to_vec());
+            let stdout = match args.first().map(String::as_str) {
+                Some("doctor") => {
+                    r#"{"base":"/g","findings":[{"code":"a.b","severity":"warning","subject":"loadorder.txt","message":"out of order"}],"summary":{"info":0,"warnings":1,"errors":0}}"#
+                }
+                _ => "",
+            };
+            Ok(Output {
+                code: Some(0),
+                stdout: stdout.into(),
+                stderr: String::new(),
+            })
+        }
+    }
+
+    fn wait_for(h: &mut Harness<'_, App>, done: impl Fn(&App) -> bool) {
+        for _ in 0..200 {
+            // Job threads ask for repaints as they report, so step rather than wait for the UI to settle.
+            h.run_steps(2);
+            if done(h.state()) {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        panic!("the wizard did not get there");
+    }
+
+    #[test]
+    fn the_wizard_installs_the_engine_runs_the_checks_and_opens_home() {
+        let storage = std::env::temp_dir().join("raul-setup-test-does-not-exist");
+        let storage = storage.to_string_lossy().into_owned();
+        let state = State::opened(
+            Config::with(
+                "/c",
+                &[(Key::NewVegas, "/games/nv"), (Key::StorageRoot, &storage)],
+            ),
+            None,
+        );
+        let exec = Arc::new(Script::default());
+        let app = App::fixture(
+            Fixture::new("flow", Setup::with(state)),
+            Jobs::new(exec.clone()),
+        );
+        let mut h = Harness::builder()
+            .with_size([1280.0, 800.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            });
+        h.run();
+        h.get_by_label(NEXT).click();
+        wait_for(&mut h, |_| true);
+        h.get_by_label(NEXT).click();
+        h.run_steps(2);
+        h.get_by_label(INSTALL).click();
+        let calls = exec.clone();
+        wait_for(&mut h, move |_| calls.calls.lock().unwrap().len() >= 2);
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        h.run_steps(4);
+        h.get_by_label(NEXT).click();
+        let calls = exec.clone();
+        wait_for(&mut h, move |_| calls.calls.lock().unwrap().len() >= 3);
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        h.run_steps(4);
+        h.get_by_label(NEXT).click();
+        h.run_steps(2);
+        assert!(h.query_by_label(SUB_READY).is_some());
+        h.get_by_label(FINISH).click();
+        h.run_steps(2);
+        assert_eq!(
+            h.state().view(),
+            View::Page(PageId::Home),
+            "Open the Toolbox goes Home"
+        );
+        let instance = format!("{storage}/instance");
+        let calls = exec.calls.lock().unwrap();
+        assert_eq!(
+            calls[0],
+            ["init", "--base", "/games/nv", "--instance", instance.as_str()]
+        );
+        assert_eq!(
+            calls[1],
+            ["install-nv-rs", "--instance", instance.as_str(), "--release"]
+        );
+        assert_eq!(calls[2], ["doctor", "--instance", instance.as_str(), "--json"]);
+    }
 }
