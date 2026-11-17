@@ -192,7 +192,7 @@ fn replace_mod(
     source: &Path,
 ) -> Result<(u64, Option<String>), String> {
     let previous = format!("{MOD_NAME} previous");
-    let had = find_ci(&instance.root.join("mods"), MOD_NAME).is_some();
+    let mods = instance.root.join("mods");
     let lifecycle_error = |e: nvmod_modinstall::mods::ModsError| match e {
         nvmod_modinstall::mods::ModsError::Refused(w)
         | nvmod_modinstall::mods::ModsError::Failed(w) => w,
@@ -201,10 +201,21 @@ fn replace_mod(
         force: true,
         dependants: Vec::new(),
     };
-    // A backup an interrupted run left behind is this command's own; it goes first.
-    if find_ci(&instance.root.join("mods"), &previous).is_some() {
-        lifecycle::apply(instance, profile, &previous, &remove, false).map_err(lifecycle_error)?;
+    // A backup an interrupted run left behind is this command's own. Beside a LOD Mod it is the older copy and
+    // goes first; alone it is the only copy, stopped between the rename and the install, and is renamed back.
+    if find_ci(&mods, &previous).is_some() {
+        if find_ci(&mods, MOD_NAME).is_some() {
+            lifecycle::apply(instance, profile, &previous, &remove, false)
+                .map_err(lifecycle_error)?;
+        } else {
+            let back = Action::Rename {
+                to: MOD_NAME.to_owned(),
+            };
+            lifecycle::apply(instance, profile, &previous, &back, false)
+                .map_err(lifecycle_error)?;
+        }
     }
+    let had = find_ci(&mods, MOD_NAME).is_some();
     if had {
         lifecycle::apply(
             instance,
@@ -334,7 +345,11 @@ pub fn generate(req: &LodRequest, emit: &mut dyn FnMut(Event)) -> LodOutcome {
         .map_or_else(|| instance.root.join(WORK_DIR), Path::to_path_buf);
     let (request_file, events) = (work.join("request.json"), work.join("events.ndjson"));
     let written = std::fs::create_dir_all(&work).and_then(|()| {
-        let _ = std::fs::remove_file(&events);
+        // Events of an earlier run must not be read as this run's progress.
+        match std::fs::remove_file(&events) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => return Err(e),
+            _ => {}
+        }
         std::fs::write(
             &request_file,
             serde_json::to_vec_pretty(&plan.request).unwrap_or_default(),

@@ -85,6 +85,10 @@ usage:
   raul lod plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]
                               the lodwright request a LOD run would send for the Profile (its active plugins,
                               its Staging tree and its raul-lod.toml); nothing is run
+  raul lod generate [--instance <dir>] [--profile <name>] [--world <name>]... [--dry-run]
+                    [--lodwright <path>] [--timeout-secs <n>] [--json]
+                              generate LOD with the bundled lodwright from that request and keep the output as
+                              the Mod `LOD (lodwright)`; --json streams raul-events lines
   raul <nvmod command> ...    every nvmod command (install, sort, run, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";

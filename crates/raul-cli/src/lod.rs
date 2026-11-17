@@ -14,8 +14,9 @@ use raul_drivers::lod::{self, LodRequest};
 
 use crate::printer::Printer;
 
-const USAGE_LINE: &str =
-    "lod takes `plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]`";
+const USAGE_LINE: &str = "lod takes `plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]` or \
+     `generate [--instance <dir>] [--profile <name>] [--world <name>]... [--dry-run] [--lodwright <path>] \
+     [--timeout-secs <n>] [--json]`";
 
 struct Flags {
     instance: Option<PathBuf>,

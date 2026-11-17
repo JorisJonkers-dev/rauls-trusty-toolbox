@@ -36,11 +36,12 @@ result() { # result <status> <code> <schema version>
 }
 manifest() { printf '{"schema_version":%s,"contract":"lodwright-manifest","files":[]}\n' "${1:-1}" > "$out/manifest.json"; }
 case "$mode" in
-  ok|v2|newermanifest|nomanifest)
+  ok|v2|newermanifest|nomanifest|fomod)
     if [ "$mode" = ok ] && [ -f "$out/manifest.json" ]; then result ok up_to_date; exit 0; fi
     mkdir -p "$out/meshes/landscape/lod" "$out/textures/landscape/lod"
     cat "$here/marker" > "$out/meshes/landscape/lod/block.nif" 2>/dev/null || echo first > "$out/meshes/landscape/lod/block.nif"
     echo synthetic > "$out/textures/landscape/lod/block.dds"
+    if [ "$mode" = fomod ]; then mkdir -p "$out/fomod"; echo '<config/>' > "$out/fomod/ModuleConfig.xml"; fi
     echo '{"event":"block","world":"SyntheticWorld","level":4,"done":1,"of":2,"up_to_date":false}' >> "$events"
     echo '{"event":"block","world":"SyntheticWorld","level":4,"done":2,"of":2,"up_to_date":false}' >> "$events"
     case "$mode" in
@@ -249,6 +250,34 @@ fn a_new_output_replaces_the_lod_mod_and_leaves_one() {
     assert!(out.status.success(), "{out:?}");
     std::fs::remove_file(f.instance().join(".raul/lod/out/manifest.json")).unwrap();
     assert_eq!(f.generate(&[]).0, Some(0));
+    assert!(!f.instance().join("mods/LOD (lodwright) previous").exists());
+}
+
+#[test]
+fn a_backup_left_alone_by_an_interrupted_run_is_put_back_when_the_new_mod_cannot_be_added() {
+    let f = Fixture::new("raul-lodgen-lone-backup");
+    f.mode("ok");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    let first = std::fs::read(f.lod_mod().join("meshes/landscape/lod/block.nif")).unwrap();
+    // An earlier run stopped after it moved the LOD Mod out of the way.
+    let out = f.raul(&[
+        "mods",
+        "rename",
+        "LOD (lodwright)",
+        "LOD (lodwright) previous",
+        "--instance",
+        s(&f.instance()),
+    ]);
+    assert!(out.status.success(), "{out:?}");
+    std::fs::remove_file(f.instance().join(".raul/lod/out/manifest.json")).unwrap();
+    f.mode("fomod");
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(4), "{result}");
+    assert_eq!(result["error"]["code"], "add_mod_failed", "{result}");
+    assert_eq!(
+        std::fs::read(f.lod_mod().join("meshes/landscape/lod/block.nif")).unwrap(),
+        first
+    );
     assert!(!f.instance().join("mods/LOD (lodwright) previous").exists());
 }
 

@@ -33,11 +33,11 @@ fn shipped_lodwright_version() -> String {
     let text = std::fs::read_to_string(
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../known-good.toml"),
     )
-    .unwrap();
+    .expect("read known-good.toml");
     let set = KnownGood::parse(&text)
-        .unwrap()
+        .expect("known-good.toml parses")
         .latest_known_good()
-        .unwrap()
+        .expect("a known-good set")
         .clone();
     set.components["lodwright-rs"]
         .version
@@ -122,6 +122,11 @@ impl Fixture {
             let errors: Vec<String> = events.iter_errors(l).map(|e| e.to_string()).collect();
             assert!(errors.is_empty(), "{errors:?} {l}");
         }
+        assert!(
+            lines.len() >= 2,
+            "a result and a finished line: {lines:?}\n{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
         let finished = lines.last().expect("a finished line").clone();
         assert_eq!(finished["event"], "finished", "{finished}");
         let result = lines[lines.len() - 2]["result"].clone();
