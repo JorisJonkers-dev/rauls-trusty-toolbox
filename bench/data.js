@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794869596095,
+  "lastUpdate": 1794894952160,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -636,6 +636,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 12.841707000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "33029e7a5c3c06f9048840b544f241125fb34908",
+          "message": "feat(config): publish the raul-config v1 Contract with its schema and fixtures (#119)\n\n* feat(config): publish the raul-config v1 Contract with its schema and fixtures\n\n* test(config): fixtures for a missing configuration folder and an unknown key\n\n* fix(config): list every printed field as required and pin the list order in a test\n\n* test(config): neutral paths in the fixtures\n\n* fix(config): print every field without serde defaults and document the usage exit",
+          "timestamp": "2026-11-17T06:54:47+01:00",
+          "tree_id": "46b7da5d2c0fec47735e8d53c09b451827e1c18d",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/33029e7a5c3c06f9048840b544f241125fb34908"
+        },
+        "date": 1794894951869,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.05243,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.628124,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.449838999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.495692,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.938031,
             "unit": "ms"
           }
         ]
