@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! Settings: the paths the Toolbox uses, and nothing else (UI-RULES P3, P5, T6).
 //!
-//! Each path saves when its field is left, through `raul config set` (or `unset` when it is emptied), and the
-//! command is shown under the field. A refused path is not written and says why. The page also reopens the setup
-//! wizard and shows the About and notices.
+//! Each path saves when its field is left, through `raul config set` (or `unset` when it is emptied). A refused
+//! path is not written and says why. The page also reopens the setup wizard and shows the About and notices.
 //!
 //! The helpers at the end of this file start a [`Command`] through the jobs and read its answer. Home, Versions
 //! and the setup wizard use them too, since all four pages read and write the same configuration.
@@ -64,7 +63,7 @@ crate::texts!(TEXTS {
 crate::errors!(ERRORS {
     UNREADABLE = (
         "The settings could not be read",
-        "Nothing changed. The line below says why; fix it or run the command in a terminal."
+        "Nothing changed. The line below says why."
     );
     NOT_SAVED = (
         "That path was not saved",
@@ -72,7 +71,7 @@ crate::errors!(ERRORS {
     );
     WAITING = (
         "This build cannot run that command from the window yet",
-        "Nothing changed. Run the command shown in a terminal instead."
+        "Nothing changed."
     );
 });
 
@@ -203,7 +202,6 @@ impl Page for Settings {
             }
             Fetch::Failed(why) => {
                 error_block(ui, &t, &UNREADABLE, Some(why));
-                shell::command_line(ui, &t, &Command::config_list().shown());
                 if ui.button(RETRY).clicked() {
                     self.state.config = Fetch::Idle;
                 }
@@ -311,7 +309,7 @@ fn saved_text(key: Key, set: bool) -> &'static str {
 /// The width of the label column of a form.
 pub(crate) const LABEL_WIDTH: f32 = 190.0;
 
-/// One path field (UI-RULES T6): label and hint, the path in monospace, its mark, and the command its save runs.
+/// One path field (UI-RULES T6): label and hint, the path in monospace, and its mark.
 /// Returns true when the field was left with a change to save.
 pub(crate) fn path_field(
     ui: &mut egui::Ui,
@@ -368,15 +366,6 @@ pub(crate) fn path_field(
             if let Save::Refused(why) | Save::Failed(why) = &f.save {
                 error_block(ui, t, &NOT_SAVED, Some(why));
             }
-            ui.add(
-                egui::Label::new(
-                    RichText::new(f.shown_command())
-                        .monospace()
-                        .size(theme::BASE * 0.84)
-                        .color(t.muted.color()),
-                )
-                .truncate(),
-            );
         });
     });
     ui.add_space(6.0);
@@ -565,13 +554,13 @@ impl Visits {
     }
 }
 
-/// A read on its way: a spinner, what is read, and the command that reads it.
-pub(crate) fn waiting(ui: &mut egui::Ui, t: &Tokens, what: &str, command: &Command) {
+/// A read on its way: a spinner and what is read. The command that reads it is kept as a parameter so callers
+/// still compile, but is no longer drawn on screen.
+pub(crate) fn waiting(ui: &mut egui::Ui, t: &Tokens, what: &str, _command: &Command) {
     ui.horizontal(|ui| {
         super::home::icon(ui, t, super::home::Mark::Info);
         ui.label(RichText::new(what).color(t.muted.color()));
     });
-    shell::command_line(ui, t, &command.shown());
 }
 
 /// An error where it occurred (UI-RULES W3, G4): what went wrong, the plain detail, and what the command said.

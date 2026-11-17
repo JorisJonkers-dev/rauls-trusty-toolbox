@@ -26,7 +26,7 @@ pub struct Dialog {
     pub title: String,
     /// Its text, one paragraph per entry.
     pub body: Vec<String>,
-    /// The `raul` command the action runs, shown under the text (UI-RULES G6).
+    /// The `raul` command the action runs. Kept for tests and callers; no longer drawn on screen.
     pub command: Option<String>,
     /// The label of its action; `None` for a dialog that only informs.
     pub action: Option<String>,
@@ -73,7 +73,8 @@ impl Dialog {
         }
     }
 
-    /// The same dialog with the command its action runs.
+    /// The same dialog carrying the command its action runs. The command is kept for tests and callers but is no
+    /// longer drawn on screen.
     #[must_use]
     pub fn with_command(mut self, command: impl Into<String>) -> Dialog {
         self.command = Some(command.into());
@@ -178,10 +179,6 @@ impl Dialogs {
                     for paragraph in &dialog.body {
                         ui.add(egui::Label::new(paragraph).wrap().selectable(true));
                     }
-                }
-                if let Some(command) = &dialog.command {
-                    ui.add_space(4.0);
-                    crate::shell::command_line(ui, tokens, command);
                 }
                 ui.add_space(12.0);
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {

@@ -75,7 +75,6 @@ crate::texts!(TEXTS {
     FACT_ENGINE_ACTIVE = "nv-rs";
     FACT_NONE = "None yet";
     FACT_UNKNOWN = "Not known";
-    RUN_SHAPE = "raul run nv-rs --instance <dir>";
     STARTED_STATUS = "The game was started.";
     RAUL_READY = "All set. Go on, the Mojave's waiting.";
     RAUL_WARNINGS = "Ready. A thing or two could be better.";
@@ -563,11 +562,6 @@ impl Home {
         if let Launch::Failed(why) = &self.state.launch {
             error_block(ui, &t, &RUN_FAILED, Some(why));
         }
-        let command = self
-            .state
-            .run_command()
-            .map_or_else(|| RUN_SHAPE.to_owned(), |c| c.shown());
-        shell::command_line(ui, &t, &command);
         ui.add_space(8.0);
         let engine = match &self.state.engine {
             Fetch::Ready(e) if e.status() == EngineStatus::Active => FACT_ENGINE_ACTIVE,
