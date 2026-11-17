@@ -572,3 +572,17 @@ pub fn command_line(ui: &mut egui::Ui, t: &Tokens, command: &str) {
             );
         });
 }
+
+/// Raul's one short line, only in calm places: the wizard, the Home launch panel and all-clear states (UI-RULES G5).
+/// `line` is one of the catalogue's `RAUL_*` strings.
+pub fn raul_line(ui: &mut egui::Ui, t: &Tokens, line: &str) {
+    ui.horizontal_wrapped(|ui| {
+        ui.label(
+            RichText::new(msg::RAUL.to_uppercase())
+                .text_style(theme::section_style())
+                .color(t.brand.color())
+                .extra_letter_spacing(1.2),
+        );
+        ui.label(RichText::new(line).color(t.muted.color()));
+    });
+}

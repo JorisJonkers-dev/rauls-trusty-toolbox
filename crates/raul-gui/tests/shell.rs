@@ -168,3 +168,30 @@ fn a_page_can_ask_the_shell_to_open_another_view() {
     h.run();
     assert_eq!(h.state().view(), View::Page(PageId::LoadOrder));
 }
+
+#[test]
+fn raul_speaks_in_his_own_colour_with_the_line_given() {
+    let h = Harness::builder()
+        .with_size([600.0, 100.0])
+        .with_context_setup(raul_gui::set_up)
+        .build_ui(|ui| raul_gui::shell::raul_line(ui, &raul_gui::theme::DARK, msg::RAUL_HOME));
+    assert!(h.query_by_label(msg::RAUL_HOME).is_some());
+    assert!(h.query_by_label(&msg::RAUL.to_uppercase()).is_some());
+}
+
+#[test]
+fn helpers_draw_a_command_and_a_section_label() {
+    let h = Harness::builder()
+        .with_size([600.0, 200.0])
+        .with_context_setup(raul_gui::set_up)
+        .build_ui(|ui| {
+            let t = raul_gui::theme::DARK;
+            raul_gui::shell::section_label(ui, &t, "Masterlist", true);
+            raul_gui::shell::command_line(ui, &t, "raul sort --apply");
+            ui.add(raul_gui::shell::danger_button(&t, "Remove"));
+            raul_gui::shell::hairline(ui, &t);
+        });
+    assert!(h.query_by_label("MASTERLIST").is_some());
+    assert!(h.query_by_label("raul sort --apply").is_some());
+    assert!(h.query_by_label("Remove").is_some());
+}
