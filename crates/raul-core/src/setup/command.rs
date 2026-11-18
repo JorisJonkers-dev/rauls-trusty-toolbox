@@ -5,8 +5,9 @@
 //! call. The command line and the wizard both call [`execute`] with a typed [`Mode`]; it runs [`crate::journal::run`],
 //! so every finished step is in the Instance's journal and a resume needs the Instance only.
 //!
-//! What it keeps from `nvmod setup`: a run is all or nothing (a failing step removes what the run made) unless
-//! `keep_partial` is set; a resume always keeps the Instance; `restart` removes only an Instance with an unfinished
+//! What it keeps from `nvmod setup`: a run is all or nothing (a failing step removes what the run made, and a run
+//! whose check fails at the end removes the Instance too) unless `keep_partial` is set; a resume always keeps the
+//! Instance; `restart` removes only an Instance with an unfinished
 //! setup, and only when confirmed. What differs: a resume trusts the journal and does not re-check the files a
 //! finished step left behind (nvmod's witnesses), and the `sort` step an imported Instance skips reports no
 //! would-change counts.
@@ -378,6 +379,12 @@ fn restart(instance: &Path, confirmed: bool, events: &mut Events) -> Ended {
             ),
         );
     }
+    // Not while a job, a command or the game is using the Instance; the lock is let go before the folder goes (it
+    // is a file in it).
+    match crate::instance_lock::InstanceGuard::acquire(instance, "setup") {
+        Ok(guard) => drop(guard),
+        Err(e) => return refuse(events, &e.to_string()),
+    }
     if std::fs::remove_dir_all(instance).is_err() && instance.exists() {
         return stop(
             events,
@@ -420,6 +427,8 @@ struct Reporter<'a, 'b> {
     total: usize,
     /// Steps that finished in this call or earlier.
     finished: usize,
+    /// The highest place in the plan a step event has named (from 1), counting the steps that were skipped.
+    at: usize,
     started: Option<(Step, usize)>,
 }
 
@@ -448,6 +457,7 @@ impl Progress for Reporter<'_, '_> {
                 }
             }
             Event::Started { step, index, total } => {
+                self.at = self.at.max(*index);
                 self.started = Some((step.clone(), *index));
                 let (name, what) = (stream_name(step), describe(step, self.request));
                 self.events.put(
@@ -461,6 +471,7 @@ impl Progress for Reporter<'_, '_> {
                 total,
                 reason,
             } => {
+                self.at = self.at.max(*index);
                 let (name, what) = (stream_name(step), describe(step, self.request));
                 let why = match reason {
                     SkipReason::Done => FINISHED_EARLIER,
@@ -472,6 +483,7 @@ impl Progress for Reporter<'_, '_> {
                 );
             }
             Event::Finished { step, index, total } => {
+                self.at = self.at.max(*index);
                 self.finished += 1;
                 self.started = None;
                 let (name, what) = (stream_name(step), describe(step, self.request));
@@ -509,10 +521,16 @@ fn run_steps(
         resume,
         total: 0,
         finished: 0,
+        at: 0,
         started: None,
     };
     let result = journal::run(request, &mut reporter, cancel);
-    let (finished, started, total) = (reporter.finished, reporter.started.take(), reporter.total);
+    let (finished, started, total, at) = (
+        reporter.finished,
+        reporter.started.take(),
+        reporter.total,
+        reporter.at,
+    );
     match result {
         Ok(Outcome::Done(_)) => {
             events.put(
@@ -533,7 +551,7 @@ fn run_steps(
                 done: Vec::new(),
                 ..request.clone()
             });
-            let index = finished.min(planned.len().saturating_sub(1));
+            let index = at.min(planned.len().saturating_sub(1));
             let step = planned.get(index).map_or(Step::Verify, |p| p.step.clone());
             fail(
                 events,
@@ -541,11 +559,11 @@ fn run_steps(
                 &Failure {
                     step,
                     index: index + 1,
-                    total,
+                    total: planned.len(),
                     code: FAILED,
                     detail: "the run was stopped before this step".to_owned(),
                 },
-                (keep, pre_existing, finished > 0, true),
+                (keep, pre_existing, finished > 0 || resume, true),
             )
         }
         Err(journal::RunError::Setup(e)) => {
@@ -560,7 +578,7 @@ fn run_steps(
                     code: code_of(&e),
                     detail: e.summary,
                 },
-                (keep, pre_existing, finished > 0, false),
+                (keep, pre_existing, finished > 0 || resume, false),
             )
         }
         Err(journal::RunError::Journal(e)) => match (e.kind, started) {
@@ -574,7 +592,8 @@ fn run_steps(
                     code: FAILED,
                     detail: e.summary,
                 },
-                (keep, pre_existing, finished > 1, false),
+                // The step that failed to be written was counted as finished by its own event.
+                (keep, pre_existing, finished > 1 || resume, false),
             ),
             _ => refuse(events, &e.summary),
         },

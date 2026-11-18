@@ -340,9 +340,7 @@ impl Journal {
     /// Remember the request of the run in the document (without its `done` list). It is written with the next step
     /// that finishes.
     pub fn set_request(&mut self, request: &Request) {
-        let mut stored = request.clone();
-        stored.done.clear();
-        self.doc.request = serde_json::to_value(&stored).ok();
+        self.doc.request = serde_json::to_value(stored(request)).ok();
     }
 
     /// Remember the plan of the run in the document. It is written with the next step that finishes.
@@ -463,6 +461,18 @@ impl Journal {
         self.on_disk = true;
         Ok(())
     }
+}
+
+/// The request as the journal keeps it: without its list of finished steps, and without the programs the engine step
+/// runs (`cargo`, `gh`, `curl`), so a resume never runs a program a file names; it uses the default ones.
+fn stored(request: &Request) -> Request {
+    let defaults = crate::setup::EngineOptions::default();
+    let mut kept = request.clone();
+    kept.done.clear();
+    kept.engine_options.cargo = None;
+    kept.engine_options.gh = defaults.gh;
+    kept.engine_options.curl = defaults.curl;
+    kept
 }
 
 /// The version number a file names, for the name of the copy kept before a migration.
@@ -596,7 +606,7 @@ fn nvmod_state(file: &Path, text: &str) -> Result<Option<NvmodState>, Error> {
     // the journal without a request, and a resume says so.
     let request = crate::setup::parse_words(&state.args)
         .ok()
-        .and_then(|parsed| serde_json::to_value(parsed.request).ok());
+        .and_then(|parsed| serde_json::to_value(stored(&parsed.request)).ok());
     Ok(Some(NvmodState {
         request,
         version: state.nvmod_version,

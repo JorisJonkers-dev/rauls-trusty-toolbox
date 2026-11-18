@@ -67,6 +67,11 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
             Ok(g) => Some(g),
             Err(e) => {
                 let _ = writeln!(err, "raul setup: refused: {e}");
+                if json {
+                    let why = e.to_string();
+                    let event = serde_json::json!({"seq": 1, "event": "finished", "status": "refused", "exit_code": REFUSED, "rolled_back": false, "reason": why});
+                    let _ = writeln!(out, "{event}");
+                }
                 return REFUSED;
             }
         },

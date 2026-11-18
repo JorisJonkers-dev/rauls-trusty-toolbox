@@ -236,7 +236,8 @@ impl SetupRequest {
     /// What the setup job is asked to do: the typed mode of `raul-core`, with no command line in between.
     pub fn mode(&self) -> raul_core::setup::Mode {
         use raul_core::setup::{EngineOptions, Mode, Request, Ttw};
-        let path = |s: &String| PathBuf::from(s);
+        // Every path of the request is absolute, as the journal keeps it for a resume from anywhere.
+        let path = |s: &String| std::path::absolute(s).unwrap_or_else(|_| PathBuf::from(s));
         let instance = path(&self.instance);
         match self.mode {
             SetupMode::Resume => return Mode::Resume { instance },

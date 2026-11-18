@@ -367,3 +367,55 @@ fn an_unfinished_nvmod_setup_resumes_from_raul_at_the_same_next_step() {
         ["mod:Better.zip", "stage", "sort", "verify"]
     );
 }
+
+#[test]
+fn the_journal_keeps_no_program_the_engine_step_would_run() {
+    let s = Scratch::new();
+    let mut request = s.request();
+    request.engine_options.gh = PathBuf::from("/somewhere/gh");
+    request.engine_options.curl = PathBuf::from("/somewhere/curl");
+    request.engine_options.cargo = Some(PathBuf::from("/somewhere/cargo"));
+    let cancel = CancelToken::new();
+    let mut stop = |l: raul_core::setup::Line| {
+        if l.json["event"] == "step" && l.json["status"] == "done" && l.json["step"] == "init" {
+            cancel.cancel();
+        }
+    };
+    execute(&fresh(request, false, true), &mut stop, &cancel);
+    let kept = Journal::open(&s.instance())
+        .unwrap()
+        .request()
+        .unwrap()
+        .unwrap();
+    let defaults = raul_core::setup::EngineOptions::default();
+    assert_eq!(kept.engine_options.gh, defaults.gh);
+    assert_eq!(kept.engine_options.curl, defaults.curl);
+    assert_eq!(kept.engine_options.cargo, None);
+}
+
+#[test]
+fn a_restart_is_refused_while_the_instance_is_in_use() {
+    let s = Scratch::new();
+    let mut request = s.request();
+    request.mods = vec![s.bad_archive("Bad.zip")];
+    run(&fresh(request, false, true));
+    let guard = raul_core::instance_lock::InstanceGuard::acquire(&s.instance(), "test").unwrap();
+    assert!(guard.is_held());
+    let (ended, lines) = run(&Mode::Restart {
+        instance: s.instance(),
+        confirmed: true,
+    });
+    assert_eq!(ended.code, 2);
+    assert!(last(&lines)["reason"].as_str().unwrap().contains("in use"));
+    assert!(s.instance().is_dir());
+    drop(guard);
+    assert_eq!(
+        run(&Mode::Restart {
+            instance: s.instance(),
+            confirmed: true
+        })
+        .0
+        .code,
+        0
+    );
+}
