@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795034136844,
+  "lastUpdate": 1795035820121,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4507,6 +4507,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 12.300099,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ac540fba3164d54db4db552d47f85469892a37b2",
+          "message": "feat(core): setup job that plans and runs nvmod's mod jobs (#288)\n\n* feat(core): add the setup job that plans and runs nvmod's mod jobs in order\n\n* fix(core): clear the stop bridge on unwind and document the engine boundary\n\n* build(gui): record the new raul-core dependencies in the lock file",
+          "timestamp": "2026-11-18T22:02:14+01:00",
+          "tree_id": "3d3579d505b1732b34bcf0363e00b78fff916765",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ac540fba3164d54db4db552d47f85469892a37b2"
+        },
+        "date": 1795035819243,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.914342,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.763074,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 37.063001,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.094475999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 11.21866,
             "unit": "ms"
           }
         ]
