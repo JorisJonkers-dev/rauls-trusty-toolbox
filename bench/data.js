@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794987169236,
+  "lastUpdate": 1794988234167,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -3772,6 +3772,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 12.557649000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d4f9cfe1877a63120252f8ec50f539a858a05d09",
+          "message": "chore(deps): bump nv-rs to v0.6.0 (#248)\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-18T07:49:28Z",
+          "tree_id": "3c2e973b90b6f4b68f595d408a4b5b225a47756a",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d4f9cfe1877a63120252f8ec50f539a858a05d09"
+        },
+        "date": 1794988233443,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.727696,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.679674,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.347696000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.042682,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 11.002932999999999,
             "unit": "ms"
           }
         ]
