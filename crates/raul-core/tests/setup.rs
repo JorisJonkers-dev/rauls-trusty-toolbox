@@ -254,9 +254,9 @@ mod engine {
             ["setup.engine.building", "setup.engine.checked"]
         );
         let binary = rig.nv_rs().join("bin").join(nv_viewer_name());
-        // The test runs the fake engine it just installed, as the integration tests of the built binaries do.
-        #[allow(clippy::disallowed_methods)]
-        let run = std::process::Command::new(&binary).output().expect("run");
+        let run = raul_runner::Runner::default()
+            .run(&raul_runner::Call::new("nv-viewer", &binary, &[]))
+            .expect("run");
         assert!(String::from_utf8_lossy(&run.stdout).contains(FAKE_BUILT_BANNER));
         let record = fs::read_to_string(rig.nv_rs().join("install.json")).expect("record");
         assert!(record.contains("\"method\": \"source\""), "{record}");
