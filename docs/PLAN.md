@@ -4,6 +4,8 @@
 
 Status: **superseded in part by [REORG.md](REORG.md) (2026-11-16).** Where the two differ (who owns orchestration, tool
 supply, the Runner and the view model; the order of work; the release order), REORG.md and ADRs 0007 to 0011 win.
+From 2026-11-18 ADR-0019 decides who orchestrates: `raul` drives every flow and nvmod manages mods only; REORG.md
+section 0 has the current order.
 Original status: **Phase 0 reviewed; decisions recorded 2026-11-16** (section 9, and ADRs 0001 to 0006 in
 [`docs/adr`](adr)). Terms follow [`GLOSSARY.md`](../GLOSSARY.md). Phase 1 starts after this plan is
 merged, in the order of section 8.

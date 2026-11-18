@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted, amended by ADR-0019
 date: 2026-11-17
 ---
 # Components are incorporated: raul links and calls them in process
@@ -21,7 +21,7 @@ This supersedes the "Runner starts the tools" parts of earlier ADRs (the note in
 
 | Component | In `raul` | Stays a program | Reason |
 |---|---|---|---|
-| nvmod | linked: mods, load order, saves, run plan | its own CLI, for standalone use | already linked (ADR-0002) |
+| nvmod | linked: mods, load order, saves, run plan | its own CLI, for standalone use, with the mod-management commands only (ADR-0019) | already linked (ADR-0002) |
 | loot-rs | linked through nvmod (ADR-0015) | its own CLI | as above |
 | lodwright-rs | linked: LOD generation | its own CLI | no reason to isolate it any more |
 | ttwright-rs | linked: the TTW install | its own CLI | as above |
