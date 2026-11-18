@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish.workspace = true
-description = "Orchestration of the Toolbox: Known-good sets, game detection, benches and the update check."
+description = "Orchestration of the Toolbox: game detection, benches and the update check."
 
 [dependencies]
 raul-runner = { workspace = true }

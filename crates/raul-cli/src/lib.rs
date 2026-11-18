@@ -5,7 +5,6 @@
 mod bench;
 mod config;
 mod detect;
-mod known_good;
 mod lod;
 mod printer;
 mod ttw;
@@ -28,15 +27,7 @@ pub const USAGE: u8 = nvmod_cli::USAGE;
 /// The commands `raul` owns; anything else goes to nvmod. The GUI build exposes the same list (ADR-0004). An own
 /// command takes precedence over an nvmod command of the same name, which `raul` then never reaches.
 pub const OWN_COMMANDS: &[&str] = &[
-    "version",
-    "known-good",
-    "detect",
-    "bench",
-    "update",
-    "config",
-    "ttw",
-    "lod",
-    "help",
+    "version", "detect", "bench", "update", "config", "ttw", "lod", "help",
 ];
 
 /// Who runs a command line.
@@ -62,11 +53,7 @@ const HELP: &str = "raul: Raul's tRusty Toolbox
 
 usage:
   raul --version | raul version [--json]
-                              the Toolbox version and the Known-good set it ships
-  raul known-good check [--repo <dir>] [--json]
-                              check known-good.toml against the submodule pins and nvmod's tools.lock.toml
-  raul known-good bump <component> <version> --month YYYY-MM [--repo <dir>]
-                              add a set that moves one Component (the bump workflow runs this)
+                              the Toolbox version
   raul detect [--folder <dir>] [--json]
                               find Fallout: New Vegas and Fallout 3 copies (Steam, GOG, Epic), or check one folder
   raul bench [--quick] [--out <dir>] [--lodwright <bin>]
@@ -99,7 +86,6 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         None | Some("help" | "--help" | "-h") => write_or_fail(out, err, HELP),
         Some("--version" | "-V") => version::run(&[], out, err),
         Some("version") => version::run(&args[1..], out, err),
-        Some("known-good") => known_good::run(&args[1..], out, err),
         Some("detect") => detect::run(&args[1..], out, err),
         Some("bench") => bench::run(&args[1..], out, err),
         Some("update") => update::run(&args[1..], out, err),

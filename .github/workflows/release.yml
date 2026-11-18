@@ -2,7 +2,7 @@
 #
 # release-please maintains a release PR from Conventional Commits; merging it tags vX.Y.Z and creates the GitHub
 # Release. The build jobs then make the installers for Linux, Windows and macOS (packaging/README.md), each with
-# the Component programs of the shipped Known-good set (ADR-0005), smoke-test them, and the publish job attaches
+# the Component programs the submodules pin (ADR-0005), smoke-test them, and the publish job attaches
 # them with SHA256SUMS, a CycloneDX SBOM and build provenance. Run it by hand (workflow_dispatch) to build and
 # smoke-test every package without publishing: the packages are then only workflow artifacts.
 name: Release
@@ -150,13 +150,13 @@ jobs:
       # nv-rs is not built here: its own release assets for the shipped version are verified against its
       # SHA256SUMS and added. It publishes Linux and Windows builds; macOS has none yet, so Launch is disabled
       # there (ADR-0006).
-      - name: Add the nv-rs release of the Known-good set
+      - name: Add the nv-rs release the submodule pins
         if: ${{ runner.os != 'macOS' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          nvrs="$(target/release/raul version --json | jq -r '.components["nv-rs"]')"
+          nvrs="$(scripts/component-version.sh nv-rs)"
           case "$RUNNER_OS" in
             Linux) pattern='nv-rs-linux-x86_64-*.tar.gz' ;;
             Windows) pattern='nv-rs-preview-*-windows-x64.zip' ;;
@@ -179,7 +179,7 @@ jobs:
             echo "# Third-party notices"
             echo
             echo "Raul's tRusty Toolbox is GPL-3.0-only. It includes the Components below as separate programs, each under"
-            echo "its own licence (see their repositories at the versions in known-good.toml), and the Rust crates listed"
+            echo "its own licence (see their repositories at the versions pinned as submodules), and the Rust crates listed"
             echo "after them. No game files are included."
             echo
             echo "| Component | Licence |"
@@ -280,7 +280,7 @@ jobs:
           # The bundled ttwright must start, report the version of the shipped set, and speak the ttwright-result
           # and ttwright-events v1 Contracts raul ttw reads.
           raul_bin="target/release/raul"; [ "$RUNNER_OS" = Windows ] && raul_bin="$raul_bin.exe"
-          ttwright_version="$("$raul_bin" version --json | jq -r '.components["ttwright-rs"] | sub("^v"; "")')"
+          ttwright_version="$(scripts/component-version.sh ttwright-rs | sed 's/^v//')"
           echo "ttwright-rs of the shipped set: $ttwright_version"
           check_ttwright() {
             if [ -z "$1" ] || [ ! -f "$1" ]; then echo "::error::no bundled ttwright at '$1'"; return 1; fi
@@ -409,7 +409,7 @@ jobs:
         run: |
           set -euo pipefail
           gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
-          components="$(python3 scripts/known-good-summary.py)"
+          components="$(for c in nv-rs nvmod-rs lodwright-rs ttwright-rs loot-rs; do printf '  %-13s %s\n' "$c" "$(scripts/component-version.sh "$c")"; done)"
           if [ -n "$APPLE_CERTIFICATE" ]; then mac="signed and notarised"; else mac="**unsigned**: macOS will ask you to allow it in System Settings, Privacy & Security"; fi
           notes="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)"
           {
@@ -426,7 +426,7 @@ jobs:
             echo "- macOS: $mac."
             echo "- Linux: AppImage and .deb are not signed; verify with SHA256SUMS and \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`."
             echo
-            echo "Source of every GPL Component at these versions: see known-good.toml at $TAG."
+            echo "Source of every GPL Component at these versions: see the submodules (components/) at $TAG."
             echo "You need your own copy of Fallout: New Vegas; no game files are included."
           } > "$RUNNER_TEMP/notes.md"
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/notes.md"

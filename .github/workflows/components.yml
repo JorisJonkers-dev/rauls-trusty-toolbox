@@ -1,5 +1,5 @@
 # Follows the Components' releases (nv-rs, nvmod, lodwright-rs, ttwright-rs; loot-rs moves with nvmod, ADR-0015) and
-# opens one pull request per release that moves the submodule, adds a Known-good set and refreshes both lock files.
+# opens one pull request per release that moves the submodule and refreshes both lock files.
 # Pipeline Complete decides whether it merges; auto-merge lands it. A Component's repository sends nothing: this run
 # finds the release itself, with the self-hosted Renovate configured in .github/renovate-components.json (the hosted
 # Renovate app reads renovate.json only and cannot run the post-upgrade steps). Replaces component-bump.yml.

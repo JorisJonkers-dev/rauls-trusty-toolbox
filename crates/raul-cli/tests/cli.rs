@@ -3,8 +3,6 @@
 // These tests start the built binary, which is not a tool call (see clippy.toml).
 #![allow(clippy::disallowed_methods)]
 
-use raul_core::known_good::{COMPONENTS, KnownGood, Set};
-use std::path::PathBuf;
 use std::process::{Command, Output};
 
 fn raul(args: &[&str]) -> Output {
@@ -14,58 +12,33 @@ fn raul(args: &[&str]) -> Output {
         .expect("raul runs")
 }
 
-fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
-}
-
-/// The set `raul` ships, read from `known-good.toml` itself, so a bump does not have to edit these tests.
-fn shipped_set() -> Set {
-    let text =
-        std::fs::read_to_string(repo_root().join("known-good.toml")).expect("read known-good.toml");
-    KnownGood::parse(&text)
-        .expect("known-good.toml parses")
-        .latest_known_good()
-        .expect("a known-good set")
-        .clone()
-}
-
 fn stdout(o: &Output) -> String {
     String::from_utf8_lossy(&o.stdout).into_owned()
 }
 
 #[test]
-fn version_names_the_toolbox_and_every_component_of_the_shipped_set() {
-    let out = raul(&["--version"]);
-    assert!(out.status.success());
-    let text = stdout(&out);
-    assert!(text.starts_with("raul "), "{text}");
-    let set = shipped_set();
-    assert!(text.contains(&set.id), "set {} missing:\n{text}", set.id);
-    for name in COMPONENTS {
-        let version = &set.components[name].version;
-        assert!(
-            text.lines()
-                .any(|l| l.contains(name) && l.contains(version.as_str())),
-            "{name} {version} missing:\n{text}"
-        );
-    }
-}
-
-#[test]
-fn version_as_json_carries_the_set_id_and_the_components() {
+fn version_as_json_names_the_toolbox_version() {
     let out = raul(&["version", "--json"]);
     assert!(out.status.success());
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
-    let set = shipped_set();
-    assert_eq!(v["known_good_set"], set.id.as_str());
-    assert_eq!(v["components"].as_object().unwrap().len(), COMPONENTS.len());
-    for name in COMPONENTS {
-        assert_eq!(
-            v["components"][name],
-            set.components[name].version.as_str(),
-            "{name}"
-        );
-    }
+    assert_eq!(v["raul"], env!("CARGO_PKG_VERSION"));
+    assert!(v.get("known_good_set").is_none(), "{v}");
+}
+
+#[test]
+fn version_as_text_is_one_line_with_the_toolbox_version() {
+    let out = raul(&["version"]);
+    assert!(out.status.success());
+    assert_eq!(
+        stdout(&out),
+        format!("raul {}\n", env!("CARGO_PKG_VERSION"))
+    );
+}
+
+#[test]
+fn version_takes_nothing_but_json() {
+    let out = raul(&["version", "--verbose"]);
+    assert!(!out.status.success());
 }
 
 #[test]
@@ -84,22 +57,6 @@ fn a_command_raul_does_not_own_is_run_by_nvmod() {
 fn an_unknown_command_exits_with_the_usage_code() {
     let out = raul(&["no-such-command"]);
     assert_eq!(out.status.code(), Some(5));
-}
-
-#[test]
-fn the_known_good_check_passes_on_this_repository() {
-    let out = raul(&[
-        "known-good",
-        "check",
-        "--repo",
-        repo_root().to_str().unwrap(),
-    ]);
-    assert!(
-        out.status.success(),
-        "{}{}",
-        stdout(&out),
-        String::from_utf8_lossy(&out.stderr)
-    );
 }
 
 #[test]
