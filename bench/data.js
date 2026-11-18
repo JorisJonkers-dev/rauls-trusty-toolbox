@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795041547090,
+  "lastUpdate": 1795043163874,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4850,6 +4850,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 12.568117,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f3bc9de88d68c8e6bf9df60f7d9a1f66deaddb25",
+          "message": "feat(deps): follow nvmod and drop the extract tool (#299)\n\n* feat(deps): follow nvmod in reading archives in process and drop the extract tool\n\n* fix(gui): stop offering rar archives and an outside tool for TTW packages\n\n* test(core): an old setup request with extract_tool still reads",
+          "timestamp": "2026-11-19T00:04:13+01:00",
+          "tree_id": "35ff23a49a54ee4f6266a2ef2bcc187af5577c56",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f3bc9de88d68c8e6bf9df60f7d9a1f66deaddb25"
+        },
+        "date": 1795043162854,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.422276,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.553239,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.726676,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.1661319999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.687206999999999,
             "unit": "ms"
           }
         ]
