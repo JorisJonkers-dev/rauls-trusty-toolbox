@@ -145,3 +145,26 @@ contracts = { lodwright-plan = 1, lodwright-request = 1, lodwright-result = 1 }
 
 [set.components.ttwright-rs]
 version = "v0.3.0"
+
+# nv-rs v0.5.0 -> v0.6.0
+[[set]]
+id = "2026-11-g"
+status = "known-good"
+
+[set.components.nv-rs]
+version = "v0.6.0"
+contracts = { nv-rs-capabilities = 1, nv-rs-release-manifest = 1 }
+
+[set.components.nvmod]
+version = "v0.6.2"
+
+[set.components.loot-rs]
+version = "v0.5.0"
+contracts = { loot-sort = 1 }
+
+[set.components.lodwright-rs]
+version = "v0.3.0"
+contracts = { lodwright-plan = 1, lodwright-request = 1, lodwright-result = 1 }
+
+[set.components.ttwright-rs]
+version = "v0.3.0"
