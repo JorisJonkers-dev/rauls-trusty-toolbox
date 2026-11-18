@@ -65,7 +65,7 @@ crate::texts!(TEXTS {
     FIND_IT = "Find it for me";
     WATCH = "Watch my Downloads folder and use the package when it arrives";
     UNPACK_NO_PLACE = "There is no place to unpack the package to yet. Finish setting up first.";
-    UNPACK_FAILED = "The archive could not be unpacked. Unpack it yourself, or install a tool that opens it.";
+    UNPACK_FAILED = "The archive could not be unpacked. Unpack it yourself, or save it again as a .zip, .7z or .tar.";
     UNPACK_EMPTY = "The archive holds no TTW package.";
     FINDING = "Looking for the TTW package in your Downloads folder";
     FOUND = "Found the newest TTW package in your Downloads folder:";

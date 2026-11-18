@@ -329,12 +329,12 @@ pub fn newest_candidate(folders: &[PathBuf]) -> Option<PathBuf> {
     best.map(|(_, p)| p)
 }
 
-/// Whether `name` is an archive a TTW package may come in: its name holds `ttw` and ends in `.zip`, `.7z`, `.rar` or
-/// `.tar`, in any case.
+/// Whether `name` is an archive a TTW package may come in: its name holds `ttw` and ends in `.zip`, `.7z` or `.tar`,
+/// in any case (a `.rar` is not one: nvmod does not read it).
 pub fn is_archive_name(name: &str) -> bool {
     let lower = name.to_lowercase();
     lower.contains("ttw")
-        && [".zip", ".7z", ".rar", ".tar"]
+        && [".zip", ".7z", ".tar"]
             .iter()
             .any(|ext| lower.ends_with(ext))
 }
@@ -1263,6 +1263,7 @@ mod tests {
         assert!(is_archive_name("TTW 3.4.0 Installer.7z"));
         assert!(is_archive_name("ttw_3.4.zip"));
         assert!(!is_archive_name("holiday.zip"));
+        assert!(!is_archive_name("TTW_3.4.rar"));
         assert!(!is_archive_name("TTW_3.4.mpi"));
     }
 
