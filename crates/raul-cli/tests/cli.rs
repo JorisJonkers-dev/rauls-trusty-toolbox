@@ -26,6 +26,22 @@ fn version_as_json_names_the_toolbox_version() {
 }
 
 #[test]
+fn version_as_text_is_one_line_with_the_toolbox_version() {
+    let out = raul(&["version"]);
+    assert!(out.status.success());
+    assert_eq!(
+        stdout(&out),
+        format!("raul {}\n", env!("CARGO_PKG_VERSION"))
+    );
+}
+
+#[test]
+fn version_takes_nothing_but_json() {
+    let out = raul(&["version", "--verbose"]);
+    assert!(!out.status.success());
+}
+
+#[test]
 fn a_command_raul_does_not_own_is_run_by_nvmod() {
     let out = raul(&["catalog", "--json"]);
     assert!(
