@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! `raul lod plan`: the `lodwright-request` document `raul lod generate` would send to lodwright for a Profile,
-//! checked against lodwright's published schema; nothing is run or written. `raul lod generate`: run lodwright with
-//! that request and keep its output as the Mod `LOD (lodwright)`; `--json` streams `raul-events` lines.
+//! checked against lodwright's published schema; nothing is run or written. `raul lod generate`: generate LOD with
+//! lodwright, linked into `raul`, from that request and keep its output as the Mod `LOD (lodwright)`; `--json` streams
+//! `raul-events` lines.
 
 use std::io::Write;
 use std::path::PathBuf;
@@ -15,8 +16,7 @@ use raul_drivers::lod::{self, LodRequest};
 use crate::printer::Printer;
 
 const USAGE_LINE: &str = "lod takes `plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]` or \
-     `generate [--instance <dir>] [--profile <name>] [--world <name>]... [--dry-run] [--lodwright <path>] \
-     [--timeout-secs <n>] [--json]`";
+     `generate [--instance <dir>] [--profile <name>] [--world <name>]... [--dry-run] [--timeout-secs <n>] [--json]`";
 
 struct Flags {
     instance: Option<PathBuf>,
@@ -24,11 +24,11 @@ struct Flags {
     worlds: Vec<String>,
     json: bool,
     dry_run: bool,
-    lodwright: Option<PathBuf>,
     timeout: Duration,
 }
 
-/// How long a LOD run may take before it is stopped.
+/// How long a LOD run may take before it is stopped. The limit is checked between terrain blocks, worlds and steps;
+/// a step already running when it passes finishes first.
 const DEFAULT_TIMEOUT: Duration = Duration::from_hours(2);
 
 /// The longest `--timeout-secs` taken: a week.
@@ -41,7 +41,6 @@ fn parse(args: &[String], generate: bool) -> Result<Flags, String> {
         worlds: Vec::new(),
         json: false,
         dry_run: false,
-        lodwright: None,
         timeout: DEFAULT_TIMEOUT,
     };
     let mut rest = args.iter();
@@ -57,7 +56,6 @@ fn parse(args: &[String], generate: bool) -> Result<Flags, String> {
             "--profile" => f.profile = Some(value()?),
             "--world" => f.worlds.push(value()?),
             "--dry-run" if generate => f.dry_run = true,
-            "--lodwright" if generate => f.lodwright = Some(PathBuf::from(value()?)),
             "--timeout-secs" if generate => {
                 let secs = value()?
                     .parse::<u64>()
@@ -148,18 +146,12 @@ fn plan(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     crate::write_or_fail(out, err, &text)
 }
 
-/// The bundled lodwright next to the running `raul`.
-fn bundled_lodwright() -> Option<PathBuf> {
-    let exe = std::env::current_exe().ok()?;
-    raul_drivers::ttw::bundled(exe.parent()?, lod::LODWRIGHT)
-}
-
 fn generate(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let flags = match parse(args, true) {
         Ok(f) => f,
         Err(why) => return crate::usage(err, &format!("{why}\n{USAGE_LINE}")),
     };
-    // A stop request (Ctrl+C, SIGTERM, the GUI's cancel) stops lodwright; the Instance stays as it was.
+    // A stop request (Ctrl+C, SIGTERM, the GUI's cancel) stops the generation; the Instance stays as it was.
     let _ = ctrlc::set_handler(nvmod_core::cancel::request);
     let absolute = |p: PathBuf| std::path::absolute(&p).unwrap_or(p);
     let instance = flags.instance.or_else(configured_instance).map(absolute);
@@ -167,7 +159,6 @@ fn generate(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         instance: instance.clone().unwrap_or_default(),
         profile: flags.profile,
         worlds: flags.worlds,
-        lodwright: flags.lodwright.map(absolute).or_else(bundled_lodwright),
         dry_run: flags.dry_run,
         timeout: flags.timeout,
     };

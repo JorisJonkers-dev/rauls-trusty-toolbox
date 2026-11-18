@@ -8,8 +8,8 @@ pub(crate) mod inproc;
 use std::path::PathBuf;
 
 pub use driver::{
-    DEFAULT_TIMEOUT, Outcome, TTWRIGHT, TTWRIGHT_EVENTS_VERSION, TtwRequest, WORK_DIR, bundled,
-    exit_code, install, refused,
+    DEFAULT_TIMEOUT, Outcome, TTWRIGHT, TTWRIGHT_EVENTS_VERSION, TtwRequest, WORK_DIR, exit_code,
+    install, refused,
 };
 
 use schemars::JsonSchema;
