@@ -3678,6 +3678,7 @@ dependencies = [
  "raul-ui-model",
  "raul-ui-service",
  "serde_json",
+ "ttwright-testkit",
 ]
 
 [[package]]
@@ -4838,6 +4839,15 @@ dependencies = [
  "ttwright-contract",
  "vorbis_rs",
  "walkdir",
+]
+
+[[package]]
+name = "ttwright-testkit"
+version = "0.4.2"
+dependencies = [
+ "ba2",
+ "oxidelta",
+ "serde_json",
 ]
 
 [[package]]
