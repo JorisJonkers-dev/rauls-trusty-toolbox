@@ -148,6 +148,8 @@ pub enum Found {
         file: String,
         /// The folder the search looked in.
         folder: String,
+        /// The size of the file in bytes; 0 when it is not known.
+        size: u64,
     },
     /// No package was found, and the folder it was looked for in.
     NotFound {
@@ -476,9 +478,18 @@ impl State {
             Some(file) => Found::Found {
                 file: file.to_string_lossy().into_owned(),
                 folder,
+                size: 0,
             },
             None => Found::NotFound { folder },
         };
+    }
+
+    /// The search over the usual folders is done: `package` is the newest valid one with its size, or `None`.
+    pub fn searched_package(&mut self, folder: &Path, package: Option<&PackageInfo>) {
+        self.searched(folder, package.map(|p| p.path.as_path()));
+        if let (Found::Found { size, .. }, Some(p)) = (&mut self.found, package) {
+            *size = p.size;
+        }
     }
 
     /// The package found was chosen: it is the package the flow uses, until the sources are read again.
@@ -1116,7 +1127,8 @@ mod tests {
             s.found,
             Found::Found {
                 file: "/d/TTW_1.mpi".into(),
-                folder: "/d".into()
+                folder: "/d".into(),
+                size: 0
             }
         );
         s.use_package("/d/TTW_1.mpi");

@@ -19,8 +19,8 @@ use raul_ui_model::job::{JobId, JobState, Outcome};
 use raul_ui_model::pages::load_order::Problem;
 use raul_ui_model::pages::settings::{Answer, Command, Fetch, Key};
 use raul_ui_model::pages::ttw::{
-    DOWNLOAD_URL, Found, Progress, Report, Sources, State, Step, check_command, default_downloads,
-    find_package, install_command,
+    DOWNLOAD_URL, Found, PackageInfo, Progress, Report, Sources, State, Step, check_command,
+    default_downloads, find_in, install_command,
 };
 use raul_ui_model::pages::{Flow, PageId, View};
 use raul_ui_model::wizard::{Step as FlowStep, TtwNeed};
@@ -158,7 +158,7 @@ pub struct Ttw {
     /// Where the search for the package looks; the shell's, so a test can point it at a fake Downloads folder.
     downloads: Option<PathBuf>,
     /// The search that runs, with the folder it looks in and what it found.
-    search: Option<std::sync::mpsc::Receiver<(PathBuf, Option<PathBuf>)>>,
+    search: Option<std::sync::mpsc::Receiver<(PathBuf, Option<PackageInfo>)>>,
     /// Why the package found was not saved.
     save_failed: Option<String>,
     /// The package the flow had before the one found was chosen: the wizard's and the sources', put back when the
@@ -275,10 +275,16 @@ impl Ttw {
         }
         self.state.searching();
         let folder = self.downloads();
+        // Downloads first (the one the page was given), then the Desktop of the home folder.
+        let mut folders = vec![folder.clone()];
+        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
+        if let Some(home) = home {
+            folders.push(PathBuf::from(home).join("Desktop"));
+        }
         let (tx, rx) = std::sync::mpsc::channel();
         let repaint = cx.repaint.clone();
         std::thread::spawn(move || {
-            let found = find_package(&folder);
+            let found = find_in(&folders);
             let _ = tx.send((folder, found));
             if let Some(repaint) = repaint {
                 repaint.request_repaint();
@@ -293,7 +299,7 @@ impl Ttw {
             return;
         };
         if let Ok((folder, found)) = rx.try_recv() {
-            self.state.searched(&folder, found.as_deref());
+            self.state.searched_package(&folder, found.as_ref());
             self.search = None;
         }
     }
@@ -515,9 +521,14 @@ impl Ttw {
                 ui.add_space(8.0);
                 note(ui, t, Mark::Info, FINDING, None);
             }
-            Found::Found { file, .. } => {
+            Found::Found { file, size, .. } => {
                 ui.add_space(8.0);
-                note(ui, t, Mark::Ok, FOUND, Some(&file));
+                let detail = if size > 0 {
+                    format!("{file} ({})", size_text(size))
+                } else {
+                    file
+                };
+                note(ui, t, Mark::Ok, FOUND, Some(&detail));
                 ui.add_space(4.0);
                 if ui.button(USE_THIS).clicked() {
                     self.use_found(cx);
@@ -947,6 +958,20 @@ fn steps(ui: &mut egui::Ui, t: &Tokens, current: Step, installed: bool) {
 }
 
 /// One source on a narrow page: its label, then its value and mark, wrapping onto the next line when they do not fit.
+/// A size in bytes as megabytes or gigabytes, for the package found.
+fn size_text(bytes: u64) -> String {
+    const MB: u64 = 1_000_000;
+    if bytes >= 1_000 * MB {
+        format!(
+            "{}.{} GB",
+            bytes / (1_000 * MB),
+            bytes % (1_000 * MB) / (100 * MB)
+        )
+    } else {
+        format!("{} MB", bytes / MB)
+    }
+}
+
 fn source_line(ui: &mut egui::Ui, t: &Tokens, label: &str, value: Option<&str>, defaults: bool) {
     ui.label(RichText::new(label).color(t.text.color()));
     // A path takes the width the page has and truncates; the mark goes on the line below it.
@@ -1347,7 +1372,10 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(root.join("unpacked")).unwrap();
         std::fs::write(root.join("notes.txt"), b"not a package").unwrap();
-        std::fs::write(root.join("unpacked/TTW_3.4.0.mpi"), b"synthetic").unwrap();
+        // A package-shaped file: the search skips a file that is too small or does not start like a package.
+        let mut body = vec![0u8; 1_000_000];
+        body[..4].copy_from_slice(b"PK\x03\x04");
+        std::fs::write(root.join("unpacked/TTW_3.4.0.mpi"), body).unwrap();
         (root, std::sync::Arc::new(Recording::default()))
     }
 
@@ -1393,8 +1421,12 @@ mod tests {
         }
         assert!(h.query_by_label(FOUND).is_some(), "the found state");
         assert!(
-            h.query_by_label(&file).is_some(),
+            h.query_by_label_contains(&file).is_some(),
             "the file it found is named"
+        );
+        assert!(
+            h.query_by_label_contains("1 MB").is_some(),
+            "and so is its size"
         );
         h.get_by_label(USE_THIS).click();
         for _ in 0..100 {
