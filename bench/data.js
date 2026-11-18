@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794960687383,
+  "lastUpdate": 1794961735531,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -3184,6 +3184,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.073091999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8a1390e2dc863456e880f05b02f525ff69acb332",
+          "message": "fix(gui): fit the TTW flow page to the smallest window (#234)\n\n* fix(gui): fit the TTW flow page to the smallest window\n\n* chore: snapshots after the merge",
+          "timestamp": "2026-11-18T01:27:32+01:00",
+          "tree_id": "0ba2a47edea9cc22e048c9016eb5261bef6260cb",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/8a1390e2dc863456e880f05b02f525ff69acb332"
+        },
+        "date": 1794961734834,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.12757,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.700626000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.710922,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.5077109999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.311735,
             "unit": "ms"
           }
         ]
