@@ -8,7 +8,10 @@ behind this shape are [ADR-0001](adr/0001-the-toolbox-is-the-product-umbrella.md
 
 [ADR-0007](adr/0007-orchestration-tool-supply-and-the-view-model-live-in-the-toolbox.md) to
 [ADR-0011](adr/0011-the-rolling-engine-channel.md) move orchestration, tool supply, the Runner, the view model and
-the GUI from nvmod into the Toolbox; [REORG.md](REORG.md) has the crate-by-crate plan and the order. The target:
+the GUI from nvmod into the Toolbox; [REORG.md](REORG.md) has the crate-by-crate plan and the order.
+[ADR-0016](adr/0016-components-are-incorporated-libraries-called-in-process.md) links every Component in process, and
+[ADR-0019](adr/0019-raul-orchestrates-nvmod-manages-mods.md) makes `raul` the orchestrator of every flow, with nvmod
+managing mods only; where the diagrams below show the Runner starting Components, those ADRs win. The target:
 
 ```mermaid
 flowchart LR

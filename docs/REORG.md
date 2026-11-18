@@ -1,7 +1,34 @@
 # Reorganisation plan: one division of work for the stack
 
-Status: **proposed, 2026-11-16, waiting for the owner's approval.** Nothing in this plan has been moved, renamed,
-closed or transferred yet. Section 10 lists the steps that run after approval, each as a small pull request.
+Status: **accepted 2026-11-16; amended by [ADR-0016](adr/0016-components-are-incorporated-libraries-called-in-process.md)
+(2026-11-17) and [ADR-0019](adr/0019-raul-orchestrates-nvmod-manages-mods.md) (2026-11-18).** Section 0 says what has
+changed since; where it differs from a later section, section 0 and the ADRs win.
+
+## 0. Status on 2026-11-18
+
+**M1 is complete.** The first releases under this plan shipped: nvmod-rs 0.7.0, lodwright-rs 0.4.1, nv-rs 0.6.0,
+ttwright-rs 0.4.0, loot-rs 0.6.1 and Toolbox 0.3.0, and the ttwright-rs restructure (ttwright-rs#5) is closed. The
+submodule pins are the set (ADR-0018). The release gate on M2 is passed.
+
+**raul orchestrates; nvmod manages mods (ADR-0019, owner decision).** `raul` drives setup, TTW, LOD, the engine step,
+the launch and updates, and is the only UI. nvmod keeps mod management and the library jobs `raul` calls for it; it
+has no standalone `setup`, no setup orchestration and no GUI. Every Component is linked and called in process; only
+the game run is a child process, started from `raul`'s own binary (ADR-0016 as amended). This changes the plan below:
+
+- Nothing in sections 3 and 10.2 that "moves from nvmod" is copied here with its history. `raul` already has its own
+  drivers, view model, service and GUI; it composes the setup from nvmod's typed jobs (#43). nvmod's copies (setup,
+  TTW, LOD, the engine install, the launch, the Runner, `nvmod-ui-model`, `nvmod-ui-service`, `gui/`) are deleted as
+  soon as `raul`'s replacement has landed, with no stub (section 12, decision 5, as amended).
+- The process-based seams of sections 3 ("One writer") and 10.2 step 4 are replaced by in-process calls (ADR-0016).
+- M2 runs now, in this order (#33):
+  1. In process: nvmod through its typed jobs (#214: #265, #269, #266, #267) and TTW through ttwright (#213, #271).
+  2. Setup in `raul` (#43): the setup job over nvmod's jobs (#272), the `raul-journal` resume state (#273), the engine
+     step until the play mode (#275), `raul setup` and the wizard in process (#274).
+  3. nvmod removals (#12): its GUI and view model (nvmod-rs#167) and `lod` (nvmod-rs#166) now; `setup` and TTW
+     (nvmod-rs#164, nvmod-rs#165) after #274; the engine install and launch (nvmod-rs#168) after the play mode (#260);
+     then nvmod starts no process (nvmod-rs#169). The pre-move baseline (nvmod-rs#90) is recorded before each removal.
+  4. LOD and loot-rs in process (#215, #216); one Runner (#40); the engine crates and play mode (#259, #260) once
+     nv-rs#353 lands; tool supply (#41).
 
 Terms follow [`GLOSSARY.md`](../GLOSSARY.md). Ticket numbers are written `repo#N`; a plain `#N` is a ticket in this
 repository. Tickets of the owner's private workshop are counted here but not listed; their dispositions are recorded
@@ -395,7 +422,7 @@ nearly finished and can finish early.
 ```mermaid
 flowchart LR
   M0[M0 Reorg] --> M1[M1 First pinned set]
-  M1 --> M2[M2 Toolbox owns orchestration]
+  M1 --> M2[M2 raul owns orchestration]
   M2 --> M5[M5 One UI: install, run, updates]
   D[UI design pass and toolkit decision] --> M5
   E[Engine tracks: M3 hitch-free, M4 full list] --> R[Engine releases]
@@ -512,6 +539,9 @@ Small, reviewable steps:
 
 ### 10.2 How a crate group moves
 
+Superseded by section 0 and ADR-0019 for nvmod's orchestration, view model and GUI: those are deleted from nvmod,
+not copied here. The steps below are kept as history.
+
 The Toolbox pins nvmod-rs by release tag, so each repository builds at every step:
 
 1. **Baseline.** Before the first move, record the behaviour to keep: the `--json` output and exit code of every
@@ -594,7 +624,9 @@ the design pass ticket before any GUI code moves.
 3. **Install skin:** built in M5, opt-in and off by default.
 4. **Shared format crate:** decided after the golden-vector check (#26); extracted only if it shows divergence or
    drift.
-5. **Moved nvmod commands:** removed at once when they move; no stubs.
+5. **Moved nvmod commands:** removed at once when they move; no stubs. Amended by ADR-0019 (2026-11-18): nothing is
+   moved with its history; nvmod's `setup`, `ttw`, `lod`, `install-nv-rs` and launch are deleted once `raul`'s
+   replacement has landed, and nvmod has no standalone setup or GUI.
 6. **M3 gate:** p99 at or under 6.9 ms in interiors and 11.1 ms in the dense town at 2560x1440, unlimited; no frame
    over 33 ms after a scene's first 10 s.
 7. **Look, themes, type, navigation, gamepad and voice:** as section 11.
