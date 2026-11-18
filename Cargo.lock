@@ -1773,6 +1773,7 @@ dependencies = [
  "nvmod-core",
  "nvmod-instance",
  "nvmod-pe",
+ "nvmod-run",
  "nvmod-testkit",
  "raul-drivers",
  "raul-runner",

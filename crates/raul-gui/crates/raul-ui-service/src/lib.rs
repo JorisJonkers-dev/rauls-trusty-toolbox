@@ -4,6 +4,7 @@
 //! * [`Service`]: what screens and wizards ask of the world. [`CliService`] answers by running the `raul`
 //!   command line through the streaming Runner and reading its `--json` output, [`FakeService`] from a script.
 //! * [`jobs`]: runs a command line as a job whose events go into the job table of `raul-ui-model`.
+//! * [`direct`]: a Component's typed job called in this process as a job of the same table, under the Instance lock.
 //! * [`inproc`]: the same command line run in this process, for tests and for a build with no `raul` beside it.
 //! * [`registry`]: the table that ties every GUI action to the command line that does the same, and the checks
 //!   that fail when a screen or an action has no equivalent.
@@ -15,6 +16,7 @@
 #![cfg_attr(test, allow(clippy::assert_is_empty))]
 
 pub mod conflicts;
+pub mod direct;
 pub mod dto;
 pub mod exec;
 pub mod fake;
@@ -28,6 +30,7 @@ pub mod wiring;
 pub use conflicts::{
     ConflictsReport, ConflictsRequest, PluginsReport, PluginsRequest, TreeReport, TreeRequest,
 };
+pub use direct::{DirectJob, run_direct};
 pub use exec::{CancelHandle, Exec, Output, ProcessExec};
 pub use fake::{FakeService, ScriptedExec};
 pub use inproc::InProcessExec;

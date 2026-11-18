@@ -36,6 +36,7 @@ nvmod-instance = { path = "components/nvmod-rs/crates/nvmod-instance" }
 nvmod-loadorder = { path = "components/nvmod-rs/crates/nvmod-loadorder" }
 nvmod-modinstall = { path = "components/nvmod-rs/crates/nvmod-modinstall" }
 nvmod-pe = { path = "components/nvmod-rs/crates/nvmod-pe" }
+nvmod-run = { path = "components/nvmod-rs/crates/nvmod-run" }
 nvmod-runlog = { path = "components/nvmod-rs/crates/nvmod-runlog" }
 nvmod-testkit = { path = "components/nvmod-rs/crates/nvmod-testkit" }
 ttwright-core = { path = "components/ttwright-rs/crates/ttwright-core" }

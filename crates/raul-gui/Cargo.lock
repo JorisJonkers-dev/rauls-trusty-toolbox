@@ -3729,6 +3729,7 @@ dependencies = [
  "nvmod-core",
  "nvmod-instance",
  "nvmod-pe",
+ "nvmod-run",
  "raul-drivers",
  "raul-runner",
  "schemars",
@@ -3764,6 +3765,7 @@ dependencies = [
  "eframe",
  "egui_kittest",
  "lodwright-testkit",
+ "nvmod-api",
  "nvmod-modinstall",
  "nvmod-testkit",
  "raul-cli",
@@ -3795,9 +3797,11 @@ dependencies = [
 name = "raul-ui-service"
 version = "0.0.0"
 dependencies = [
+ "nvmod-api",
  "nvmod-core",
  "nvmod-testkit",
  "raul-cli",
+ "raul-core",
  "raul-runner",
  "raul-ui-model",
  "serde",
