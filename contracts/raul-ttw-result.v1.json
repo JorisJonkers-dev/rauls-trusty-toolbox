@@ -147,7 +147,7 @@
         },
         {
           "const": "cancelled",
-          "description": "The run was cancelled (exit code 4); `--resume` continues it.",
+          "description": "The run was cancelled (exit code 4); `--resume` continues it. This also covers the install timeout\n(`--timeout-secs`): a timed-out install is cancelled, not failed.",
           "type": "string"
         },
         {

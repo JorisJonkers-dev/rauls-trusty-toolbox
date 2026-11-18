@@ -93,7 +93,7 @@ wrote to. A cancelled or failed install keeps the staging folder, so `raul ttw -
 | `failed` | 4 | `ttwright_failed` | exit code 1, or 2 (a usage error) |
 | `failed` | 4 | `tool_failed` | the work folder could not be prepared, ttwright ended with an undocumented exit code, or its result was not a success |
 | `failed` | 4 | `add_mod_failed` | exit code 0, but adding the Mod failed and was rolled back |
-| `cancelled` | 4 | `cancelled` | exit code 4, or stopped by `raul` on SIGINT or SIGTERM; `--resume` continues |
+| `cancelled` | 4 | `cancelled` | exit code 4, or stopped by `raul` on SIGINT or SIGTERM, or by the install timeout (`--timeout-secs`, which also cancels and is resumable); `--resume` continues |
 
 `error.ttwright_code` is ttwright's own `error.code` when ttwright gave one. In every case but `success` the
 Instance is as it was before the command. A command line `raul` cannot read exits 5 and prints no events.

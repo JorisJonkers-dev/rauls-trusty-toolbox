@@ -105,7 +105,8 @@ pub enum TtwErrorCode {
     /// ttwright does not support the package or one of its features (its exit code 3; exit code 2). Nothing was
     /// written.
     Unsupported,
-    /// The run was cancelled (exit code 4); `--resume` continues it.
+    /// The run was cancelled (exit code 4); `--resume` continues it. This also covers the install timeout
+    /// (`--timeout-secs`): a timed-out install is cancelled, not failed.
     Cancelled,
     /// ttwright succeeded but adding its output to the Instance failed and was rolled back (exit code 4).
     AddModFailed,

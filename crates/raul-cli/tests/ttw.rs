@@ -397,6 +397,7 @@ fn sigint_stops_ttwright_and_exits_4_with_nothing_added() {
     assert_eq!(f.state(), before);
 }
 
+/// `--timeout-secs` cancels the install like SIGINT does: the run ends `cancelled` (resumable), not `failed`.
 #[test]
 fn a_dry_run_reads_and_checks_and_writes_nothing() {
     let f = Fixture::new("raul-ttw-dry");
@@ -497,7 +498,6 @@ fn the_inputs_come_from_raul_config_when_no_flag_names_them() {
     );
 }
 
-/// nvmod has its own `ttw`, and writes a run log for every command it runs: `raul ttw` leaves none.
 /// `--ttwright` named the program raul used to run. raul runs no program now, so the flag is an unknown option:
 /// exit code 5, nothing is started.
 #[test]
@@ -512,6 +512,7 @@ fn the_ttwright_flag_is_refused_as_an_unknown_option() {
     assert!(!f.work().exists(), "ttwright was started");
 }
 
+/// nvmod has its own `ttw`, and writes a run log for every command it runs: `raul ttw` leaves none.
 #[test]
 fn ttw_is_the_toolboxs_own_command_and_never_reaches_nvmod() {
     let f = Fixture::new("raul-ttw-dispatch");

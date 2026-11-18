@@ -155,12 +155,9 @@ mod tests {
         };
         let mut events = Vec::new();
         let out = install_in_process(&job, Duration::from_secs(1), &mut |e| events.push(e));
-        assert_ne!(out.exit_code, 0);
-        let status = out.doc.get("status").and_then(|v| v.as_str()).unwrap_or("");
-        assert!(
-            status == "failed" || status == "unsupported",
-            "unexpected status: {status}"
-        );
+        assert_eq!(out.exit_code, 1, "{}", out.doc);
+        assert_eq!(out.doc["status"], "failed", "{}", out.doc);
+        assert_eq!(out.doc["error"]["code"], "mpi_not_found", "{}", out.doc);
     }
 
     #[test]
@@ -169,10 +166,17 @@ mod tests {
             mpi_path: PathBuf::from("/definitely/does/not/exist.mpi"),
             ..Default::default()
         };
-        let seen = std::cell::RefCell::new(0_u32);
-        let out = install_with_events(&job, Duration::from_secs(1), &mut |_| {
-            *seen.borrow_mut() += 1;
+        let seen = std::cell::RefCell::new(Vec::new());
+        let out = install_with_events(&job, Duration::from_secs(1), &mut |e| {
+            seen.borrow_mut().push(e);
         });
         assert_ne!(out.exit_code, 0);
+        assert!(
+            seen.borrow()
+                .iter()
+                .any(|e| matches!(e, Event::Phase { .. })),
+            "no phase event arrived: {} events",
+            seen.borrow().len()
+        );
     }
 }

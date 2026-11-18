@@ -309,15 +309,9 @@ fn a_cancelled_ttw_job_stops_the_install() {
         started.elapsed()
     );
     let state = table.get(JobId(1)).map(|j| j.state);
-    assert!(
-        matches!(
-            state,
-            Some(JobState::Finished(
-                Outcome::Cancelled | Outcome::RolledBack | Outcome::Failed
-            ))
-        ),
-        "{state:?}"
-    );
+    // A cancel ends as `cancelled` on every path in the driver (`cancelled before`, `cancelled while adding`), never
+    // as a rollback or a failure.
+    assert_eq!(state, Some(JobState::Finished(Outcome::Cancelled)));
     assert!(!f.installed(), "the cancelled install added the Mod");
 }
 
