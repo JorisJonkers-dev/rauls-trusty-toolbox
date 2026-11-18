@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795038146429,
+  "lastUpdate": 1795040003414,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4752,6 +4752,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.877555000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b70f398ad9fadaf4329c2cedc228a78d95d00b3b",
+          "message": "feat(gui): run the read-only actions as direct jobs (#295)\n\n* feat(gui): run conflicts and tree as direct jobs\n\n* feat(gui): run the Doctor as a direct job\n\n* refactor(gui): key direct jobs by the registry command id\n\n* feat(gui): run verify as a direct job\n\n* feat(gui): run the plugin list as a direct job\n\n* test(gui): satisfy clippy in the direct read tests\n\n* test(gui): drop an unused import\n\n* fix(gui): keep the usage error of a bad severity and test the flags of the read jobs\n\n* build: keep the nv-rs pin of main\n\n* fix(gui): a failed read is a refusal, not a rolled-back step",
+          "timestamp": "2026-11-18T23:11:50+01:00",
+          "tree_id": "89d47c0cfd3bf996d9d7d5cd4b4f4a95e18b4c97",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b70f398ad9fadaf4329c2cedc228a78d95d00b3b"
+        },
+        "date": 1795039999663,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.6696739999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.610892,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.62425,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.260105,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.110782,
             "unit": "ms"
           }
         ]
