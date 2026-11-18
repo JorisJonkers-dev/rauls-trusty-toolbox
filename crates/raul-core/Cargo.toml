@@ -16,6 +16,8 @@ semver = { workspace = true }
 serde = { workspace = true }
 toml = { workspace = true }
 serde_json = { workspace = true }
+nvmod-api = { workspace = true }
+nvmod-core = { workspace = true }
 nvmod-instance = { workspace = true }
 nvmod-pe = { workspace = true }
 
