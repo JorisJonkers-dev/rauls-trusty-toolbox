@@ -107,8 +107,8 @@ pub struct InstallRequest {
     pub answers: Option<serde_json::Value>,
 }
 
-/// What `raul ttw` needs. Anything left `None` comes from `raul config` (the game folders and the TTW package)
-/// or the bundled ttwright.
+/// What `raul ttw` needs. Anything left `None` comes from `raul config` (the game folders and the TTW package).
+/// ttwright runs in raul's own process, so there is no program to locate.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[allow(clippy::struct_excessive_bools)] // One bool per flag of the command line.
 pub struct TtwRequest {

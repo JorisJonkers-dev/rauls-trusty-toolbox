@@ -376,19 +376,25 @@ fn to_review(h: &mut Harness<'static, App>) {
     }
 }
 
-/// Runs frames until ttwright has written some of its output (the journal and at least one asset).
+/// Runs frames until ttwright has written its first asset (not just the journal that comes before it). The slow
+/// manifest has thousands more, so the install is still running when the caller clicks.
 fn until_writing(h: &mut Harness<'static, App>, f: &Fixture) {
     let out = f.work().join("out");
     let started = Instant::now();
-    while count_files(&out) < 3 {
+    while written_assets(&out) < 1 {
         assert!(
             started.elapsed() < Duration::from_secs(20),
             "ttwright never started writing"
         );
-        h.run_steps(2);
-        std::thread::sleep(Duration::from_millis(20));
+        h.run_steps(1);
+        std::thread::sleep(Duration::from_millis(5));
     }
-    h.run_steps(4);
+    h.run_steps(2);
+}
+
+/// The files ttwright has written under `dir`: all of them but its journal, which comes before the first asset.
+fn written_assets(dir: &Path) -> usize {
+    count_files(dir).saturating_sub(usize::from(dir.join(".ttwright-journal.json").is_file()))
 }
 
 /// Files under `dir`, counting links as one file.

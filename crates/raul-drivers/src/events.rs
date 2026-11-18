@@ -111,16 +111,17 @@ pub enum Status {
     Cancelled,
 }
 
-/// The Component program a driver runs.
+/// The Component a driver ran. ttwright runs in raul's own process, so its `tool` names the raul executable.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ToolInfo {
-    /// The program's name, for example `ttwright`.
+    /// The Component's name, for example `ttwright`.
     pub name: String,
     /// Its version as the program reported it in its result; `null` in the `started` event, before it ran.
     pub version: Option<String>,
-    /// The file that ran.
+    /// The file that ran: for ttwright, the raul executable.
     pub path: PathBuf,
-    /// The SHA-256 of that file, checked again right before it was started.
+    /// The SHA-256 of that file, checked again right before it was started; empty for ttwright, which runs in
+    /// raul's own process and starts no file of its own.
     pub sha256: String,
 }
 

@@ -164,7 +164,7 @@ pub struct TtwReport {
     pub staging: Option<String>,
     /// `raul ttw --resume` with the same arguments continues this run.
     pub resumable: bool,
-    /// The ttwright program that ran, or `None` when none did.
+    /// The ttwright driver that ran in process (the raul executable, with no SHA-256), or `None` when no install started.
     pub tool: Option<raul_ui_model::events::ToolInfo>,
     /// ttwright's own `ttwright-result` document, as it printed it.
     pub ttwright: Option<serde_json::Value>,

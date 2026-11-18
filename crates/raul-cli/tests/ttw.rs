@@ -155,7 +155,8 @@ impl Fixture {
         all
     }
 
-    /// Start `raul ttw` and stop it with SIGINT once ttwright has begun writing; returns its output.
+    /// Start `raul ttw` and stop it with SIGINT as soon as ttwright has written its first asset; returns its output.
+    /// The slow manifest has thousands more assets (an install takes seconds), so the stop lands mid-install.
     fn ttw_interrupted(&self) -> Output {
         let child = self
             .command(&with_extra(&self.ttw_args(), &[]))
@@ -163,10 +164,10 @@ impl Fixture {
             .stderr(Stdio::piped())
             .spawn()
             .unwrap();
-        // Wait until ttwright has written some of its output (the journal and at least one asset).
+        // Wait for the first asset (polled every 5 ms), not just the journal that comes before it.
         let out_dir = self.work().join("out");
         let start = Instant::now();
-        while count_files(&out_dir) < 3 {
+        while written_assets(&out_dir) < 1 {
             assert!(
                 start.elapsed() < Duration::from_secs(60),
                 "ttwright never started writing"
@@ -239,6 +240,11 @@ fn count_files(dir: &Path) -> usize {
             _ => 1,
         })
         .sum()
+}
+
+/// The files ttwright has written under `dir`: all of them but its journal, which comes before the first asset.
+fn written_assets(dir: &Path) -> usize {
+    count_files(dir).saturating_sub(usize::from(dir.join(".ttwright-journal.json").is_file()))
 }
 
 fn read(p: &Path) -> String {
@@ -492,6 +498,20 @@ fn the_inputs_come_from_raul_config_when_no_flag_names_them() {
 }
 
 /// nvmod has its own `ttw`, and writes a run log for every command it runs: `raul ttw` leaves none.
+/// `--ttwright` named the program raul used to run. raul runs no program now, so the flag is an unknown option:
+/// exit code 5, nothing is started.
+#[test]
+fn the_ttwright_flag_is_refused_as_an_unknown_option() {
+    let f = Fixture::new("raul-ttw-flag");
+    let out = f.raul(&["ttw", "--ttwright", "/x"]);
+    assert_eq!(out.status.code(), Some(5), "{out:?}");
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("raul: unknown option --ttwright"),
+        "{out:?}"
+    );
+    assert!(!f.work().exists(), "ttwright was started");
+}
+
 #[test]
 fn ttw_is_the_toolboxs_own_command_and_never_reaches_nvmod() {
     let f = Fixture::new("raul-ttw-dispatch");

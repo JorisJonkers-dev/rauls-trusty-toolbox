@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The TTW driver: checks the inputs, runs `ttwright install --json` through `raul-runner`, streams ttwright's event
-//! lines as [`Event`]s while it runs, reads its `ttwright-result`, and adds the output to the Instance as one Mod
-//! with nvmod's mod-install library. Every outcome but success leaves the Instance as it was.
+//! The TTW driver: checks the inputs, runs ttwright's install in raul's own process (ttwright starts no program), maps
+//! its progress to [`Event`]s while it runs, reads the `ttwright-result` it returns, and adds the output to the
+//! Instance as one Mod with nvmod's mod-install library. Every outcome but success leaves the Instance as it was.
 
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
@@ -16,13 +16,10 @@ use serde_json::Value;
 use super::{CONTRACT, MOD_NAME, SCHEMA_VERSION, TtwError, TtwErrorCode, TtwResult};
 use crate::events::{Event, Status, ToolInfo};
 
-/// The `ttwright-result` versions this build reads (the newest it knows, and the one before it when there is one).
-pub const TTWRIGHT_RESULT_VERSIONS: &[i64] = &[1];
-
 /// The `ttwright-events` version this build reads.
 pub const TTWRIGHT_EVENTS_VERSION: i64 = 1;
 
-/// The ttwright program's name, without the `.exe` Windows adds.
+/// The ttwright driver's name, as the result's `tool` block reports it.
 pub const TTWRIGHT: &str = "ttwright";
 
 /// How long an install may run: the slowest machines reported take about 40 minutes; three hours is a stuck run.
@@ -451,7 +448,6 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
     let done = super::inproc::install_with_events(&job, req.timeout, emit);
     let journal = dest.join(".ttwright-journal.json").is_file();
     let (exit_code, doc) = (done.exit_code, done.doc);
-    let (exit_code, doc, journal) = (exit_code, doc, journal);
     if let Some(tool) = &mut draft.result.tool {
         tool.version = doc["tool"]["version"].as_str().map(str::to_owned);
     }

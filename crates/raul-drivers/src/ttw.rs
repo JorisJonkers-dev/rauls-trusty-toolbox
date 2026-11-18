@@ -8,8 +8,8 @@ pub(crate) mod inproc;
 use std::path::PathBuf;
 
 pub use driver::{
-    DEFAULT_TIMEOUT, Outcome, TTWRIGHT, TTWRIGHT_EVENTS_VERSION, TTWRIGHT_RESULT_VERSIONS,
-    TtwRequest, WORK_DIR, bundled, exit_code, install, refused,
+    DEFAULT_TIMEOUT, Outcome, TTWRIGHT, TTWRIGHT_EVENTS_VERSION, TtwRequest, WORK_DIR, bundled,
+    exit_code, install, refused,
 };
 
 use schemars::JsonSchema;
@@ -57,9 +57,10 @@ pub struct TtwResult {
     pub staging: Option<PathBuf>,
     /// `raul ttw --resume` with the same arguments continues this run.
     pub resumable: bool,
-    /// The ttwright program that ran, or `null` when none did.
+    /// The ttwright driver that ran in process: the `raul` executable, with its name and version and no SHA-256.
+    /// `null` when no install started.
     pub tool: Option<ToolInfo>,
-    /// The `ttwright-result` v1 document ttwright printed, as it printed it, or `null` when it printed none.
+    /// The `ttwright-result` v1 document ttwright returned, as it is, or `null` when it returned none.
     pub ttwright: Option<serde_json::Value>,
     /// Set unless the status is `success`.
     pub error: Option<TtwError>,
@@ -90,14 +91,14 @@ pub enum TtwErrorCode {
     MissingInput,
     /// The Instance already has a `Tale of Two Wastelands` Mod (exit code 2).
     ModExists,
-    /// No ttwright program: none is bundled next to `raul` and `--ttwright` was not given (exit code 2).
+    /// Kept for older result documents; raul no longer produces it (exit code 2).
     ToolMissing,
-    /// The ttwright program changed between its checksum and its start (exit code 3); it was not started.
+    /// Kept for older result documents; raul no longer produces it (exit code 3).
     ToolUnverifiable,
-    /// ttwright could not be started, ended without a result, or printed one that is not a `ttwright-result`
-    /// (exit code 4).
+    /// The install could not be prepared (its work folder), ttwright ended with an exit code the Toolbox does not
+    /// document, or its result was not a success (exit code 4).
     ToolFailed,
-    /// ttwright printed a `ttwright-result` of a version this build does not read (exit code 2).
+    /// Kept for older result documents; raul no longer produces it (exit code 2).
     ContractRefused,
     /// ttwright ran and failed (its exit code 1 or 2; exit code 4); `ttwright_code` says why.
     TtwrightFailed,
