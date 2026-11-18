@@ -43,7 +43,9 @@ allow = [
     "LGPL-3.0",
 ]
 confidence-threshold = 0.8
-exceptions = []
+# esplugin (GPL-3.0) reaches this workspace only through lodwright-testkit, a dev-dependency of the GUI window tests,
+# so it is never linked into the shipped `raul`. The Toolbox is GPL-3.0-only, so the licence is compatible anyway.
+exceptions = [{ allow = ["GPL-3.0"], crate = "esplugin" }]
 
 # The workspace crates are publish = false; their own licence is checked by the SPDX guard instead.
 [licenses.private]
