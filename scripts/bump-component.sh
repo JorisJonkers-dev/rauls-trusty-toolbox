@@ -21,7 +21,9 @@ checkout_tag() {
 checkout_tag "$dir" "$tag"
 # The self-hosted Renovate run (.github/renovate-components.json) reads the pinned release from this tracked file,
 # because it lists the repository's files with git and never sees inside a submodule.
-scripts/component-version.sh "$dir" | sed 's/^v//' > "components/$dir.version"
+version="$(scripts/component-version.sh "$dir" | sed 's/^v//')"
+[ -n "$version" ] || { echo "cannot read the release of components/$dir" >&2; exit 1; }
+printf '%s\n' "$version" > "components/$dir.version"
 if [ "$dir" = nvmod-rs ]; then
   loot="$(sed -n '/^name = "loot-rs"/,/^\[tool\]/p; /^\[tool.source\]/,/^$/p' components/nvmod-rs/tools.lock.toml | sed -n 's/^tag = "\(v[0-9.]*\)".*/\1/p' | head -n1)"
   [ -n "$loot" ] || { echo "nvmod's tools.lock.toml has no loot-rs tag" >&2; exit 1; }

@@ -11,11 +11,17 @@ while read -r key path; do
   branch="$(git config -f .gitmodules "submodule.$name.branch" || echo main)"
   repo="$(sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' <<<"$url")"
   # The Component follower reads the pinned release from components/<dir>.version (see scripts/bump-component.sh).
-  pin="$path.version"
-  if [ -f "$pin" ] && [ -f "$path/.release-please-manifest.json" ]; then
-    want="$(scripts/component-version.sh "${path#components/}" | sed 's/^v//')"
-    have="$(tr -d '[:space:]' < "$pin")"
-    [ "$want" = "$have" ] || { echo "FAIL $pin says $have but $path is at $want; run scripts/bump-component.sh ${path#components/} v$want"; fail=1; }
+  # loot-rs has none: it moves with the nvmod release that links it (ADR-0015).
+  if [ "${path#components/}" != "loot-rs" ]; then
+    pin="$path.version"
+    if [ ! -f "$pin" ]; then
+      echo "FAIL $pin is missing; the Component follower would never see $path; run scripts/bump-component.sh ${path#components/} <tag>"; fail=1
+    elif ! want="$(scripts/component-version.sh "${path#components/}" | sed 's/^v//')" || [ -z "$want" ]; then
+      echo "FAIL cannot read the release of $path from its release-please manifest"; fail=1
+    else
+      have="$(tr -d '[:space:]' < "$pin")"
+      [ "$want" = "$have" ] || { echo "FAIL $pin says $have but $path is at $want; run scripts/bump-component.sh ${path#components/} v$want"; fail=1; }
+    fi
   fi
   sha="$(git ls-tree HEAD "$path" | awk '{print $3}')"
   if git ls-remote --tags "$url" | awk '{print $1}' | grep -qx "$sha"; then

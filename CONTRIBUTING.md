@@ -56,7 +56,7 @@ After the Component's release is out:
 scripts/bump-component.sh <component> <tag>
 cargo update --workspace
 cargo update --workspace --manifest-path crates/raul-gui/Cargo.toml
-git add components/<repo> components/<repo>.version Cargo.lock crates/raul-gui/Cargo.lock
+git add components Cargo.toml Cargo.lock crates/raul-gui/Cargo.lock
 git commit -m "chore(deps): bump <repo> to vX.Y.Z"
 ```
 
