@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794988234167,
+  "lastUpdate": 1794989572394,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -3821,6 +3821,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 11.002932999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a38ae6f76b4dfbed418f20b68513b35e39bfe8c1",
+          "message": "docs(adr): the game run is the one child process, started from raul's own binary (#261)",
+          "timestamp": "2026-11-18T09:11:23+01:00",
+          "tree_id": "9748cd28a6ffa315c9d4db8dea480a37794055f3",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a38ae6f76b4dfbed418f20b68513b35e39bfe8c1"
+        },
+        "date": 1794989570843,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.411546,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.677956,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 47.628471,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.921435,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.761033000000001,
             "unit": "ms"
           }
         ]
