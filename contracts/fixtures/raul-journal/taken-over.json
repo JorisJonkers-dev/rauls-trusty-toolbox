@@ -5,5 +5,6 @@
   "taken_over": { "from": "nvmod-setup", "version": "0.9.0" },
   "plan": ["init", "profile", "engine", "target", "mod:Example.zip", "stage", "sort", "verify"],
   "finished": ["init", "profile", "engine", "target"],
+  "request": null,
   "complete": false
 }

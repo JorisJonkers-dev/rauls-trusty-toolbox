@@ -9,6 +9,7 @@
 //! Error>`. A cancel that arrives while the last step runs is not seen; the run ends as done. A cancelled run is an [`Outcome::Cancelled`], a result and not an error; the first failing step stops
 //! the run with its typed [`Error`]. The resume journal is in [`crate::journal`] (`journal::run` is this job with it); the wizard is not part of this module.
 
+mod args;
 mod engine;
 mod plan;
 mod run;
@@ -20,6 +21,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 pub use engine::EngineOptions;
+pub use args::{Parsed, parse as parse_words};
 pub use nvmod_api::CancelToken;
 pub use plan::plan;
 pub use run::run;
