@@ -11,8 +11,8 @@ use common::{Instance, install_plain, s};
 use raul_ui_service::exec::{Exec, Output};
 use raul_ui_service::registry::Action;
 use raul_ui_service::{
-    CancelHandle, CliService, ConflictsRequest, DoctorRequest, InProcessExec, JobSpec, Service,
-    TreeRequest, VerifyRequest, direct, run_direct,
+    CancelHandle, CliService, ConflictsRequest, DoctorRequest, InProcessExec, JobSpec,
+    PluginsRequest, Service, TreeRequest, VerifyRequest, direct, run_direct,
 };
 
 /// A runner that must never be asked for anything.
@@ -99,6 +99,23 @@ fn verify_prints_what_the_command_line_prints() {
         .verify(&VerifyRequest {
             instance: root,
             ..VerifyRequest::default()
+        })
+        .unwrap();
+}
+
+#[test]
+fn plugins_list_prints_what_the_command_line_prints() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    let root = s(&inst.root());
+    assert_same(
+        &direct_output("plugins-list", &["--instance", &root]),
+        &cli_output(&["plugins", "list", "--instance", &root, "--json"]),
+    );
+    service()
+        .plugins_list(&PluginsRequest {
+            instance: root,
+            ..PluginsRequest::default()
         })
         .unwrap();
 }

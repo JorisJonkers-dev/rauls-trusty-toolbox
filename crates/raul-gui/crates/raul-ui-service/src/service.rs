@@ -1094,11 +1094,14 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn plugins_list(&self, r: &PluginsRequest) -> Result<PluginsReport, ServiceError> {
-        let (out, args) = self.with_profile(Action::Plugins, &r.instance, || r.args())?;
-        match out.code {
-            Some(0) => Self::parse(Action::Plugins, &out, &args),
-            _ => Err(failure(&out, "plugins", &args)),
-        }
+        let request = nvmod_api::plugins::ListRequest {
+            instance: PathBuf::from(&r.instance),
+            profile: r.profile.clone(),
+        };
+        let out = self.direct_with_profile(Action::Plugins, &r.instance, || {
+            crate::direct::plugins_list(&request)
+        })?;
+        Self::direct_answer(&out, "plugins")
     }
 
     fn setup(&self, r: &SetupRequest) -> Result<SetupReport, ServiceError> {
@@ -1230,7 +1233,6 @@ impl<E: Exec> CliService<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fake::ScriptedExec;
 
     fn refused(why: &str) -> Output {
         Output {
@@ -1238,116 +1240,6 @@ mod tests {
             stdout: String::new(),
             stderr: format!("raul plugins: refused: {why}\n"),
         }
-    }
-
-    #[test]
-    fn a_missing_profile_is_made_before_the_command_runs_again() {
-        let exec = ScriptedExec::new();
-        exec.on_run(
-            &[],
-            2,
-            "raul plugins: refused: the Instance has no profile\n",
-        )
-        .on_run(&[], 0, "")
-        .on_run(
-            &["{\"schema_version\":1,\"profile\":\"Default\",\"plugins\":[],\"locks\":[]}"],
-            0,
-            "",
-        );
-        let svc = CliService::new(exec);
-        let report = svc
-            .plugins_list(&PluginsRequest {
-                instance: "/i".into(),
-                profile: None,
-            })
-            .unwrap();
-        assert!(report.plugins.is_empty());
-        let calls = svc.exec().calls();
-        assert_eq!(calls.len(), 3);
-        assert_eq!(calls[0], ["plugins", "list", "--instance", "/i", "--json"]);
-        assert_eq!(
-            calls[1],
-            [
-                "profile",
-                "create",
-                "--name",
-                "Default",
-                "--instance",
-                "/i",
-                "--json"
-            ]
-        );
-        assert_eq!(calls[2], calls[0], "the command runs again once it can");
-    }
-
-    #[test]
-    fn a_command_that_works_first_time_never_makes_a_profile() {
-        let exec = ScriptedExec::new();
-        exec.on_run(
-            &["{\"schema_version\":1,\"profile\":\"Default\",\"plugins\":[],\"locks\":[]}"],
-            0,
-            "",
-        );
-        let svc = CliService::new(exec);
-        let report = svc
-            .plugins_list(&PluginsRequest {
-                instance: "/i".into(),
-                profile: None,
-            })
-            .unwrap();
-        assert!(report.plugins.is_empty());
-        assert_eq!(svc.exec().calls().len(), 1);
-    }
-
-    #[test]
-    fn a_profile_that_cannot_be_made_is_a_plain_error() {
-        let exec = ScriptedExec::new();
-        exec.on_run(
-            &[],
-            2,
-            "raul plugins: refused: the Instance has no profile\n",
-        )
-        .on_run(
-            &[],
-            2,
-            "raul profile: refused: the Instance folder is not there\n",
-        )
-        .on_run(
-            &[],
-            2,
-            "raul plugins: refused: the Instance has no profile\n",
-        )
-        .on_run(
-            &[],
-            2,
-            "raul profile: refused: the Instance folder is not there\n",
-        );
-        let svc = CliService::new(exec);
-        let err = svc
-            .plugins_list(&PluginsRequest {
-                instance: "/i".into(),
-                profile: None,
-            })
-            .unwrap_err();
-        let e = err.view_error();
-        assert_eq!(e.what, NO_PROFILE_WHAT);
-        assert!(e.effect.starts_with(NO_PROFILE_EFFECT));
-        assert!(
-            !e.what.to_lowercase().contains("profile")
-                && !NO_PROFILE_EFFECT.to_lowercase().contains("profile"),
-            "the headline and the guidance stay plain"
-        );
-        assert_eq!(svc.exec().calls().len(), 2, "it is not tried again");
-
-        // A command that is refused for the same reason on its own says the same plain thing.
-        let err = svc
-            .plugins_list(&PluginsRequest {
-                instance: "/i".into(),
-                profile: None,
-            })
-            .unwrap_err();
-        assert_eq!(err.view_error().what, NO_PROFILE_WHAT);
-        assert_eq!(svc.exec().calls().len(), 4, "a run and its fix, twice");
     }
 
     #[test]
@@ -1368,6 +1260,75 @@ mod tests {
         assert_eq!(
             ProfileRequest::default_for("/i").args(),
             ["create", "--name", "Default", "--instance", "/i"]
+        );
+    }
+
+    /// A direct job that refuses `times` times as an Instance with no profile does, then answers an empty report.
+    fn needs_a_profile(
+        runs: &std::sync::Arc<std::sync::atomic::AtomicUsize>,
+        times: usize,
+    ) -> crate::direct::DirectJob {
+        let runs = std::sync::Arc::clone(runs);
+        crate::direct::DirectJob::reading(move |_, _| {
+            let n = runs.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            if n < times {
+                return Err(nvmod_api::JobError::new(
+                    nvmod_api::ErrorKind::Refused,
+                    "test.read",
+                    "the Instance has no profile",
+                ));
+            }
+            Ok(nvmod_api::Outcome::Done(
+                serde_json::json!({"profile": "Default"}),
+            ))
+        })
+    }
+
+    #[test]
+    fn a_missing_profile_is_made_before_the_direct_job_runs_again() {
+        let exec = crate::fake::ScriptedExec::new();
+        exec.on_run(&[], 0, "");
+        let svc = CliService::new(exec);
+        let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let out = svc
+            .direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 1))
+            .unwrap();
+        assert_eq!(out.code, Some(0));
+        assert_eq!(runs.load(std::sync::atomic::Ordering::SeqCst), 2);
+        let calls = svc.exec().calls();
+        assert_eq!(calls.len(), 1, "only the profile is made by a command");
+        assert_eq!(calls[0][..2], ["profile", "create"]);
+    }
+
+    #[test]
+    fn a_direct_job_that_works_first_time_never_makes_a_profile() {
+        let svc = CliService::new(crate::fake::ScriptedExec::new());
+        let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        svc.direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 0))
+            .unwrap();
+        assert!(svc.exec().calls().is_empty());
+    }
+
+    #[test]
+    fn a_profile_that_cannot_be_made_is_a_plain_error() {
+        let exec = crate::fake::ScriptedExec::new();
+        exec.on_run(
+            &[],
+            2,
+            "raul profile: refused: the Instance folder is not there\n",
+        );
+        let svc = CliService::new(exec);
+        let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let err = svc
+            .direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 9))
+            .unwrap_err();
+        let e = err.view_error();
+        assert_eq!(e.what, NO_PROFILE_WHAT);
+        assert!(e.effect.starts_with(NO_PROFILE_EFFECT));
+        assert_eq!(
+            runs.load(std::sync::atomic::Ordering::SeqCst),
+            1,
+            "it is not tried again"
         );
     }
 }

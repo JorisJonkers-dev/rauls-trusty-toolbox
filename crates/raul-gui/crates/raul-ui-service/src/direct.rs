@@ -23,7 +23,6 @@
 
 use crate::exec::{CancelHandle, Output};
 use crate::jobs::{Feed, JobSpec};
-use crate::registry::Action;
 use crate::wiring::outcome_of;
 use nvmod_api::{CancelToken, ErrorKind, Event, JobError, Outcome, Progress};
 use raul_core::instance_lock::InstanceGuard;
@@ -181,6 +180,7 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor(&doctor_request(rest))),
         "verify" => Some(verify(&verify_request(rest))),
+        "plugins-list" => Some(plugins_list(&plugins_list_request(rest))),
         _ => None,
     }
 }
@@ -301,6 +301,20 @@ pub fn verify(request: &nvmod_api::verify::VerifyRequest) -> DirectJob {
             })
         },
     )
+}
+
+/// The request of `raul plugins list --instance` from the words after `list`.
+fn plugins_list_request(rest: &[String]) -> nvmod_api::plugins::ListRequest {
+    nvmod_api::plugins::ListRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+    }
+}
+
+/// `nvmod_api::plugins::list`: reads only. Its document is the list, as `raul plugins list --json` prints it.
+pub fn plugins_list(request: &nvmod_api::plugins::ListRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::reading(move |progress, cancel| nvmod_api::plugins::list(&request, progress, cancel))
 }
 
 /// The value after `flag` in `rest`, empty when there is none.
