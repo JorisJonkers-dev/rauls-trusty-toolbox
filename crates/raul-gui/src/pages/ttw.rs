@@ -313,11 +313,7 @@ impl Ttw {
         self.state.searching();
         let folder = self.downloads();
         // Downloads first (the one the page was given), then the Desktop of the home folder.
-        let mut folders = vec![folder.clone()];
-        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
-        if let Some(home) = home {
-            folders.push(PathBuf::from(home).join("Desktop"));
-        }
+        let folders = self.search_folders(folder.clone());
         let (tx, rx) = std::sync::mpsc::channel();
         let repaint = cx.repaint.clone();
         std::thread::spawn(move || {
@@ -330,13 +326,27 @@ impl Ttw {
         self.search = Some(rx);
     }
 
-    /// Starts watching the folders the search looks in. Nothing starts until the user asked for it.
-    fn start_watch(&mut self, cx: &PageCx<'_>) {
-        let mut folders = vec![self.downloads()];
+    /// The folders a search or a watch looks in: `downloads`, the Desktop of the home folder, then the folders
+    /// Settings points at, without duplicates.
+    fn search_folders(&self, downloads: PathBuf) -> Vec<PathBuf> {
+        let mut folders = vec![downloads];
         let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
         if let Some(home) = home {
             folders.push(PathBuf::from(home).join("Desktop"));
         }
+        if let Some(sources) = self.state.sources.ready() {
+            for folder in sources.search_folders() {
+                if !folders.contains(&folder) {
+                    folders.push(folder);
+                }
+            }
+        }
+        folders
+    }
+
+    /// Starts watching the folders the search looks in. Nothing starts until the user asked for it.
+    fn start_watch(&mut self, cx: &PageCx<'_>) {
+        let folders = self.search_folders(self.downloads());
         // Where a package that came in an archive is unpacked: a folder of its own in the Instance's work folder.
         let unpack_to = self.unpack_to.clone().or_else(|| {
             self.state
@@ -1633,6 +1643,40 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(20));
         }
         assert!(used, "the package inside the archive is saved and used");
+    }
+
+    #[test]
+    fn find_it_for_me_also_looks_in_the_folder_next_to_the_fallout_3_folder() {
+        use egui_kittest::kittest::Queryable;
+        let (downloads, exec) = fake_downloads("settings");
+        let _ = std::fs::remove_dir_all(downloads.join("unpacked"));
+        let games = downloads.join("games");
+        std::fs::create_dir_all(&games).unwrap();
+        let mut body = vec![0u8; 1_000_000];
+        body[..4].copy_from_slice(b"PK\x03\x04");
+        std::fs::write(games.join("TTW_7.mpi"), body).unwrap();
+        let fallout3 = games.join("Fallout 3 goty").display().to_string();
+        let mut h = harness(
+            Fixture {
+                page: Box::new(
+                    Ttw::with(at(Step::Sources, sources(Some(&fallout3), None)))
+                        .looking_in(downloads.join("empty")),
+                ),
+                ..fixture("sources-missing", State::default())
+            },
+            exec,
+        );
+        h.run();
+        h.get_by_label(FIND_IT).click();
+        for _ in 0..100 {
+            h.run_steps(2);
+            if h.query_by_label(FOUND).is_some() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert!(h.query_by_label(FOUND).is_some(), "the found state");
+        assert!(h.query_by_label_contains("TTW_7.mpi").is_some());
         let _ = std::fs::remove_dir_all(&downloads);
     }
 
