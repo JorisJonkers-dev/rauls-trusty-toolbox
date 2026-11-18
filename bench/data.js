@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794994228868,
+  "lastUpdate": 1794995631607,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4017,6 +4017,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 12.538307,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "46add0211442f008c1fa79729581c1cb3e1dd8b8",
+          "message": "feat(gui): add InProcessExec, an Exec that runs raul in this process (#268)\n\n* feat(gui): add InProcessExec, an Exec that runs raul in this process\n\n* fix(gui): reset the cancel flag on every path and keep streamed output when a run is stopped\n\n* build(gui): lock ttwright-core's dependencies, with cc kept at 1.2.62\n\n* build(deny): allow the licences ttwright-core's dependencies use in the GUI workspace",
+          "timestamp": "2026-11-18T10:52:24+01:00",
+          "tree_id": "138e45ad946650415cc6cf78f2bf6bc2133ae9f9",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/46add0211442f008c1fa79729581c1cb3e1dd8b8"
+        },
+        "date": 1794995630925,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.447154,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 11.193641000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.957001,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 6.533551,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.54221,
             "unit": "ms"
           }
         ]
