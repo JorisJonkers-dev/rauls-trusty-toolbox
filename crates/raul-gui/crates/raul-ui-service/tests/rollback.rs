@@ -348,3 +348,25 @@ fn an_undo_without_an_instance_is_refused_not_run_on_the_working_folder() {
         "an action not converted yet stays a command line"
     );
 }
+
+#[test]
+fn the_lock_is_held_while_the_job_runs() {
+    let inst = Instance::new();
+    let lock = inst.root().join(".nvmod/lock");
+    let seen = lock.clone();
+    let job = DirectJob::writing(inst.root(), "rollback", move |_, _| {
+        // While the job runs the file names this process, and a second writer is refused.
+        let text = std::fs::read_to_string(&seen).map_err(|why| {
+            JobError::new(
+                ErrorKind::Internal,
+                "test.lock",
+                format!("no lock file: {why}"),
+            )
+        })?;
+        assert!(text.contains(&std::process::id().to_string()), "{text}");
+        Ok(nvmod_api::Outcome::Done(1_u8))
+    });
+    let (out, _) = run(job, &CancelHandle::new());
+    assert_eq!(out.code, Some(0), "{out:?}");
+    assert!(!lock.exists());
+}

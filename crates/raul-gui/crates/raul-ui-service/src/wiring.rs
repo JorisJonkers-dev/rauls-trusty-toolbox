@@ -318,7 +318,7 @@ pub fn apply_mods(
                     };
                     if let Err(why) = service.rollback(&undo) {
                         error.effect = format!(
-                            "{} step(s) are still applied: undo them with Undo. {}",
+                            "{} step(s) are still applied and could not be undone; check the Mods list. {}",
                             journaled - undone,
                             why.view_error().what
                         );

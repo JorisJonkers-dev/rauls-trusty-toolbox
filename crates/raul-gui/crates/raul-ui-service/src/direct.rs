@@ -150,7 +150,9 @@ pub fn rollback(instance: &Path) -> DirectJob {
     })
 }
 
-/// The exit class of a job's error kind: the code the command line would have ended with.
+/// The exit class of a job's error kind: the code the command line would have ended with, except that an
+/// `internal` error (a bug, never a property of the input) stays [`ExitClass::Internal`] instead of being folded into
+/// "a step failed and was put back", so the page does not offer a retry that cannot help.
 fn class_of(kind: ErrorKind) -> ExitClass {
     match kind {
         ErrorKind::Refused => ExitClass::Refused,
