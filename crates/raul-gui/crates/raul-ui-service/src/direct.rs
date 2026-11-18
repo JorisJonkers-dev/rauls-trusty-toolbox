@@ -180,6 +180,7 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor(&doctor_request(rest))),
+        "verify" => Some(verify(&verify_request(rest))),
         _ => None,
     }
 }
@@ -261,6 +262,42 @@ pub fn doctor(request: &nvmod_api::doctor::CheckRequest) -> DirectJob {
             serde_json::to_value(&done.report).map(|json| Reply {
                 json,
                 exit: u8::from(done.found),
+            })
+        },
+    )
+}
+
+/// The request of `raul verify --instance` from the words after it.
+fn verify_request(rest: &[String]) -> nvmod_api::verify::VerifyRequest {
+    let fail_on = option_of(rest, "--fail-on")
+        .and_then(|severity| severity.parse().ok())
+        .unwrap_or(nvmod_api::verify::Severity::Error);
+    nvmod_api::verify::VerifyRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        masterlist: option_of(rest, "--masterlist").map(PathBuf::from),
+        catalog: option_of(rest, "--catalog").map(PathBuf::from),
+        proton: option_of(rest, "--proton"),
+        fail_on,
+    }
+}
+
+/// `nvmod_api::verify::verify`: reads only. Its document is the verification, as `raul verify --json` prints it; its
+/// exit code is 3 when the install is not verified, as the command ends.
+pub fn verify(request: &nvmod_api::verify::VerifyRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::reading_as(
+        move |progress, cancel| nvmod_api::verify::verify(&request, progress, cancel),
+        |done: &nvmod_api::verify::VerifyOutput| -> Result<Reply, serde_json::Error> {
+            Ok(Reply {
+                json: serde_json::json!({
+                    "schema_version": 1,
+                    "verified": done.verified,
+                    "doctor": done.doctor,
+                    "nv_rs": done.nv_rs,
+                    "launch_plan": done.launch_plan,
+                }),
+                exit: if done.verified { 0 } else { 3 },
             })
         },
     )

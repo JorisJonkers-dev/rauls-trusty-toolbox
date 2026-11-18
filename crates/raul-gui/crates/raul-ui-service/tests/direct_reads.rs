@@ -12,7 +12,7 @@ use raul_ui_service::exec::{Exec, Output};
 use raul_ui_service::registry::Action;
 use raul_ui_service::{
     CancelHandle, CliService, ConflictsRequest, DoctorRequest, InProcessExec, JobSpec, Service,
-    TreeRequest, direct, run_direct,
+    TreeRequest, VerifyRequest, direct, run_direct,
 };
 
 /// A runner that must never be asked for anything.
@@ -81,6 +81,24 @@ fn doctor_prints_what_the_command_line_prints() {
         .doctor(&DoctorRequest {
             instance: root,
             ..DoctorRequest::default()
+        })
+        .unwrap();
+}
+
+#[test]
+fn verify_prints_what_the_command_line_prints() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    let root = s(&inst.root());
+    assert_same(
+        &direct_output("verify", &["--instance", &root]),
+        &cli_output(&["verify", "--instance", &root, "--json"]),
+    );
+    // A verification that does not pass is still a report, not an error.
+    service()
+        .verify(&VerifyRequest {
+            instance: root,
+            ..VerifyRequest::default()
         })
         .unwrap();
 }

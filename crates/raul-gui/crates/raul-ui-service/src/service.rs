@@ -387,20 +387,6 @@ pub struct VerifyRequest {
     pub fail_on: Option<String>,
 }
 
-impl VerifyRequest {
-    /// The words after `raul verify`, before `--json`.
-    pub fn args(&self) -> Vec<String> {
-        let mut rest = Vec::new();
-        push(&mut rest, "instance", &self.instance);
-        push_opt(&mut rest, "profile", self.profile.as_ref());
-        push_opt(&mut rest, "masterlist", self.masterlist.as_ref());
-        push_opt(&mut rest, "catalog", self.catalog.as_ref());
-        push_opt(&mut rest, "proton", self.proton.as_ref());
-        push_opt(&mut rest, "fail-on", self.fail_on.as_ref());
-        rest
-    }
-}
-
 /// What an Instance runs on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeTarget {
@@ -1007,11 +993,31 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn verify(&self, r: &VerifyRequest) -> Result<VerifyReport, ServiceError> {
-        let (out, args) = self.with_profile(Action::Verify, &r.instance, || r.args())?;
+        let request = nvmod_api::verify::VerifyRequest {
+            instance: PathBuf::from(&r.instance),
+            profile: r.profile.clone(),
+            masterlist: r.masterlist.as_deref().map(PathBuf::from),
+            catalog: r.catalog.as_deref().map(PathBuf::from),
+            proton: r.proton.clone(),
+            fail_on: r
+                .fail_on
+                .as_deref()
+                .and_then(|severity| severity.parse().ok())
+                .unwrap_or(nvmod_api::verify::Severity::Error),
+        };
+        let out = self.direct_with_profile(Action::Verify, &r.instance, || {
+            crate::direct::verify(&request)
+        })?;
         match out.code {
             // Exit 3 is "not verified": the report is on standard output.
-            Some(0 | 3) => Self::parse(Action::Verify, &out, &args),
-            _ => Err(failure(&out, "verify", &args)),
+            Some(0 | 3) => serde_json::from_str::<VerifyReport>(&out.stdout).map_err(|why| {
+                ServiceError::Failed(ViewError::new(
+                    ExitClass::Internal,
+                    format!("The output of `raul verify` could not be read: {why}"),
+                    effect_of(ExitClass::Internal),
+                ))
+            }),
+            _ => Err(ServiceError::Failed(failure_error(&out, "verify"))),
         }
     }
 
