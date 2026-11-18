@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795035820121,
+  "lastUpdate": 1795036909909,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4556,6 +4556,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 11.21866,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c8505b2716b3e529c658c76a85e17fc2c1848cf7",
+          "message": "fix(ci): let the Component follower see the pinned releases (#290)\n\n* fix(ci): give the Component follower a tracked pin file to read\n\nRenovate lists files with git and never sees inside a submodule, so the managers that read components/<name>/.release-please-manifest.json found 0 package files. The pinned release is now also written in components/<name>.version, which bump-component.sh updates and check-submodules.sh compares with the submodule.\n\n* fix(ci): fail when a followed Component has no pin file, and write the pin safely\n\n* docs(ci): say that the submodule check needs jq",
+          "timestamp": "2026-11-18T22:20:27+01:00",
+          "tree_id": "a84e9048911e7243b39386e70a0d0bf1dc5b7b56",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/c8505b2716b3e529c658c76a85e17fc2c1848cf7"
+        },
+        "date": 1795036908989,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.9286159999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.758327,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 37.383465,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.159988,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 11.126009,
             "unit": "ms"
           }
         ]
