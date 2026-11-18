@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! Drivers of the process Components (ADR-0007): the Toolbox runs ttwright and lodwright as programs through
-//! `raul-runner`, reads their result and event Contracts, and reports to its own callers as `raul-events` lines.
+//! Drivers of the Components (ADR-0007, ADR-0016): ttwright runs inside raul's own process, and lodwright still runs
+//! as a program through `raul-runner` until it is linked too. Each driver reports to its own callers as `raul-events`
+//! lines.
 //! The [`events`] and [`ttw`] modules hold the Toolbox's own Contracts of those commands; their schemas are in
 //! `contracts/` at the repository root.
 
