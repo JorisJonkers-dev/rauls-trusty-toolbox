@@ -14,8 +14,8 @@ both kinds. ghcr.io needs no new service and takes each repository's own token. 
 
 - **What**: the nv-rs engine package for each target (the only package `raul` installs), and the CLI of nvmod,
   lodwright-rs, ttwright-rs and loot-rs for standalone use. `raul` does not read the CLIs.
-- **Name and version**: `ghcr.io/jorisjonkers-dev/<repo>-<program>:<version>-<target>` (two path levels, which every
-  registry client accepts), where `<version>` is the
+- **Name and version**: `ghcr.io/jorisjonkers-dev/<repo>:<version>-<target>`, named after the repository (for example
+  `ghcr.io/jorisjonkers-dev/ttwright-rs`; amended 2026-11-18, the first releases used `<repo>-<program>`), where `<version>` is the
   Component's release tag and `<target>` a Rust target triple. One version per Component release, no other tags. Each
   artifact is one archive layer plus the licence texts and a link to the source tag.
 - **Pin**: `supply.toml` records the manifest digest (`sha256:...`) and the archive SHA-256 per target. The trust
