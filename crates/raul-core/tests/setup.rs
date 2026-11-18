@@ -282,6 +282,20 @@ mod engine {
     }
 
     #[test]
+    fn no_toolchain_fetches_the_release_without_being_asked() {
+        let rig = Rig::new();
+        let mut request = rig.release(&FakeRelease::new(), 0);
+        request.engine_options.release = false;
+        request.engine_options.cargo = Some(rig.tools.path().join("no-such-cargo"));
+        let (result, events) = record(&request, &CancelToken::new());
+        done(result);
+        assert_eq!(
+            labels(&events),
+            ["setup.engine.fetching", "setup.engine.checked"]
+        );
+    }
+
+    #[test]
     fn a_wrong_checksum_is_unverified_and_nothing_is_installed() {
         let rig = Rig::new();
         let request = rig.release(&FakeRelease::new().wrong_checksum(), 0);

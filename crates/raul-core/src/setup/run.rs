@@ -284,7 +284,7 @@ impl Drop for StopWatcher<'_> {
 /// which is what the TTW driver polls. The request is cleared again afterwards when this watcher made it and none
 /// stood before, so a
 /// later job in the same process starts clean.
-fn with_cancel_bridge<T>(cancel: &CancelToken, work: impl FnOnce() -> T) -> T {
+pub(super) fn with_cancel_bridge<T>(cancel: &CancelToken, work: impl FnOnce() -> T) -> T {
     let (done, bridged) = (AtomicBool::new(false), AtomicBool::new(false));
     // Declared first, so it drops last: the request is cleared even when `work` panics.
     let _clear = ClearBridged {

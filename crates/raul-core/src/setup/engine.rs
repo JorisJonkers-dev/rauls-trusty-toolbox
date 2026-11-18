@@ -6,9 +6,12 @@
 //! module, the `engine` mod line, the `EngineOptions` re-export and the `Request::engine_options` field in
 //! `setup.rs`, the `Step::Engine` arm in `run.rs`, and the `nvmod-install` dependency.
 //!
-//! The library reports no progress and cannot be interrupted, so the step reports what it is about to do, honours a
-//! stop asked for before the install starts, and reports the passed check afterwards. The library stages the
-//! install and rolls it back on failure, so a refused or failed install leaves the Instance as it was.
+//! The library reports no progress, so the step reports what it is about to do, honours a stop asked for before the
+//! install starts, bridges a stop asked for during it to nvmod's process-wide stop request (which ends the build or
+//! the fetch), and reports the passed check afterwards. The library stages the install and rolls it back on
+//! failure, so a refused, stopped or failed install leaves the Instance as it was. A run that dies after the install
+//! committed and before the journal recorded the step is refused on resume with "already installed"; the caller
+//! then marks the step done or starts over. `cargo` comes from the request, else `NVMOD_CARGO`, else `PATH`, as in nvmod's setup.
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -16,6 +19,7 @@ use std::time::Duration;
 use nvmod_install::{DEFAULT_ASSET, DEFAULT_RELEASE_URL, DEFAULT_REPO, InstallError, Options};
 use serde::{Deserialize, Serialize};
 
+use super::run::with_cancel_bridge;
 use super::{CancelToken, Error, ErrorKind, Event, Progress, Request, Step};
 
 /// The detail label while nv-rs is built from a source workspace (the build, then the check).
@@ -91,7 +95,12 @@ pub(super) fn run(
         });
     };
     // The library's own choice of method: the release when asked for or when no toolchain is found.
-    let release = opts.release || nvmod_install::resolve_cargo(opts.cargo.as_deref()).is_none();
+    // `cargo` comes from the request, else the `NVMOD_CARGO` variable nvmod's own setup reads, else `PATH`.
+    let cargo = opts
+        .cargo
+        .clone()
+        .or_else(|| std::env::var_os("NVMOD_CARGO").map(PathBuf::from));
+    let release = opts.release || nvmod_install::resolve_cargo(cargo.as_deref()).is_none();
     detail(progress, if release { FETCHING } else { BUILDING });
     if cancel.is_cancelled() {
         return Ok(false);
@@ -100,7 +109,7 @@ pub(super) fn run(
         instance: req.instance.clone(),
         source: opts.source.clone(),
         release: opts.release,
-        cargo: opts.cargo.clone(),
+        cargo,
         release_url: opts.release_url.clone(),
         asset: opts.asset.clone(),
         repo: opts.repo.clone(),
@@ -108,11 +117,15 @@ pub(super) fn run(
         curl: opts.curl.clone(),
         retry_delay: Duration::from_millis(opts.retry_delay_ms),
     };
-    match nvmod_install::install(&options) {
+    // The library runs the build and the fetch as child processes that stop on nvmod's process-wide stop request, so a
+    // stop asked for through `cancel` is bridged to it for the length of the install.
+    match with_cancel_bridge(cancel, || nvmod_install::install(&options)) {
         Ok(_) => {
             detail(progress, CHECKED);
             Ok(true)
         }
+        // A stop that ended the install ends the step as cancelled; the library rolled back what it had written.
+        Err(_) if cancel.is_cancelled() => Ok(false),
         Err(e) => Err(map(step, e)),
     }
 }
