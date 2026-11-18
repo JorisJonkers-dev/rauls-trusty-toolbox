@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794984492658,
+  "lastUpdate": 1794987169236,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -3723,6 +3723,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.127673,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1d727158e3f2153ed7512f600b9a8a1033c5debd",
+          "message": "chore(deps): bump the Components to their new releases (#252)\n\n* chore(deps): bump nvmod to v0.7.0\n\n* chore(deps): bump ttwright-rs to v0.4.0\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-18T08:31:27+01:00",
+          "tree_id": "d122f08354b8edf12b0c5e61760deb22eefdbcbb",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/1d727158e3f2153ed7512f600b9a8a1033c5debd"
+        },
+        "date": 1794987168303,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.3249999999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.552387,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.888645,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.650543,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.557649000000001,
             "unit": "ms"
           }
         ]
