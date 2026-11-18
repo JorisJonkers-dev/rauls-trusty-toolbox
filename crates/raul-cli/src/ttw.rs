@@ -16,7 +16,7 @@ use raul_drivers::ttw::{self, TtwErrorCode, TtwRequest};
 /// The longest `--timeout-secs` taken: a week.
 const MAX_TIMEOUT_SECS: u64 = 7 * 24 * 60 * 60;
 
-const USAGE_LINE: &str = "ttw takes [--instance <dir>] [--profile <name>] [--fallout3 <dir>] [--newvegas <dir>] [--package <file>] [--ttwright <path>] [--dry-run] [--resume] [--timeout-secs <n>] [--json]";
+const USAGE_LINE: &str = "ttw takes [--instance <dir>] [--profile <name>] [--fallout3 <dir>] [--newvegas <dir>] [--package <file>] [--dry-run] [--resume] [--timeout-secs <n>] [--json]";
 
 fn value<'a>(rest: &mut impl Iterator<Item = &'a String>, flag: &str) -> Result<&'a str, String> {
     rest.next()
@@ -37,7 +37,6 @@ fn parse(args: &[String]) -> Result<Flags, String> {
         fallout3: None,
         newvegas: None,
         package: None,
-        ttwright: None,
         dry_run: false,
         resume: false,
         timeout: ttw::DEFAULT_TIMEOUT,
@@ -54,7 +53,6 @@ fn parse(args: &[String]) -> Result<Flags, String> {
             "--fallout3" => req.fallout3 = Some(PathBuf::from(value(&mut rest, a)?)),
             "--newvegas" => req.newvegas = Some(PathBuf::from(value(&mut rest, a)?)),
             "--package" => req.package = Some(PathBuf::from(value(&mut rest, a)?)),
-            "--ttwright" => req.ttwright = Some(PathBuf::from(value(&mut rest, a)?)),
             "--timeout-secs" => {
                 let secs = value(&mut rest, a)?
                     .parse::<u64>()
@@ -118,7 +116,6 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
         &mut req.fallout3,
         &mut req.newvegas,
         &mut req.package,
-        &mut req.ttwright,
     ] {
         *path = path.take().map(absolute);
     }

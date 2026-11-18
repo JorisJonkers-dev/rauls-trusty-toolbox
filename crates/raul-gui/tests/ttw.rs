@@ -146,7 +146,6 @@ impl Fixture {
             instance: Some(self.s("instance")),
             fallout3: Some(self.s("Fallout3")),
             package: Some(self.s("TTW.mpi")),
-            ttwright: Some(self.s("tools/ttwright")),
             ..TtwRequest::default()
         }
     }
@@ -312,11 +311,7 @@ impl Fixture {
         write_script(
             f.root.path(),
             "raul-window",
-            &format!(
-                "if [ \"$1\" = ttw ]; then set -- \"$@\" --ttwright '{t}'; fi\nexec '{raul}' \"$@\"",
-                t = f.s("tools/ttwright"),
-                raul = f.s("raul"),
-            ),
+            &format!("exec '{raul}' \"$@\"", raul = f.s("raul"),),
         );
         f
     }

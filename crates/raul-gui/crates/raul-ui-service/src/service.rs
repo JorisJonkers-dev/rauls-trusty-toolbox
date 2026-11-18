@@ -122,8 +122,6 @@ pub struct TtwRequest {
     pub newvegas: Option<String>,
     /// The TTW package file.
     pub package: Option<String>,
-    /// Another ttwright program, for development.
-    pub ttwright: Option<String>,
     /// Read the package and check the game copies only; nothing is written.
     pub dry_run: bool,
     /// Continue an interrupted run.
@@ -139,7 +137,6 @@ impl TtwRequest {
         push_opt(&mut rest, "fallout3", self.fallout3.as_ref());
         push_opt(&mut rest, "newvegas", self.newvegas.as_ref());
         push_opt(&mut rest, "package", self.package.as_ref());
-        push_opt(&mut rest, "ttwright", self.ttwright.as_ref());
         if self.dry_run {
             rest.push("--dry-run".to_owned());
         }

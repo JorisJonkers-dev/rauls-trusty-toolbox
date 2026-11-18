@@ -44,8 +44,6 @@ pub struct TtwContext {
     pub newvegas: Option<String>,
     /// The TTW package file when the wizard has none; `None` for the one in `raul config`.
     pub package: Option<String>,
-    /// Another ttwright program, for development; `None` for the bundled one.
-    pub ttwright: Option<String>,
     /// Continue an interrupted run.
     pub resume: bool,
 }
@@ -189,7 +187,6 @@ pub fn apply_ttw(
             .package()
             .map(str::to_owned)
             .or_else(|| ctx.package.clone()),
-        ttwright: ctx.ttwright.clone(),
         dry_run: false,
         resume: ctx.resume,
     };

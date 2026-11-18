@@ -135,11 +135,10 @@ impl Fixture {
 
     /// `raul ttw --json` with every input given as a flag, plus `extra`.
     fn ttw(&self, extra: &[&str]) -> (Option<i32>, Vec<Value>) {
-        let (fo3, pkg, inst, tool) = (
+        let (fo3, pkg, inst) = (
             self.fallout3(),
             self.path("TTW.mpi"),
             self.instance(),
-            self.ttwright(),
         );
         let mut args = vec![
             "ttw",
@@ -150,8 +149,6 @@ impl Fixture {
             fo3.to_str().unwrap(),
             "--package",
             pkg.to_str().unwrap(),
-            "--ttwright",
-            tool.to_str().unwrap(),
         ];
         args.extend_from_slice(extra);
         let out = self.raul(&args);
@@ -391,7 +388,7 @@ fn sigint_stops_ttwright_and_exits_4_with_nothing_added() {
     let f = Fixture::new("raul-ttw-sigint");
     let before = f.state();
     f.mode("slow");
-    let (fo3, pkg, inst, tool) = (f.fallout3(), f.path("TTW.mpi"), f.instance(), f.ttwright());
+    let (fo3, pkg, inst) = (f.fallout3(), f.path("TTW.mpi"), f.instance());
     let child = f
         .command(&[
             "ttw",
@@ -402,8 +399,6 @@ fn sigint_stops_ttwright_and_exits_4_with_nothing_added() {
             fo3.to_str().unwrap(),
             "--package",
             pkg.to_str().unwrap(),
-            "--ttwright",
-            tool.to_str().unwrap(),
         ])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -455,7 +450,7 @@ fn sigint_stops_ttwright_and_exits_4_with_nothing_added() {
 fn missing_inputs_are_refused_before_ttwright_starts() {
     let f = Fixture::new("raul-ttw-refuse");
     f.mode("success");
-    let (inst, tool, fo3) = (f.instance(), f.ttwright(), f.fallout3());
+    let (inst, fo3) = (f.instance(), f.fallout3());
     let run = |args: &[&str]| {
         let out = f.raul(args);
         let lines = lines(&out);
@@ -467,28 +462,15 @@ fn missing_inputs_are_refused_before_ttwright_starts() {
         )
     };
     let inst = inst.to_str().unwrap();
-    let tool = tool.to_str().unwrap();
     let fo3 = fo3.to_str().unwrap();
     assert_eq!(
-        run(&["ttw", "--json", "--ttwright", tool]),
+        run(&["ttw", "--json", "--instance", inst]),
+        (Some(2), "missing_input".into())
+    );
+    let nowhere = f.path("nowhere");
+    assert_eq!(
+        run(&["ttw", "--json", "--instance", nowhere.to_str().unwrap()]),
         (Some(2), "instance_invalid".into())
-    );
-    assert_eq!(
-        run(&["ttw", "--json", "--instance", inst, "--ttwright", tool]),
-        (Some(2), "missing_input".into())
-    );
-    assert_eq!(
-        run(&[
-            "ttw",
-            "--json",
-            "--instance",
-            inst,
-            "--fallout3",
-            fo3,
-            "--ttwright",
-            tool
-        ]),
-        (Some(2), "missing_input".into())
     );
     let pkg = f.path("TTW.mpi");
     let pkg = pkg.to_str().unwrap();
@@ -503,24 +485,8 @@ fn missing_inputs_are_refused_before_ttwright_starts() {
         pkg,
     ];
     assert_eq!(
-        run(&[&base[..], &["--ttwright", "/no/such/ttwright"]].concat()),
-        (Some(2), "tool_missing".into())
-    );
-    assert_eq!(
-        run(&[&base[..], &["--ttwright", tool, "--profile", "Nope"]].concat()),
+        run(&[&base[..], &["--profile", "Nope"]].concat()),
         (Some(2), "profile_missing".into())
-    );
-    let nowhere = f.path("nowhere");
-    assert_eq!(
-        run(&[
-            "ttw",
-            "--json",
-            "--instance",
-            nowhere.to_str().unwrap(),
-            "--ttwright",
-            tool
-        ]),
-        (Some(2), "instance_invalid".into())
     );
     assert!(f.args().is_empty(), "ttwright was started");
     assert_eq!(f.raul(&["ttw", "--bogus"]).status.code(), Some(5));
@@ -552,7 +518,7 @@ fn the_inputs_come_from_raul_config_when_no_flag_names_them() {
     ]);
     assert!(out.status.success());
     f.profile(&storage.join("instance"));
-    let out = f.raul(&["ttw", "--ttwright", f.ttwright().to_str().unwrap()]);
+    let out = f.raul(&["ttw"]);
     assert_eq!(
         out.status.code(),
         Some(0),
