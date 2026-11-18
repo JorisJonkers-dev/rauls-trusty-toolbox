@@ -29,6 +29,9 @@ pub enum LockRefused {
 impl fmt::Display for LockRefused {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InUse(holder) if holder.pid == std::process::id() => f.write_str(
+                "the Instance is in use by another job of this program; wait for it to end",
+            ),
             Self::InUse(holder) => write!(
                 f,
                 "the Instance is in use by another program (process {}); wait for it to end",
@@ -65,11 +68,13 @@ impl InstanceGuard {
         }
     }
 
+    #[must_use]
     /// Whether a lock file is held (false for a folder that is not an Instance).
     pub fn is_held(&self) -> bool {
         self.lock.is_some()
     }
 
+    #[must_use]
     /// The dead holder whose lock this one replaced, if any.
     pub fn took_over(&self) -> Option<&Holder> {
         self.lock.as_ref().and_then(|l| l.took_over.as_ref())

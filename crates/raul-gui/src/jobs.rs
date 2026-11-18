@@ -454,9 +454,15 @@ mod tests {
             jobs.table().get(id).map(|j| j.state),
             Some(JobState::Finished(Outcome::Failed))
         );
-        assert!(
-            jobs.start(Action::Sort, vec![], true).is_err()
-                || jobs.wait_all(Duration::from_secs(10))
+        let again = DirectJob::reading(
+            |_, _| -> Result<nvmod_api::Outcome<u8>, nvmod_api::JobError> {
+                Ok(nvmod_api::Outcome::Done(1))
+            },
         );
+        assert!(
+            jobs.start_direct(Action::Rollback, again, true).is_ok(),
+            "the writer slot was freed"
+        );
+        assert!(jobs.wait_all(Duration::from_secs(10)));
     }
 }

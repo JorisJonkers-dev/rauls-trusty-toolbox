@@ -337,3 +337,14 @@ fn the_service_refuses_while_the_lock_is_held_with_the_same_words() {
     assert_eq!(e.exit, raul_ui_model::error::ExitClass::Refused);
     assert!(e.what.contains("the Instance is in use by"), "{e:?}");
 }
+
+#[test]
+fn an_undo_without_an_instance_is_refused_not_run_on_the_working_folder() {
+    let job = raul_ui_service::direct::for_command(Action::Rollback, &[]).expect("converted");
+    let (out, _) = run(job, &CancelHandle::new());
+    assert_eq!(out.code, Some(2), "{out:?}");
+    assert!(
+        raul_ui_service::direct::for_command(Action::Doctor, &[]).is_none(),
+        "an action not converted yet stays a command line"
+    );
+}

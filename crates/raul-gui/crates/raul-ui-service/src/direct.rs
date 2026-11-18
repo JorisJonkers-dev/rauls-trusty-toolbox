@@ -117,7 +117,16 @@ impl DirectJob {
 /// `None` for an action that still runs as a command line. Each converted action adds one arm here.
 pub fn for_command(action: Action, rest: &[String]) -> Option<DirectJob> {
     match action {
-        Action::Rollback => Some(rollback(&PathBuf::from(value_of(rest, "--instance")))),
+        Action::Rollback => Some(match value_of(rest, "--instance") {
+            "" => DirectJob::reading(|_, _| -> Result<Outcome<()>, JobError> {
+                Err(JobError::new(
+                    ErrorKind::Refused,
+                    "install.rollback",
+                    "no Instance was given to roll back",
+                ))
+            }),
+            instance => rollback(Path::new(instance)),
+        }),
         _ => None,
     }
 }
@@ -254,8 +263,9 @@ pub fn run_direct(
     let end = execute(spec, job.body, &mut feed, cancel);
     // Released before the end is told: the next writing job may start the moment this one is seen to be over.
     drop(guard);
-    let stopped =
-        format!("cancelled: {label} was stopped at a safe point; nothing was written after it");
+    let stopped = format!(
+        "cancelled: {label} was stopped at a safe point; the step in flight was stopped at its safe point"
+    );
     finish(spec, &mut feed, &end, &stopped)
 }
 
