@@ -3286,6 +3286,7 @@ version = "0.0.0"
 dependencies = [
  "eframe",
  "egui_kittest",
+ "nvmod-modinstall",
  "nvmod-testkit",
  "raul-cli",
  "raul-ui-model",
