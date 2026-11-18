@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795004762379,
+  "lastUpdate": 1795024084358,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4311,6 +4311,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.457913,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ab64d4bd339637f46e7fa91f629b291583c2b2ac",
+          "message": "refactor(runner): extend the process guard to every crate and tool (#282)\n\nThe guard that keeps std::process::Command in raul-runner now scans the tests and build scripts of every Toolbox crate, the GUI workspace's member crates and the developer tools. The few files that start the built raul binary or run git are allow-listed, each with a one-line reason, and an entry that no longer starts a process fails the test.",
+          "timestamp": "2026-11-18T18:46:36+01:00",
+          "tree_id": "b3642fb70646de1283ca549369b8c3be0aa08a66",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ab64d4bd339637f46e7fa91f629b291583c2b2ac"
+        },
+        "date": 1795024083757,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.303295,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.473905,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.720265000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.087737,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.057746999999999,
             "unit": "ms"
           }
         ]
