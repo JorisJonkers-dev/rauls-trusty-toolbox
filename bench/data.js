@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795036909909,
+  "lastUpdate": 1795037250579,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4605,6 +4605,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 11.126009,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c860246f7f70d46f95f346779d2f896d653311ab",
+          "message": "feat(gui): run Undo as a direct job under the Instance lock (#291)\n\n* feat(gui): run Undo as a direct job under the Instance lock\n\n* fix(gui): refuse an Undo with no Instance and say when the lock is held by this program\n\n* test(gui): the lock is held while a direct job runs",
+          "timestamp": "2026-11-18T22:25:56+01:00",
+          "tree_id": "4f106e5d4ba7471f68473c16afa20abaadbc0593",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/c860246f7f70d46f95f346779d2f896d653311ab"
+        },
+        "date": 1795037250168,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.2871129999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.440227,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.813072000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.144948,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.825656,
             "unit": "ms"
           }
         ]
