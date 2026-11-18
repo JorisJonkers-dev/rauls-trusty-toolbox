@@ -76,6 +76,26 @@ pub struct Sources {
 }
 
 impl Sources {
+    /// The folders Settings points at that a package may be in: the folder of the package set there, and the folder
+    /// the Fallout 3 folder is in (a download often lands next to the games). Folders that are not named are left
+    /// out, and none comes twice.
+    pub fn search_folders(&self) -> Vec<PathBuf> {
+        let mut folders: Vec<PathBuf> = Vec::new();
+        for path in [self.package.as_deref(), self.fallout3.as_deref()]
+            .into_iter()
+            .flatten()
+        {
+            if let Some(parent) = Path::new(path)
+                .parent()
+                .filter(|p| !p.as_os_str().is_empty())
+                && !folders.iter().any(|f| f == parent)
+            {
+                folders.push(parent.to_path_buf());
+            }
+        }
+        folders
+    }
+
     /// The sources in a configuration.
     pub fn of(config: &Config) -> Sources {
         let get = |key| config.get(key).map(str::to_owned);
@@ -1202,6 +1222,26 @@ mod tests {
             Report::of(Status::Unverifiable, false).exit(),
             ExitClass::VerificationFailed
         );
+    }
+
+    #[test]
+    fn settings_point_at_the_folders_of_the_package_and_of_the_game() {
+        let s = Sources {
+            fallout3: Some("/games/Fallout 3".into()),
+            newvegas: None,
+            package: Some("/games/TTW_3.4.mpi".into()),
+        };
+        assert_eq!(s.search_folders(), [PathBuf::from("/games")]);
+        let s = Sources {
+            fallout3: Some("/a/FO3".into()),
+            newvegas: None,
+            package: Some("/b/TTW.mpi".into()),
+        };
+        assert_eq!(
+            s.search_folders(),
+            [PathBuf::from("/b"), PathBuf::from("/a")]
+        );
+        assert!(Sources::default().search_folders().is_empty());
     }
 
     #[test]
