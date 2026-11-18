@@ -692,3 +692,12 @@ fn a_rar_archive_is_refused_with_a_plain_message_and_nothing_is_installed() {
     assert!(!s.instance().join("mods/Packed").exists());
     assert!(!error.copy_text().contains("--"), "no command line");
 }
+
+#[test]
+fn a_request_saved_with_the_removed_extract_tool_still_reads() {
+    let s = Scratch::new();
+    let mut value = serde_json::to_value(s.request()).expect("request");
+    value["extract_tool"] = "/old/tool".into();
+    let read: Request = serde_json::from_value(value).expect("an old request");
+    assert_eq!(read, s.request());
+}
