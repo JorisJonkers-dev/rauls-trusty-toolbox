@@ -585,6 +585,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "byteorder"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
+
+[[package]]
 name = "byteorder-lite"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -855,6 +861,18 @@ name = "cursor-icon"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f27ae1dd37df86211c42e150270f82743308803d90a6f6e6651cd730d5e1732f"
+
+[[package]]
+name = "ddsfile"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8be425797f9962624aba78dee473dad28c15999e6ee6feb28ad3ee7928a3bc5b"
+dependencies = [
+ "bitflags 2.13.2",
+ "byteorder",
+ "enum-primitive-derive",
+ "num-traits",
+]
 
 [[package]]
 name = "deranged"
@@ -1178,6 +1196,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
 
 [[package]]
+name = "enum-primitive-derive"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba7795da175654fe16979af73f81f26a8ea27638d8d9823d317016888a63dc4c"
+dependencies = [
+ "num-traits",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "enumflags2"
 version = "0.7.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1251,6 +1280,18 @@ name = "error-code"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b5343afd4a8365a643ac588dab4cf234a190c7f6c88c9f6dd6ffe00837661b7"
+
+[[package]]
+name = "esplugin"
+version = "6.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea69d8e4b2b22ec62ac4a26ed8099be4eecd800e0e60b241c04a1ccaa181a287"
+dependencies = [
+ "encoding_rs",
+ "memchr",
+ "nom",
+ "unicase",
+]
 
 [[package]]
 name = "euclid"
@@ -2184,6 +2225,79 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965"
 dependencies = [
  "scopeguard",
+]
+
+[[package]]
+name = "lodwright-api"
+version = "0.4.2"
+dependencies = [
+ "lodwright-contract",
+ "lodwright-core",
+ "lodwright-gen",
+ "lodwright-plugin-meta",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "lodwright-assets"
+version = "0.4.2"
+dependencies = [
+ "miniz_oxide 0.8.9",
+]
+
+[[package]]
+name = "lodwright-contract"
+version = "0.4.2"
+dependencies = [
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "lodwright-core"
+version = "0.4.2"
+dependencies = [
+ "miniz_oxide 0.8.9",
+]
+
+[[package]]
+name = "lodwright-dds"
+version = "0.4.2"
+dependencies = [
+ "ddsfile",
+ "texpresso",
+]
+
+[[package]]
+name = "lodwright-gen"
+version = "0.4.2"
+dependencies = [
+ "lodwright-assets",
+ "lodwright-contract",
+ "lodwright-core",
+ "lodwright-dds",
+ "lodwright-nif",
+]
+
+[[package]]
+name = "lodwright-nif"
+version = "0.4.2"
+
+[[package]]
+name = "lodwright-plugin-meta"
+version = "0.4.2"
+dependencies = [
+ "esplugin",
+]
+
+[[package]]
+name = "lodwright-testkit"
+version = "0.4.2"
+dependencies = [
+ "miniz_oxide 0.8.9",
 ]
 
 [[package]]
@@ -3627,11 +3741,12 @@ name = "raul-drivers"
 version = "0.0.0"
 dependencies = [
  "jsonschema",
+ "lodwright-api",
+ "lodwright-contract",
  "nvmod-core",
  "nvmod-instance",
  "nvmod-loadorder",
  "nvmod-modinstall",
- "raul-runner",
  "schemars",
  "serde",
  "serde_json",
@@ -3646,6 +3761,7 @@ version = "0.0.0"
 dependencies = [
  "eframe",
  "egui_kittest",
+ "lodwright-testkit",
  "nvmod-modinstall",
  "nvmod-testkit",
  "raul-cli",
@@ -4494,7 +4610,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.6",
  "windows-sys 0.61.2",
@@ -4507,6 +4623,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "texpresso"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8550677e2259d675a7841cb1403db35f330cc9e58674c8c5caa12dd12c51dc71"
+dependencies = [
+ "libm",
 ]
 
 [[package]]
@@ -4864,6 +4989,12 @@ dependencies = [
  "tempfile",
  "windows-sys 0.61.2",
 ]
+
+[[package]]
+name = "unicase"
+version = "2.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "357cc3acc6a036009fd6c973ed009037c732d60d0b4f6c673e9041497482a28f"
 
 [[package]]
 name = "unicode-general-category"

@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The LOD page end to end: it reads the plan, asks once, generates, finds the output current on a second run, and
-//! stops a run, all through the release `raul` on a synthetic Instance. lodwright is a fake shell script: a wrapper
-//! passes it to `raul lod generate` where the page uses the bundled one, so no real generator runs.
+//! stops a run, all through the release `raul` on a synthetic Instance. lodwright is linked into `raul`, so the page
+//! starts no generator program: the world is a synthetic plugin from `lodwright-testkit`.
 #![cfg(unix)]
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
+use lodwright_testkit::land::Heights;
+use lodwright_testkit::world::{SyntheticWorld, world_plugin};
 use nvmod_testkit::{BaseBuilder, TempDir, write_script};
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
@@ -20,57 +22,44 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-/// The fake lodwright: in mode `ok` it writes a small output with a manifest, and a folder that already has one is
-/// up to date; in mode `slow` it waits to be stopped.
-const FAKE: &str = r#"
-here=$(dirname "$0")
-mode=$(cat "$here/mode")
-req=""; events=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --request) req="$2"; shift ;;
-    --events) events="$2"; shift ;;
-  esac
-  shift
-done
-out=$(sed -n 's/.*"output_dir": *"\([^"]*\)".*/\1/p' "$req")
-result() { printf '{"schema_version":1,"contract":"lodwright-result","tool":{"name":"lodwright","version":"0.3.0"},"status":"%s","code":"%s","reason":"fake"}\n' "$1" "$2"; }
-case "$mode" in
-  ok)
-    if [ -f "$out/manifest.json" ]; then result ok up_to_date; exit 0; fi
-    mkdir -p "$out/meshes/landscape/lod"
-    echo synthetic > "$out/meshes/landscape/lod/block.nif"
-    echo '{"event":"block","world":"SyntheticWorld","level":4,"done":1,"of":1,"up_to_date":false}' >> "$events"
-    printf '{"schema_version":1,"contract":"lodwright-manifest","files":[]}\n' > "$out/manifest.json"
-    result ok ok ;;
-  slow) touch "$here/started"; exec sleep 30 ;;
-esac
-"#;
+/// A world of `side` by `side` cells with terrain, so a generation takes long enough to be stopped while it runs.
+fn world(side: i32) -> SyntheticWorld {
+    let mut world = SyntheticWorld::new(0xB00, "Island");
+    for x in 0..side {
+        for y in 0..side {
+            let heights =
+                Heights::from_fn(|i, j| ((x * 7 + y * 13 + i as i32 * 3 + j as i32) % 40) as f32);
+            world = world.cell(x, y, heights);
+        }
+    }
+    world
+}
 
 struct Fixture {
     root: TempDir,
 }
 
 impl Fixture {
-    fn new() -> Fixture {
+    fn new(side: i32) -> Fixture {
         let f = Fixture {
             root: TempDir::new("gui-lod"),
         };
         BaseBuilder::steam()
             .exe_version([1, 4, 0, 525])
             .write(&f.path("base"));
-        std::fs::create_dir_all(f.path("tools")).unwrap();
-        write_script(&f.path("tools"), "lodwright", FAKE);
-        f.mode("ok");
-        // `raul` with this fixture's configuration and state, and the fake lodwright for `lod generate`.
+        std::fs::write(
+            f.path("base/Data/FalloutNV.esm"),
+            world_plugin(&[], &world(side), false),
+        )
+        .unwrap();
+        // `raul` with this fixture's configuration and state, so nothing reaches the real home.
         write_script(
             f.root.path(),
             "raul",
             &format!(
-                "export RAUL_CONFIG_DIR='{c}' NVMOD_STATE_DIR='{s}'\nif [ \"$1 $2\" = 'lod generate' ]; then set -- \"$@\" --lodwright '{l}'; fi\nexec '{raul}' \"$@\"",
+                "export RAUL_CONFIG_DIR='{c}' NVMOD_STATE_DIR='{s}'\nexec '{raul}' \"$@\"",
                 c = f.path("config").display(),
                 s = f.path("state").display(),
-                l = f.path("tools/lodwright").display(),
                 raul = env!("CARGO_BIN_EXE_raul"),
             ),
         );
@@ -88,10 +77,6 @@ impl Fixture {
 
     fn s(&self, p: &str) -> String {
         self.path(p).to_string_lossy().into_owned()
-    }
-
-    fn mode(&self, mode: &str) {
-        std::fs::write(self.path("tools/mode"), mode).unwrap();
     }
 
     fn raul(&self, args: &[&str]) {
@@ -154,7 +139,7 @@ fn status(h: &mut Harness<'static, App>) -> Option<String> {
 
 #[test]
 fn generate_keeps_one_enabled_mod_and_a_second_run_finds_it_current() {
-    let f = Fixture::new();
+    let f = Fixture::new(4);
     let mut h = f.app();
     assert!(
         h.query_by_label_contains("blocks not generated").is_some(),
@@ -190,22 +175,24 @@ fn generate_keeps_one_enabled_mod_and_a_second_run_finds_it_current() {
     assert!(f.lod_mod().is_dir());
 }
 
+/// The side of the world of the stop test: 4096 cells, which take far longer to generate than the few frames between
+/// the run's Stop button appearing and the click. A run that finished first would fail the test, not pass it.
+const STOP_SIDE: i32 = 64;
+
 #[test]
 fn stop_ends_the_run_and_adds_nothing() {
-    let f = Fixture::new();
-    f.mode("slow");
+    let f = Fixture::new(STOP_SIDE);
     let mut h = f.app();
     generate(&mut h);
-    // Frames until the fake itself is running (it leaves a marker), for up to 60 seconds: Stop can only end a
-    // run that has started. The fake then waits to be stopped.
+    // Frames until the run shows its Stop button, for up to 60 seconds: Stop can only end a run that has started.
     for _ in 0..600 {
         h.run_steps(2);
-        if f.path("tools/started").exists() && h.query_by_label(STOP).is_some() {
+        if h.query_by_label(STOP).is_some() {
             break;
         }
         std::thread::sleep(Duration::from_millis(100));
     }
-    assert!(f.path("tools/started").exists(), "the fake started");
+    assert!(h.query_by_label(STOP).is_some(), "the run shows Stop");
     h.run_steps(8);
     assert!(
         // The header and the status line can both say it, so ask for every match.

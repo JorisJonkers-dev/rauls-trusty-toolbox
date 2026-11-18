@@ -133,7 +133,7 @@ fn understood(line: &str, (code, out, err): &(i32, String, String), json: bool) 
 }
 
 /// The exit code each command gives on the fixture: an engine fetch from an address that refuses fails (4), TTW
-/// with no Fallout 3 folder is refused (2), LOD generation with no lodwright program in the fixture is refused (2), verify finds no engine (3), a run with no engine is refused (2),
+/// with no Fallout 3 folder is refused (2), LOD generation in the fixture, whose game master has no terrain, fails in lodwright (4), verify finds no engine (3), a run with no engine is refused (2),
 /// the Doctor finds the fixture's missing pieces (1), the rest succeed; the rollback undoes the sort that ran before it.
 fn expected(command: &Command) -> i32 {
     match command.action {
@@ -141,7 +141,8 @@ fn expected(command: &Command) -> i32 {
         // TTW and a run: no folder, and no engine installed in the fixture, so even a dry run is refused.
         // The fixture's Instance has its default profile already: a second one is refused.
         Action::Ttw | Action::Run | Action::Profile => 2,
-        Action::Lod if command.words.first() == Some(&"generate") => 2,
+        // lodwright is linked in: the fixture's plugin defines no worldspace with terrain, so the generation fails.
+        Action::Lod if command.words.first() == Some(&"generate") => 4,
         Action::Doctor => 1,
         // No engine is installed in the fixture, so the install does not verify.
         Action::Verify => 3,

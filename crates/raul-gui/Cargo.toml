@@ -36,6 +36,7 @@ serde_json = { workspace = true }
 egui_kittest = { workspace = true }
 nvmod-testkit = { workspace = true }
 ttwright-testkit = { path = "../../components/ttwright-rs/crates/ttwright-testkit" }
+lodwright-testkit = { path = "../../components/lodwright-rs/crates/lodwright-testkit" }
 
 [lints]
 workspace = true
