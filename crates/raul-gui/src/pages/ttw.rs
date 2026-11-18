@@ -19,14 +19,14 @@ use raul_ui_model::job::{JobId, JobState, Outcome};
 use raul_ui_model::pages::load_order::Problem;
 use raul_ui_model::pages::settings::{Answer, Command, Fetch, Key};
 use raul_ui_model::pages::ttw::{
-    DOWNLOAD_URL, Found, PackageInfo, Progress, Report, Sources, State, Step, check_command,
-    default_downloads, find_in, install_command,
+    DOWNLOAD_URL, Found, PackageInfo, Progress, Report, Settling, Sources, State, Step,
+    check_command, check_package, default_downloads, find_in, install_command, newest_candidate,
 };
 use raul_ui_model::pages::{Flow, PageId, View};
 use raul_ui_model::wizard::{Step as FlowStep, TtwNeed};
 use raul_ui_service::Output;
 use raul_ui_service::dto::TtwReport;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 crate::texts!(TEXTS {
     STATE_NO_INSTANCE = "No Instance yet";
@@ -62,6 +62,7 @@ crate::texts!(TEXTS {
     PACKAGE_WHAT = "Download the Tale of Two Wastelands installer package from the TTW website. Its file name starts with TTW_ and ends in .mpi. If what you downloaded ends in .7z, unpack it first.";
     OPEN_DOWNLOAD = "Open the download page";
     FIND_IT = "Find it for me";
+    WATCH = "Watch my Downloads folder and use the package when it arrives";
     FINDING = "Looking for the TTW package in your Downloads folder";
     FOUND = "Found the newest TTW package in your Downloads folder:";
     USE_THIS = "Use this file";
@@ -146,6 +147,27 @@ crate::errors!(ERRORS {
     );
 });
 
+/// A watch of the Downloads folder: a thread that polls it once a second and sends the first package that is
+/// complete (its size stayed the same for [`SETTLE`]); it ends when `stop` is set or the page drops it.
+#[derive(Debug)]
+struct Watch {
+    stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    found: std::sync::mpsc::Receiver<PackageInfo>,
+}
+
+impl Drop for Watch {
+    fn drop(&mut self) {
+        self.stop.store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+/// How often the watch looks at the folder.
+const WATCH_EVERY: std::time::Duration = if cfg!(test) {
+    std::time::Duration::from_millis(10)
+} else {
+    std::time::Duration::from_secs(1)
+};
+
 /// The TTW flow.
 #[derive(Debug, Default)]
 pub struct Ttw {
@@ -159,6 +181,8 @@ pub struct Ttw {
     downloads: Option<PathBuf>,
     /// The search that runs, with the folder it looks in and what it found.
     search: Option<std::sync::mpsc::Receiver<(PathBuf, Option<PackageInfo>)>>,
+    /// The watch of the Downloads folder the user agreed to, if one runs.
+    watch: Option<Watch>,
     /// Why the package found was not saved.
     save_failed: Option<String>,
     /// The package the flow had before the one found was chosen: the wizard's and the sources', put back when the
@@ -293,6 +317,59 @@ impl Ttw {
         self.search = Some(rx);
     }
 
+    /// Starts watching the folders the search looks in. Nothing starts until the user asked for it.
+    fn start_watch(&mut self, cx: &PageCx<'_>) {
+        let mut folders = vec![self.downloads()];
+        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
+        if let Some(home) = home {
+            folders.push(PathBuf::from(home).join("Desktop"));
+        }
+        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let (tx, rx) = std::sync::mpsc::channel();
+        let (flag, repaint) = (stop.clone(), cx.repaint.clone());
+        std::thread::spawn(move || {
+            let mut settling: Option<Settling> = None;
+            while !flag.load(std::sync::atomic::Ordering::SeqCst) {
+                std::thread::sleep(WATCH_EVERY);
+                // The newest candidate by name and shape, however small it is still: a file that is growing is
+                // settled first, and only then checked as a whole.
+                let Some(path) = newest_candidate(&folders) else {
+                    settling = None;
+                    continue;
+                };
+                let size = std::fs::metadata(&path).ok().map(|m| m.len());
+                let watched = settling.get_or_insert_with(|| Settling::new(path.clone()));
+                if watched.path() != path {
+                    *watched = Settling::new(path.clone());
+                }
+                if watched.poll(WATCH_EVERY, size)
+                    && let Ok(info) = check_package(&path)
+                {
+                    let _ = tx.send(info);
+                    if let Some(repaint) = repaint {
+                        repaint.request_repaint();
+                    }
+                    return;
+                }
+            }
+        });
+        self.watch = Some(Watch { stop, found: rx });
+    }
+
+    /// Takes in a package the watch found: it is offered as the one found and saved at once, as if the user had
+    /// pressed "Use this file".
+    fn take_watch(&mut self, cx: &mut PageCx<'_>) {
+        let Some(watch) = &self.watch else {
+            return;
+        };
+        if let Ok(info) = watch.found.try_recv() {
+            self.watch = None;
+            let folder = info.path.parent().unwrap_or(Path::new("")).to_path_buf();
+            self.state.searched_package(&folder, Some(&info));
+            self.use_found(cx);
+        }
+    }
+
     /// Takes in the answer of the search, once it is there.
     fn take_search(&mut self) {
         let Some(rx) = &self.search else {
@@ -342,6 +419,7 @@ impl Ttw {
         self.state = State::new(cx.shell.instance.clone());
         self.install = None;
         self.search = None;
+        self.watch = None;
         self.save_failed = None;
         self.unsaved_from = None;
         if self.state.instance.is_some() {
@@ -515,6 +593,15 @@ impl Ttw {
                 self.find(cx);
             }
         });
+        // Off until the user agrees; it stops when the box is cleared, a package arrives or the flow starts over.
+        let mut watching = self.watch.is_some();
+        if ui.checkbox(&mut watching, WATCH).changed() {
+            if watching {
+                self.start_watch(cx);
+            } else {
+                self.watch = None;
+            }
+        }
         match self.state.found.clone() {
             Found::Idle => {}
             Found::Searching => {
@@ -812,6 +899,7 @@ impl Page for Ttw {
         let t = *cx.tokens;
         let back = self.visits.returned(ui.ctx());
         self.take_search();
+        self.take_watch(cx);
         self.follow_instance(cx);
         if !self.visits.loaded {
             self.visits.loaded = true;
@@ -1393,6 +1481,63 @@ mod tests {
                 crate::set_up(&cc.egui_ctx);
                 app
             })
+    }
+
+    #[test]
+    fn a_watched_download_is_used_only_once_it_has_stopped_growing() {
+        use egui_kittest::kittest::Queryable;
+        let (downloads, exec) = fake_downloads("watch");
+        let _ = std::fs::remove_dir_all(downloads.join("unpacked"));
+        let file = downloads.join("TTW_9.9.9.mpi");
+        let mut h = harness(
+            Fixture {
+                page: Box::new(
+                    Ttw::with(at(Step::Sources, sources(Some(FALLOUT3), None)))
+                        .looking_in(downloads.clone()),
+                ),
+                ..fixture("sources-missing", State::default())
+            },
+            exec.clone(),
+        );
+        h.run();
+        assert!(exec.calls.lock().unwrap().is_empty());
+        h.get_by_label(WATCH).click();
+        h.run_steps(2);
+        // A download that grows: package-shaped from the first bytes, a megabyte only at the end.
+        let writer = {
+            let file = file.clone();
+            std::thread::spawn(move || {
+                let mut body = vec![0u8; 400_000];
+                body[..4].copy_from_slice(b"PK\x03\x04");
+                for extra in [0usize, 300_000, 300_000] {
+                    body.extend(std::iter::repeat_n(1u8, extra));
+                    std::fs::write(&file, &body).unwrap();
+                    std::thread::sleep(std::time::Duration::from_millis(800));
+                }
+            })
+        };
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+        h.run_steps(2);
+        assert!(
+            exec.calls.lock().unwrap().is_empty(),
+            "a file that is still growing is not used"
+        );
+        let want = file.display().to_string();
+        let mut used = false;
+        for _ in 0..1000 {
+            h.run_steps(2);
+            used =
+                exec.calls.lock().unwrap().iter().any(|c| {
+                    c.get(2).map(String::as_str) == Some("ttw.package") && c.contains(&want)
+                });
+            if used {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        writer.join().unwrap();
+        assert!(used, "the package that arrived is saved and used");
+        let _ = std::fs::remove_dir_all(&downloads);
     }
 
     #[test]
