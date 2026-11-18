@@ -42,10 +42,25 @@ const TICK: Duration = Duration::from_millis(50);
 const PANICKED: &str = "the job stopped unexpectedly; the state is not known, run the Doctor";
 
 /// What a typed job is: a closure that runs it with progress and a cancel token, and returns its result as JSON.
-type Body = Box<
-    dyn FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<serde_json::Value>, JobError>
-        + Send,
->;
+type Body =
+    Box<dyn FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<Reply>, JobError> + Send>;
+
+/// What a finished job answers: the JSON document the command prints with `--json`, and the exit code the command
+/// ends with when that is not 0 (the Doctor's findings end with 1, a failed verification with 3).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Reply {
+    /// The document on standard output.
+    pub json: serde_json::Value,
+    /// The exit code: 0 for success, the command's own code otherwise.
+    pub exit: u8,
+}
+
+impl Reply {
+    /// A successful answer.
+    pub fn ok(json: serde_json::Value) -> Self {
+        Self { json, exit: 0 }
+    }
+}
 
 /// One typed job of a Component, ready to run in process.
 pub struct DirectJob {
@@ -67,7 +82,7 @@ impl DirectJob {
     /// A job that writes to the Instance at `instance`: it runs holding the Instance lock, recorded as `name`.
     pub fn writing<T, F>(instance: impl Into<PathBuf>, name: &'static str, run: F) -> Self
     where
-        T: Serialize,
+        T: Serialize + 'static,
         F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
     {
         Self {
@@ -79,7 +94,7 @@ impl DirectJob {
     /// A job that only reads: no lock is taken.
     pub fn reading<T, F>(run: F) -> Self
     where
-        T: Serialize,
+        T: Serialize + 'static,
         F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
     {
         Self {
@@ -88,21 +103,56 @@ impl DirectJob {
         }
     }
 
+    /// [`DirectJob::writing`] for a command whose document and exit code are not simply the serialised result:
+    /// `render` makes them from it (mirror the command's own `print_*` function).
+    pub fn writing_as<T, F>(
+        instance: impl Into<PathBuf>,
+        name: &'static str,
+        run: F,
+        render: fn(&T) -> Result<Reply, serde_json::Error>,
+    ) -> Self
+    where
+        F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
+        T: 'static,
+    {
+        Self {
+            lock: Some((instance.into(), name)),
+            body: Self::boxed_as(run, render),
+        }
+    }
+
+    /// [`DirectJob::reading`] with a `render`, as [`DirectJob::writing_as`].
+    pub fn reading_as<T, F>(run: F, render: fn(&T) -> Result<Reply, serde_json::Error>) -> Self
+    where
+        F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
+        T: 'static,
+    {
+        Self {
+            lock: None,
+            body: Self::boxed_as(run, render),
+        }
+    }
+
     fn boxed<T, F>(run: F) -> Body
     where
-        T: Serialize,
+        T: Serialize + 'static,
+        F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
+    {
+        Self::boxed_as(run, |value: &T| serde_json::to_value(value).map(Reply::ok))
+    }
+
+    fn boxed_as<T: 'static, F>(run: F, render: fn(&T) -> Result<Reply, serde_json::Error>) -> Body
+    where
         F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
     {
         Box::new(move |progress, cancel| match run(progress, cancel)? {
-            Outcome::Done(value) => serde_json::to_value(value)
-                .map(Outcome::Done)
-                .map_err(|why| {
-                    JobError::new(
-                        ErrorKind::Internal,
-                        "direct.result",
-                        format!("the result of the job could not be written: {why}"),
-                    )
-                }),
+            Outcome::Done(value) => render(&value).map(Outcome::Done).map_err(|why| {
+                JobError::new(
+                    ErrorKind::Internal,
+                    "direct.result",
+                    format!("the result of the job could not be written: {why}"),
+                )
+            }),
             Outcome::Cancelled => Ok(Outcome::Cancelled),
         })
     }
@@ -127,8 +177,62 @@ pub fn for_command(action: Action, rest: &[String]) -> Option<DirectJob> {
             }),
             instance => rollback(Path::new(instance)),
         }),
+        Action::Conflicts => Some(conflicts(&conflicts_request(rest))),
+        Action::Tree => Some(tree(&tree_request(rest))),
         _ => None,
     }
+}
+
+/// The value after `flag` in `rest` as an option: `None` when the flag is absent.
+fn option_of(rest: &[String], flag: &str) -> Option<String> {
+    rest.iter()
+        .position(|w| w == flag)
+        .and_then(|i| rest.get(i + 1))
+        .cloned()
+}
+
+/// Whether the switch `flag` is in `rest`.
+fn has_flag(rest: &[String], flag: &str) -> bool {
+    rest.iter().any(|w| w == flag)
+}
+
+/// The request of `raul conflicts` from the words after it.
+fn conflicts_request(rest: &[String]) -> nvmod_api::conflicts::ReportRequest {
+    nvmod_api::conflicts::ReportRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        mod_name: option_of(rest, "--mod"),
+        archives: has_flag(rest, "--archives"),
+    }
+}
+
+/// `nvmod_api::conflicts::report`: reads only. Its document is the report, as `raul conflicts --json` prints it.
+pub fn conflicts(request: &nvmod_api::conflicts::ReportRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::reading_as(
+        move |progress, cancel| nvmod_api::conflicts::report(&request, progress, cancel),
+        |done: &nvmod_api::conflicts::ReportOutput| {
+            serde_json::to_value(&done.report).map(Reply::ok)
+        },
+    )
+}
+
+/// The request of `raul tree` from the words after it.
+fn tree_request(rest: &[String]) -> nvmod_api::tree::TreeRequest {
+    nvmod_api::tree::TreeRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        path: option_of(rest, "--path"),
+    }
+}
+
+/// `nvmod_api::tree::show`: reads only. Its document is the tree, as `raul tree --json` prints it.
+pub fn tree(request: &nvmod_api::tree::TreeRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::reading_as(
+        move |progress, cancel| nvmod_api::tree::show(&request, progress, cancel),
+        |done: &nvmod_api::tree::TreeOutput| serde_json::to_value(&done.tree).map(Reply::ok),
+    )
 }
 
 /// The value after `flag` in `rest`, empty when there is none.
@@ -170,7 +274,7 @@ fn one_line(summary: &str) -> String {
 
 /// How a direct job ended, before it is told as events and an [`Output`].
 enum End {
-    Done(serde_json::Value),
+    Done(Reply),
     Stopped,
     Failed(JobError),
 }
@@ -276,16 +380,19 @@ fn finish(spec: &JobSpec, feed: &mut Feed<'_>, end: &End, stopped: &str) -> Outp
     let label = spec.action.command();
     feed.start();
     let (line, outcome, class, output) = match end {
-        End::Done(value) => (
-            format!("{label} finished"),
-            JobOutcome::Completed,
-            ExitClass::Ok,
-            Output {
-                code: Some(0),
-                stdout: format!("{value}\n"),
-                stderr: String::new(),
-            },
-        ),
+        End::Done(reply) => {
+            let class = ExitClass::from_code(i64::from(reply.exit));
+            (
+                format!("{label} finished"),
+                outcome_of(class),
+                class,
+                Output {
+                    code: Some(i64::from(reply.exit)),
+                    stdout: format!("{}\n", reply.json),
+                    stderr: String::new(),
+                },
+            )
+        }
         End::Stopped => (
             stopped.to_owned(),
             JobOutcome::Cancelled,

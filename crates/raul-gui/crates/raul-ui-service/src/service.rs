@@ -1056,19 +1056,27 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn conflicts(&self, r: &ConflictsRequest) -> Result<ConflictsReport, ServiceError> {
-        let (out, args) = self.with_profile(Action::Conflicts, &r.instance, || r.args())?;
-        match out.code {
-            Some(0) => Self::parse(Action::Conflicts, &out, &args),
-            _ => Err(failure(&out, "conflicts", &args)),
-        }
+        let request = nvmod_api::conflicts::ReportRequest {
+            instance: PathBuf::from(&r.instance),
+            profile: r.profile.clone(),
+            mod_name: r.mod_name.clone(),
+            archives: false,
+        };
+        let out = self.direct_with_profile(Action::Conflicts, &r.instance, || {
+            crate::direct::conflicts(&request)
+        })?;
+        Self::direct_answer(&out, "conflicts")
     }
 
     fn tree(&self, r: &TreeRequest) -> Result<TreeReport, ServiceError> {
-        let (out, args) = self.with_profile(Action::Tree, &r.instance, || r.args())?;
-        match out.code {
-            Some(0) => Self::parse(Action::Tree, &out, &args),
-            _ => Err(failure(&out, "tree", &args)),
-        }
+        let request = nvmod_api::tree::TreeRequest {
+            instance: PathBuf::from(&r.instance),
+            profile: r.profile.clone(),
+            path: r.path.clone(),
+        };
+        let out =
+            self.direct_with_profile(Action::Tree, &r.instance, || crate::direct::tree(&request))?;
+        Self::direct_answer(&out, "tree")
     }
 
     fn plugins_list(&self, r: &PluginsRequest) -> Result<PluginsReport, ServiceError> {
@@ -1111,6 +1119,41 @@ impl<E: Exec> CliService<E> {
         }
         self.profile_create_checked(&ProfileRequest::default_for(instance))?;
         self.invoke(action, rest())
+    }
+
+    /// Runs the direct job `make` makes for `action`; when it refused because the Instance has no profile, makes the
+    /// default one and runs it once more (the direct counterpart of [`Self::with_profile`]). Nothing here starts a
+    /// process for the job itself.
+    fn direct_with_profile(
+        &self,
+        action: Action,
+        instance: &str,
+        make: impl Fn() -> crate::direct::DirectJob,
+    ) -> Result<Output, ServiceError> {
+        let run = || {
+            let spec = JobSpec::new(JobId(0), action, Vec::new());
+            run_direct(&spec, make(), &mut |_| {}, &CancelHandle::new())
+        };
+        let out = run();
+        if !is_missing_profile(&out) {
+            return Ok(out);
+        }
+        self.profile_create_checked(&ProfileRequest::default_for(instance))?;
+        Ok(run())
+    }
+
+    /// The report a finished direct job printed, or the error it ended with. Only exit 0 is an answer here.
+    fn direct_answer<T: DeserializeOwned>(out: &Output, command: &str) -> Result<T, ServiceError> {
+        if out.code != Some(0) {
+            return Err(ServiceError::Failed(failure_error(out, command)));
+        }
+        serde_json::from_str(&out.stdout).map_err(|why| {
+            ServiceError::Failed(ViewError::new(
+                ExitClass::Internal,
+                format!("The result of {command} could not be read: {why}"),
+                effect_of(ExitClass::Internal),
+            ))
+        })
     }
 
     /// Makes the default profile of an Instance that has none, and says plainly when that did not work.

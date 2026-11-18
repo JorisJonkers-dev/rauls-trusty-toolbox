@@ -30,7 +30,7 @@ pub mod wiring;
 pub use conflicts::{
     ConflictsReport, ConflictsRequest, PluginsReport, PluginsRequest, TreeReport, TreeRequest,
 };
-pub use direct::{DirectJob, run_direct};
+pub use direct::{DirectJob, Reply, run_direct};
 pub use exec::{CancelHandle, Exec, Output, ProcessExec};
 pub use fake::{FakeService, ScriptedExec};
 pub use inproc::InProcessExec;
