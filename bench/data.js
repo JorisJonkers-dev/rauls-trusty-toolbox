@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794995631607,
+  "lastUpdate": 1794996207258,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4066,6 +4066,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.54221,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "292c68557341fc5fef9e1c45c3497b2ce49d136a",
+          "message": "docs(adr): raul orchestrates; nvmod manages mods; no standalone nvmod setup or GUI (#277)\n\nRecord the owner decision of 2026-11-18 as ADR-0019. It supersedes the\nconflicting parts of ADR-0002, ADR-0003, ADR-0016's nvmod row and REORG\nsection 12 decision 5. REORG gains a status section: M1 is complete and\nM2 runs now in the new order.",
+          "timestamp": "2026-11-18T11:02:05+01:00",
+          "tree_id": "c18c0087b8ee2799a17faff86c509beb3ece884e",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/292c68557341fc5fef9e1c45c3497b2ce49d136a"
+        },
+        "date": 1794996206821,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.8771470000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.624416,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.935140999999994,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.522418999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 18.68691,
             "unit": "ms"
           }
         ]
