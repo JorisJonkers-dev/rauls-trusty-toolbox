@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795030671473,
+  "lastUpdate": 1795034136844,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4458,6 +4458,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.491869,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fe96385068501c9e3357ced31b8d279e76c3ef15",
+          "message": "feat(drivers): generate LOD through lodwright in process (#285)\n\n* feat(drivers): generate LOD through lodwright's library API in process\n\nraul calls lodwright-api from its own process instead of starting the\nlodwright program. Progress from the library becomes raul events, and a\nstop request or the timeout cancels the call through its cancel token.\nA watcher thread ends with the call, also when the call panics, through\na drop guard. The Profile's request is passed as a typed request, so no\nrequest file is written.\n\nraul lod generate loses --lodwright, the bundled program lookup and the\nprogram's version check. The TTW event-tail helpers that only the\nprogram path used are removed with their test.\n\n* test: run raul lod generate against the linked lodwright\n\nThe LOD tests used a fake lodwright shell script. They now generate a\nsynthetic world with lodwright's test kit: success, an up-to-date second\nrun, a replaced Mod, refusals reported by lodwright, a dry run and bad\ninputs, and that nvmod never runs. Cancel and resume run in process; a\nstop request is tested in its own binary because the stop flag is\nprocess wide. The GUI's LOD flow runs the same way, without a fake\nprogram, and its registry expectation for LOD generation follows the\nlinked generation. The real-program test is removed with its feature.\n\n* docs(contracts): describe lodwright as called in process\n\nDescriptions and the contract README only; the schema's shape, codes and\nversion are unchanged. The CI step that ran the real lodwright program\nis removed with the feature it used.\n\n* fix(drivers): keep the symlink tests unix-only and allow the synthetic-height casts\n\n* build(gui): allow esplugin's GPL-3.0 licence for the test-only lodwright-testkit\n\n* test(gui): size the stop test's world for a coverage-instrumented runner\n\n* build: allow esplugin's GPL-3.0 licence for the test-only lodwright-testkit",
+          "timestamp": "2026-11-18T21:31:45+01:00",
+          "tree_id": "81535c3f06f4b91e348b9f47abd96a1ef4f7e47e",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/fe96385068501c9e3357ced31b8d279e76c3ef15"
+        },
+        "date": 1795034136427,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.25265,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.357417,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.532825,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.013914000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.300099,
             "unit": "ms"
           }
         ]
