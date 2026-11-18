@@ -1,7 +1,9 @@
 ---
-status: accepted, partly superseded by ADR-0016
+status: superseded by ADR-0018
 date: 2026-11-16
 ---
+Superseded by [ADR-0018](0018-the-submodule-pins-are-the-set.md).
+
 # Installers ship the Known-good set; later updates are opt-in
 
 Superseded in part by [ADR-0016](0016-components-are-incorporated-libraries-called-in-process.md): installers ship the engine package, not lodwright-rs and ttwright-rs programs, which are linked.

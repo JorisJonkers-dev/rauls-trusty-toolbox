@@ -1,7 +1,9 @@
 ---
-status: accepted, partly superseded by ADR-0016
+status: superseded by ADR-0018
 date: 2026-11-16
 ---
+Superseded by [ADR-0018](0018-the-submodule-pins-are-the-set.md).
+
 # One pin file: `known-good.toml` decides every Component version
 
 Superseded in part by [ADR-0016](0016-components-are-incorporated-libraries-called-in-process.md): `supply.toml` rows and generated wire Contract versions cover only the packages `raul` installs. Where they are published is [ADR-0017](0017-first-party-packages-on-ghcr-and-linked-crates-by-git-tag.md).

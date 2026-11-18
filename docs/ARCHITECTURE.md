@@ -16,7 +16,7 @@ flowchart LR
     gui["raul-gui"]
     uis["raul-ui-service / raul-ui-model"]
     cli["raul-cli"]
-    core["raul-core<br/>setup pipeline, detection, Known-good sets, updates"]
+    core["raul-core<br/>setup pipeline, detection, updates"]
     drv["raul-drivers / raul-launch<br/>TTW, LOD, engine"]
     sup["raul-supply<br/>pins, store, fetch, verify"]
     run["raul-runner"]
@@ -56,7 +56,7 @@ flowchart LR
   subgraph raul["raul (this repository)"]
     gui["raul-gui<br/>(GUI build, nested workspace)"]
     cli["raul-cli<br/>raul commands + every nvmod command"]
-    core["raul-core<br/>detection, Known-good sets, update check"]
+    core["raul-core<br/>detection, update check"]
     bench["raul-bench"]
     runner["raul-runner<br/>the only crate that starts a process"]
   end
@@ -84,10 +84,9 @@ flowchart LR
   nvmod -- Runner --> ttw
 ```
 
-- **raul-core** owns what is the Toolbox's alone: finding game copies, the Known-good set (`known-good.toml`)
-  and the update check. Everything about Instances, Mods, Profiles and the Load order is nvmod's, used by path from
+- **raul-core** owns what is the Toolbox's alone: finding game copies and the update check. Everything about Instances, Mods, Profiles and the Load order is nvmod's, used by path from
   `components/nvmod-rs`.
-- **raul-cli** is the `raul` program. Its own commands are `version`, `detect`, `known-good`, `bench` and
+- **raul-cli** is the `raul` program. Its own commands are `version`, `detect`, `bench` and
   `update`; every other command is nvmod's and runs in process through `nvmod_cli`.
 - **raul-gui** (after the GUI moves from nvmod-rs, ADR-0003) reads through raul-core in process and runs
   long or risky work as a `raul` subprocess that streams progress events, so a crash in an install never closes
@@ -95,8 +94,7 @@ flowchart LR
 - **raul-runner** is the Toolbox's one subprocess Runner (argument vector, no shell, scrubbed environment,
   timeout, output cap), copied with its history from nvmod-rs. It is the only Toolbox crate that may use
   `std::process::Command`: `clippy.toml` forbids `Command::new` elsewhere and the guard test
-  `crates/raul-runner/tests/no_command_elsewhere.rs` catches the other ways in. `raul update check` (`curl`) and
-  `raul known-good check` (`git`) go through it.
+  `crates/raul-runner/tests/no_command_elsewhere.rs` catches the other ways in. `raul update check` (`curl`) goes through it.
 - **Components** that run as separate programs are started by nvmod's own copy of the Runner until those drivers
   move here (`docs/REORG.md` section 10.2), and speak versioned JSON Contracts.
 
@@ -118,14 +116,13 @@ flowchart LR
 
 ## Versions
 
-The Components are submodules under `components/`, each pinned to the version of the latest Known-good set in
-`known-good.toml`. `raul known-good check` keeps the two equal, and CI also checks that every pointer is a release
-tag or on its repository's default branch. The `Components` workflow (`components.yml`) runs a self-hosted Renovate
-every 15 minutes (`.github/renovate-components.json`). It finds a new release of a Component's repository itself, with no message from
-that repository, and opens a pull request that moves only that Component: `raul known-good apply` moves the submodule and adds the
-set, and both lock files are refreshed. nvmod moves with the loot-rs it links (ADR-0015). Pipeline Complete decides whether the
-pull request merges, and auto-merge lands it. The release (`release.yml`) packages `raul` with the Component programs of
-that set.
+The Components are submodules under `components/`, each pinned to a release version; the submodule pins and the
+lock files are the set of Component versions (ADR-0018). CI checks that every pointer is a release tag or on its
+repository's default branch. The `Components` workflow (`components.yml`) runs a self-hosted Renovate every 15 minutes
+(`.github/renovate-components.json`). It finds a new release of a Component's repository itself, with no message from
+that repository, and opens a pull request that moves only that Component: the submodule pointer, with both lock files
+refreshed. nvmod moves with the loot-rs it links (ADR-0015). Pipeline Complete decides whether the pull request merges,
+and auto-merge lands it. The release (`release.yml`) packages `raul` with the Component programs at those pins.
 
 ## Workspaces and lock files
 

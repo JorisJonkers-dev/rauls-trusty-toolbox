@@ -9,7 +9,7 @@ one for the product; the `nv-linux` workshop repository points here.
 ### Product
 
 **Toolbox**:
-The whole product, Raul's tRusty Toolbox: the `raul` program, its installers and the Known-good set it ships.
+The whole product, Raul's tRusty Toolbox: the `raul` program, its installers and the Component versions pinned as submodules that it ships.
 _Avoid_: Umbrella (for the product; the umbrella is the repository), suite, launcher
 
 **Component**:
@@ -117,19 +117,15 @@ A versioned JSON Schema, owned by the Component that emits it, for what is excha
 _Avoid_: API, interface (too broad)
 
 **Contract registry**:
-The Toolbox's list of every Contract, the versions each Known-good set speaks and a snapshot of each such version.
+The Toolbox's list of every Contract, the versions each pinned Component set speaks and a snapshot of each such version.
 _Avoid_: Compat matrix, schema store
 
 **Supply entry**:
-An entry in the Toolbox's generated `supply.toml` giving, for one version a Known-good set names, the per-platform asset URL, checksum, attestation identity and source tag. It replaces nvmod's tool pin (ADR-0008).
+An entry in the Toolbox's generated `supply.toml` giving, for one version the pinned Component set names, the per-platform asset URL, checksum, attestation identity and source tag. It replaces nvmod's tool pin (ADR-0008).
 _Avoid_: Tool pin, lock entry, dependency (for external programs)
 
-**Known-good set**:
-A combination of Component versions recorded in `known-good.toml` after the contract and end-to-end tests passed for exactly that combination. A new set starts as `candidate` and is promoted by the check.
-_Avoid_: Compatible versions, supported matrix, compat set
-
 **Rolling channel**:
-The opt-in way an nv-rs build newer than the Known-good set is installed beside the current one, after a compatibility check, with one-click return to the previous build.
+The opt-in way an nv-rs build newer than the Component versions pinned as submodules is installed beside the current one, after a compatibility check, with one-click return to the previous build.
 _Avoid_: Nightly, beta (for nv-rs builds)
 
 **Runner**:

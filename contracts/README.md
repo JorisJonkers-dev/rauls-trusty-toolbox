@@ -157,5 +157,5 @@ In every case but `success` the Instance is as it was before the command. lodwri
 between runs (that is how it knows a later run is `up_to_date`); the Mod is a copy of it.
 
 The tests run `raul lod generate` against a fake lodwright for every outcome, and CI runs it once more against the
-real lodwright program of the shipped Known-good set on a synthetic world (`crates/raul-cli/tests/lod_generate_real.rs`,
+real lodwright program of the shipped Component set on a synthetic world (`crates/raul-cli/tests/lod_generate_real.rs`,
 behind the `real-lodwright` feature).
