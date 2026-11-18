@@ -1108,7 +1108,7 @@ fn unpack(archive: &Path, dest: Option<&Path>) -> Result<PackageInfo, String> {
     };
     let _ = std::fs::remove_dir_all(dest);
     std::fs::create_dir_all(dest).map_err(|_| UNPACK_FAILED.to_owned())?;
-    nvmod_modinstall::extract::extract(archive, dest, None, nvmod_modinstall::Limits::default())
+    nvmod_modinstall::extract::extract(archive, dest, nvmod_modinstall::Limits::default())
         .map_err(|_| UNPACK_FAILED.to_owned())?;
     let package = find_package(dest).ok_or_else(|| UNPACK_EMPTY.to_owned())?;
     check_package(&package).map_err(|p| p.why().to_owned())

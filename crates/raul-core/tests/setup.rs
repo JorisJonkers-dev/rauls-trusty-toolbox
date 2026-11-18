@@ -58,7 +58,6 @@ impl Scratch {
             ttw: None,
             mods: Vec::new(),
             answers: None,
-            extract_tool: None,
             sort: false,
             catalog: None,
             done: Vec::new(),
@@ -674,4 +673,22 @@ fn a_stop_asked_for_inside_a_job_ends_the_run_with_the_steps_before_it() {
         panic!("expected a cancelled setup");
     };
     assert_eq!(ids(&out.completed), ["init", "profile"]);
+}
+
+#[test]
+fn a_rar_archive_is_refused_with_a_plain_message_and_nothing_is_installed() {
+    let s = Scratch::new();
+    let rar = s.work.path().join("Packed.rar");
+    // The signature of a RAR 5 archive and nothing else: nvmod reads zip, 7z and tar in process and refuses the rest.
+    fs::write(&rar, b"Rar!\x1a\x07\x01\x00").expect("rar");
+    let mut request = s.request();
+    request.mods = vec![rar.clone()];
+    let (error, events) = fails(&request);
+    assert_eq!(error.kind, ErrorKind::Refused);
+    assert_eq!(error.step, Step::Mod(rar));
+    assert_eq!(error.job, "install.install");
+    assert_ne!(error.summary, "");
+    assert_eq!(started(&events), ["init", "profile", "mod:Packed.rar"]);
+    assert!(!s.instance().join("mods/Packed").exists());
+    assert!(!error.copy_text().contains("--"), "no command line");
 }
