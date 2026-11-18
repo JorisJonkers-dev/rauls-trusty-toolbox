@@ -387,20 +387,6 @@ pub struct VerifyRequest {
     pub fail_on: Option<String>,
 }
 
-impl VerifyRequest {
-    /// The words after `raul verify`, before `--json`.
-    pub fn args(&self) -> Vec<String> {
-        let mut rest = Vec::new();
-        push(&mut rest, "instance", &self.instance);
-        push_opt(&mut rest, "profile", self.profile.as_ref());
-        push_opt(&mut rest, "masterlist", self.masterlist.as_ref());
-        push_opt(&mut rest, "catalog", self.catalog.as_ref());
-        push_opt(&mut rest, "proton", self.proton.as_ref());
-        push_opt(&mut rest, "fail-on", self.fail_on.as_ref());
-        rest
-    }
-}
-
 /// What an Instance runs on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeTarget {
@@ -955,14 +941,26 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn doctor(&self, r: &DoctorRequest) -> Result<DoctorReport, ServiceError> {
-        let rest = || {
-            let mut rest = Vec::new();
-            push(&mut rest, "instance", &r.instance);
-            push_opt(&mut rest, "profile", r.profile.as_ref());
-            push_opt(&mut rest, "masterlist", r.masterlist.as_ref());
-            rest
+        let request = nvmod_api::doctor::CheckRequest {
+            target: nvmod_api::doctor::Target::Instance {
+                folder: PathBuf::from(&r.instance),
+                profile: r.profile.clone(),
+                game: None,
+                masterlist: r.masterlist.as_deref().map(PathBuf::from),
+                catalog: None,
+            },
+            fail_on: nvmod_api::doctor::Severity::Error,
         };
-        let (out, args) = self.with_profile(Action::Doctor, &r.instance, rest)?;
+        let out = self.direct_with_profile(Action::Doctor, &r.instance, || {
+            crate::direct::doctor(&request)
+        })?;
+        let unreadable_output = |why: &dyn std::fmt::Display| {
+            ServiceError::Failed(ViewError::new(
+                ExitClass::Internal,
+                format!("The output of `raul doctor` could not be read: {why}"),
+                effect_of(ExitClass::Internal),
+            ))
+        };
         match out.code {
             // Exit 1 is "findings at or above the failing severity": the report is on standard output.
             Some(0 | 1) => match serde_json::from_str::<DoctorReport>(&out.stdout) {
@@ -972,21 +970,17 @@ impl<E: Exec> Service for CliService<E> {
                         .ok()
                         .and_then(|v| v["error"].as_str().map(str::to_owned));
                     match message {
-                        Some(m) => {
-                            let mut v = ViewError::new(
-                                ExitClass::ProblemsFound,
-                                m,
-                                effect_of(ExitClass::ProblemsFound),
-                            );
-                            v.repro = Some(repro(&args));
-                            Err(ServiceError::Failed(v))
-                        }
-                        None => Err(unreadable("doctor", &e, &args)),
+                        Some(m) => Err(ServiceError::Failed(ViewError::new(
+                            ExitClass::ProblemsFound,
+                            m,
+                            effect_of(ExitClass::ProblemsFound),
+                        ))),
+                        None => Err(unreadable_output(&e)),
                     }
                 }
-                Err(e) => Err(unreadable("doctor", &e, &args)),
+                Err(e) => Err(unreadable_output(&e)),
             },
-            _ => Err(failure(&out, "doctor", &args)),
+            _ => Err(ServiceError::Failed(failure_error(&out, "doctor"))),
         }
     }
 
@@ -999,11 +993,37 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn verify(&self, r: &VerifyRequest) -> Result<VerifyReport, ServiceError> {
-        let (out, args) = self.with_profile(Action::Verify, &r.instance, || r.args())?;
+        let request = nvmod_api::verify::VerifyRequest {
+            instance: PathBuf::from(&r.instance),
+            profile: r.profile.clone(),
+            masterlist: r.masterlist.as_deref().map(PathBuf::from),
+            catalog: r.catalog.as_deref().map(PathBuf::from),
+            proton: r.proton.clone(),
+            fail_on: match r.fail_on.as_deref().map(str::parse) {
+                None => nvmod_api::verify::Severity::Error,
+                Some(Ok(severity)) => severity,
+                Some(Err(why)) => {
+                    return Err(ServiceError::Failed(ViewError::new(
+                        ExitClass::Usage,
+                        format!("--fail-on: {why}"),
+                        effect_of(ExitClass::Usage),
+                    )));
+                }
+            },
+        };
+        let out = self.direct_with_profile(Action::Verify, &r.instance, || {
+            crate::direct::verify(&request)
+        })?;
         match out.code {
             // Exit 3 is "not verified": the report is on standard output.
-            Some(0 | 3) => Self::parse(Action::Verify, &out, &args),
-            _ => Err(failure(&out, "verify", &args)),
+            Some(0 | 3) => serde_json::from_str::<VerifyReport>(&out.stdout).map_err(|why| {
+                ServiceError::Failed(ViewError::new(
+                    ExitClass::Internal,
+                    format!("The output of `raul verify` could not be read: {why}"),
+                    effect_of(ExitClass::Internal),
+                ))
+            }),
+            _ => Err(ServiceError::Failed(failure_error(&out, "verify"))),
         }
     }
 
@@ -1056,27 +1076,38 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn conflicts(&self, r: &ConflictsRequest) -> Result<ConflictsReport, ServiceError> {
-        let (out, args) = self.with_profile(Action::Conflicts, &r.instance, || r.args())?;
-        match out.code {
-            Some(0) => Self::parse(Action::Conflicts, &out, &args),
-            _ => Err(failure(&out, "conflicts", &args)),
-        }
+        let request = nvmod_api::conflicts::ReportRequest {
+            instance: PathBuf::from(&r.instance),
+            profile: r.profile.clone(),
+            mod_name: r.mod_name.clone(),
+            archives: false,
+        };
+        let out = self.direct_with_profile(Action::Conflicts, &r.instance, || {
+            crate::direct::conflicts(&request)
+        })?;
+        Self::direct_answer(&out, "conflicts")
     }
 
     fn tree(&self, r: &TreeRequest) -> Result<TreeReport, ServiceError> {
-        let (out, args) = self.with_profile(Action::Tree, &r.instance, || r.args())?;
-        match out.code {
-            Some(0) => Self::parse(Action::Tree, &out, &args),
-            _ => Err(failure(&out, "tree", &args)),
-        }
+        let request = nvmod_api::tree::TreeRequest {
+            instance: PathBuf::from(&r.instance),
+            profile: r.profile.clone(),
+            path: r.path.clone(),
+        };
+        let out =
+            self.direct_with_profile(Action::Tree, &r.instance, || crate::direct::tree(&request))?;
+        Self::direct_answer(&out, "tree")
     }
 
     fn plugins_list(&self, r: &PluginsRequest) -> Result<PluginsReport, ServiceError> {
-        let (out, args) = self.with_profile(Action::Plugins, &r.instance, || r.args())?;
-        match out.code {
-            Some(0) => Self::parse(Action::Plugins, &out, &args),
-            _ => Err(failure(&out, "plugins", &args)),
-        }
+        let request = nvmod_api::plugins::ListRequest {
+            instance: PathBuf::from(&r.instance),
+            profile: r.profile.clone(),
+        };
+        let out = self.direct_with_profile(Action::Plugins, &r.instance, || {
+            crate::direct::plugins_list(&request)
+        })?;
+        Self::direct_answer(&out, "plugins")
     }
 
     fn setup(&self, r: &SetupRequest) -> Result<SetupReport, ServiceError> {
@@ -1111,6 +1142,41 @@ impl<E: Exec> CliService<E> {
         }
         self.profile_create_checked(&ProfileRequest::default_for(instance))?;
         self.invoke(action, rest())
+    }
+
+    /// Runs the direct job `make` makes for `action`; when it refused because the Instance has no profile, makes the
+    /// default one and runs it once more (the direct counterpart of [`Self::with_profile`]). Nothing here starts a
+    /// process for the job itself.
+    fn direct_with_profile(
+        &self,
+        action: Action,
+        instance: &str,
+        make: impl Fn() -> crate::direct::DirectJob,
+    ) -> Result<Output, ServiceError> {
+        let run = || {
+            let spec = JobSpec::new(JobId(0), action, Vec::new());
+            run_direct(&spec, make(), &mut |_| {}, &CancelHandle::new())
+        };
+        let out = run();
+        if !is_missing_profile(&out) {
+            return Ok(out);
+        }
+        self.profile_create_checked(&ProfileRequest::default_for(instance))?;
+        Ok(run())
+    }
+
+    /// The report a finished direct job printed, or the error it ended with. Only exit 0 is an answer here.
+    fn direct_answer<T: DeserializeOwned>(out: &Output, command: &str) -> Result<T, ServiceError> {
+        if out.code != Some(0) {
+            return Err(ServiceError::Failed(failure_error(out, command)));
+        }
+        serde_json::from_str(&out.stdout).map_err(|why| {
+            ServiceError::Failed(ViewError::new(
+                ExitClass::Internal,
+                format!("The result of {command} could not be read: {why}"),
+                effect_of(ExitClass::Internal),
+            ))
+        })
     }
 
     /// Makes the default profile of an Instance that has none, and says plainly when that did not work.
@@ -1173,7 +1239,6 @@ impl<E: Exec> CliService<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fake::ScriptedExec;
 
     fn refused(why: &str) -> Output {
         Output {
@@ -1181,116 +1246,6 @@ mod tests {
             stdout: String::new(),
             stderr: format!("raul plugins: refused: {why}\n"),
         }
-    }
-
-    #[test]
-    fn a_missing_profile_is_made_before_the_command_runs_again() {
-        let exec = ScriptedExec::new();
-        exec.on_run(
-            &[],
-            2,
-            "raul plugins: refused: the Instance has no profile\n",
-        )
-        .on_run(&[], 0, "")
-        .on_run(
-            &["{\"schema_version\":1,\"profile\":\"Default\",\"plugins\":[],\"locks\":[]}"],
-            0,
-            "",
-        );
-        let svc = CliService::new(exec);
-        let report = svc
-            .plugins_list(&PluginsRequest {
-                instance: "/i".into(),
-                profile: None,
-            })
-            .unwrap();
-        assert!(report.plugins.is_empty());
-        let calls = svc.exec().calls();
-        assert_eq!(calls.len(), 3);
-        assert_eq!(calls[0], ["plugins", "list", "--instance", "/i", "--json"]);
-        assert_eq!(
-            calls[1],
-            [
-                "profile",
-                "create",
-                "--name",
-                "Default",
-                "--instance",
-                "/i",
-                "--json"
-            ]
-        );
-        assert_eq!(calls[2], calls[0], "the command runs again once it can");
-    }
-
-    #[test]
-    fn a_command_that_works_first_time_never_makes_a_profile() {
-        let exec = ScriptedExec::new();
-        exec.on_run(
-            &["{\"schema_version\":1,\"profile\":\"Default\",\"plugins\":[],\"locks\":[]}"],
-            0,
-            "",
-        );
-        let svc = CliService::new(exec);
-        let report = svc
-            .plugins_list(&PluginsRequest {
-                instance: "/i".into(),
-                profile: None,
-            })
-            .unwrap();
-        assert!(report.plugins.is_empty());
-        assert_eq!(svc.exec().calls().len(), 1);
-    }
-
-    #[test]
-    fn a_profile_that_cannot_be_made_is_a_plain_error() {
-        let exec = ScriptedExec::new();
-        exec.on_run(
-            &[],
-            2,
-            "raul plugins: refused: the Instance has no profile\n",
-        )
-        .on_run(
-            &[],
-            2,
-            "raul profile: refused: the Instance folder is not there\n",
-        )
-        .on_run(
-            &[],
-            2,
-            "raul plugins: refused: the Instance has no profile\n",
-        )
-        .on_run(
-            &[],
-            2,
-            "raul profile: refused: the Instance folder is not there\n",
-        );
-        let svc = CliService::new(exec);
-        let err = svc
-            .plugins_list(&PluginsRequest {
-                instance: "/i".into(),
-                profile: None,
-            })
-            .unwrap_err();
-        let e = err.view_error();
-        assert_eq!(e.what, NO_PROFILE_WHAT);
-        assert!(e.effect.starts_with(NO_PROFILE_EFFECT));
-        assert!(
-            !e.what.to_lowercase().contains("profile")
-                && !NO_PROFILE_EFFECT.to_lowercase().contains("profile"),
-            "the headline and the guidance stay plain"
-        );
-        assert_eq!(svc.exec().calls().len(), 2, "it is not tried again");
-
-        // A command that is refused for the same reason on its own says the same plain thing.
-        let err = svc
-            .plugins_list(&PluginsRequest {
-                instance: "/i".into(),
-                profile: None,
-            })
-            .unwrap_err();
-        assert_eq!(err.view_error().what, NO_PROFILE_WHAT);
-        assert_eq!(svc.exec().calls().len(), 4, "a run and its fix, twice");
     }
 
     #[test]
@@ -1311,6 +1266,75 @@ mod tests {
         assert_eq!(
             ProfileRequest::default_for("/i").args(),
             ["create", "--name", "Default", "--instance", "/i"]
+        );
+    }
+
+    /// A direct job that refuses `times` times as an Instance with no profile does, then answers an empty report.
+    fn needs_a_profile(
+        runs: &std::sync::Arc<std::sync::atomic::AtomicUsize>,
+        times: usize,
+    ) -> crate::direct::DirectJob {
+        let runs = std::sync::Arc::clone(runs);
+        crate::direct::DirectJob::reading(move |_, _| {
+            let n = runs.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            if n < times {
+                return Err(nvmod_api::JobError::new(
+                    nvmod_api::ErrorKind::Refused,
+                    "test.read",
+                    "the Instance has no profile",
+                ));
+            }
+            Ok(nvmod_api::Outcome::Done(
+                serde_json::json!({"profile": "Default"}),
+            ))
+        })
+    }
+
+    #[test]
+    fn a_missing_profile_is_made_before_the_direct_job_runs_again() {
+        let exec = crate::fake::ScriptedExec::new();
+        exec.on_run(&[], 0, "");
+        let svc = CliService::new(exec);
+        let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let out = svc
+            .direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 1))
+            .unwrap();
+        assert_eq!(out.code, Some(0));
+        assert_eq!(runs.load(std::sync::atomic::Ordering::SeqCst), 2);
+        let calls = svc.exec().calls();
+        assert_eq!(calls.len(), 1, "only the profile is made by a command");
+        assert_eq!(calls[0][..2], ["profile", "create"]);
+    }
+
+    #[test]
+    fn a_direct_job_that_works_first_time_never_makes_a_profile() {
+        let svc = CliService::new(crate::fake::ScriptedExec::new());
+        let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        svc.direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 0))
+            .unwrap();
+        assert!(svc.exec().calls().is_empty());
+    }
+
+    #[test]
+    fn a_profile_that_cannot_be_made_is_a_plain_error() {
+        let exec = crate::fake::ScriptedExec::new();
+        exec.on_run(
+            &[],
+            2,
+            "raul profile: refused: the Instance folder is not there\n",
+        );
+        let svc = CliService::new(exec);
+        let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let err = svc
+            .direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 9))
+            .unwrap_err();
+        let e = err.view_error();
+        assert_eq!(e.what, NO_PROFILE_WHAT);
+        assert!(e.effect.starts_with(NO_PROFILE_EFFECT));
+        assert_eq!(
+            runs.load(std::sync::atomic::Ordering::SeqCst),
+            1,
+            "it is not tried again"
         );
     }
 }

@@ -23,7 +23,6 @@
 
 use crate::exec::{CancelHandle, Output};
 use crate::jobs::{Feed, JobSpec};
-use crate::registry::Action;
 use crate::wiring::outcome_of;
 use nvmod_api::{CancelToken, ErrorKind, Event, JobError, Outcome, Progress};
 use raul_core::instance_lock::InstanceGuard;
@@ -42,10 +41,25 @@ const TICK: Duration = Duration::from_millis(50);
 const PANICKED: &str = "the job stopped unexpectedly; the state is not known, run the Doctor";
 
 /// What a typed job is: a closure that runs it with progress and a cancel token, and returns its result as JSON.
-type Body = Box<
-    dyn FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<serde_json::Value>, JobError>
-        + Send,
->;
+type Body =
+    Box<dyn FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<Reply>, JobError> + Send>;
+
+/// What a finished job answers: the JSON document the command prints with `--json`, and the exit code the command
+/// ends with when that is not 0 (the Doctor's findings end with 1, a failed verification with 3).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Reply {
+    /// The document on standard output.
+    pub json: serde_json::Value,
+    /// The exit code: 0 for success, the command's own code otherwise.
+    pub exit: u8,
+}
+
+impl Reply {
+    /// A successful answer.
+    pub fn ok(json: serde_json::Value) -> Self {
+        Self { json, exit: 0 }
+    }
+}
 
 /// One typed job of a Component, ready to run in process.
 pub struct DirectJob {
@@ -53,6 +67,8 @@ pub struct DirectJob {
     /// that does not write.
     lock: Option<(PathBuf, &'static str)>,
     body: Body,
+    /// Whether the job ends as a usage error (a request the command line would not take), exit class 5.
+    usage: bool,
 }
 
 impl std::fmt::Debug for DirectJob {
@@ -67,44 +83,96 @@ impl DirectJob {
     /// A job that writes to the Instance at `instance`: it runs holding the Instance lock, recorded as `name`.
     pub fn writing<T, F>(instance: impl Into<PathBuf>, name: &'static str, run: F) -> Self
     where
-        T: Serialize,
+        T: Serialize + 'static,
         F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
     {
         Self {
             lock: Some((instance.into(), name)),
             body: Self::boxed(run),
+            usage: false,
         }
     }
 
     /// A job that only reads: no lock is taken.
     pub fn reading<T, F>(run: F) -> Self
     where
-        T: Serialize,
+        T: Serialize + 'static,
         F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
     {
         Self {
             lock: None,
             body: Self::boxed(run),
+            usage: false,
+        }
+    }
+
+    /// [`DirectJob::writing`] for a command whose document and exit code are not simply the serialised result:
+    /// `render` makes them from it (mirror the command's own `print_*` function).
+    pub fn writing_as<T, F>(
+        instance: impl Into<PathBuf>,
+        name: &'static str,
+        run: F,
+        render: fn(&T) -> Result<Reply, serde_json::Error>,
+    ) -> Self
+    where
+        F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
+        T: 'static,
+    {
+        Self {
+            lock: Some((instance.into(), name)),
+            body: Self::boxed_as(run, render),
+            usage: false,
+        }
+    }
+
+    /// [`DirectJob::reading`] with a `render`, as [`DirectJob::writing_as`].
+    pub fn reading_as<T, F>(run: F, render: fn(&T) -> Result<Reply, serde_json::Error>) -> Self
+    where
+        F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
+        T: 'static,
+    {
+        Self {
+            lock: None,
+            body: Self::boxed_as(run, render),
+            usage: false,
         }
     }
 
     fn boxed<T, F>(run: F) -> Body
     where
-        T: Serialize,
+        T: Serialize + 'static,
+        F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
+    {
+        Self::boxed_as(run, |value: &T| serde_json::to_value(value).map(Reply::ok))
+    }
+
+    fn boxed_as<T: 'static, F>(run: F, render: fn(&T) -> Result<Reply, serde_json::Error>) -> Body
+    where
         F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
     {
         Box::new(move |progress, cancel| match run(progress, cancel)? {
-            Outcome::Done(value) => serde_json::to_value(value)
-                .map(Outcome::Done)
-                .map_err(|why| {
-                    JobError::new(
-                        ErrorKind::Internal,
-                        "direct.result",
-                        format!("the result of the job could not be written: {why}"),
-                    )
-                }),
+            Outcome::Done(value) => render(&value).map(Outcome::Done).map_err(|why| {
+                JobError::new(
+                    ErrorKind::Internal,
+                    "direct.result",
+                    format!("the result of the job could not be written: {why}"),
+                )
+            }),
             Outcome::Cancelled => Ok(Outcome::Cancelled),
         })
+    }
+
+    /// A job that does nothing but end as a usage error with `summary`, for a request the command line would refuse
+    /// before running (an unknown severity, say).
+    pub fn usage(summary: impl Into<String>) -> Self {
+        let summary = summary.into();
+        Self {
+            lock: None,
+            body: Box::new(move |_, _| {
+                Err(JobError::new(ErrorKind::Refused, "direct.usage", summary))
+            }),
+            usage: true,
+        }
     }
 
     /// The Instance the job writes to, if it does.
@@ -113,11 +181,11 @@ impl DirectJob {
     }
 }
 
-/// The direct job that does what the page's command of `action` does, from the values and flags after its words;
-/// `None` for an action that still runs as a command line. Each converted action adds one arm here.
-pub fn for_command(action: Action, rest: &[String]) -> Option<DirectJob> {
-    match action {
-        Action::Rollback => Some(match value_of(rest, "--instance") {
+/// The direct job that does what the page's command with the registry id `id` does, from the values and flags after
+/// its words; `None` for a command that still runs as a command line. Each converted action adds one arm here.
+pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
+    match id {
+        "rollback" => Some(match value_of(rest, "--instance") {
             "" => DirectJob::reading(|_, _| -> Result<Outcome<()>, JobError> {
                 Err(JobError::new(
                     ErrorKind::Refused,
@@ -127,8 +195,148 @@ pub fn for_command(action: Action, rest: &[String]) -> Option<DirectJob> {
             }),
             instance => rollback(Path::new(instance)),
         }),
+        "conflicts" => Some(conflicts(&conflicts_request(rest))),
+        "tree" => Some(tree(&tree_request(rest))),
+        "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
+        "verify" => Some(verify_request(rest).map_or_else(DirectJob::usage, |r| verify(&r))),
+        "plugins-list" => Some(plugins_list(&plugins_list_request(rest))),
         _ => None,
     }
+}
+
+/// The value after `flag` in `rest` as an option: `None` when the flag is absent.
+fn option_of(rest: &[String], flag: &str) -> Option<String> {
+    rest.iter()
+        .position(|w| w == flag)
+        .and_then(|i| rest.get(i + 1))
+        .cloned()
+}
+
+/// Whether the switch `flag` is in `rest`.
+fn has_flag(rest: &[String], flag: &str) -> bool {
+    rest.iter().any(|w| w == flag)
+}
+
+/// The request of `raul conflicts` from the words after it.
+fn conflicts_request(rest: &[String]) -> nvmod_api::conflicts::ReportRequest {
+    nvmod_api::conflicts::ReportRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        mod_name: option_of(rest, "--mod"),
+        archives: has_flag(rest, "--archives"),
+    }
+}
+
+/// `nvmod_api::conflicts::report`: reads only. Its document is the report, as `raul conflicts --json` prints it.
+pub fn conflicts(request: &nvmod_api::conflicts::ReportRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::reading_as(
+        move |progress, cancel| nvmod_api::conflicts::report(&request, progress, cancel),
+        |done: &nvmod_api::conflicts::ReportOutput| {
+            serde_json::to_value(&done.report).map(Reply::ok)
+        },
+    )
+}
+
+/// The request of `raul tree` from the words after it.
+fn tree_request(rest: &[String]) -> nvmod_api::tree::TreeRequest {
+    nvmod_api::tree::TreeRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        path: option_of(rest, "--path"),
+    }
+}
+
+/// `nvmod_api::tree::show`: reads only. Its document is the tree, as `raul tree --json` prints it.
+pub fn tree(request: &nvmod_api::tree::TreeRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::reading_as(
+        move |progress, cancel| nvmod_api::tree::show(&request, progress, cancel),
+        |done: &nvmod_api::tree::TreeOutput| serde_json::to_value(&done.tree).map(Reply::ok),
+    )
+}
+
+/// The request of `raul doctor --instance` from the words after it.
+fn doctor_request(rest: &[String]) -> Result<nvmod_api::doctor::CheckRequest, String> {
+    let target = nvmod_api::doctor::Target::Instance {
+        folder: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        game: option_of(rest, "--game").map(PathBuf::from),
+        masterlist: option_of(rest, "--masterlist").map(PathBuf::from),
+        catalog: option_of(rest, "--catalog").map(PathBuf::from),
+    };
+    let fail_on = fail_on_of(rest)?;
+    Ok(nvmod_api::doctor::CheckRequest { target, fail_on })
+}
+
+/// `nvmod_api::doctor::check`: reads only. Its document is the report, as `raul doctor --json` prints it, and its exit
+/// code is 1 when the report has a finding at or above the request's `fail_on`, as the command ends.
+pub fn doctor(request: &nvmod_api::doctor::CheckRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::reading_as(
+        move |progress, cancel| nvmod_api::doctor::check(&request, progress, cancel),
+        |done: &nvmod_api::doctor::CheckOutput| {
+            serde_json::to_value(&done.report).map(|json| Reply {
+                json,
+                exit: u8::from(done.found),
+            })
+        },
+    )
+}
+
+/// The request of `raul verify --instance` from the words after it.
+fn verify_request(rest: &[String]) -> Result<nvmod_api::verify::VerifyRequest, String> {
+    let fail_on = fail_on_of(rest)?;
+    Ok(nvmod_api::verify::VerifyRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        masterlist: option_of(rest, "--masterlist").map(PathBuf::from),
+        catalog: option_of(rest, "--catalog").map(PathBuf::from),
+        proton: option_of(rest, "--proton"),
+        fail_on,
+    })
+}
+
+/// The `--fail-on` severity of `rest`, `Error` when absent; an unknown word is the usage error the command line gives.
+fn fail_on_of(rest: &[String]) -> Result<nvmod_api::doctor::Severity, String> {
+    option_of(rest, "--fail-on").map_or(Ok(nvmod_api::doctor::Severity::Error), |word| {
+        word.parse().map_err(|why| format!("--fail-on: {why}"))
+    })
+}
+
+/// `nvmod_api::verify::verify`: reads only. Its document is the verification, as `raul verify --json` prints it; its
+/// exit code is 3 when the install is not verified, as the command ends.
+pub fn verify(request: &nvmod_api::verify::VerifyRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::reading_as(
+        move |progress, cancel| nvmod_api::verify::verify(&request, progress, cancel),
+        |done: &nvmod_api::verify::VerifyOutput| -> Result<Reply, serde_json::Error> {
+            Ok(Reply {
+                json: serde_json::json!({
+                    "schema_version": 1,
+                    "verified": done.verified,
+                    "doctor": done.doctor,
+                    "nv_rs": done.nv_rs,
+                    "launch_plan": done.launch_plan,
+                }),
+                exit: if done.verified { 0 } else { 3 },
+            })
+        },
+    )
+}
+
+/// The request of `raul plugins list --instance` from the words after `list`.
+fn plugins_list_request(rest: &[String]) -> nvmod_api::plugins::ListRequest {
+    nvmod_api::plugins::ListRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+    }
+}
+
+/// `nvmod_api::plugins::list`: reads only. Its document is the list, as `raul plugins list --json` prints it.
+pub fn plugins_list(request: &nvmod_api::plugins::ListRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::reading(move |progress, cancel| nvmod_api::plugins::list(&request, progress, cancel))
 }
 
 /// The value after `flag` in `rest`, empty when there is none.
@@ -170,7 +378,7 @@ fn one_line(summary: &str) -> String {
 
 /// How a direct job ended, before it is told as events and an [`Output`].
 enum End {
-    Done(serde_json::Value),
+    Done(Reply),
     Stopped,
     Failed(JobError),
 }
@@ -239,6 +447,8 @@ pub fn run_direct(
     cancel: &CancelHandle,
 ) -> Output {
     let label = spec.action.command();
+    let usage = job.usage;
+    let reads = job.lock.is_none();
     let mut feed = Feed::new(spec, sink);
     if cancel.is_requested() {
         return finish(
@@ -246,6 +456,8 @@ pub fn run_direct(
             &mut feed,
             &End::Stopped,
             "cancelled before it started: nothing was run",
+            false,
+            false,
         );
     }
     // Held while the job runs.
@@ -256,7 +468,7 @@ pub fn run_direct(
     {
         Some(Err(refused)) => {
             let error = JobError::new(ErrorKind::Refused, label, refused.to_string());
-            return finish(spec, &mut feed, &End::Failed(error), "");
+            return finish(spec, &mut feed, &End::Failed(error), "", false, false);
         }
         Some(Ok(guard)) => Some(guard),
         None => None,
@@ -268,24 +480,35 @@ pub fn run_direct(
     let stopped = format!(
         "cancelled: {label} was stopped at a safe point; the step in flight was stopped at its safe point"
     );
-    finish(spec, &mut feed, &end, &stopped)
+    finish(spec, &mut feed, &end, &stopped, usage, reads)
 }
 
 /// Tells the end of the job as events and as the [`Output`].
-fn finish(spec: &JobSpec, feed: &mut Feed<'_>, end: &End, stopped: &str) -> Output {
+#[allow(clippy::fn_params_excessive_bools)]
+fn finish(
+    spec: &JobSpec,
+    feed: &mut Feed<'_>,
+    end: &End,
+    stopped: &str,
+    usage: bool,
+    reads: bool,
+) -> Output {
     let label = spec.action.command();
     feed.start();
     let (line, outcome, class, output) = match end {
-        End::Done(value) => (
-            format!("{label} finished"),
-            JobOutcome::Completed,
-            ExitClass::Ok,
-            Output {
-                code: Some(0),
-                stdout: format!("{value}\n"),
-                stderr: String::new(),
-            },
-        ),
+        End::Done(reply) => {
+            let class = ExitClass::from_code(i64::from(reply.exit));
+            (
+                format!("{label} finished"),
+                outcome_of(class),
+                class,
+                Output {
+                    code: Some(i64::from(reply.exit)),
+                    stdout: format!("{}\n", reply.json),
+                    stderr: String::new(),
+                },
+            )
+        }
         End::Stopped => (
             stopped.to_owned(),
             JobOutcome::Cancelled,
@@ -297,7 +520,14 @@ fn finish(spec: &JobSpec, feed: &mut Feed<'_>, end: &End, stopped: &str) -> Outp
             },
         ),
         End::Failed(error) => {
-            let class = class_of(error.kind);
+            let class = if usage {
+                ExitClass::Usage
+            } else if reads && error.kind == ErrorKind::Failed {
+                // A read that failed changed nothing, so there is no step to have put back: it is a refusal.
+                ExitClass::Refused
+            } else {
+                class_of(error.kind)
+            };
             let said = one_line(&error.summary);
             (
                 said.clone(),

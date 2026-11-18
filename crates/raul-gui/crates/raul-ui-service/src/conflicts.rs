@@ -140,16 +140,6 @@ pub struct PluginsRequest {
     pub profile: Option<String>,
 }
 
-impl PluginsRequest {
-    /// The words after `raul plugins`, before `--json`.
-    pub fn args(&self) -> Vec<String> {
-        let mut rest = vec!["list".to_owned()];
-        push(&mut rest, "instance", &self.instance);
-        push_opt(&mut rest, "profile", self.profile.as_ref());
-        rest
-    }
-}
-
 /// One master a plugin declares.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct MasterRow {
