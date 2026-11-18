@@ -297,3 +297,18 @@ fn a_move_of_a_mod_matches_the_command_line_and_an_unknown_mod_is_a_refusal() {
         other => panic!("an unknown Mod is refused: {other:?}"),
     }
 }
+
+#[test]
+fn an_instance_without_a_profile_gets_the_default_one_and_the_action_runs_again() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    std::fs::remove_dir_all(inst.root().join("profiles/Default")).unwrap();
+    let report = service()
+        .plugins_list(&raul_ui_service::PluginsRequest {
+            instance: s(&inst.root()),
+            ..raul_ui_service::PluginsRequest::default()
+        })
+        .unwrap();
+    assert!(report.plugins.len() <= 1, "{report:?}");
+    assert!(inst.root().join("profiles/Default/modlist.txt").is_file());
+}

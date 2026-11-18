@@ -1275,38 +1275,18 @@ mod tests {
     }
 
     #[test]
-    fn a_missing_profile_is_made_before_the_direct_job_runs_again() {
-        let exec = crate::fake::ScriptedExec::new();
-        exec.on_run(&[], 0, "");
-        let svc = CliService::new(exec);
-        let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let out = svc
-            .direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 1))
-            .unwrap();
-        assert_eq!(out.code, Some(0));
-        assert_eq!(runs.load(std::sync::atomic::Ordering::SeqCst), 2);
-        let calls = svc.exec().calls();
-        assert_eq!(calls.len(), 1, "only the profile is made by a command");
-        assert_eq!(calls[0][..2], ["profile", "create"]);
-    }
-
-    #[test]
     fn a_direct_job_that_works_first_time_never_makes_a_profile() {
         let svc = CliService::new(crate::fake::ScriptedExec::new());
         let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
         svc.direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 0))
             .unwrap();
+        assert_eq!(runs.load(std::sync::atomic::Ordering::SeqCst), 1);
         assert!(svc.exec().calls().is_empty());
     }
 
     #[test]
     fn a_profile_that_cannot_be_made_is_a_plain_error() {
         let exec = crate::fake::ScriptedExec::new();
-        exec.on_run(
-            &[],
-            2,
-            "raul profile: refused: the Instance folder is not there\n",
-        );
         let svc = CliService::new(exec);
         let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let err = svc
