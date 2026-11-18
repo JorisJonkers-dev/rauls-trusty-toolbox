@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794989572394,
+  "lastUpdate": 1794989767633,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -3870,6 +3870,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.761033000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0416fa826ec49337a2c928b55e5b288f71cb93ed",
+          "message": "refactor: remove the code that reads the Known-good set (#257)\n\n* refactor: remove the code that reads the Known-good set\n\n* ci: follow the Components without the Known-good set\n\n* test: cover the text and the usage error of raul version",
+          "timestamp": "2026-11-18T09:14:44+01:00",
+          "tree_id": "e0803a0e1b657763c4e7976217bf63f5fe494fbd",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/0416fa826ec49337a2c928b55e5b288f71cb93ed"
+        },
+        "date": 1794989766847,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.088436,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.678947999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.337836999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.496837,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.99292,
             "unit": "ms"
           }
         ]
