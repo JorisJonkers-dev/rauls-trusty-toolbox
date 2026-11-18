@@ -4,20 +4,23 @@
 use crate::conflicts::{
     ConflictsReport, ConflictsRequest, PluginsReport, PluginsRequest, TreeReport, TreeRequest,
 };
+use crate::direct::run_direct;
 use crate::dto::{
     DisagreeDoc, DoctorReport, Finding, ImportReport, InstallReport, ModsReport, QuestionsDoc,
     RollbackReport, SetupReport, SortReport, TargetReport, ToolRow, ToolsReport, TtwReport,
     VerifyReport,
 };
-use crate::exec::{Exec, Output};
+use crate::exec::{CancelHandle, Exec, Output};
+use crate::jobs::JobSpec;
 use crate::registry::Action;
 use raul_ui_model::error::{ExitClass, Retry, ViewError};
+use raul_ui_model::job::JobId;
 use raul_ui_model::mods::ModStep;
 use raul_ui_model::setup::{FinishStatus, Phase, SetupWizard};
 use raul_ui_model::wizard::{DEFAULT_PROFILE, FomodQuestion};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Why a service call did not produce its report.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -462,15 +465,6 @@ impl ToolsRequest {
 pub struct RollbackRequest {
     /// The Instance folder.
     pub instance: String,
-}
-
-impl RollbackRequest {
-    /// The words after `raul rollback`, before `--json`.
-    pub fn args(&self) -> Vec<String> {
-        let mut rest = Vec::new();
-        push(&mut rest, "instance", &self.instance);
-        rest
-    }
 }
 
 /// What `raul profile create` needs: the default profile of an Instance that has none.
@@ -1033,11 +1027,24 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn rollback(&self, r: &RollbackRequest) -> Result<RollbackReport, ServiceError> {
-        let (out, args) = self.invoke(Action::Rollback, r.args())?;
-        match out.code {
-            Some(0) => Self::parse(Action::Rollback, &out, &args),
-            _ => Err(failure(&out, "rollback", &args)),
+        // The job the Undo button starts, run to its end: in process, under the Instance lock, no command line.
+        let spec = JobSpec::new(JobId(0), Action::Rollback, Vec::new()).writing();
+        let out = run_direct(
+            &spec,
+            crate::direct::rollback(Path::new(&r.instance)),
+            &mut |_| {},
+            &CancelHandle::new(),
+        );
+        if out.code != Some(0) {
+            return Err(ServiceError::Failed(failure_error(&out, "rollback")));
         }
+        serde_json::from_str(&out.stdout).map_err(|why| {
+            ServiceError::Failed(ViewError::new(
+                ExitClass::Internal,
+                format!("The result of the rollback could not be read: {why}"),
+                effect_of(ExitClass::Internal),
+            ))
+        })
     }
 
     fn mods_change(&self, r: &ModsRequest) -> Result<ModsReport, ServiceError> {

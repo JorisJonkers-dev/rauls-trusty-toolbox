@@ -9,7 +9,9 @@ publish.workspace = true
 description = "The service seam of the Toolbox GUI: a trait whose real implementation runs `raul` through the streaming Runner and parses its --json output, a scripted fake, and the registry that ties every GUI action to a command line equivalent."
 
 [dependencies]
+nvmod-api = { workspace = true }
 nvmod-core = { workspace = true }
+raul-core = { workspace = true }
 raul-cli = { workspace = true }
 raul-ui-model = { workspace = true }
 raul-runner = { workspace = true }

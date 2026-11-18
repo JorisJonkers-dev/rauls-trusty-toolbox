@@ -18,7 +18,8 @@ pub enum Action {
     ImportMo2,
     /// `raul install`: one Mod from an archive, with FOMOD answers.
     InstallMod,
-    /// `raul rollback`: undo the last install, sort or mods change.
+    /// `raul rollback`: undo the last install, sort or mods change. The GUI runs it as a typed job in process
+    /// ([`crate::direct`]); the command line stays as its equivalent.
     Rollback,
     /// `raul sort`: the load order.
     Sort,

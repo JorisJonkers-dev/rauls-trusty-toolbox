@@ -74,11 +74,11 @@ impl JobSpec {
 
 /// Keeps the events of one job well formed: `Started` first, and a `Finished` at the end whatever the command
 /// printed.
-struct Feed<'a> {
+pub(crate) struct Feed<'a> {
     spec: &'a JobSpec,
     sink: &'a mut dyn FnMut(JobEvent),
     started: bool,
-    finished: bool,
+    pub(crate) finished: bool,
     streamed: bool,
     /// The `Finished` the command reported in its stream, kept back ([`Feed::stream`]) while a second one may
     /// still sign the job off.
@@ -86,8 +86,21 @@ struct Feed<'a> {
     last_seq: u64,
 }
 
-impl Feed<'_> {
-    fn start(&mut self) {
+impl<'a> Feed<'a> {
+    /// A feed of the events of `spec` into `sink`, before anything was sent.
+    pub(crate) fn new(spec: &'a JobSpec, sink: &'a mut dyn FnMut(JobEvent)) -> Self {
+        Self {
+            spec,
+            sink,
+            started: false,
+            finished: false,
+            streamed: false,
+            held: None,
+            last_seq: 0,
+        }
+    }
+
+    pub(crate) fn start(&mut self) {
         if !self.started {
             self.started = true;
             (self.sink)(JobEvent::Started {
@@ -99,7 +112,7 @@ impl Feed<'_> {
         }
     }
 
-    fn emit(&mut self, event: JobEvent) {
+    pub(crate) fn emit(&mut self, event: JobEvent) {
         match &event {
             JobEvent::Started { .. } => {
                 if self.started {
@@ -120,7 +133,7 @@ impl Feed<'_> {
         (self.sink)(event);
     }
 
-    fn next_seq(&mut self) -> u64 {
+    pub(crate) fn next_seq(&mut self) -> u64 {
         self.last_seq += 1;
         self.last_seq
     }
@@ -218,15 +231,7 @@ impl<E: Exec> CliService<E> {
         cancel: &CancelHandle,
     ) -> Result<Output, ServiceError> {
         let args = Self::words(spec.action, spec.args.clone(), spec.action.takes_json());
-        let mut feed = Feed {
-            spec,
-            sink,
-            started: false,
-            finished: false,
-            streamed: false,
-            held: None,
-            last_seq: 0,
-        };
+        let mut feed = Feed::new(spec, sink);
         if cancel.is_requested() {
             feed.start();
             let line = String::from("cancelled before it started: nothing was run");

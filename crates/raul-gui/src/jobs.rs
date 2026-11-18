@@ -10,7 +10,10 @@ use eframe::egui;
 use raul_ui_model::ViewError;
 use raul_ui_model::job::{JobError, JobEvent, JobId, JobTable};
 use raul_ui_service::registry::Action;
-use raul_ui_service::{CancelHandle, CliService, Exec, JobSpec, Output, ServiceError, cancel_job};
+use raul_ui_service::{
+    CancelHandle, CliService, DirectJob, Exec, JobSpec, Output, ServiceError, cancel_job,
+    run_direct,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -124,6 +127,46 @@ impl Jobs {
         then: Option<Vec<String>>,
         writes: bool,
     ) -> Result<JobId, JobError> {
+        let id = self.begin(writes)?;
+        let mut spec = JobSpec::new(id, action, args);
+        if let Some(then) = then {
+            spec = spec.then(then);
+        }
+        if writes {
+            spec = spec.writing();
+        }
+        let exec = self.exec.clone();
+        self.spawn(spec, move |spec, sink, cancel| {
+            CliService::new(exec).run_job_cancellable(spec, sink, cancel)
+        });
+        Ok(id)
+    }
+
+    /// Starts a typed job of a Component that runs in this process (see `raul_ui_service::direct`) as a job of the
+    /// same table: its events, its Cancel and its writer slot are the ones of a command line, and a writing job
+    /// holds the Instance lock while it runs. Its result is read like the output of a command (`output`, `failure`).
+    ///
+    /// # Errors
+    /// [`JobError::Busy`] when another writing job runs.
+    pub fn start_direct(
+        &mut self,
+        action: Action,
+        job: DirectJob,
+        writes: bool,
+    ) -> Result<JobId, JobError> {
+        let id = self.begin(writes)?;
+        let mut spec = JobSpec::new(id, action, Vec::new());
+        if writes {
+            spec = spec.writing();
+        }
+        self.spawn(spec, move |spec, sink, cancel| {
+            Ok(run_direct(spec, job, sink, cancel))
+        });
+        Ok(id)
+    }
+
+    /// Takes the next job id, after refusing a writing job while another writes.
+    fn begin(&mut self, writes: bool) -> Result<JobId, JobError> {
         if writes {
             if let Some(busy) = self.writer {
                 return Err(JobError::Busy(busy));
@@ -132,19 +175,27 @@ impl Jobs {
         }
         let id = JobId(self.next);
         self.next += 1;
-        let mut spec = JobSpec::new(id, action, args);
-        if let Some(then) = then {
-            spec = spec.then(then);
-        }
         if writes {
-            spec = spec.writing();
             self.writer = Some(id);
         }
+        Ok(id)
+    }
+
+    /// Runs `work` for `spec` on a thread of its own and reports its events and its end.
+    fn spawn<W>(&mut self, spec: JobSpec, work: W)
+    where
+        W: FnOnce(
+                &JobSpec,
+                &mut dyn FnMut(JobEvent),
+                &CancelHandle,
+            ) -> Result<Output, ServiceError>
+            + Send
+            + 'static,
+    {
         let cancel = CancelHandle::new();
-        self.cancels.insert(id, cancel.clone());
-        let (exec, tx, repaint) = (self.exec.clone(), self.tx.clone(), self.repaint.clone());
+        self.cancels.insert(spec.id, cancel.clone());
+        let (tx, repaint) = (self.tx.clone(), self.repaint.clone());
         std::thread::spawn(move || {
-            let service = CliService::new(exec);
             let wake = || {
                 if let Some(ctx) = &repaint {
                     ctx.request_repaint();
@@ -152,7 +203,7 @@ impl Jobs {
             };
             // A panic in the command's handling ends this job, never the window, and its end is still reported.
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                service.run_job_cancellable(
+                work(
                     &spec,
                     &mut |event| {
                         let _ = tx.send(Report::Event(event));
@@ -171,7 +222,6 @@ impl Jobs {
             let _ = tx.send(Report::Done(spec.id, result));
             wake();
         });
-        Ok(id)
     }
 
     /// Asks the job `id` to stop: it is asked to end and forced to after a grace period.
@@ -354,5 +404,65 @@ mod tests {
         assert!(jobs.cancel(JobId(999)).is_err());
         assert!(jobs.wait_all(Duration::from_secs(10)));
         assert!(format!("{jobs:?}").contains("Jobs"));
+    }
+
+    #[test]
+    fn a_direct_job_lands_in_the_table_and_holds_the_writer_slot() {
+        let mut jobs = Jobs::new(Arc::new(Panicking));
+        let job = DirectJob::reading(
+            |_, _| -> Result<nvmod_api::Outcome<u8>, nvmod_api::JobError> {
+                Ok(nvmod_api::Outcome::Done(7))
+            },
+        );
+        let id = jobs.start_direct(Action::Rollback, job, true).unwrap();
+        assert_eq!(
+            jobs.start_direct(
+                Action::Rollback,
+                DirectJob::reading(
+                    |_, _| -> Result<nvmod_api::Outcome<u8>, nvmod_api::JobError> {
+                        Ok(nvmod_api::Outcome::Done(0))
+                    }
+                ),
+                true
+            ),
+            Err(JobError::Busy(id)),
+            "a direct writer is a writer"
+        );
+        assert!(jobs.wait_all(Duration::from_secs(10)));
+        assert_eq!(
+            jobs.table().get(id).map(|j| j.state),
+            Some(JobState::Finished(Outcome::Completed))
+        );
+        assert_eq!(
+            jobs.output(id).map(|o| o.stdout.trim().to_owned()),
+            Some("7".into())
+        );
+    }
+
+    #[test]
+    fn a_panicking_direct_job_still_ends_and_frees_the_slot() {
+        let mut jobs = Jobs::new(Arc::new(Panicking));
+        let job = DirectJob::reading(
+            |_, _| -> Result<nvmod_api::Outcome<u8>, nvmod_api::JobError> {
+                panic!("a bug in the job")
+            },
+        );
+        let id = jobs.start_direct(Action::Rollback, job, true).unwrap();
+        assert!(jobs.wait_all(Duration::from_secs(10)));
+        assert_eq!(jobs.output(id).and_then(|o| o.code), None);
+        assert_eq!(
+            jobs.table().get(id).map(|j| j.state),
+            Some(JobState::Finished(Outcome::Failed))
+        );
+        let again = DirectJob::reading(
+            |_, _| -> Result<nvmod_api::Outcome<u8>, nvmod_api::JobError> {
+                Ok(nvmod_api::Outcome::Done(1))
+            },
+        );
+        assert!(
+            jobs.start_direct(Action::Rollback, again, true).is_ok(),
+            "the writer slot was freed"
+        );
+        assert!(jobs.wait_all(Duration::from_secs(10)));
     }
 }
