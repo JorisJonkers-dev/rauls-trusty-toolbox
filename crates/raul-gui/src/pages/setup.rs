@@ -1124,8 +1124,11 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(50));
         h.run_steps(4);
         h.get_by_label(NEXT).click();
-        let calls = exec.clone();
-        wait_for(&mut h, move |_| calls.calls.lock().unwrap().len() >= 4);
+        // The checks are the Doctor, which runs in process and not as a command line: wait for it to end.
+        assert!(
+            h.state_mut()
+                .wait_for_jobs(std::time::Duration::from_secs(60))
+        );
         std::thread::sleep(std::time::Duration::from_millis(50));
         h.run_steps(4);
         h.get_by_label(NEXT).click();
@@ -1171,9 +1174,9 @@ mod tests {
                 "--release"
             ]
         );
-        assert_eq!(
-            calls[3],
-            ["doctor", "--instance", instance.as_str(), "--json"]
+        assert!(
+            !calls.iter().any(|c| c[0] == "doctor"),
+            "the Doctor is not a command line: {calls:?}"
         );
     }
 }
