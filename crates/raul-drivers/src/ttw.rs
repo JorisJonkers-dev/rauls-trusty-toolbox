@@ -3,6 +3,7 @@
 //! document the `result` event of `raul ttw --json` carries, and the driver that produces it.
 
 pub(crate) mod driver;
+pub(crate) mod inproc;
 
 use std::path::PathBuf;
 
