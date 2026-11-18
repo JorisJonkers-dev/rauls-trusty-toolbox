@@ -125,7 +125,7 @@ impl Fixture {
 fn settle(h: &mut Harness<'static, App>) {
     for _ in 0..6 {
         h.run_steps(8);
-        assert!(h.state_mut().wait_for_jobs(Duration::from_secs(60)));
+        assert!(h.state_mut().wait_for_jobs(Duration::from_secs(240)));
     }
     h.run_steps(8);
 }
@@ -181,9 +181,11 @@ fn generate_keeps_one_enabled_mod_and_a_second_run_finds_it_current() {
     assert!(f.lod_mod().is_dir());
 }
 
-/// The side of the world of the stop test: 4096 cells, which take far longer to generate than the few frames between
-/// the run's Stop button appearing and the click. A run that finished first would fail the test, not pass it.
-const STOP_SIDE: i32 = 64;
+/// The side of the world of the stop test: 1024 cells, which take longer to generate than the few frames between the
+/// run's Stop button appearing and the click, also on a slow runner (the GUI workflow runs the tests under coverage
+/// instrumentation, where a larger world outlasts the wait for the stop to land). A run that finished first would fail
+/// the test, not pass it.
+const STOP_SIDE: i32 = 32;
 
 #[test]
 fn stop_ends_the_run_and_adds_nothing() {
