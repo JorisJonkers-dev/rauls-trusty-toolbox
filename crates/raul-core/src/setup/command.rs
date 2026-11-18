@@ -551,14 +551,20 @@ fn run_steps(
                 done: Vec::new(),
                 ..request.clone()
             });
-            let index = at.min(planned.len().saturating_sub(1));
-            let step = planned.get(index).map_or(Step::Verify, |p| p.step.clone());
+            // A step that stopped itself is the one that did not end; otherwise the next one did not start.
+            let (step, index) = started.unwrap_or_else(|| {
+                let index = at.min(planned.len().saturating_sub(1));
+                (
+                    planned.get(index).map_or(Step::Verify, |p| p.step.clone()),
+                    index + 1,
+                )
+            });
             fail(
                 events,
                 request,
                 &Failure {
                     step,
-                    index: index + 1,
+                    index,
                     total: planned.len(),
                     code: FAILED,
                     detail: "the run was stopped before this step".to_owned(),

@@ -50,8 +50,8 @@ pub struct Request {
     /// Copy files into the Staging tree and the import instead of linking them.
     #[serde(default)]
     pub copy: bool,
-    /// Put the nv-rs engine in the Instance and make it the target (nvmod's `setup` does this unless told
-    /// `--skip-nv-rs`; here it is opt-in, so a request that leaves it out keeps the vanilla target). The engine step installs and
+    /// Put the nv-rs engine in the Instance and make it the target. The request leaves it off unless it is set;
+    /// `raul setup` and the wizard set it unless told to skip it, as nvmod's `setup` did. The engine step installs and
     /// checks nv-rs in process through the engine install library (see `engine.rs`; it goes with the play mode,
     /// #260), and the target step then sets the nv-rs target.
     #[serde(default)]
