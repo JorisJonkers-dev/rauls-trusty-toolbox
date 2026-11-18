@@ -17,7 +17,6 @@ use raul_ui_service::{
 };
 mod common;
 use common::{Instance, install_plain, s};
-use std::path::Path;
 
 /// A runner that must never be asked for anything: the rollback calls nvmod's job in process.
 struct Never;
