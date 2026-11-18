@@ -460,15 +460,27 @@ impl Ttw {
         ui.add_space(12.0);
         shell::section_label(ui, t, SECTION_SOURCES, true);
         let width = ui.available_width();
-        egui::Grid::new("ttw-sources")
-            .num_columns(3)
-            .spacing([18.0, 10.0])
-            .min_row_height(28.0)
-            .show(ui, |ui| {
-                source_row(ui, t, width, LABEL_FALLOUT3, s.fallout3.as_deref(), false);
-                source_row(ui, t, width, LABEL_NEW_VEGAS, s.newvegas.as_deref(), true);
-                source_row(ui, t, width, LABEL_PACKAGE, s.package.as_deref(), false);
-            });
+        let rows = [
+            (LABEL_FALLOUT3, s.fallout3.as_deref(), false),
+            (LABEL_NEW_VEGAS, s.newvegas.as_deref(), true),
+            (LABEL_PACKAGE, s.package.as_deref(), false),
+        ];
+        if width < 480.0 {
+            // Too narrow for three columns: each source is its own wrapped line (UI-RULES A6).
+            for (label, value, defaults) in rows {
+                source_line(ui, t, label, value, defaults);
+            }
+        } else {
+            egui::Grid::new("ttw-sources")
+                .num_columns(3)
+                .spacing([18.0, 10.0])
+                .min_row_height(28.0)
+                .show(ui, |ui| {
+                    for (label, value, defaults) in rows {
+                        source_row(ui, t, width, label, value, defaults);
+                    }
+                });
+        }
         ui.add_space(12.0);
         if ui.button(CHANGE).clicked() {
             cx.shell.go_to = Some(View::Page(PageId::Settings));
@@ -661,10 +673,11 @@ impl Ttw {
         shell::hairline(ui, t);
         ui.add_space(10.0);
         let why = self.waits_for();
+        // What Next waits for gets a line of its own, so the buttons below keep their room (UI-RULES A6).
+        if let Some(why) = why {
+            ui.add(egui::Label::new(RichText::new(why).color(t.muted.color())).wrap());
+        }
         ui.horizontal(|ui| {
-            if let Some(why) = why {
-                ui.add(egui::Label::new(RichText::new(why).color(t.muted.color())).wrap());
-            }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 // The layout runs right to left: the primary button comes first.
                 match self.state.step {
@@ -931,6 +944,30 @@ fn steps(ui: &mut egui::Ui, t: &Tokens, current: Step, installed: bool) {
             });
         }
     });
+}
+
+/// One source on a narrow page: its label, then its value and mark, wrapping onto the next line when they do not fit.
+fn source_line(ui: &mut egui::Ui, t: &Tokens, label: &str, value: Option<&str>, defaults: bool) {
+    ui.label(RichText::new(label).color(t.text.color()));
+    // A path takes the width the page has and truncates; the mark goes on the line below it.
+    match value {
+        Some(v) => {
+            ui.add(egui::Label::new(RichText::new(v).monospace().color(t.text.color())).truncate())
+                .on_hover_text(v);
+        }
+        None if defaults => {
+            ui.label(RichText::new(NEW_VEGAS_DEFAULT).color(t.muted.color()));
+        }
+        None => {
+            ui.label(RichText::new(NOT_SET).color(t.muted.color()));
+        }
+    }
+    match (value, defaults) {
+        (Some(_), _) => mark(ui, t, Mark::Ok, SET),
+        (None, true) => mark(ui, t, Mark::Unset, FROM_INSTANCE),
+        (None, false) => mark(ui, t, Mark::Warning, NOT_SET),
+    }
+    ui.add_space(6.0);
 }
 
 /// One source: its label, its value (a path, truncated with the whole in a tooltip) and its mark.
