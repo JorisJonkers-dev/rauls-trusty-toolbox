@@ -999,11 +999,17 @@ impl<E: Exec> Service for CliService<E> {
             masterlist: r.masterlist.as_deref().map(PathBuf::from),
             catalog: r.catalog.as_deref().map(PathBuf::from),
             proton: r.proton.clone(),
-            fail_on: r
-                .fail_on
-                .as_deref()
-                .and_then(|severity| severity.parse().ok())
-                .unwrap_or(nvmod_api::verify::Severity::Error),
+            fail_on: match r.fail_on.as_deref().map(str::parse) {
+                None => nvmod_api::verify::Severity::Error,
+                Some(Ok(severity)) => severity,
+                Some(Err(why)) => {
+                    return Err(ServiceError::Failed(ViewError::new(
+                        ExitClass::Usage,
+                        format!("--fail-on: {why}"),
+                        effect_of(ExitClass::Usage),
+                    )));
+                }
+            },
         };
         let out = self.direct_with_profile(Action::Verify, &r.instance, || {
             crate::direct::verify(&request)

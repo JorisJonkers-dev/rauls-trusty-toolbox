@@ -67,6 +67,8 @@ pub struct DirectJob {
     /// that does not write.
     lock: Option<(PathBuf, &'static str)>,
     body: Body,
+    /// Whether the job ends as a usage error (a request the command line would not take), exit class 5.
+    usage: bool,
 }
 
 impl std::fmt::Debug for DirectJob {
@@ -87,6 +89,7 @@ impl DirectJob {
         Self {
             lock: Some((instance.into(), name)),
             body: Self::boxed(run),
+            usage: false,
         }
     }
 
@@ -99,6 +102,7 @@ impl DirectJob {
         Self {
             lock: None,
             body: Self::boxed(run),
+            usage: false,
         }
     }
 
@@ -117,6 +121,7 @@ impl DirectJob {
         Self {
             lock: Some((instance.into(), name)),
             body: Self::boxed_as(run, render),
+            usage: false,
         }
     }
 
@@ -129,6 +134,7 @@ impl DirectJob {
         Self {
             lock: None,
             body: Self::boxed_as(run, render),
+            usage: false,
         }
     }
 
@@ -156,6 +162,19 @@ impl DirectJob {
         })
     }
 
+    /// A job that does nothing but end as a usage error with `summary`, for a request the command line would refuse
+    /// before running (an unknown severity, say).
+    pub fn usage(summary: impl Into<String>) -> Self {
+        let summary = summary.into();
+        Self {
+            lock: None,
+            body: Box::new(move |_, _| {
+                Err(JobError::new(ErrorKind::Refused, "direct.usage", summary))
+            }),
+            usage: true,
+        }
+    }
+
     /// The Instance the job writes to, if it does.
     pub fn instance(&self) -> Option<&Path> {
         self.lock.as_ref().map(|(root, _)| root.as_path())
@@ -178,8 +197,8 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
         }),
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
-        "doctor" => Some(doctor(&doctor_request(rest))),
-        "verify" => Some(verify(&verify_request(rest))),
+        "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
+        "verify" => Some(verify_request(rest).map_or_else(DirectJob::usage, |r| verify(&r))),
         "plugins-list" => Some(plugins_list(&plugins_list_request(rest))),
         _ => None,
     }
@@ -238,7 +257,7 @@ pub fn tree(request: &nvmod_api::tree::TreeRequest) -> DirectJob {
 }
 
 /// The request of `raul doctor --instance` from the words after it.
-fn doctor_request(rest: &[String]) -> nvmod_api::doctor::CheckRequest {
+fn doctor_request(rest: &[String]) -> Result<nvmod_api::doctor::CheckRequest, String> {
     let target = nvmod_api::doctor::Target::Instance {
         folder: PathBuf::from(value_of(rest, "--instance")),
         profile: option_of(rest, "--profile"),
@@ -246,10 +265,8 @@ fn doctor_request(rest: &[String]) -> nvmod_api::doctor::CheckRequest {
         masterlist: option_of(rest, "--masterlist").map(PathBuf::from),
         catalog: option_of(rest, "--catalog").map(PathBuf::from),
     };
-    let fail_on = option_of(rest, "--fail-on")
-        .and_then(|severity| severity.parse().ok())
-        .unwrap_or(nvmod_api::doctor::Severity::Error);
-    nvmod_api::doctor::CheckRequest { target, fail_on }
+    let fail_on = fail_on_of(rest)?;
+    Ok(nvmod_api::doctor::CheckRequest { target, fail_on })
 }
 
 /// `nvmod_api::doctor::check`: reads only. Its document is the report, as `raul doctor --json` prints it, and its exit
@@ -268,18 +285,23 @@ pub fn doctor(request: &nvmod_api::doctor::CheckRequest) -> DirectJob {
 }
 
 /// The request of `raul verify --instance` from the words after it.
-fn verify_request(rest: &[String]) -> nvmod_api::verify::VerifyRequest {
-    let fail_on = option_of(rest, "--fail-on")
-        .and_then(|severity| severity.parse().ok())
-        .unwrap_or(nvmod_api::verify::Severity::Error);
-    nvmod_api::verify::VerifyRequest {
+fn verify_request(rest: &[String]) -> Result<nvmod_api::verify::VerifyRequest, String> {
+    let fail_on = fail_on_of(rest)?;
+    Ok(nvmod_api::verify::VerifyRequest {
         instance: PathBuf::from(value_of(rest, "--instance")),
         profile: option_of(rest, "--profile"),
         masterlist: option_of(rest, "--masterlist").map(PathBuf::from),
         catalog: option_of(rest, "--catalog").map(PathBuf::from),
         proton: option_of(rest, "--proton"),
         fail_on,
-    }
+    })
+}
+
+/// The `--fail-on` severity of `rest`, `Error` when absent; an unknown word is the usage error the command line gives.
+fn fail_on_of(rest: &[String]) -> Result<nvmod_api::doctor::Severity, String> {
+    option_of(rest, "--fail-on").map_or(Ok(nvmod_api::doctor::Severity::Error), |word| {
+        word.parse().map_err(|why| format!("--fail-on: {why}"))
+    })
 }
 
 /// `nvmod_api::verify::verify`: reads only. Its document is the verification, as `raul verify --json` prints it; its
@@ -425,6 +447,7 @@ pub fn run_direct(
     cancel: &CancelHandle,
 ) -> Output {
     let label = spec.action.command();
+    let usage = job.usage;
     let mut feed = Feed::new(spec, sink);
     if cancel.is_requested() {
         return finish(
@@ -432,6 +455,7 @@ pub fn run_direct(
             &mut feed,
             &End::Stopped,
             "cancelled before it started: nothing was run",
+            false,
         );
     }
     // Held while the job runs.
@@ -442,7 +466,7 @@ pub fn run_direct(
     {
         Some(Err(refused)) => {
             let error = JobError::new(ErrorKind::Refused, label, refused.to_string());
-            return finish(spec, &mut feed, &End::Failed(error), "");
+            return finish(spec, &mut feed, &End::Failed(error), "", false);
         }
         Some(Ok(guard)) => Some(guard),
         None => None,
@@ -454,11 +478,11 @@ pub fn run_direct(
     let stopped = format!(
         "cancelled: {label} was stopped at a safe point; the step in flight was stopped at its safe point"
     );
-    finish(spec, &mut feed, &end, &stopped)
+    finish(spec, &mut feed, &end, &stopped, usage)
 }
 
 /// Tells the end of the job as events and as the [`Output`].
-fn finish(spec: &JobSpec, feed: &mut Feed<'_>, end: &End, stopped: &str) -> Output {
+fn finish(spec: &JobSpec, feed: &mut Feed<'_>, end: &End, stopped: &str, usage: bool) -> Output {
     let label = spec.action.command();
     feed.start();
     let (line, outcome, class, output) = match end {
@@ -486,7 +510,11 @@ fn finish(spec: &JobSpec, feed: &mut Feed<'_>, end: &End, stopped: &str) -> Outp
             },
         ),
         End::Failed(error) => {
-            let class = class_of(error.kind);
+            let class = if usage {
+                ExitClass::Usage
+            } else {
+                class_of(error.kind)
+            };
             let said = one_line(&error.summary);
             (
                 said.clone(),

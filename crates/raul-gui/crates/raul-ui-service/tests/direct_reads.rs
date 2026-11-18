@@ -146,3 +146,93 @@ fn a_refusal_is_one_line_with_no_command_line() {
     assert_eq!(out.code, Some(2), "{out:?}");
     assert!(!out.stderr.contains("raul "), "{out:?}");
 }
+
+#[test]
+fn flags_a_page_passes_reach_the_job_as_they_reach_the_command_line() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    let root = s(&inst.root());
+    for fail_on in ["error", "warning", "info"] {
+        assert_same(
+            &direct_output("doctor", &["--instance", &root, "--fail-on", fail_on]),
+            &cli_output(&[
+                "doctor",
+                "--instance",
+                &root,
+                "--fail-on",
+                fail_on,
+                "--json",
+            ]),
+        );
+        assert_same(
+            &direct_output("verify", &["--instance", &root, "--fail-on", fail_on]),
+            &cli_output(&[
+                "verify",
+                "--instance",
+                &root,
+                "--fail-on",
+                fail_on,
+                "--json",
+            ]),
+        );
+    }
+    assert_same(
+        &direct_output(
+            "plugins-list",
+            &["--instance", &root, "--profile", "Default"],
+        ),
+        &cli_output(&[
+            "plugins",
+            "list",
+            "--instance",
+            &root,
+            "--profile",
+            "Default",
+            "--json",
+        ]),
+    );
+    assert_same(
+        &direct_output(
+            "conflicts",
+            &["--instance", &root, "--profile", "Default", "--archives"],
+        ),
+        &cli_output(&[
+            "conflicts",
+            "--instance",
+            &root,
+            "--profile",
+            "Default",
+            "--archives",
+            "--json",
+        ]),
+    );
+    assert_same(
+        &direct_output("tree", &["--instance", &root, "--path", "meshes"]),
+        &cli_output(&["tree", "--instance", &root, "--path", "meshes", "--json"]),
+    );
+}
+
+#[test]
+fn an_unknown_severity_is_a_usage_error_like_on_the_command_line() {
+    let inst = Instance::new();
+    let root = s(&inst.root());
+    for id in ["doctor", "verify"] {
+        let out = direct_output(id, &["--instance", &root, "--fail-on", "nonsense"]);
+        assert_eq!(out.code, Some(5), "{id}: {out:?}");
+        assert!(out.stderr.contains("--fail-on"), "{out:?}");
+    }
+}
+
+#[test]
+fn a_failure_of_a_read_has_no_repro_command_line() {
+    let inst = Instance::new();
+    let none = s(&inst.work.path().join("none"));
+    let e = service()
+        .plugins_list(&PluginsRequest {
+            instance: none,
+            ..PluginsRequest::default()
+        })
+        .unwrap_err()
+        .view_error();
+    assert_eq!(e.repro, None);
+}
