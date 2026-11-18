@@ -272,11 +272,11 @@ fn the_service_refuses_while_the_lock_is_held_with_the_same_words() {
 
 #[test]
 fn an_undo_without_an_instance_is_refused_not_run_on_the_working_folder() {
-    let job = raul_ui_service::direct::for_command(Action::Rollback, &[]).expect("converted");
+    let job = raul_ui_service::direct::for_command("rollback", &[]).expect("converted");
     let (out, _) = run(job, &CancelHandle::new());
     assert_eq!(out.code, Some(2), "{out:?}");
     assert!(
-        raul_ui_service::direct::for_command(Action::Doctor, &[]).is_none(),
+        raul_ui_service::direct::for_command("sort-apply", &[]).is_none(),
         "an action not converted yet stays a command line"
     );
 }

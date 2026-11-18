@@ -29,10 +29,10 @@ fn service() -> CliService<Never> {
 }
 
 /// What the direct job for `action` prints, from the words a page passes after the command.
-fn direct_output(action: Action, rest: &[&str]) -> Output {
+fn direct_output(id: &str, rest: &[&str]) -> Output {
     let rest: Vec<String> = rest.iter().map(|w| (*w).to_owned()).collect();
-    let job = direct::for_command(action, &rest).expect("the action is converted");
-    let spec = JobSpec::new(raul_ui_model::job::JobId(1), action, Vec::new());
+    let job = direct::for_command(id, &rest).expect("the command is converted");
+    let spec = JobSpec::new(raul_ui_model::job::JobId(1), Action::Doctor, Vec::new());
     run_direct(&spec, job, &mut |_| {}, &CancelHandle::new())
 }
 
@@ -56,7 +56,7 @@ fn conflicts_prints_what_the_command_line_prints() {
     install_plain(&inst);
     let root = s(&inst.root());
     assert_same(
-        &direct_output(Action::Conflicts, &["--instance", &root]),
+        &direct_output("conflicts", &["--instance", &root]),
         &cli_output(&["conflicts", "--instance", &root, "--json"]),
     );
     let report = service()
@@ -74,7 +74,7 @@ fn doctor_prints_what_the_command_line_prints() {
     install_plain(&inst);
     let root = s(&inst.root());
     assert_same(
-        &direct_output(Action::Doctor, &["--instance", &root]),
+        &direct_output("doctor", &["--instance", &root]),
         &cli_output(&["doctor", "--instance", &root, "--json"]),
     );
     service()
@@ -91,7 +91,7 @@ fn tree_prints_what_the_command_line_prints() {
     install_plain(&inst);
     let root = s(&inst.root());
     assert_same(
-        &direct_output(Action::Tree, &["--instance", &root]),
+        &direct_output("tree", &["--instance", &root]),
         &cli_output(&["tree", "--instance", &root, "--json"]),
     );
     let tree = service()
@@ -107,10 +107,7 @@ fn tree_prints_what_the_command_line_prints() {
 fn a_refusal_is_one_line_with_no_command_line() {
     let inst = Instance::new();
     let root = s(&inst.root());
-    let out = direct_output(
-        Action::Conflicts,
-        &["--instance", &root, "--mod", "No Such Mod"],
-    );
+    let out = direct_output("conflicts", &["--instance", &root, "--mod", "No Such Mod"]);
     assert_eq!(out.code, Some(2), "{out:?}");
     assert!(!out.stderr.contains("raul "), "{out:?}");
 }

@@ -163,11 +163,11 @@ impl DirectJob {
     }
 }
 
-/// The direct job that does what the page's command of `action` does, from the values and flags after its words;
-/// `None` for an action that still runs as a command line. Each converted action adds one arm here.
-pub fn for_command(action: Action, rest: &[String]) -> Option<DirectJob> {
-    match action {
-        Action::Rollback => Some(match value_of(rest, "--instance") {
+/// The direct job that does what the page's command with the registry id `id` does, from the values and flags after
+/// its words; `None` for a command that still runs as a command line. Each converted action adds one arm here.
+pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
+    match id {
+        "rollback" => Some(match value_of(rest, "--instance") {
             "" => DirectJob::reading(|_, _| -> Result<Outcome<()>, JobError> {
                 Err(JobError::new(
                     ErrorKind::Refused,
@@ -177,9 +177,9 @@ pub fn for_command(action: Action, rest: &[String]) -> Option<DirectJob> {
             }),
             instance => rollback(Path::new(instance)),
         }),
-        Action::Conflicts => Some(conflicts(&conflicts_request(rest))),
-        Action::Tree => Some(tree(&tree_request(rest))),
-        Action::Doctor => Some(doctor(&doctor_request(rest))),
+        "conflicts" => Some(conflicts(&conflicts_request(rest))),
+        "tree" => Some(tree(&tree_request(rest))),
+        "doctor" => Some(doctor(&doctor_request(rest))),
         _ => None,
     }
 }
