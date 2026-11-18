@@ -30,6 +30,11 @@ pub const OWN: &[Own] = &[
         schema: crate::config::schema,
     },
     Own {
+        name: crate::journal::CONTRACT,
+        version: crate::journal::SCHEMA_VERSION,
+        schema: crate::journal::schema,
+    },
+    Own {
         name: raul_drivers::events::CONTRACT,
         version: raul_drivers::events::SCHEMA_VERSION,
         schema: raul_drivers::events::schema,

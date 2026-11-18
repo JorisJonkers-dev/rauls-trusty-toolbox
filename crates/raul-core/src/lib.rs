@@ -5,5 +5,6 @@ pub mod config;
 pub mod contracts;
 pub mod detect;
 pub mod instance_lock;
+pub mod journal;
 pub mod setup;
 pub mod update;

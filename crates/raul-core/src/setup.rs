@@ -7,7 +7,7 @@
 //!
 //! The job has the shape of ADR-0016: [`run`]`(request, &mut dyn Progress, &CancelToken) -> Result<Outcome,
 //! Error>`. A cancel that arrives while the last step runs is not seen; the run ends as done. A cancelled run is an [`Outcome::Cancelled`], a result and not an error; the first failing step stops
-//! the run with its typed [`Error`]. The resume journal and the wizard are not part of this module.
+//! the run with its typed [`Error`]. The resume journal is in [`crate::journal`] (`journal::run` is this job with it); the wizard is not part of this module.
 
 mod plan;
 mod run;
@@ -334,7 +334,7 @@ impl fmt::Display for Error {
 impl std::error::Error for Error {}
 
 /// `text` with the home directory written as `~` where a path starts with it.
-fn tilde(text: &str, home: &str) -> String {
+pub(crate) fn tilde(text: &str, home: &str) -> String {
     let home = home.trim_end_matches('/');
     if home.len() < 2 {
         return text.to_owned();
