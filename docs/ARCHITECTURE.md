@@ -106,7 +106,7 @@ flowchart LR
 1. **Detect** (`raul detect`): find Fallout: New Vegas (and Fallout 3 for TTW) in Steam, GOG or Epic folders, or
    a folder the person picks; check the executable version and the DLC. Read only.
 2. **Instance** (`raul init`, nvmod): make an Instance from the base copy. The base copy is never written.
-3. **TTW** (`raul ttw`, nvmod driving ttwright-rs): optional; installs the Tale of Two Wastelands MPI package from
+3. **TTW** (`raul ttw`, ttwright-rs running in raul's own process): optional; installs the Tale of Two Wastelands MPI package from
    the person's own Fallout 3 and New Vegas copies, with progress and resume.
 4. **Mods** (`raul install`, `raul mods`, `raul profile`, nvmod): install from archives or folders into the
    Instance, enable and disable per Profile, and show conflicts. Every change keeps a restore point (Rollback).

@@ -35,6 +35,7 @@ serde_json = { workspace = true }
 [dev-dependencies]
 egui_kittest = { workspace = true }
 nvmod-testkit = { workspace = true }
+ttwright-testkit = { path = "../../components/ttwright-rs/crates/ttwright-testkit" }
 
 [lints]
 workspace = true

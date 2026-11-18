@@ -66,8 +66,8 @@ usage:
                               the game folders, the TTW package and the storage folder (game.newvegas,
                               game.fallout3, ttw.package, storage.root; instance is derived)
   raul ttw [--instance <dir>] [--profile <name>] [--fallout3 <dir>] [--newvegas <dir>] [--package <file>]
-           [--ttwright <path>] [--dry-run] [--resume] [--json]
-                              install TTW with the bundled ttwright and add it to the Instance as one Mod; what
+           [--dry-run] [--resume] [--json]
+                              install TTW with ttwright, which runs inside raul, and add it to the Instance as one Mod; what
                               the flags leave open comes from `raul config`; --json streams raul-events lines
   raul lod plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]
                               the lodwright request a LOD run would send for the Profile (its active plugins,

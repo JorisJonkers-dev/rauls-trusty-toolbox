@@ -77,22 +77,23 @@ Standard error carries the same story as text for people.
 
 ## `raul-ttw-result`
 
-`raul ttw` installs TTW with ttwright-rs and adds its output to the Instance as the Mod `Tale of Two Wastelands`,
-with its plugins enabled in the Profile. The result names the Mod, the plugins it enabled, the ttwright program
-that ran (with its SHA-256), the `ttwright-result` document ttwright printed, and the staging folder ttwright
+`raul ttw` installs TTW with ttwright-rs, which runs inside raul's own process (no program is started), and adds
+its output to the Instance as the Mod `Tale of Two Wastelands`, with its plugins enabled in the Profile. The result
+names the Mod, the plugins it enabled, the `tool` block (ttwright, as the in-process driver: the raul executable,
+with an empty SHA-256), the `ttwright-result` document ttwright returned, and the staging folder ttwright
 wrote to. A cancelled or failed install keeps the staging folder, so `raul ttw --resume` continues there.
 
 | `status` | Exit code | `error.code` | ttwright |
 | --- | --- | --- | --- |
 | `success` | 0 | | exit code 0, and the Mod was added (or a dry run) |
-| `refused` | 2 | `instance_invalid`, `profile_missing`, `missing_input`, `mod_exists`, `tool_missing` | not started |
-| `refused` | 2 | `contract_refused` | printed a `ttwright-result` of a newer version |
+| `refused` | 2 | `instance_invalid`, `profile_missing`, `missing_input`, `mod_exists` | not started |
+| `refused` | 2 | `tool_missing`, `contract_refused` | kept for older result documents; raul no longer produces them |
 | `unsupported` | 2 | `unsupported` | exit code 3 (`unsupported_feature`, `unsupported_version`); nothing was written |
-| `unverifiable` | 3 | `tool_unverifiable` | changed after its checksum was taken; not started |
+| `unverifiable` | 3 | `tool_unverifiable` | kept for older result documents; raul no longer produces it |
 | `failed` | 4 | `ttwright_failed` | exit code 1, or 2 (a usage error) |
-| `failed` | 4 | `tool_failed` | could not start, was ended by a signal, or printed no valid result |
+| `failed` | 4 | `tool_failed` | the work folder could not be prepared, ttwright ended with an undocumented exit code, or its result was not a success |
 | `failed` | 4 | `add_mod_failed` | exit code 0, but adding the Mod failed and was rolled back |
-| `cancelled` | 4 | `cancelled` | exit code 4, or stopped by `raul` on SIGINT or SIGTERM; `--resume` continues |
+| `cancelled` | 4 | `cancelled` | exit code 4, or stopped by `raul` on SIGINT or SIGTERM, or by the install timeout (`--timeout-secs`, which also cancels and is resumable); `--resume` continues |
 
 `error.ttwright_code` is ttwright's own `error.code` when ttwright gave one. In every case but `success` the
 Instance is as it was before the command. A command line `raul` cannot read exits 5 and prints no events.

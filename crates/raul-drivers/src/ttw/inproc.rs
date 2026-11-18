@@ -13,6 +13,16 @@ pub(crate) struct InProc {
     pub doc: serde_json::Value,
 }
 
+/// Sets the flag when it is dropped, so the watcher thread ends even when the install panics. A panic in the
+/// install skips every statement after it, and `thread::scope` waits for the watcher before it lets the panic out.
+struct StopWatcher<'a>(&'a AtomicBool);
+
+impl Drop for StopWatcher<'_> {
+    fn drop(&mut self) {
+        self.0.store(true, Ordering::Relaxed);
+    }
+}
+
 /// Run ttwright's install in process, mapping progress to `Event`s.
 pub(crate) fn install_in_process(
     job: &ttwright_core::api::InstallJob,
@@ -24,6 +34,7 @@ pub(crate) fn install_in_process(
     let started = Instant::now();
 
     std::thread::scope(|scope| {
+        let _stop_watcher = StopWatcher(&done);
         scope.spawn(|| {
             while !done.load(Ordering::Relaxed) {
                 if nvmod_core::cancel::requested() || started.elapsed() >= timeout {
@@ -64,8 +75,6 @@ pub(crate) fn install_in_process(
             },
             &cancel,
         );
-
-        done.store(true, Ordering::Relaxed);
 
         match result {
             Ok(ttwright_core::api::InstallOutput::Done { result }) => InProc {
@@ -117,6 +126,28 @@ mod tests {
     use ttwright_core::api::InstallJob;
 
     #[test]
+    fn a_panic_in_the_install_still_stops_the_watcher_thread() {
+        let done = AtomicBool::new(false);
+        let started = Instant::now();
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            std::thread::scope(|scope| {
+                let _stop = StopWatcher(&done);
+                scope.spawn(|| {
+                    while !done.load(Ordering::Relaxed) {
+                        std::thread::sleep(Duration::from_millis(5));
+                    }
+                });
+                panic!("the install panicked");
+            })
+        }));
+        assert!(outcome.is_err(), "the panic comes out of the scope");
+        assert!(
+            started.elapsed() < Duration::from_secs(5),
+            "the watcher ended at once, not at a timeout"
+        );
+    }
+
+    #[test]
     fn a_missing_mpi_path_fails() {
         let job = InstallJob {
             mpi_path: PathBuf::from("/definitely/does/not/exist.mpi"),
@@ -124,12 +155,9 @@ mod tests {
         };
         let mut events = Vec::new();
         let out = install_in_process(&job, Duration::from_secs(1), &mut |e| events.push(e));
-        assert_ne!(out.exit_code, 0);
-        let status = out.doc.get("status").and_then(|v| v.as_str()).unwrap_or("");
-        assert!(
-            status == "failed" || status == "unsupported",
-            "unexpected status: {status}"
-        );
+        assert_eq!(out.exit_code, 1, "{}", out.doc);
+        assert_eq!(out.doc["status"], "failed", "{}", out.doc);
+        assert_eq!(out.doc["error"]["code"], "mpi_not_found", "{}", out.doc);
     }
 
     #[test]
@@ -138,10 +166,17 @@ mod tests {
             mpi_path: PathBuf::from("/definitely/does/not/exist.mpi"),
             ..Default::default()
         };
-        let seen = std::cell::RefCell::new(0_u32);
-        let out = install_with_events(&job, Duration::from_secs(1), &mut |_| {
-            *seen.borrow_mut() += 1;
+        let seen = std::cell::RefCell::new(Vec::new());
+        let out = install_with_events(&job, Duration::from_secs(1), &mut |e| {
+            seen.borrow_mut().push(e);
         });
         assert_ne!(out.exit_code, 0);
+        assert!(
+            seen.borrow()
+                .iter()
+                .any(|e| matches!(e, Event::Phase { .. })),
+            "no phase event arrived: {} events",
+            seen.borrow().len()
+        );
     }
 }

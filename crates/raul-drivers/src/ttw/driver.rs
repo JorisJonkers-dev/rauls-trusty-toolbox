@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The TTW driver: checks the inputs, runs `ttwright install --json` through `raul-runner`, streams ttwright's event
-//! lines as [`Event`]s while it runs, reads its `ttwright-result`, and adds the output to the Instance as one Mod
-//! with nvmod's mod-install library. Every outcome but success leaves the Instance as it was.
+//! The TTW driver: checks the inputs, runs ttwright's install in raul's own process (ttwright starts no program), maps
+//! its progress to [`Event`]s while it runs, reads the `ttwright-result` it returns, and adds the output to the
+//! Instance as one Mod with nvmod's mod-install library. Every outcome but success leaves the Instance as it was.
 
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
@@ -10,19 +10,16 @@ use std::time::Duration;
 
 use nvmod_instance::{NvmodInstance, find_ci};
 use nvmod_modinstall::{InstallError, Limits, Request};
-use raul_runner::{Call, Output, Runner, ToolError, sha256_hex};
+use raul_runner::{Call, Output, Runner, ToolError};
 use serde_json::Value;
 
 use super::{CONTRACT, MOD_NAME, SCHEMA_VERSION, TtwError, TtwErrorCode, TtwResult};
 use crate::events::{Event, Status, ToolInfo};
 
-/// The `ttwright-result` versions this build reads (the newest it knows, and the one before it when there is one).
-pub const TTWRIGHT_RESULT_VERSIONS: &[i64] = &[1];
-
 /// The `ttwright-events` version this build reads.
 pub const TTWRIGHT_EVENTS_VERSION: i64 = 1;
 
-/// The ttwright program's name, without the `.exe` Windows adds.
+/// The ttwright driver's name, as the result's `tool` block reports it.
 pub const TTWRIGHT: &str = "ttwright";
 
 /// How long an install may run: the slowest machines reported take about 40 minutes; three hours is a stuck run.
@@ -47,8 +44,6 @@ pub struct TtwRequest {
     pub newvegas: Option<PathBuf>,
     /// The TTW package (the `.mpi` file).
     pub package: Option<PathBuf>,
-    /// The ttwright program; `None` when none was found.
-    pub ttwright: Option<PathBuf>,
     /// Read and check everything, write nothing.
     pub dry_run: bool,
     /// Continue a cancelled or interrupted install.
@@ -176,8 +171,6 @@ struct Ready {
     fallout3: PathBuf,
     newvegas: PathBuf,
     package: PathBuf,
-    /// The ttwright program and its SHA-256 when one was given; `None` runs ttwright in this process.
-    program: Option<(PathBuf, String)>,
 }
 
 fn missing(what: &str, flag: &str, key: &str) -> String {
@@ -186,7 +179,7 @@ fn missing(what: &str, flag: &str, key: &str) -> String {
 
 /// Check the inputs; a refusal is its error code and reason. `profile` receives the Profile once it is known.
 fn prepare(req: &TtwRequest, profile: &mut String) -> Result<Ready, (TtwErrorCode, String)> {
-    use TtwErrorCode::{InstanceInvalid, MissingInput, ModExists, ProfileMissing, ToolMissing};
+    use TtwErrorCode::{InstanceInvalid, MissingInput, ModExists, ProfileMissing};
     let instance = NvmodInstance::open(&req.instance)
         .map_err(|e| (InstanceInvalid, format!("{}: {e}", req.instance.display())))?;
     *profile = instance
@@ -228,52 +221,13 @@ fn prepare(req: &TtwRequest, profile: &mut String) -> Result<Ready, (TtwErrorCod
             format!("the Instance already has a Mod `{MOD_NAME}`; raul does not overwrite it"),
         ));
     }
-    let program = match &req.ttwright {
-        Some(p) if p.is_file() => {
-            let bytes =
-                std::fs::read(p).map_err(|e| (ToolMissing, format!("{}: {e}", p.display())))?;
-            Some((p.clone(), sha256_hex(&bytes)))
-        }
-        Some(p) => {
-            return Err((
-                ToolMissing,
-                format!("the ttwright program {} is not a file", p.display()),
-            ));
-        }
-        None => None,
-    };
     Ok(Ready {
         instance,
         profile: profile.clone(),
         fallout3,
         newvegas,
         package,
-        program,
     })
-}
-
-/// The arguments of `ttwright install`.
-fn arguments(req: &TtwRequest, ready: &Ready, dest: &Path, events: &Path) -> Vec<String> {
-    let mut words: Vec<String> = ["install", "--json", "--no-detect"]
-        .map(str::to_owned)
-        .to_vec();
-    for (flag, path) in [
-        ("--mpi", ready.package.as_path()),
-        ("--fo3", ready.fallout3.as_path()),
-        ("--fnv", ready.newvegas.as_path()),
-        ("--dest", dest),
-        ("--events", events),
-    ] {
-        words.push(flag.to_owned());
-        words.push(path.display().to_string());
-    }
-    if req.resume {
-        words.push("--resume".to_owned());
-    }
-    if req.dry_run {
-        words.push("--dry-run".to_owned());
-    }
-    words
 }
 
 /// How one event line of a Component becomes [`Event`]s: the parsed line, whether a warning about it was given
@@ -331,7 +285,8 @@ impl EventTail {
     }
 }
 
-/// One `ttwright-events` line as [`Event`]s.
+/// One `ttwright-events` line as [`Event`]s. Only the event-tail test reads ttwright lines now (ttwright runs in process).
+#[cfg(test)]
 fn ttwright_line(v: &Value, warned: &mut bool, emit: &mut dyn FnMut(Event)) {
     if v["schema_version"].as_i64() != Some(TTWRIGHT_EVENTS_VERSION) {
         if !*warned {
@@ -431,44 +386,6 @@ pub(crate) fn clear(path: &Path) -> std::io::Result<()> {
     }
 }
 
-/// The `ttwright-result` on standard output: refused when its version is newer than this build reads.
-fn read_result(stdout: &[u8]) -> Result<Value, (Status, TtwErrorCode, String)> {
-    let failed = |why: String| (Status::Failed, TtwErrorCode::ToolFailed, why);
-    let text = String::from_utf8_lossy(stdout);
-    let doc: Value = serde_json::from_str(text.trim()).map_err(|e| {
-        failed(format!(
-            "ttwright printed no ttwright-result document ({e})"
-        ))
-    })?;
-    if doc["contract"] != "ttwright-result" {
-        return Err(failed(format!(
-            "ttwright printed a {} document, not a ttwright-result",
-            doc["contract"]
-        )));
-    }
-    let Some(version) = doc["schema_version"].as_i64() else {
-        return Err(failed(
-            "the ttwright-result has no schema_version".to_owned(),
-        ));
-    };
-    let newest = TTWRIGHT_RESULT_VERSIONS.iter().max().copied().unwrap_or(1);
-    if version > newest {
-        return Err((
-            Status::Refused,
-            TtwErrorCode::ContractRefused,
-            format!(
-                "ttwright printed ttwright-result version {version}; this raul reads version {newest}. Use the ttwright bundled with this raul, or update raul"
-            ),
-        ));
-    }
-    if !TTWRIGHT_RESULT_VERSIONS.contains(&version) {
-        return Err(failed(format!(
-            "ttwright printed ttwright-result version {version}, which this raul does not read"
-        )));
-    }
-    Ok(doc)
-}
-
 /// Install TTW as `req` says, emitting [`Event`]s while it runs (not `finished`: the caller emits
 /// [`Outcome::finished`] after the `result`).
 #[allow(clippy::too_many_lines)] // one flow: check, run, read, add
@@ -502,20 +419,12 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
             format!("{}: {e}", work.display()),
         );
     }
-    let tool = match &ready.program {
-        Some((path, sha256)) => ToolInfo {
-            name: TTWRIGHT.to_owned(),
-            version: None,
-            path: path.clone(),
-            sha256: sha256.clone(),
-        },
-        // Linked into raul: there is no file to name, so the running executable stands for it.
-        None => ToolInfo {
-            name: TTWRIGHT.to_owned(),
-            version: None,
-            path: std::env::current_exe().unwrap_or_default(),
-            sha256: String::new(),
-        },
+    // ttwright runs in process; the running executable stands for it, with no file checksum.
+    let tool = ToolInfo {
+        name: TTWRIGHT.to_owned(),
+        version: None,
+        path: std::env::current_exe().unwrap_or_default(),
+        sha256: String::new(),
     };
     draft.result.tool = Some(tool.clone());
     draft.result.staging = Some(dest.clone());
@@ -527,65 +436,18 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         tool,
     });
 
-    let (exit_code, doc, journal) = if let Some((program, sha256)) = &ready.program {
-        let runner = Runner {
-            timeout: req.timeout,
-            max_output: 16 * 1024 * 1024,
-            ..Runner::default()
-        };
-        let args = arguments(req, &ready, &dest, &events);
-        let output = run_streaming(
-            &runner,
-            TTWRIGHT,
-            program,
-            &args,
-            sha256,
-            EventTail::new(events.clone(), ttwright_line),
-            emit,
-        );
-        let journal = dest.join(".ttwright-journal.json").is_file();
-        let output = match output {
-            Ok(o) => o,
-            Err(ToolError::Unverifiable { reason, .. }) => {
-                let _ = clear(&work);
-                draft.result.staging = None;
-                return draft.fail(Status::Unverifiable, TtwErrorCode::ToolUnverifiable, reason);
-            }
-            Err(e) if nvmod_core::cancel::requested() => {
-                draft.result.resumable = true;
-                return draft.fail(
-                    Status::Cancelled,
-                    TtwErrorCode::Cancelled,
-                    format!("cancelled ({e}); `raul ttw --resume` continues"),
-                );
-            }
-            Err(e) => {
-                draft.result.resumable = journal;
-                return draft.fail(Status::Failed, TtwErrorCode::ToolFailed, e.to_string());
-            }
-        };
-        let doc = match read_result(&output.stdout) {
-            Ok(doc) => doc,
-            Err((status, code, message)) => {
-                draft.result.resumable = journal && status == Status::Failed;
-                return draft.fail(status, code, message);
-            }
-        };
-        (output.exit_code, doc, journal)
-    } else {
-        let job = ttwright_core::api::InstallJob {
-            mpi_path: ready.package.clone(),
-            fallout3_path: Some(ready.fallout3.clone()),
-            falloutnv_path: Some(ready.newvegas.clone()),
-            destination_path: dest.clone(),
-            dry_run: req.dry_run,
-            resume: req.resume,
-            ..ttwright_core::api::InstallJob::default()
-        };
-        let done = super::inproc::install_with_events(&job, req.timeout, emit);
-        let journal = dest.join(".ttwright-journal.json").is_file();
-        (done.exit_code, done.doc, journal)
+    let job = ttwright_core::api::InstallJob {
+        mpi_path: ready.package.clone(),
+        fallout3_path: Some(ready.fallout3.clone()),
+        falloutnv_path: Some(ready.newvegas.clone()),
+        destination_path: dest.clone(),
+        dry_run: req.dry_run,
+        resume: req.resume,
+        ..ttwright_core::api::InstallJob::default()
     };
+    let done = super::inproc::install_with_events(&job, req.timeout, emit);
+    let journal = dest.join(".ttwright-journal.json").is_file();
+    let (exit_code, doc) = (done.exit_code, done.doc);
     if let Some(tool) = &mut draft.result.tool {
         tool.version = doc["tool"]["version"].as_str().map(str::to_owned);
     }
@@ -813,29 +675,6 @@ mod tests {
         std::io::Write::write_all(&mut f, b"se\":\"post_install\"}").unwrap();
         tail.drain(&mut |e| seen.push(e), true);
         assert!(matches!(&seen[4], Event::Phase { phase } if phase == "post_install"));
-    }
-
-    #[test]
-    fn a_result_of_another_contract_or_without_a_version_is_a_tool_failure() {
-        for doc in [
-            "{\"contract\":\"lodwright-result\",\"schema_version\":1}",
-            "{\"contract\":\"ttwright-result\"}",
-            "{\"contract\":\"ttwright-result\",\"schema_version\":0}",
-        ] {
-            let (status, code, _) = read_result(doc.as_bytes()).unwrap_err();
-            assert_eq!(
-                (status, code),
-                (Status::Failed, TtwErrorCode::ToolFailed),
-                "{doc}"
-            );
-        }
-        let (status, code, _) =
-            read_result(b"{\"contract\":\"ttwright-result\",\"schema_version\":2}").unwrap_err();
-        assert_eq!(
-            (status, code),
-            (Status::Refused, TtwErrorCode::ContractRefused)
-        );
-        assert!(read_result(b"{\"contract\":\"ttwright-result\",\"schema_version\":1}").is_ok());
     }
 }
 

@@ -36,18 +36,18 @@
       ]
     },
     "ToolInfo": {
-      "description": "The Component program a driver runs.",
+      "description": "The Component a driver ran. ttwright runs in raul's own process, so its `tool` names the raul executable.",
       "properties": {
         "name": {
-          "description": "The program's name, for example `ttwright`.",
+          "description": "The Component's name, for example `ttwright`.",
           "type": "string"
         },
         "path": {
-          "description": "The file that ran.",
+          "description": "The file that ran: for ttwright, the raul executable.",
           "type": "string"
         },
         "sha256": {
-          "description": "The SHA-256 of that file, checked again right before it was started.",
+          "description": "The SHA-256 of that file, checked again right before it was started; empty for ttwright, which runs in\nraul's own process and starts no file of its own.",
           "type": "string"
         },
         "version": {
@@ -117,22 +117,22 @@
         },
         {
           "const": "tool_missing",
-          "description": "No ttwright program: none is bundled next to `raul` and `--ttwright` was not given (exit code 2).",
+          "description": "Kept for older result documents; raul no longer produces it (exit code 2).",
           "type": "string"
         },
         {
           "const": "tool_unverifiable",
-          "description": "The ttwright program changed between its checksum and its start (exit code 3); it was not started.",
+          "description": "Kept for older result documents; raul no longer produces it (exit code 3).",
           "type": "string"
         },
         {
           "const": "tool_failed",
-          "description": "ttwright could not be started, ended without a result, or printed one that is not a `ttwright-result`\n(exit code 4).",
+          "description": "The install could not be prepared (its work folder), ttwright ended with an exit code the Toolbox does not\ndocument, or its result was not a success (exit code 4).",
           "type": "string"
         },
         {
           "const": "contract_refused",
-          "description": "ttwright printed a `ttwright-result` of a version this build does not read (exit code 2).",
+          "description": "Kept for older result documents; raul no longer produces it (exit code 2).",
           "type": "string"
         },
         {
@@ -147,7 +147,7 @@
         },
         {
           "const": "cancelled",
-          "description": "The run was cancelled (exit code 4); `--resume` continues it.",
+          "description": "The run was cancelled (exit code 4); `--resume` continues it. This also covers the install timeout\n(`--timeout-secs`): a timed-out install is cancelled, not failed.",
           "type": "string"
         },
         {
@@ -247,10 +247,10 @@
           "type": "null"
         }
       ],
-      "description": "The ttwright program that ran, or `null` when none did."
+      "description": "The ttwright driver that ran in process: the `raul` executable, with its name and version and no SHA-256.\n`null` when no install started."
     },
     "ttwright": {
-      "description": "The `ttwright-result` v1 document ttwright printed, as it printed it, or `null` when it printed none."
+      "description": "The `ttwright-result` v1 document ttwright returned, as it is, or `null` when it returned none."
     }
   },
   "required": [
