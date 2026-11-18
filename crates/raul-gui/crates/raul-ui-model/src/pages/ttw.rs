@@ -223,6 +223,11 @@ impl Settling {
         }
     }
 
+    /// The file watched.
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+
     /// One poll: `now_elapsed` is the time passed since the last poll, and `size_now` the file's current size,
     /// `None` when it is not there. True only when the file is there, is not empty and its size is the one of
     /// the last poll and has stayed the same for [`SETTLE`] in total; a change of size or a missing file puts
@@ -288,6 +293,21 @@ pub const MIN_PACKAGE_BYTES: u64 = 1_000_000;
 
 /// The four bytes a package starts with: it is a zip-like container.
 const PACKAGE_HEADER: [u8; 4] = *b"PK\x03\x04";
+
+/// The newest file in `folders` (and one level of folders under each) that is named like a TTW package, however
+/// small it still is: a download in progress under its final name is a candidate, `check_package` judges it once it
+/// has settled.
+pub fn newest_candidate(folders: &[PathBuf]) -> Option<PathBuf> {
+    let mut best: Option<(SystemTime, PathBuf)> = None;
+    for folder in folders {
+        for (time, path) in candidates(folder) {
+            if best.as_ref().is_none_or(|(t, _)| time > *t) {
+                best = Some((time, path));
+            }
+        }
+    }
+    best.map(|(_, p)| p)
+}
 
 /// A file that passed [`check_package`].
 #[derive(Debug, Clone, PartialEq, Eq)]
