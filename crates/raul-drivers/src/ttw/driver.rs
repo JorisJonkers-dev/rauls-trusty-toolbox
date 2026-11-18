@@ -414,7 +414,6 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         name: Some(MOD_NAME),
         dry_run: false,
         answers: None,
-        extract_tool: None,
         limits: Limits::default(),
     };
     let why = match nvmod_modinstall::install(&request) {

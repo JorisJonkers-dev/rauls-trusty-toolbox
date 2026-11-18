@@ -50,6 +50,7 @@ pub fn plan(request: &Request) -> Vec<Planned> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::setup::EngineOptions;
     use crate::setup::Ttw;
     use std::path::PathBuf;
 
@@ -62,10 +63,10 @@ mod tests {
             import_mo2: None,
             copy: false,
             engine: false,
+            engine_options: EngineOptions::default(),
             ttw: None,
             mods: Vec::new(),
             answers: None,
-            extract_tool: None,
             sort: false,
             catalog: None,
             done: Vec::new(),

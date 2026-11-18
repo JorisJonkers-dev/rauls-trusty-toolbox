@@ -66,7 +66,6 @@ pub fn install_plain(inst: &Instance) {
         name: Some("Plain Mod".into()),
         dry_run: false,
         answers: None,
-        extract_tool: None,
         max_extract_bytes: None,
     };
     match nvmod_api::install::install(&request, &mut NoProgress, &CancelToken::new()).unwrap() {
