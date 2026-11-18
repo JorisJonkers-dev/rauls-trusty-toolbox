@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794983381914,
+  "lastUpdate": 1794984004822,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -3625,6 +3625,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.674062000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "fa16ee176d58f09ab6052913a4713c5d74baa6c1",
+          "message": "ci: build without the package proxy (#246)\n\nBuilds fetch crates from crates.io directly. The estate packages proxy is no longer used, so every setup-package-proxy step is removed from the workflows, and the PACKAGES_PROXY_TOKEN secret is no longer passed to the repository hygiene guard.\n\nThe 7-day cooldown in .cargo/config.toml and the Renovate minimumReleaseAge for crates are the protection that the proxy's minimum age used to give.\n\nThe hygiene guard's package-proxy-guard input is removed too, so the shared guard falls back to its default report mode. It now reports installs outside the proxy without failing the job.",
+          "timestamp": "2026-11-18T07:38:15+01:00",
+          "tree_id": "1d84a3e7fcc327f6542116497a44ca457d5d128c",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/fa16ee176d58f09ab6052913a4713c5d74baa6c1"
+        },
+        "date": 1794984004424,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.097152,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.637251,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.754373,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.49499,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.745789,
             "unit": "ms"
           }
         ]
