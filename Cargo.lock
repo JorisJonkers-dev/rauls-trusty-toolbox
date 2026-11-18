@@ -921,7 +921,7 @@ dependencies = [
 
 [[package]]
 name = "lodwright-testkit"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "miniz_oxide 0.8.9",
 ]
@@ -1154,7 +1154,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-api"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "loot-rs",
  "nvmod-backup",
@@ -1178,7 +1178,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-backup"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-core",
  "nvmod-instance",
@@ -1190,14 +1190,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-bsa"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "nvmod-catalog"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "serde",
  "toml",
@@ -1205,7 +1205,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-cli"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "ctrlc",
  "loot-rs",
@@ -1235,7 +1235,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-conflicts"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-bsa",
  "nvmod-core",
@@ -1248,7 +1248,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-core"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "schemars",
  "serde",
@@ -1257,7 +1257,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-doctor"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-catalog",
  "nvmod-conflicts",
@@ -1273,7 +1273,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-formats"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "flate2",
  "nvmod-core",
@@ -1281,7 +1281,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-import"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-core",
  "nvmod-formats",
@@ -1292,7 +1292,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-install"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-core",
  "nvmod-instance",
@@ -1304,7 +1304,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-instance"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-core",
  "serde",
@@ -1313,7 +1313,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-loadorder"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "loot-rs",
  "nvmod-core",
@@ -1326,7 +1326,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-modinstall"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-core",
  "nvmod-formats",
@@ -1342,14 +1342,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-pe"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "nvmod-plugins"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-conflicts",
  "nvmod-core",
@@ -1364,7 +1364,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-profile"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-backup",
  "nvmod-core",
@@ -1378,7 +1378,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-run"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nix",
  "nvmod-core",
@@ -1392,7 +1392,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-runlog"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -1402,7 +1402,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-runner"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-core",
  "nvmod-runlog",
@@ -1412,7 +1412,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-saves"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-backup",
  "nvmod-core",
@@ -1426,7 +1426,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-stage"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "nvmod-core",
  "nvmod-formats",
@@ -1437,14 +1437,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-testkit"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "winapi-util",
 ]
 
 [[package]]
 name = "nvmod-tools"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "jsonschema",
  "nvmod-core",
@@ -2526,7 +2526,7 @@ dependencies = [
 
 [[package]]
 name = "ttwright-contract"
-version = "0.4.0"
+version = "0.4.2"
 dependencies = [
  "schemars",
  "serde",
@@ -2535,7 +2535,7 @@ dependencies = [
 
 [[package]]
 name = "ttwright-core"
-version = "0.4.0"
+version = "0.4.2"
 dependencies = [
  "anyhow",
  "ba2",
