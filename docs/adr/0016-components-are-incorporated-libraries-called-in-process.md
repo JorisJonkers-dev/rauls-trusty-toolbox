@@ -4,11 +4,16 @@ date: 2026-11-17
 ---
 # Components are incorporated: raul links and calls them in process
 
-nvmod, lodwright-rs, ttwright-rs and loot-rs (through nvmod) are libraries that `raul` links and calls in process.
-`raul` does not start them as commands, and nothing the person sees (a screen, a message, a log line) shows a command
-being run. A process is started only where the thing is a program: the game, and any tool that only exists as a
-Windows program. The nv-rs engine is the game, so it stays a separate process; it ships as a package that `raul`
-installs (nv-rs#353). One `raul` version carries one set of Component versions, and the person sees only `raul`'s.
+nvmod, lodwright-rs, ttwright-rs, loot-rs (through nvmod) and nv-rs are libraries that `raul` links and calls in
+process. `raul` does not start them as commands, and nothing the person sees (a screen, a message, a log line) shows
+a command being run. There is one exception: running the game is a child process of `raul`, started from `raul`'s
+own binary in a play mode that calls the engine's entry point, so there is no separate engine program to ship, place
+or find. Everything else of nv-rs (reading saves and config, shader precompile, the viewer's non-play parts, the
+checks) is linked as crates and called in process. A process is otherwise started only for a tool that only exists as
+a Windows program. One `raul` version carries one set of Component versions, and the person sees only `raul`'s.
+
+The program packages on ghcr.io (ADR-0017) are standalone builds for people who want a Component without `raul`;
+`raul` does not use them.
 
 This supersedes the "Runner starts the tools" parts of earlier ADRs (the note in each says where).
 
@@ -20,7 +25,7 @@ This supersedes the "Runner starts the tools" parts of earlier ADRs (the note in
 | loot-rs | linked through nvmod (ADR-0015) | its own CLI | as above |
 | lodwright-rs | linked: LOD generation | its own CLI | no reason to isolate it any more |
 | ttwright-rs | linked: the TTW install | its own CLI | as above |
-| nv-rs | not linked | the game and its release package | it is the game; its build profiles only apply at its own workspace root |
+| nv-rs | linked: everything but the game run | its own CLI and the standalone package | the game run is a child process of `raul` itself, started in a play mode (above) |
 
 ## The in-process job interface
 
