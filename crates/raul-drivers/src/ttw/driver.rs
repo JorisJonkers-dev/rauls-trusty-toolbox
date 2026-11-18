@@ -450,7 +450,6 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nvmod_testkit::{TempDir, write_file};
 
     #[test]
     fn every_status_has_its_exit_code() {
@@ -465,6 +464,12 @@ mod tests {
             assert_eq!(exit_code(status), code, "{status:?}");
         }
     }
+}
+
+#[cfg(all(test, unix))]
+mod unix_tests {
+    use super::*;
+    use nvmod_testkit::{TempDir, write_file};
 
     #[test]
     fn clearing_a_linked_work_folder_removes_the_link_and_keeps_its_target() {

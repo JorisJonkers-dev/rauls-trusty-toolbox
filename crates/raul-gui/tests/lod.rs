@@ -23,6 +23,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 /// A world of `side` by `side` cells with terrain, so a generation takes long enough to be stopped while it runs.
+// The cell indexes are small and the heights are synthetic, so the casts cannot lose anything that matters.
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_precision_loss
+)]
 fn world(side: i32) -> SyntheticWorld {
     let mut world = SyntheticWorld::new(0xB00, "Island");
     for x in 0..side {
