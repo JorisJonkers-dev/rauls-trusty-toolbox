@@ -1769,6 +1769,8 @@ name = "raul-core"
 version = "0.0.0"
 dependencies = [
  "jsonschema",
+ "nvmod-api",
+ "nvmod-core",
  "nvmod-instance",
  "nvmod-pe",
  "nvmod-testkit",
