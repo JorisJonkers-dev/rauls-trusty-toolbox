@@ -48,13 +48,15 @@ request in that repository. If you must work inside `components/<repo>`, first r
 
 ### Bump a pointer
 
+`components/<repo>.version` holds the release the submodule is at; the Component follower reads it, and CI fails when it differs from the submodule.
+
 After the Component's release is out:
 
 ```sh
 scripts/bump-component.sh <component> <tag>
 cargo update --workspace
 cargo update --workspace --manifest-path crates/raul-gui/Cargo.toml
-git add components/<repo> Cargo.lock crates/raul-gui/Cargo.lock
+git add components/<repo> components/<repo>.version Cargo.lock crates/raul-gui/Cargo.lock
 git commit -m "chore(deps): bump <repo> to vX.Y.Z"
 ```
 

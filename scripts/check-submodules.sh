@@ -10,6 +10,13 @@ while read -r key path; do
   url="$(git config -f .gitmodules "submodule.$name.url")"
   branch="$(git config -f .gitmodules "submodule.$name.branch" || echo main)"
   repo="$(sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' <<<"$url")"
+  # The Component follower reads the pinned release from components/<dir>.version (see scripts/bump-component.sh).
+  pin="$path.version"
+  if [ -f "$pin" ] && [ -f "$path/.release-please-manifest.json" ]; then
+    want="$(scripts/component-version.sh "${path#components/}" | sed 's/^v//')"
+    have="$(tr -d '[:space:]' < "$pin")"
+    [ "$want" = "$have" ] || { echo "FAIL $pin says $have but $path is at $want; run scripts/bump-component.sh ${path#components/} v$want"; fail=1; }
+  fi
   sha="$(git ls-tree HEAD "$path" | awk '{print $3}')"
   if git ls-remote --tags "$url" | awk '{print $1}' | grep -qx "$sha"; then
     tag="$(git ls-remote --tags "$url" | awk -v s="$sha" '$1==s{print $2}' | sed 's#refs/tags/##; s#\^{}##' | head -1)"
