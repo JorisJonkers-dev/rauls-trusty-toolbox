@@ -99,26 +99,51 @@ impl Exec for InProcessExec {
             }
             worker.join()
         });
+        // The flag belongs to one run: left set, it would stop the next command before it started. It is read and
+        // reset here, before anything can return, so a panic or an error from the command line does not leave it set.
+        let stopped = finish_flag();
+        // Keep what was streamed before the run ended, whether it finished, was stopped or failed.
+        drain(&rx, &mut lines, &mut stderr);
+        lines.finish();
         let code = match joined {
-            Ok(result) => result?,
-            Err(payload) => return Err(failed(&*payload)),
+            Ok(result) => result,
+            Err(payload) => Err(failed(&*payload)),
         };
-        let stopped = nvmod_core::cancel::requested();
-        // The flag belongs to one run: left set, it would stop the next command before it started.
-        nvmod_core::cancel::reset();
+        let code = code?;
         if stopped {
+            let mut text = String::from_utf8_lossy(&stderr).into_owned();
+            if !text.is_empty() {
+                text.push('\n');
+            }
+            text.push_str(STOPPED);
             return Ok(Output {
                 code: None,
                 stdout: lines.into_string(),
-                stderr: STOPPED.to_owned(),
+                stderr: text,
             });
         }
-        lines.finish();
         Ok(Output {
             code: Some(i64::from(code)),
             stdout: lines.into_string(),
             stderr: String::from_utf8_lossy(&stderr).into_owned(),
         })
+    }
+}
+
+/// Reads whether the cancel flag was set for the run that just ended, then clears it.
+fn finish_flag() -> bool {
+    let stopped = nvmod_core::cancel::requested();
+    nvmod_core::cancel::reset();
+    stopped
+}
+
+/// Hands over every chunk already sent, without waiting for more, so nothing a command wrote before it ended is lost.
+fn drain(rx: &mpsc::Receiver<Chunk>, lines: &mut Lines<'_>, stderr: &mut Vec<u8>) {
+    while let Ok(chunk) = rx.try_recv() {
+        match chunk {
+            Chunk::Out(bytes) => lines.push(&bytes),
+            Chunk::Err(bytes) => stderr.extend_from_slice(&bytes),
+        }
     }
 }
 
@@ -248,6 +273,10 @@ fn failed(payload: &(dyn std::any::Any + Send)) -> String {
 mod tests {
     use super::*;
     use std::cell::RefCell;
+    use std::sync::Mutex;
+
+    /// The cancel flag is global to the process, so the tests that set or read it take turns.
+    static FLAG: Mutex<()> = Mutex::new(());
 
     fn args(words: &[&str]) -> Vec<String> {
         words.iter().map(|w| (*w).to_owned()).collect()
@@ -300,6 +329,9 @@ mod tests {
 
     #[test]
     fn a_stop_asked_for_before_the_run_is_reported_as_stopped() {
+        let _turn = FLAG
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let cancel = CancelHandle::new();
         cancel.request();
         let out = InProcessExec::new()
@@ -313,5 +345,32 @@ mod tests {
     fn a_panic_in_the_run_is_reported_and_does_not_reach_the_caller() {
         let why = guarded(|| -> u8 { panic!("boom") }).unwrap_err();
         assert_eq!(why, "the action failed unexpectedly: boom");
+    }
+
+    #[test]
+    fn a_panic_resets_the_cancel_flag() {
+        let _turn = FLAG
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        nvmod_core::cancel::request();
+        assert!(finish_flag());
+        assert!(!nvmod_core::cancel::requested());
+    }
+
+    #[test]
+    fn a_stopped_run_keeps_the_lines_streamed_so_far() {
+        let (tx, rx) = mpsc::channel();
+        tx.send(Chunk::Out(b"one\ntw".to_vec())).unwrap();
+        tx.send(Chunk::Err(b"bad".to_vec())).unwrap();
+        drop(tx);
+        let seen = RefCell::new(Vec::new());
+        let mut collect = |line: &str| seen.borrow_mut().push(line.to_owned());
+        let mut lines = Lines::new(&mut collect);
+        let mut stderr = Vec::new();
+        drain(&rx, &mut lines, &mut stderr);
+        assert_eq!(*seen.borrow(), ["one"]);
+        lines.finish();
+        assert_eq!(*seen.borrow(), ["one", "tw"]);
+        assert_eq!(stderr, b"bad");
     }
 }
