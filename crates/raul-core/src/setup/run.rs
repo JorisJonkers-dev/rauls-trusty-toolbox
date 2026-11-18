@@ -18,9 +18,10 @@ use super::{
 /// typed [`Error`]; a stop asked for through `cancel` ends it before the next step, or inside a step that checks
 /// the token, as [`Outcome::Cancelled`].
 ///
-/// The engine step installs and checks nv-rs through the engine install library (`engine.rs`). No step starts a process of its own, with two exceptions: a Mod archive that needs the request's
-/// `extract_tool` (nvmod starts it), and the engine install, which runs `cargo` for a source build and `curl` and
-/// `gh` to fetch and verify the release.
+/// The engine step installs and checks nv-rs through the engine install library (`engine.rs`). Mod archives are
+/// read in process (`zip`, `7z` and compressed `tar`; a `rar` or another format nvmod cannot read is refused with its
+/// message). No step starts a process of its own except the engine install, which runs `cargo` for a source build
+/// and `curl` and `gh` to fetch and verify the release.
 ///
 /// # Errors
 /// An [`Error`] naming the step, the job and the reason; the Instance is as that step left it (each job puts
@@ -195,7 +196,6 @@ fn execute(
                 name: None,
                 dry_run: false,
                 answers: req.answers.clone(),
-                extract_tool: req.extract_tool.clone(),
                 max_extract_bytes: None,
             };
             let r = api::install::install(&request, &mut detail(step, progress), cancel);

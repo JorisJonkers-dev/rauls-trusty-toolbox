@@ -45,7 +45,13 @@ allow = [
 confidence-threshold = 0.8
 # esplugin (GPL-3.0) reaches this workspace only through lodwright-testkit, a dev-dependency of the GUI window tests,
 # so it is never linked into the shipped `raul`. The Toolbox is GPL-3.0-only, so the licence is compatible anyway.
-exceptions = [{ allow = ["GPL-3.0"], crate = "esplugin" }]
+# libbz2-rs-sys is the pure-Rust port of bzip2 (no C), under the bzip2-1.0.6 licence: a short permissive BSD-style
+# licence that asks for the notice to be kept and no more. It is reached only through the `bzip2` crate, which nvmod
+# links to read 7z BZip2 blocks and tar.bz2 archives in process.
+exceptions = [
+    { allow = ["GPL-3.0"], crate = "esplugin" },
+    { allow = ["bzip2-1.0.6"], crate = "libbz2-rs-sys" },
+]
 
 # The workspace crates are publish = false; their own licence is checked by the SPDX guard instead.
 [licenses.private]

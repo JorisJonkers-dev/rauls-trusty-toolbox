@@ -62,9 +62,6 @@ pub struct Request {
     /// The answers file for the Mod installers' questions.
     #[serde(default)]
     pub answers: Option<PathBuf>,
-    /// A tool that extracts the Mod archives nvmod cannot read itself.
-    #[serde(default)]
-    pub extract_tool: Option<PathBuf>,
     /// Sort an imported Instance too. An imported Instance keeps the owner's MO2 order unless this is set.
     #[serde(default)]
     pub sort: bool,

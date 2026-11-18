@@ -65,7 +65,7 @@ crate::texts!(TEXTS {
     FIND_IT = "Find it for me";
     WATCH = "Watch my Downloads folder and use the package when it arrives";
     UNPACK_NO_PLACE = "There is no place to unpack the package to yet. Finish setting up first.";
-    UNPACK_FAILED = "The archive could not be unpacked. Unpack it yourself, or install a tool that opens it.";
+    UNPACK_FAILED = "The archive could not be unpacked. Unpack it yourself, or save it again as a .zip, .7z or .tar.";
     UNPACK_EMPTY = "The archive holds no TTW package.";
     FINDING = "Looking for the TTW package in your Downloads folder";
     FOUND = "Found the newest TTW package in your Downloads folder:";
@@ -1108,7 +1108,7 @@ fn unpack(archive: &Path, dest: Option<&Path>) -> Result<PackageInfo, String> {
     };
     let _ = std::fs::remove_dir_all(dest);
     std::fs::create_dir_all(dest).map_err(|_| UNPACK_FAILED.to_owned())?;
-    nvmod_modinstall::extract::extract(archive, dest, None, nvmod_modinstall::Limits::default())
+    nvmod_modinstall::extract::extract(archive, dest, nvmod_modinstall::Limits::default())
         .map_err(|_| UNPACK_FAILED.to_owned())?;
     let package = find_package(dest).ok_or_else(|| UNPACK_EMPTY.to_owned())?;
     check_package(&package).map_err(|p| p.why().to_owned())

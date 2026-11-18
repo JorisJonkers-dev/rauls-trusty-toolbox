@@ -67,7 +67,6 @@ mod tests {
             ttw: None,
             mods: Vec::new(),
             answers: None,
-            extract_tool: None,
             sort: false,
             catalog: None,
             done: Vec::new(),

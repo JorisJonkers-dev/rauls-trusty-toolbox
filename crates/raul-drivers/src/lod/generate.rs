@@ -192,7 +192,6 @@ fn replace_mod(
         name: Some(MOD_NAME),
         dry_run: false,
         answers: None,
-        extract_tool: None,
         limits: Limits::default(),
     };
     match nvmod_modinstall::install(&request) {
