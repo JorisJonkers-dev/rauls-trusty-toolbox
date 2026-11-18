@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Self-hosted Renovate run (.github/workflows/components.yml). It follows the Components' release tags and opens one pull request per release that moves the submodule, adds a Known-good set and refreshes both lock files. The hosted Renovate app reads renovate.json only, never this file.",
+  "description": "Self-hosted Renovate run (.github/workflows/components.yml). It follows the Components' release tags and opens one pull request per release that moves the submodule and refreshes both lock files. The hosted Renovate app reads renovate.json only, never this file.",
   "platform": "github",
   "repositories": [
     "JorisJonkers-dev/rauls-trusty-toolbox"
@@ -9,12 +9,11 @@
   "requireConfig": "ignored",
   "extends": [],
   "enabledManagers": [
-    "custom.jsonata"
+    "custom.regex"
   ],
   "cloneSubmodules": true,
   "allowedCommands": [
-    "^git checkout -- known-good\\.toml$",
-    "^cargo run --quiet -p raul-cli -- known-good apply [a-z-]+ v[0-9.]+$",
+    "^scripts/bump-component\\.sh [a-z-]+ v?[0-9.]+$",
     "^cargo update --workspace( --manifest-path crates/raul-gui/Cargo\\.toml)?$"
   ],
   "schedule": [
@@ -41,42 +40,90 @@
   ],
   "customManagers": [
     {
-      "customType": "jsonata",
-      "description": "The Components of the latest Known-good set (the last [[set]] of known-good.toml); each release tag of a Component's repository is an update.",
-      "fileFormat": "toml",
+      "customType": "regex",
+      "description": "The release of nv-rs the submodule is pinned at (its release-please manifest); each later release tag of its repository is an update.",
       "managerFilePatterns": [
-        "/^known-good\\.toml$/"
+        "/^components/nv-rs/\\.release-please-manifest\\.json$/"
       ],
       "matchStrings": [
-        "set[-1].components.$each(function($v, $k) { {\"depName\": $k, \"currentValue\": $v.version, \"packageName\": \"JorisJonkers-dev/\" & ($k = \"nvmod\" ? \"nvmod-rs\" : $k)} })"
+        "\"\\.\":\\s*\"(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\""
       ],
+      "depNameTemplate": "nv-rs",
+      "packageNameTemplate": "JorisJonkers-dev/nv-rs",
       "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver",
+      "depTypeTemplate": "component"
+    },
+    {
+      "customType": "regex",
+      "description": "The release of nvmod-rs the submodule is pinned at (its release-please manifest); each later release tag of its repository is an update.",
+      "managerFilePatterns": [
+        "/^components/nvmod-rs/\\.release-please-manifest\\.json$/"
+      ],
+      "matchStrings": [
+        "\"\\.\":\\s*\"(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\""
+      ],
+      "depNameTemplate": "nvmod",
+      "packageNameTemplate": "JorisJonkers-dev/nvmod-rs",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver",
+      "depTypeTemplate": "component"
+    },
+    {
+      "customType": "regex",
+      "description": "The release of lodwright-rs the submodule is pinned at (its release-please manifest); each later release tag of its repository is an update.",
+      "managerFilePatterns": [
+        "/^components/lodwright-rs/\\.release-please-manifest\\.json$/"
+      ],
+      "matchStrings": [
+        "\"\\.\":\\s*\"(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\""
+      ],
+      "depNameTemplate": "lodwright-rs",
+      "packageNameTemplate": "JorisJonkers-dev/lodwright-rs",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver",
+      "depTypeTemplate": "component"
+    },
+    {
+      "customType": "regex",
+      "description": "The release of ttwright-rs the submodule is pinned at (its release-please manifest); each later release tag of its repository is an update.",
+      "managerFilePatterns": [
+        "/^components/ttwright-rs/\\.release-please-manifest\\.json$/"
+      ],
+      "matchStrings": [
+        "\"\\.\":\\s*\"(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\""
+      ],
+      "depNameTemplate": "ttwright-rs",
+      "packageNameTemplate": "JorisJonkers-dev/ttwright-rs",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
       "versioningTemplate": "semver",
       "depTypeTemplate": "component"
     }
   ],
   "packageRules": [
     {
-      "description": "loot-rs moves with nvmod (ADR-0015): the apply command takes the loot-rs tag nvmod links, so a loot-rs release alone is not an update here until nvmod links it.",
+      "description": "loot-rs moves with nvmod (ADR-0015): the bump script takes the loot-rs tag nvmod links, so a loot-rs release alone is not an update here until nvmod links it.",
       "matchDepNames": [
         "loot-rs"
       ],
       "enabled": false
     },
     {
-      "description": "Everything else is the same bump: move the submodule, add the set, refresh both lock files.",
+      "description": "Every Component bump is the same: move the submodule to the tag and refresh both lock files.",
       "matchManagers": [
-        "custom.jsonata"
+        "custom.regex"
       ],
       "postUpgradeTasks": {
         "commands": [
-          "git checkout -- known-good.toml",
-          "cargo run --quiet -p raul-cli -- known-good apply {{{depName}}} {{{newValue}}}",
+          "scripts/bump-component.sh {{{depName}}} v{{{newVersion}}}",
           "cargo update --workspace",
           "cargo update --workspace --manifest-path crates/raul-gui/Cargo.toml"
         ],
         "fileFilters": [
-          "known-good.toml",
           "Cargo.toml",
           "Cargo.lock",
           "crates/raul-gui/Cargo.lock",

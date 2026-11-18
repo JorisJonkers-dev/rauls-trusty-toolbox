@@ -82,15 +82,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/check-submodules.sh
 
-      # actions/checkout fetches submodules shallow and without tags; the Known-good check needs the release tags.
-      - name: Fetch Component tags
-        if: ${{ !cancelled() }}
-        run: git submodule foreach --quiet 'git fetch --quiet --tags --depth=1 origin'
-
-      - name: Known-good set
-        if: ${{ !cancelled() }}
-        run: cargo run --quiet --locked -p raul-cli -- known-good check
-
       - name: Format
         if: ${{ !cancelled() }}
         run: cargo fmt --all --check
@@ -105,7 +96,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: mise exec -- cargo llvm-cov nextest --workspace --locked --lcov --output-path lcov.info
 
-      # `raul lod generate` against the real lodwright of the shipped Known-good set, on a synthetic world from
+      # `raul lod generate` against the real lodwright pinned as a submodule, on a synthetic world from
       # lodwright's own test kit (crates/raul-cli/tests/lod_generate_real.rs). The program is the Linux release asset
       # of that version, checked against the release's SHA256SUMS.
       - name: raul lod generate with the real lodwright
@@ -114,7 +105,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="$(cargo run --quiet --locked -p raul-cli -- version --json | jq -er '.components["lodwright-rs"]')"
+          tag="$(scripts/component-version.sh lodwright-rs)"
           asset=lodwright-x86_64-unknown-linux-gnu
           dir="$RUNNER_TEMP/lodwright-$tag"
           mkdir -p "$dir"
