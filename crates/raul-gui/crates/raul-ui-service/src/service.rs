@@ -955,14 +955,26 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn doctor(&self, r: &DoctorRequest) -> Result<DoctorReport, ServiceError> {
-        let rest = || {
-            let mut rest = Vec::new();
-            push(&mut rest, "instance", &r.instance);
-            push_opt(&mut rest, "profile", r.profile.as_ref());
-            push_opt(&mut rest, "masterlist", r.masterlist.as_ref());
-            rest
+        let request = nvmod_api::doctor::CheckRequest {
+            target: nvmod_api::doctor::Target::Instance {
+                folder: PathBuf::from(&r.instance),
+                profile: r.profile.clone(),
+                game: None,
+                masterlist: r.masterlist.as_deref().map(PathBuf::from),
+                catalog: None,
+            },
+            fail_on: nvmod_api::doctor::Severity::Error,
         };
-        let (out, args) = self.with_profile(Action::Doctor, &r.instance, rest)?;
+        let out = self.direct_with_profile(Action::Doctor, &r.instance, || {
+            crate::direct::doctor(&request)
+        })?;
+        let unreadable_output = |why: &dyn std::fmt::Display| {
+            ServiceError::Failed(ViewError::new(
+                ExitClass::Internal,
+                format!("The output of `raul doctor` could not be read: {why}"),
+                effect_of(ExitClass::Internal),
+            ))
+        };
         match out.code {
             // Exit 1 is "findings at or above the failing severity": the report is on standard output.
             Some(0 | 1) => match serde_json::from_str::<DoctorReport>(&out.stdout) {
@@ -972,21 +984,17 @@ impl<E: Exec> Service for CliService<E> {
                         .ok()
                         .and_then(|v| v["error"].as_str().map(str::to_owned));
                     match message {
-                        Some(m) => {
-                            let mut v = ViewError::new(
-                                ExitClass::ProblemsFound,
-                                m,
-                                effect_of(ExitClass::ProblemsFound),
-                            );
-                            v.repro = Some(repro(&args));
-                            Err(ServiceError::Failed(v))
-                        }
-                        None => Err(unreadable("doctor", &e, &args)),
+                        Some(m) => Err(ServiceError::Failed(ViewError::new(
+                            ExitClass::ProblemsFound,
+                            m,
+                            effect_of(ExitClass::ProblemsFound),
+                        ))),
+                        None => Err(unreadable_output(&e)),
                     }
                 }
-                Err(e) => Err(unreadable("doctor", &e, &args)),
+                Err(e) => Err(unreadable_output(&e)),
             },
-            _ => Err(failure(&out, "doctor", &args)),
+            _ => Err(ServiceError::Failed(failure_error(&out, "doctor"))),
         }
     }
 

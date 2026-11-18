@@ -179,6 +179,7 @@ pub fn for_command(action: Action, rest: &[String]) -> Option<DirectJob> {
         }),
         Action::Conflicts => Some(conflicts(&conflicts_request(rest))),
         Action::Tree => Some(tree(&tree_request(rest))),
+        Action::Doctor => Some(doctor(&doctor_request(rest))),
         _ => None,
     }
 }
@@ -232,6 +233,36 @@ pub fn tree(request: &nvmod_api::tree::TreeRequest) -> DirectJob {
     DirectJob::reading_as(
         move |progress, cancel| nvmod_api::tree::show(&request, progress, cancel),
         |done: &nvmod_api::tree::TreeOutput| serde_json::to_value(&done.tree).map(Reply::ok),
+    )
+}
+
+/// The request of `raul doctor --instance` from the words after it.
+fn doctor_request(rest: &[String]) -> nvmod_api::doctor::CheckRequest {
+    let target = nvmod_api::doctor::Target::Instance {
+        folder: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        game: option_of(rest, "--game").map(PathBuf::from),
+        masterlist: option_of(rest, "--masterlist").map(PathBuf::from),
+        catalog: option_of(rest, "--catalog").map(PathBuf::from),
+    };
+    let fail_on = option_of(rest, "--fail-on")
+        .and_then(|severity| severity.parse().ok())
+        .unwrap_or(nvmod_api::doctor::Severity::Error);
+    nvmod_api::doctor::CheckRequest { target, fail_on }
+}
+
+/// `nvmod_api::doctor::check`: reads only. Its document is the report, as `raul doctor --json` prints it, and its exit
+/// code is 1 when the report has a finding at or above the request's `fail_on`, as the command ends.
+pub fn doctor(request: &nvmod_api::doctor::CheckRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::reading_as(
+        move |progress, cancel| nvmod_api::doctor::check(&request, progress, cancel),
+        |done: &nvmod_api::doctor::CheckOutput| {
+            serde_json::to_value(&done.report).map(|json| Reply {
+                json,
+                exit: u8::from(done.found),
+            })
+        },
     )
 }
 

@@ -11,8 +11,8 @@ use common::{Instance, install_plain, s};
 use raul_ui_service::exec::{Exec, Output};
 use raul_ui_service::registry::Action;
 use raul_ui_service::{
-    CancelHandle, CliService, ConflictsRequest, InProcessExec, JobSpec, Service, TreeRequest,
-    direct, run_direct,
+    CancelHandle, CliService, ConflictsRequest, DoctorRequest, InProcessExec, JobSpec, Service,
+    TreeRequest, direct, run_direct,
 };
 
 /// A runner that must never be asked for anything.
@@ -66,6 +66,23 @@ fn conflicts_prints_what_the_command_line_prints() {
         })
         .unwrap();
     assert!(!report.mods.is_empty());
+}
+
+#[test]
+fn doctor_prints_what_the_command_line_prints() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    let root = s(&inst.root());
+    assert_same(
+        &direct_output(Action::Doctor, &["--instance", &root]),
+        &cli_output(&["doctor", "--instance", &root, "--json"]),
+    );
+    service()
+        .doctor(&DoctorRequest {
+            instance: root,
+            ..DoctorRequest::default()
+        })
+        .unwrap();
 }
 
 #[test]
