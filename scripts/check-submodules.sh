@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fails when a submodule points at a commit that is neither a release tag of its repository nor on the branch named
 # for it in .gitmodules (nv-rs: fork, the others: main). Asks GitHub, so no deep fetch is needed.
-# Usage: scripts/check-submodules.sh   (needs `gh` with read access; GH_TOKEN in CI)
+# Usage: scripts/check-submodules.sh   (needs `gh` with read access, GH_TOKEN in CI, and `jq`)
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 fail=0
