@@ -36,6 +36,11 @@ allow = [
     # The fonts egui bundles (epaint_default_fonts), for the glyphs Inter lacks; OFL-1.1 also covers Inter.
     "OFL-1.1",
     "Ubuntu-font-1.0",
+    # ttwright-core links these: ba2 (0BSD), symphonia and option-ext (MPL-2.0, file-level copyleft, used unmodified),
+    # and the LAME encoder bindings (LGPL-3.0, written with the deprecated id the crates use; the GPL-3.0 Toolbox may link it).
+    "0BSD",
+    "MPL-2.0",
+    "LGPL-3.0",
 ]
 confidence-threshold = 0.8
 exceptions = []
