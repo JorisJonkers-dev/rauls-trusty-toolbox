@@ -6,7 +6,7 @@
 //! ttwright driver of `raul-drivers`. No argument vector is built and no command is re-entered.
 //!
 //! The job has the shape of ADR-0016: [`run`]`(request, &mut dyn Progress, &CancelToken) -> Result<Outcome,
-//! Error>`. A cancelled run is an [`Outcome::Cancelled`], a result and not an error; the first failing step stops
+//! Error>`. A cancel that arrives while the last step runs is not seen; the run ends as done. A cancelled run is an [`Outcome::Cancelled`], a result and not an error; the first failing step stops
 //! the run with its typed [`Error`]. The resume journal and the wizard are not part of this module.
 
 mod plan;
@@ -21,6 +21,9 @@ use serde::{Deserialize, Serialize};
 pub use nvmod_api::CancelToken;
 pub use plan::plan;
 pub use run::run;
+
+/// The label key of the detail event the engine step reports until the engine install lands (#275).
+pub const ENGINE_NOT_YET: &str = "setup.engine.not-yet";
 
 /// What the person chose for a setup. Every path is absolute; the caller makes them so.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -40,7 +43,9 @@ pub struct Request {
     /// Copy files into the Staging tree and the import instead of linking them.
     #[serde(default)]
     pub copy: bool,
-    /// Put the nv-rs engine in the Instance and make it the target. `false` keeps the vanilla target.
+    /// Put the nv-rs engine in the Instance and make it the target (nvmod's `setup` does this unless told
+    /// `--skip-nv-rs`; here it is opt-in, so a request that leaves it out keeps the vanilla target). Until the engine install lands (#275) the engine
+    /// step installs nothing, and the target step still sets the nv-rs target.
     #[serde(default)]
     pub engine: bool,
     /// Install Tale of Two Wastelands; `None` skips the step.
@@ -61,7 +66,8 @@ pub struct Request {
     /// A catalog file for the check, instead of the built-in one.
     #[serde(default)]
     pub catalog: Option<PathBuf>,
-    /// Steps that are already done (a resume): they are planned as skipped.
+    /// Steps that are already done (a resume): they are planned as skipped. A Mod step is matched by its full
+    /// archive path; its id uses the file name only.
     #[serde(default)]
     pub done: Vec<Step>,
 }
@@ -77,6 +83,9 @@ pub struct Ttw {
     /// The TTW package (the `.mpi` file).
     #[serde(default)]
     pub package: Option<PathBuf>,
+    /// Continue an install that was cancelled or interrupted (a resume).
+    #[serde(default)]
+    pub resume: bool,
     /// How long the install may run; ttwright's default when `None`.
     #[serde(default)]
     pub timeout: Option<Duration>,
@@ -111,7 +120,7 @@ pub enum Step {
 }
 
 impl Step {
-    /// The stable id of the step, as nvmod's `setup` names it: `init`, `import-mo2`, `profile`, `engine`,
+    /// The stable id of the step, as nvmod's `setup` names them (its engine step is `nv-rs`): `init`, `import-mo2`, `profile`, `engine`,
     /// `target`, `ttw`, `mod:<file name>`, `stage`, `sort`, `stamp`, `verify`.
     #[must_use]
     pub fn id(&self) -> String {
@@ -268,16 +277,19 @@ pub enum ErrorKind {
     Failed,
     /// Every step ran and the check does not pass.
     Unverified,
+    /// A check inside a job failed: a bug, never a property of the input.
+    Internal,
 }
 
 impl ErrorKind {
-    /// A stable code: `refused`, `failed` or `unverified`.
+    /// A stable code: `refused`, `failed`, `unverified` or `internal`.
     #[must_use]
     pub const fn code(self) -> &'static str {
         match self {
             Self::Refused => "refused",
             Self::Failed => "failed",
             Self::Unverified => "unverified",
+            Self::Internal => "internal",
         }
     }
 }
@@ -375,5 +387,6 @@ mod tests {
         assert_eq!(ErrorKind::Refused.code(), "refused");
         assert_eq!(ErrorKind::Failed.code(), "failed");
         assert_eq!(ErrorKind::Unverified.code(), "unverified");
+        assert_eq!(ErrorKind::Internal.code(), "internal");
     }
 }

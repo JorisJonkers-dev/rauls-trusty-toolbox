@@ -84,6 +84,7 @@ mod tests {
             fallout3: PathBuf::from("/fo3"),
             newvegas: None,
             package: None,
+            resume: false,
             timeout: None,
         });
         r.mods = vec![PathBuf::from("/m/A.zip"), PathBuf::from("/m/B.7z")];

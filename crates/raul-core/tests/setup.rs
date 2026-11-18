@@ -246,7 +246,7 @@ fn a_failing_step_stops_the_run_with_its_typed_error_and_no_command_line() {
         lines[1..4],
         ["step: init", "job: init.create", "error: refused"]
     );
-    assert!(!text.contains("--"), "no command line: {text}");
+    assert!(!text.contains("argv"), "no command line: {text}");
 }
 
 #[test]
@@ -288,6 +288,7 @@ fn the_ttw_step_refuses_a_missing_package_in_process() {
         fallout3: s.work.path().join("fo3"),
         newvegas: None,
         package: Some(s.work.path().join("missing.mpi")),
+        resume: false,
         timeout: None,
     });
     let (error, events) = fails(&request);
@@ -372,4 +373,29 @@ fn a_stop_asked_for_during_a_step_ends_the_run_at_the_next_step() {
         !s.instance().join("staging/Default").exists(),
         "no step ran after the stop"
     );
+}
+
+#[test]
+fn a_stop_asked_for_inside_a_job_ends_the_run_with_the_steps_before_it() {
+    let s = Scratch::new();
+    let cancel = CancelToken::new();
+    let result = run(
+        &s.request(),
+        &mut |e: &Event| {
+            if matches!(
+                e,
+                Event::Detail {
+                    step: Step::Stage,
+                    ..
+                }
+            ) {
+                cancel.cancel();
+            }
+        },
+        &cancel,
+    );
+    let Ok(Outcome::Cancelled(out)) = result else {
+        panic!("expected a cancelled setup");
+    };
+    assert_eq!(ids(&out.completed), ["init", "profile"]);
 }

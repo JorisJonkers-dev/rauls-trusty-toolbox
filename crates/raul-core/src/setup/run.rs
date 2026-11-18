@@ -9,7 +9,10 @@ use raul_drivers::events::Event as TtwEvent;
 use raul_drivers::events::Status;
 use raul_drivers::ttw::{self, TtwRequest};
 
-use super::{CancelToken, Error, ErrorKind, Event, Outcome, Output, Progress, Request, Step, plan};
+use super::{
+    CancelToken, ENGINE_NOT_YET, Error, ErrorKind, Event, Outcome, Output, Progress, Request, Step,
+    plan,
+};
 
 /// Run the setup `request` asks for: report the plan, then run each planned step in order, reporting it as a
 /// progress step. A step the plan skips is reported as skipped. The run ends at the first failing step with its
@@ -96,6 +99,7 @@ fn finish<T>(
         Err(e) => Err(Error {
             kind: match e.kind {
                 nvmod_api::ErrorKind::Refused => ErrorKind::Refused,
+                nvmod_api::ErrorKind::Internal => ErrorKind::Internal,
                 _ => ErrorKind::Failed,
             },
             step: step.clone(),
@@ -178,7 +182,7 @@ fn execute(
             // The boundary for #275: the engine install is not part of this job yet.
             progress.report(&Event::Detail {
                 step: step.clone(),
-                label: "setup.engine.not-yet".to_owned(),
+                label: ENGINE_NOT_YET.to_owned(),
                 done: None,
                 total: None,
             });
@@ -287,11 +291,17 @@ impl Drop for StopWatcher<'_> {
 }
 
 /// Run `work` while a watcher thread turns a stop asked for on `cancel` into nvmod's process-wide stop request,
-/// which is what the TTW driver polls. The request is cleared again afterwards when this watcher made it, so a
+/// which is what the TTW driver polls. The request is cleared again afterwards when this watcher made it and none
+/// stood before, so a
 /// later job in the same process starts clean.
 fn with_cancel_bridge<T>(cancel: &CancelToken, work: impl FnOnce() -> T) -> T {
     let (done, bridged) = (AtomicBool::new(false), AtomicBool::new(false));
-    let result = std::thread::scope(|scope| {
+    // Declared first, so it drops last: the request is cleared even when `work` panics.
+    let _clear = ClearBridged {
+        already: nvmod_core::cancel::requested(),
+        bridged: &bridged,
+    };
+    std::thread::scope(|scope| {
         let _stop = StopWatcher(&done);
         scope.spawn(|| {
             while !done.load(Ordering::Relaxed) {
@@ -304,11 +314,21 @@ fn with_cancel_bridge<T>(cancel: &CancelToken, work: impl FnOnce() -> T) -> T {
             }
         });
         work()
-    });
-    if bridged.load(Ordering::Relaxed) {
-        nvmod_core::cancel::reset();
+    })
+}
+
+/// Clears nvmod's process-wide stop request on drop when the watcher made it and none stood before.
+struct ClearBridged<'a> {
+    already: bool,
+    bridged: &'a AtomicBool,
+}
+
+impl Drop for ClearBridged<'_> {
+    fn drop(&mut self) {
+        if self.bridged.load(Ordering::Relaxed) && !self.already {
+            nvmod_core::cancel::reset();
+        }
     }
-    result
 }
 
 /// The TTW step: raul's own in-process ttwright driver, never nvmod's TTW job.
@@ -328,7 +348,7 @@ fn run_ttw(
         newvegas: choice.newvegas.clone(),
         package: choice.package.clone(),
         dry_run: false,
-        resume: false,
+        resume: choice.resume,
         timeout: choice.timeout.unwrap_or(ttw::DEFAULT_TIMEOUT),
     };
     let outcome = with_cancel_bridge(cancel, || {
