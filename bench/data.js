@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794982478346,
+  "lastUpdate": 1794983381914,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -3576,6 +3576,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.346463,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b51f6b8abc56d19d25227dd096e85d24ed978d55",
+          "message": "build: Rust 1.100 and a 7-day crate cooldown (#245)\n\nRenovate now waits seven days before proposing a crates.io release, as Cargo already does for resolution (.cargo/config.toml). The organisation's own git dependencies keep their existing rule. The toolchain and rust-version were already 1.100.",
+          "timestamp": "2026-11-18T07:28:15+01:00",
+          "tree_id": "b350aa60c2f1e1d488ebb08f9b6e854511f83ba2",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b51f6b8abc56d19d25227dd096e85d24ed978d55"
+        },
+        "date": 1794983381161,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.495581,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.259196,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.564504,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.1035950000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.674062000000001,
             "unit": "ms"
           }
         ]
