@@ -231,10 +231,12 @@ impl LoadOrder {
             ui.label(RichText::new(text).color(t.muted.color()).small());
         };
         // The plugin column takes what the others leave, so a long name truncates instead of scrolling sideways.
-        let plugin_width = (ui.available_width() * 0.36).clamp(120.0, 420.0);
+        let narrow = ui.available_width() < 480.0;
+        let plugin_width =
+            (ui.available_width() * 0.36).clamp(if narrow { 64.0 } else { 120.0 }, 420.0);
         egui::Grid::new("load-order-plugins")
             .num_columns(if preview { 5 } else { 4 })
-            .spacing([18.0, 10.0])
+            .spacing([if narrow { 8.0 } else { 18.0 }, 10.0])
             .min_row_height(28.0)
             .show(ui, |ui| {
                 header(ui, COL_POSITION);
