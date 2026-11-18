@@ -193,6 +193,6 @@ fn every_recorded_case_is_replayed_or_named_with_its_reason() {
             baseline_dir().join(format!("{name}.json")).is_file(),
             "{name}"
         );
-        assert!(!why.is_empty());
+        assert_ne!(*why, "");
     }
 }
