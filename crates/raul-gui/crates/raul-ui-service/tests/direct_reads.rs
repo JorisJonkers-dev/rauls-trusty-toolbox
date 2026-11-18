@@ -65,7 +65,7 @@ fn conflicts_prints_what_the_command_line_prints() {
             ..ConflictsRequest::default()
         })
         .unwrap();
-    assert!(!report.mods.is_empty());
+    assert_ne!(report.mods.len(), 0);
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn tree_prints_what_the_command_line_prints() {
             ..TreeRequest::default()
         })
         .unwrap();
-    assert!(!tree.entries.is_empty());
+    assert_ne!(tree.entries.len(), 0);
 }
 
 #[test]
