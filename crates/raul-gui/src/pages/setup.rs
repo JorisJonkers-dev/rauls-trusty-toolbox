@@ -1132,7 +1132,14 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(50));
         h.run_steps(4);
         h.get_by_label(NEXT).click();
-        h.run_steps(2);
+        // The page settles over a few frames; poll for it, up to a minute, so a slow runner cannot race the assertion.
+        for _ in 0..600 {
+            h.run_steps(2);
+            if h.query_by_label(SUB_READY).is_some() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
         assert!(h.query_by_label(SUB_READY).is_some());
         h.get_by_label(FINISH).click();
         h.run_steps(2);
