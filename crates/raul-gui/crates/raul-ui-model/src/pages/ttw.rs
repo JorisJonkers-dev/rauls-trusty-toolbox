@@ -329,6 +329,40 @@ pub fn newest_candidate(folders: &[PathBuf]) -> Option<PathBuf> {
     best.map(|(_, p)| p)
 }
 
+/// Whether `name` is an archive a TTW package may come in: its name holds `ttw` and ends in `.zip`, `.7z`, `.rar` or
+/// `.tar`, in any case.
+pub fn is_archive_name(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    lower.contains("ttw")
+        && [".zip", ".7z", ".rar", ".tar"]
+            .iter()
+            .any(|ext| lower.ends_with(ext))
+}
+
+/// The newest archive named like a TTW package in `folders` (not looking into their folders).
+pub fn newest_archive(folders: &[PathBuf]) -> Option<PathBuf> {
+    let mut best: Option<(SystemTime, PathBuf)> = None;
+    for folder in folders {
+        let Ok(entries) = std::fs::read_dir(folder) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = entry.file_name();
+            if !is_archive_name(&name.to_string_lossy()) {
+                continue;
+            }
+            let Ok(time) = entry.metadata().and_then(|m| m.modified()) else {
+                continue;
+            };
+            if best.as_ref().is_none_or(|(t, _)| time > *t) {
+                best = Some((time, path));
+            }
+        }
+    }
+    best.map(|(_, p)| p)
+}
+
 /// A file that passed [`check_package`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageInfo {
@@ -1222,6 +1256,14 @@ mod tests {
             Report::of(Status::Unverifiable, false).exit(),
             ExitClass::VerificationFailed
         );
+    }
+
+    #[test]
+    fn archives_are_named_like_a_ttw_package() {
+        assert!(is_archive_name("TTW 3.4.0 Installer.7z"));
+        assert!(is_archive_name("ttw_3.4.zip"));
+        assert!(!is_archive_name("holiday.zip"));
+        assert!(!is_archive_name("TTW_3.4.mpi"));
     }
 
     #[test]
