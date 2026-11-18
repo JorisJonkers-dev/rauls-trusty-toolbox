@@ -89,6 +89,7 @@ fn absolute(value: &str) -> PathBuf {
 /// # Errors
 /// What is wrong with them, in plain words: an option that is not known, a value that is missing or not a number, or
 /// a word that is no option.
+#[allow(clippy::too_many_lines)] // one arm per option of the command line
 pub fn parse(words: &[String]) -> Result<Parsed, String> {
     let mut request = Request {
         base: PathBuf::new(),
@@ -188,7 +189,9 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
                     .ok()
                     .filter(|s| (1..=MAX_TIMEOUT_SECS).contains(s))
                     .ok_or_else(|| {
-                        format!("--timeout-secs needs a number of seconds from 1 to {MAX_TIMEOUT_SECS}")
+                        format!(
+                            "--timeout-secs needs a number of seconds from 1 to {MAX_TIMEOUT_SECS}"
+                        )
                     })?;
                 timeout = Some(Duration::from_secs(secs));
             }
@@ -218,7 +221,9 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
             timeout,
         });
     } else if package.is_some() || timeout.is_some() {
-        return Err("--package and --timeout-secs are TTW options and need --fallout3 <dir>".to_owned());
+        return Err(
+            "--package and --timeout-secs are TTW options and need --fallout3 <dir>".to_owned(),
+        );
     }
     parsed.request = request;
     Ok(parsed)

@@ -10,6 +10,7 @@
 //! the run with its typed [`Error`]. The resume journal is in [`crate::journal`] (`journal::run` is this job with it); the wizard is not part of this module.
 
 mod args;
+mod command;
 mod engine;
 mod plan;
 mod run;
@@ -20,8 +21,13 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-pub use engine::EngineOptions;
 pub use args::{Parsed, parse as parse_words};
+pub use command::{Ended, Line, Mode, describe, execute, stream_name};
+pub use command::{
+    FAILED as EXIT_FAILED, OK as EXIT_OK, REFUSED as EXIT_REFUSED,
+    VERIFICATION as EXIT_VERIFICATION,
+};
+pub use engine::EngineOptions;
 pub use nvmod_api::CancelToken;
 pub use plan::plan;
 pub use run::run;
