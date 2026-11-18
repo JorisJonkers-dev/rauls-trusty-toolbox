@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795024084358,
+  "lastUpdate": 1795027584312,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4360,6 +4360,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.057746999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6a32f9574e6947fad24c47cee1494aa0a97be04c",
+          "message": "refactor: drop the ttwright program path (#283)\n\n* refactor: drop the ttwright program path (round 1)\n\n* test: drive raul ttw through the in-process install\n\n* refactor: keep the ttwright event-line reader to the tail test and format\n\n* test(gui): drive the TTW flow through the in-process install\n\n* docs: say that ttwright runs in process, and make the cancel tests deterministic\n\nttwright runs in raul's own process since the program path was removed, so the descriptions of raul ttw and its result Contract now say so. The error codes nothing produces any more are marked as kept for older result documents; no code, field or schema version changed.\n\nThe cancel tests wait for the first asset ttwright writes, polled every 5 ms, instead of the third file, so the stop lands early in a 4000-asset install that takes seconds. Unused TTWRIGHT_RESULT_VERSIONS and a duplicate rebinding are removed, and a test pins that --ttwright is refused as an unknown option.\n\n* docs: say that ttwright is linked and lodwright still runs as a program\n\n* fix(drivers): stop the watcher thread when the in-process install panics\n\n* test: tighten the ttw cancel assertions and say a timeout ends as cancelled",
+          "timestamp": "2026-11-18T19:45:01+01:00",
+          "tree_id": "ff737c654ae5311f1eaa40736813c486e0890bce",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6a32f9574e6947fad24c47cee1494aa0a97be04c"
+        },
+        "date": 1795027583699,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.170147,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 9.608764,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 38.145443,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.286476,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 11.332208,
             "unit": "ms"
           }
         ]
