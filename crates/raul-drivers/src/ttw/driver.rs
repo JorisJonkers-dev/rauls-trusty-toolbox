@@ -233,7 +233,6 @@ fn prepare(req: &TtwRequest, profile: &mut String) -> Result<Ready, (TtwErrorCod
     })
 }
 
-
 /// How one event line of a Component becomes [`Event`]s: the parsed line, whether a warning about it was given
 /// already, and where the events go.
 pub(crate) type MapLine = fn(&Value, &mut bool, &mut dyn FnMut(Event));
@@ -289,7 +288,8 @@ impl EventTail {
     }
 }
 
-/// One `ttwright-events` line as [`Event`]s.
+/// One `ttwright-events` line as [`Event`]s. Only the event-tail test reads ttwright lines now (ttwright runs in process).
+#[cfg(test)]
 fn ttwright_line(v: &Value, warned: &mut bool, emit: &mut dyn FnMut(Event)) {
     if v["schema_version"].as_i64() != Some(TTWRIGHT_EVENTS_VERSION) {
         if !*warned {
@@ -388,7 +388,6 @@ pub(crate) fn clear(path: &Path) -> std::io::Result<()> {
         other => other,
     }
 }
-
 
 /// Install TTW as `req` says, emitting [`Event`]s while it runs (not `finished`: the caller emits
 /// [`Outcome::finished`] after the `result`).
@@ -681,7 +680,6 @@ mod tests {
         tail.drain(&mut |e| seen.push(e), true);
         assert!(matches!(&seen[4], Event::Phase { phase } if phase == "post_install"));
     }
-
 }
 
 #[cfg(all(test, unix))]

@@ -112,11 +112,7 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
     };
     // Paths in the result are absolute, whatever the working folder was.
     let absolute = |p: PathBuf| std::path::absolute(&p).unwrap_or(p);
-    for path in [
-        &mut req.fallout3,
-        &mut req.newvegas,
-        &mut req.package,
-    ] {
+    for path in [&mut req.fallout3, &mut req.newvegas, &mut req.package] {
         *path = path.take().map(absolute);
     }
     let outcome = match instance.or_else(|| from_config(Key::Instance)) {
