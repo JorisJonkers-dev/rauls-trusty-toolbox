@@ -1129,18 +1129,26 @@ mod tests {
             h.state_mut()
                 .wait_for_jobs(std::time::Duration::from_secs(60))
         );
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        h.run_steps(4);
-        h.get_by_label(NEXT).click();
-        // The page settles over a few frames; poll for it, up to a minute, so a slow runner cannot race the assertion.
+        // The job has ended, but the page reads its result on a later frame, and until it has, Next is disabled and a
+        // click does nothing: click Next again on every pass until the Ready page is up, up to a minute, so a slow
+        // (instrumented) runner cannot race the click.
         for _ in 0..600 {
             h.run_steps(2);
             if h.query_by_label(SUB_READY).is_some() {
                 break;
             }
+            if let Some(next) = h.query_by_label(NEXT) {
+                next.click();
+            }
             std::thread::sleep(std::time::Duration::from_millis(100));
         }
-        assert!(h.query_by_label(SUB_READY).is_some());
+        assert!(
+            h.query_by_label(SUB_READY).is_some(),
+            "the Ready page did not come up; the view is {:?}, the checks said {}",
+            h.state().view(),
+            h.query_by_label(MISSING_CHECKS)
+                .map_or("nothing about running", |_| MISSING_CHECKS)
+        );
         h.get_by_label(FINISH).click();
         h.run_steps(2);
         assert_eq!(
