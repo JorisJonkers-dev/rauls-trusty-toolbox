@@ -448,6 +448,7 @@ pub fn run_direct(
 ) -> Output {
     let label = spec.action.command();
     let usage = job.usage;
+    let reads = job.lock.is_none();
     let mut feed = Feed::new(spec, sink);
     if cancel.is_requested() {
         return finish(
@@ -455,6 +456,7 @@ pub fn run_direct(
             &mut feed,
             &End::Stopped,
             "cancelled before it started: nothing was run",
+            false,
             false,
         );
     }
@@ -466,7 +468,7 @@ pub fn run_direct(
     {
         Some(Err(refused)) => {
             let error = JobError::new(ErrorKind::Refused, label, refused.to_string());
-            return finish(spec, &mut feed, &End::Failed(error), "", false);
+            return finish(spec, &mut feed, &End::Failed(error), "", false, false);
         }
         Some(Ok(guard)) => Some(guard),
         None => None,
@@ -478,11 +480,19 @@ pub fn run_direct(
     let stopped = format!(
         "cancelled: {label} was stopped at a safe point; the step in flight was stopped at its safe point"
     );
-    finish(spec, &mut feed, &end, &stopped, usage)
+    finish(spec, &mut feed, &end, &stopped, usage, reads)
 }
 
 /// Tells the end of the job as events and as the [`Output`].
-fn finish(spec: &JobSpec, feed: &mut Feed<'_>, end: &End, stopped: &str, usage: bool) -> Output {
+#[allow(clippy::fn_params_excessive_bools)]
+fn finish(
+    spec: &JobSpec,
+    feed: &mut Feed<'_>,
+    end: &End,
+    stopped: &str,
+    usage: bool,
+    reads: bool,
+) -> Output {
     let label = spec.action.command();
     feed.start();
     let (line, outcome, class, output) = match end {
@@ -512,6 +522,9 @@ fn finish(spec: &JobSpec, feed: &mut Feed<'_>, end: &End, stopped: &str, usage: 
         End::Failed(error) => {
             let class = if usage {
                 ExitClass::Usage
+            } else if reads && error.kind == ErrorKind::Failed {
+                // A read that failed changed nothing, so there is no step to have put back: it is a refusal.
+                ExitClass::Refused
             } else {
                 class_of(error.kind)
             };

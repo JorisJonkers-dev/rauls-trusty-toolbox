@@ -167,9 +167,14 @@ fn every_error_kind_maps_to_its_own_exit_class() {
         (ErrorKind::Internal, None, C::Internal, JobOutcome::Failed),
     ];
     for (kind, code, class, outcome) in cases {
-        let job = DirectJob::reading(move |_, _| -> Result<nvmod_api::Outcome<u8>, JobError> {
-            Err(JobError::new(kind, "test.job", "it said\n  why"))
-        });
+        // A writing job (a folder that is no Instance is not locked): a failed step was put back.
+        let job = DirectJob::writing(
+            "/no/such/instance",
+            "test",
+            move |_, _| -> Result<nvmod_api::Outcome<u8>, JobError> {
+                Err(JobError::new(kind, "test.job", "it said\n  why"))
+            },
+        );
         let (out, events) = run(job, &CancelHandle::new());
         assert_eq!(out.code, code, "{kind:?}");
         assert_eq!(out.stderr, "it said why\n", "one line, no command line");
@@ -300,4 +305,13 @@ fn the_lock_is_held_while_the_job_runs() {
     let (out, _) = run(job, &CancelHandle::new());
     assert_eq!(out.code, Some(0), "{out:?}");
     assert!(!lock.exists());
+}
+
+#[test]
+fn a_read_that_failed_is_a_refusal_because_nothing_was_changed() {
+    let job = DirectJob::reading(|_, _| -> Result<nvmod_api::Outcome<u8>, JobError> {
+        Err(JobError::new(ErrorKind::Failed, "test.read", "it broke"))
+    });
+    let (out, _) = run(job, &CancelHandle::new());
+    assert_eq!(out.code, Some(2), "{out:?}");
 }
