@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794990200673,
+  "lastUpdate": 1794994228868,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -3968,6 +3968,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.1487,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "02ffd228fc375dae15f97a5edf24c53f3ebf2ffd",
+          "message": "feat(drivers): run ttwright's install in process (#264)\n\n* feat(drivers): run ttwright's install in process\n\n* ci: build in a short folder on Windows, where the path limit stops a native dependency\n\n* fix(deps): keep cc at 1.2.62, which builds directxtex on Windows\n\n* build(deny): allow the licences ttwright-core's dependencies use\n\n* build(deny): allow LGPL-3.0 under the id the LAME bindings declare",
+          "timestamp": "2026-11-18T10:27:21+01:00",
+          "tree_id": "2b3a55b0bb8219c880720d38cd7a6170a9bc6d14",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/02ffd228fc375dae15f97a5edf24c53f3ebf2ffd"
+        },
+        "date": 1794994228428,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.307829,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.472627,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.469404,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.08869,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.538307,
             "unit": "ms"
           }
         ]
