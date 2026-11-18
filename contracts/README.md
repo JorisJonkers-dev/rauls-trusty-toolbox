@@ -101,7 +101,7 @@ Instance is as it was before the command. A command line `raul` cannot read exit
 ## `lodwright-request`, as `raul lod plan` builds it
 
 `raul lod plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]` prints the `lodwright-request` v1
-document `raul lod generate` will pass to `lodwright generate --request <file>`. It is lodwright's Contract; `raul`
+document `raul lod generate` passes to lodwright, linked into `raul` and called in process. It is lodwright's Contract; `raul`
 checks every request against the snapshot before it prints or passes it. The request holds:
 
 - `data_folder`: the Profile's Staging tree `Data` folder;
@@ -136,27 +136,24 @@ test, with the two folders written as `<data>` and `<output>`.
 
 ## `raul-lod-result`
 
-`raul lod generate` builds the request (above), writes it to `<instance>/.raul/lod/request.json`, runs
-`lodwright generate --request <file> --json --events <file>`, reads the `lodwright-result` and the manifest, and keeps
-the output as the Mod `LOD (lodwright)`, enabled in the Profile, so the next run loads it. A second run over an
+`raul lod generate` builds the request (above) and calls lodwright's library API (`lodwright-api`) in process with it,
+mapping lodwright's progress to `raul-events` lines; it reads the manifest in lodwright's output folder and keeps the
+output as the Mod `LOD (lodwright)`, enabled in the Profile, so the next run loads it. A second run over an
 unchanged Load order: lodwright answers `up_to_date`, the Mod is already there, and nothing is written
 (`up_to_date: true`, `changed: false`). lodwright's block progress becomes `progress` events of the phase `terrain`.
 
 | `status` | Exit code | `error.code` | lodwright |
 | --- | --- | --- | --- |
 | `success` | 0 | | exit code 0; the Mod holds the output (or a dry run, or `up_to_date`) |
-| `refused` | 2 | `instance_invalid`, `profile_missing`, `plan_refused`, `tool_missing` | not started |
-| `refused` | 2 | `contract_refused` | printed a `lodwright-result`, or left a manifest, of a newer version |
-| `unsupported` | 2 | `unsupported` | exit code 3; nothing was written |
-| `unverifiable` | 3 | `tool_unverifiable` | changed after its checksum was taken; not started |
-| `failed` | 4 | `lodwright_failed` | exit code 1, or 2 (a usage error) |
-| `failed` | 4 | `tool_failed` | could not start, was ended by a signal, or printed no valid result |
-| `failed` | 4 | `add_mod_failed` | exit code 0, but replacing the Mod failed and was rolled back |
+| `refused` | 2 | `instance_invalid`, `profile_missing`, `plan_refused` | not started |
+| `refused` | 2 | `contract_refused` | the output folder holds a manifest of a newer version |
+| `failed` | 4 | `lodwright_failed` | lodwright's generation returned an error; `lodwright_code` is its code |
+| `failed` | 4 | `tool_failed` | stopped unexpectedly, ran past the timeout, or reported a status other than `ok` |
+| `failed` | 4 | `add_mod_failed` | the output was written, but replacing the Mod failed and was rolled back |
 | `cancelled` | 4 | `cancelled` | stopped by `raul` on SIGINT or SIGTERM |
 
 In every case but `success` the Instance is as it was before the command. lodwright keeps its own output folder
 between runs (that is how it knows a later run is `up_to_date`); the Mod is a copy of it.
 
-The tests run `raul lod generate` against a fake lodwright for every outcome, and CI runs it once more against the
-real lodwright program of the shipped Component set on a synthetic world (`crates/raul-cli/tests/lod_generate_real.rs`,
-behind the `real-lodwright` feature).
+The tests run `raul lod generate` with the linked lodwright on a synthetic world (`crates/raul-cli/tests/lod_generate.rs`),
+and the cancel and resume cases call the same generation in process with a cancel token.

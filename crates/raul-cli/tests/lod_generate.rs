@@ -1,69 +1,61 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! `raul lod generate` against a fake lodwright on synthetic fixtures: success, `up_to_date`, a replaced Mod, every
-//! lodwright exit code, newer result and manifest versions, cancelling, and that nvmod never receives the command.
-//! The fake is a shell script, so these tests run on Linux and macOS.
-#![cfg(unix)]
-// These tests start the built binary and `kill`, which are not tool calls (see clippy.toml).
+//! `raul lod generate` with lodwright linked into `raul`, on a synthetic world built with lodwright's own test kit:
+//! success and a second run that is `up_to_date`, a replaced Mod, lodwright's refusals as exit code 4, a stop during
+//! the generation that the next run resumes from, the dry run and bad inputs, and that nvmod never receives the
+//! command. Nothing is started but the built `raul` binary, as a black box.
+// These tests start the built binary, which is not a tool call (see clippy.toml).
 #![allow(clippy::disallowed_methods)]
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
-use std::time::{Duration, Instant};
+use std::process::{Command, Output};
+use std::time::Duration;
 
-use nvmod_testkit::{BaseBuilder, TempDir, snapshot, write_script};
+use lodwright_api::CancelToken;
+use lodwright_testkit::land::Heights;
+use lodwright_testkit::world::{SyntheticWorld, world_plugin};
+use nvmod_testkit::{BaseBuilder, TempDir, snapshot};
+use raul_drivers::events::Event;
+use raul_drivers::lod::{self, LodRequest};
 use serde_json::Value;
 
-/// The fake lodwright. It reads its mode from `mode` next to it, records its arguments and process id, reads the
-/// output folder from the request, and behaves like lodwright would: a folder with a manifest is up to date.
-const FAKE: &str = r#"
-here=$(dirname "$0")
-mode=$(cat "$here/mode")
-echo "$@" > "$here/args"
-echo $$ > "$here/pid"
-req=""; events=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --request) req="$2"; shift ;;
-    --events) events="$2"; shift ;;
-  esac
-  shift
-done
-cp "$req" "$here/request.json"
-out=$(sed -n 's/.*"output_dir": *"\([^"]*\)".*/\1/p' "$req")
-result() { # result <status> <code> <schema version>
-  printf '{"schema_version":%s,"contract":"lodwright-result","tool":{"name":"lodwright","version":"0.3.0"},"status":"%s","code":"%s","reason":"fake %s"}\n' "${3:-1}" "$1" "$2" "$2"
+const MOD: &str = "LOD (lodwright)";
+
+/// The lodwright-rs version this build links, from the Component's own `Cargo.toml`, without its `v`.
+fn shipped_lodwright_version() -> String {
+    let text = std::fs::read_to_string(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../components/lodwright-rs/Cargo.toml"),
+    )
+    .expect("read components/lodwright-rs/Cargo.toml");
+    let mut in_package = false;
+    for line in text.lines() {
+        let line = line.trim();
+        if line.starts_with('[') {
+            in_package = line == "[package]" || line == "[workspace.package]";
+            continue;
+        }
+        if !in_package {
+            continue;
+        }
+        if let Some(value) = line.strip_prefix("version")
+            && let Some(value) = value.trim().strip_prefix('=')
+        {
+            return value
+                .trim()
+                .trim_matches('"')
+                .trim_start_matches('v')
+                .to_owned();
+        }
+    }
+    panic!("components/lodwright-rs/Cargo.toml states no version");
 }
-manifest() { printf '{"schema_version":%s,"contract":"lodwright-manifest","files":[]}\n' "${1:-1}" > "$out/manifest.json"; }
-case "$mode" in
-  ok|v2|newermanifest|nomanifest|fomod)
-    if [ "$mode" = ok ] && [ -f "$out/manifest.json" ]; then result ok up_to_date; exit 0; fi
-    mkdir -p "$out/meshes/landscape/lod" "$out/textures/landscape/lod"
-    cat "$here/marker" > "$out/meshes/landscape/lod/block.nif" 2>/dev/null || echo first > "$out/meshes/landscape/lod/block.nif"
-    echo synthetic > "$out/textures/landscape/lod/block.dds"
-    if [ "$mode" = fomod ]; then mkdir -p "$out/fomod"; echo '<config/>' > "$out/fomod/ModuleConfig.xml"; fi
-    echo '{"event":"block","world":"SyntheticWorld","level":4,"done":1,"of":2,"up_to_date":false}' >> "$events"
-    echo '{"event":"block","world":"SyntheticWorld","level":4,"done":2,"of":2,"up_to_date":false}' >> "$events"
-    case "$mode" in
-      nomanifest) ;;
-      newermanifest) manifest 2 ;;
-      *) manifest ;;
-    esac
-    result ok ok ;;
-  failed) result failed output_not_empty; exit 1 ;;
-  usage) result failed usage; exit 2 ;;
-  unsupported) result unsupported missing_capability; exit 3 ;;
-  newer) result ok ok 2 ;;
-  garbage) echo "this is not a result" ;;
-  slow) exec sleep 30 ;;
-esac
-"#;
 
 struct Fixture {
     root: TempDir,
 }
 
 impl Fixture {
+    /// An Instance whose game master is a synthetic world of four cells with terrain.
     fn new(label: &str) -> Fixture {
         let f = Fixture {
             root: TempDir::new(label),
@@ -71,8 +63,16 @@ impl Fixture {
         BaseBuilder::steam()
             .exe_version([1, 4, 0, 525])
             .write(&f.path("FalloutNV"));
-        std::fs::create_dir_all(f.path("tools")).unwrap();
-        write_script(&f.path("tools"), "lodwright", FAKE);
+        let world = SyntheticWorld::new(0xB00, "Island")
+            .cell(2, 2, Heights::flat(16.0))
+            .cell(3, 2, Heights::flat(24.0))
+            .cell(2, 3, Heights::flat(32.0))
+            .cell(3, 3, Heights::flat(8.0));
+        std::fs::write(
+            f.path("FalloutNV/Data/FalloutNV.esm"),
+            world_plugin(&[], &world, false),
+        )
+        .unwrap();
         let (base, inst) = (f.path("FalloutNV"), f.instance());
         for args in [
             &["init", "--base", s(&base), "--instance", s(&inst)][..],
@@ -88,55 +88,59 @@ impl Fixture {
     fn path(&self, p: &str) -> PathBuf {
         self.root.path().join(p)
     }
+
     fn instance(&self) -> PathBuf {
         self.path("instance")
     }
-    fn mode(&self, mode: &str) {
-        std::fs::write(self.path("tools/mode"), mode).unwrap();
-    }
-    fn args(&self) -> String {
-        std::fs::read_to_string(self.path("tools/args")).unwrap_or_default()
+
+    fn out_dir(&self) -> PathBuf {
+        self.instance().join(".raul/lod/out")
     }
 
-    fn command(&self, args: &[&str]) -> Command {
-        let mut c = Command::new(env!("CARGO_BIN_EXE_raul"));
-        c.args(args)
-            .env("RAUL_CONFIG_DIR", self.path("config"))
-            .env("NVMOD_STATE_DIR", self.path("state"));
-        c
+    fn lod_mod(&self) -> PathBuf {
+        self.instance().join("mods").join(MOD)
+    }
+
+    /// Replace the Profile's `raul-lod.toml` with `text`.
+    fn settings(&self, text: &str) {
+        std::fs::write(self.instance().join("profiles/Default/raul-lod.toml"), text).unwrap();
     }
 
     fn raul(&self, args: &[&str]) -> Output {
-        self.command(args).output().expect("raul runs")
+        Command::new(env!("CARGO_BIN_EXE_raul"))
+            .args(args)
+            .env("RAUL_CONFIG_DIR", self.path("config"))
+            .env("NVMOD_STATE_DIR", self.path("state"))
+            .output()
+            .expect("raul runs")
     }
 
-    fn argv(&self, extra: &[&str]) -> Vec<String> {
-        let mut v: Vec<String> = ["lod", "generate", "--json", "--instance"]
-            .map(str::to_owned)
-            .to_vec();
-        v.push(s(&self.instance()).to_owned());
-        v.push("--lodwright".into());
-        v.push(s(&self.path("tools/lodwright")).to_owned());
-        v.extend(extra.iter().map(|e| (*e).to_owned()));
-        v
-    }
-
+    /// Runs `raul lod generate --json` with `extra` flags; returns the exit code, the result and `finished`.
     fn generate(&self, extra: &[&str]) -> (Option<i32>, Value, Value) {
-        let words = self.argv(extra);
-        let args: Vec<&str> = words.iter().map(String::as_str).collect();
+        let inst = self.instance();
+        let mut args = vec!["lod", "generate", "--json", "--instance", s(&inst)];
+        args.extend_from_slice(extra);
         let out = self.raul(&args);
         let (result, finished) = check_stream(&out);
         (out.status.code(), result, finished)
+    }
+
+    /// The same run in process, with `cancel` and the events it emits.
+    fn in_process(&self, cancel: &CancelToken, emit: &mut dyn FnMut(Event)) -> lod::LodOutcome {
+        let req = LodRequest {
+            instance: self.instance(),
+            profile: None,
+            worlds: Vec::new(),
+            dry_run: false,
+            timeout: Duration::from_secs(600),
+        };
+        lod::generate_with_cancel(&req, cancel, emit)
     }
 
     fn state(&self) -> BTreeMap<String, Vec<u8>> {
         let mut all = snapshot(&self.instance().join("mods"));
         all.extend(snapshot(&self.instance().join("profiles")));
         all
-    }
-
-    fn lod_mod(&self) -> PathBuf {
-        self.instance().join("mods/LOD (lodwright)")
     }
 }
 
@@ -181,39 +185,76 @@ fn check_stream(out: &Output) -> (Value, Value) {
     (result, finished)
 }
 
+/// The files under `dir`, counted as the Mod counts them.
+fn files_under(dir: &Path) -> u64 {
+    std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| match e.file_type() {
+            Ok(t) if t.is_dir() => files_under(&e.path()),
+            _ => 1,
+        })
+        .sum()
+}
+
+fn mod_names(f: &Fixture) -> Vec<String> {
+    let mut names: Vec<String> = std::fs::read_dir(f.instance().join("mods"))
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    names
+}
+
+fn enabled_lines(f: &Fixture) -> usize {
+    std::fs::read_to_string(f.instance().join("profiles/Default/modlist.txt"))
+        .unwrap()
+        .lines()
+        .filter(|l| *l == format!("+{MOD}"))
+        .count()
+}
+
 #[test]
 fn success_keeps_one_enabled_lod_mod_and_a_second_run_is_up_to_date() {
     let f = Fixture::new("raul-lodgen-ok");
-    f.mode("ok");
     let (code, result, finished) = f.generate(&[]);
     assert_eq!(code, Some(0), "{result}");
-    assert_eq!(result["mod"], "LOD (lodwright)");
-    assert_eq!(result["files"], 2, "the manifest is not part of the Mod");
+    assert_eq!(result["status"], "success", "{result}");
+    assert_eq!(result["mod"], MOD);
     assert_eq!(result["up_to_date"], false);
-    assert_eq!(result["tool"]["version"], "0.3.0");
-    assert_eq!(finished["changed"], true);
-    assert!(f.lod_mod().join("meshes/landscape/lod/block.nif").is_file());
-    assert!(!f.lod_mod().join("manifest.json").exists());
-    let modlist =
-        std::fs::read_to_string(f.instance().join("profiles/Default/modlist.txt")).unwrap();
-    assert!(
-        modlist.lines().any(|l| l == "+LOD (lodwright)"),
-        "{modlist}"
+    assert_eq!(result["lodwright"]["code"], "generated", "{result}");
+    assert_eq!(
+        result["tool"]["version"],
+        shipped_lodwright_version().as_str()
     );
-    // The request lodwright got is the one `raul lod plan` shows.
-    let sent: Value =
-        serde_json::from_str(&std::fs::read_to_string(f.path("tools/request.json")).unwrap())
-            .unwrap();
-    raul_drivers::lod::check_request(&sent).unwrap();
-    let plan = f.raul(&["lod", "plan", "--json", "--instance", s(&f.instance())]);
-    assert_eq!(serde_json::from_slice::<Value>(&plan.stdout).unwrap(), sent);
-    assert!(f.args().starts_with("generate --request "), "{}", f.args());
-    assert!(f.args().contains("--json") && f.args().contains("--events"));
+    assert_eq!(finished["changed"], true);
+    assert!(
+        f.lod_mod()
+            .join("lodsettings/island.dlodsettings")
+            .is_file()
+    );
+    assert!(f.lod_mod().join("meshes/landscape/lod/island").is_dir());
+    assert!(!f.lod_mod().join("manifest.json").exists());
+    // nvmod adds the Mod's `meta.ini`, which the result does not count.
+    assert!(f.lod_mod().join("meta.ini").is_file());
+    assert_eq!(
+        result["files"].as_u64(),
+        Some(files_under(&f.lod_mod()) - 1),
+        "the Mod holds the files the result counts"
+    );
+    assert_eq!(enabled_lines(&f), 1);
+    // The request is the one `raul lod plan` shows, and it passes lodwright's schema.
+    let inst = f.instance();
+    let out = f.raul(&["lod", "plan", "--json", "--instance", s(&inst)]);
+    let plan: Value = serde_json::from_slice(&out.stdout).unwrap();
+    lod::check_request(&plan).unwrap();
 
     let before = f.state();
     let (code, result, finished) = f.generate(&[]);
     assert_eq!(code, Some(0));
-    assert_eq!(result["up_to_date"], true);
+    assert_eq!(result["up_to_date"], true, "{result}");
+    assert_eq!(result["lodwright"]["code"], "up_to_date");
     assert_eq!(finished["changed"], false);
     assert_eq!(f.state(), before, "an up-to-date run changed the Instance");
 }
@@ -221,25 +262,16 @@ fn success_keeps_one_enabled_lod_mod_and_a_second_run_is_up_to_date() {
 #[test]
 fn a_new_output_replaces_the_lod_mod_and_leaves_one() {
     let f = Fixture::new("raul-lodgen-replace");
-    f.mode("ok");
     assert_eq!(f.generate(&[]).0, Some(0));
-    // The inputs changed: lodwright writes new files.
-    std::fs::remove_file(f.instance().join(".raul/lod/out/manifest.json")).unwrap();
-    std::fs::write(f.path("tools/marker"), "second").unwrap();
+    // The Profile's settings change the request: lodwright writes new files.
+    f.settings("[output]\nwater = false\n");
     let (code, result, _) = f.generate(&[]);
     assert_eq!(code, Some(0), "{result}");
-    let block =
-        std::fs::read_to_string(f.lod_mod().join("meshes/landscape/lod/block.nif")).unwrap();
-    assert_eq!(block.trim(), "second");
-    let mods: Vec<String> = std::fs::read_dir(f.instance().join("mods"))
-        .unwrap()
-        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
-        .collect();
-    assert_eq!(mods, ["LOD (lodwright)"], "{mods:?}");
-    let modlist =
-        std::fs::read_to_string(f.instance().join("profiles/Default/modlist.txt")).unwrap();
-    assert_eq!(modlist.matches("LOD (lodwright)").count(), 1, "{modlist}");
-    // A backup an interrupted run left behind is removed by the next run.
+    assert_eq!(result["up_to_date"], false);
+    assert_eq!(result["lodwright"]["code"], "generated", "{result}");
+    assert_eq!(mod_names(&f), [MOD], "one Mod");
+    assert_eq!(enabled_lines(&f), 1);
+    // A backup an interrupted run left behind is removed when the next run replaces the Mod.
     let out = f.raul(&[
         "mods",
         "create",
@@ -248,191 +280,165 @@ fn a_new_output_replaces_the_lod_mod_and_leaves_one() {
         s(&f.instance()),
     ]);
     assert!(out.status.success(), "{out:?}");
-    std::fs::remove_file(f.instance().join(".raul/lod/out/manifest.json")).unwrap();
+    f.settings("[output]\nwater = true\n");
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(mod_names(&f), [MOD], "the backup is gone");
+}
+
+/// A FOMOD that needs answers in the output makes the Mod's install fail after the old Mod has been moved aside, which
+/// is the add failure the rollback is for. The stray folder is not in lodwright's manifest, so lodwright keeps it.
+fn fomod_in_output(f: &Fixture) {
+    let dir = f.out_dir().join("fomod");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("ModuleConfig.xml"), "<config/>").unwrap();
+}
+
+#[test]
+fn a_failed_replacement_puts_the_old_mod_back() {
+    let f = Fixture::new("raul-lodgen-rollback");
     assert_eq!(f.generate(&[]).0, Some(0));
-    assert!(!f.instance().join("mods/LOD (lodwright) previous").exists());
+    let before = snapshot(&f.lod_mod());
+    f.settings("[output]\nwater = false\n");
+    fomod_in_output(&f);
+    let (code, result, finished) = f.generate(&[]);
+    assert_eq!(code, Some(4), "{result}");
+    assert_eq!(result["error"]["code"], "add_mod_failed", "{result}");
+    assert_eq!(finished["changed"], false);
+    assert_eq!(snapshot(&f.lod_mod()), before, "the old Mod is as it was");
+    assert_eq!(mod_names(&f), [MOD], "no backup is left");
+    assert_eq!(enabled_lines(&f), 1);
 }
 
 #[test]
 fn a_backup_left_alone_by_an_interrupted_run_is_put_back_when_the_new_mod_cannot_be_added() {
     let f = Fixture::new("raul-lodgen-lone-backup");
-    f.mode("ok");
     assert_eq!(f.generate(&[]).0, Some(0));
-    let first = std::fs::read(f.lod_mod().join("meshes/landscape/lod/block.nif")).unwrap();
+    let before = snapshot(&f.lod_mod());
     // An earlier run stopped after it moved the LOD Mod out of the way.
     let out = f.raul(&[
         "mods",
         "rename",
-        "LOD (lodwright)",
+        MOD,
         "LOD (lodwright) previous",
         "--instance",
         s(&f.instance()),
     ]);
     assert!(out.status.success(), "{out:?}");
-    std::fs::remove_file(f.instance().join(".raul/lod/out/manifest.json")).unwrap();
-    f.mode("fomod");
-    let (code, result, _) = f.generate(&[]);
+    f.settings("[output]\nwater = false\n");
+    fomod_in_output(&f);
+    let (code, result, finished) = f.generate(&[]);
     assert_eq!(code, Some(4), "{result}");
     assert_eq!(result["error"]["code"], "add_mod_failed", "{result}");
+    assert_eq!(finished["changed"], false);
+    assert_eq!(snapshot(&f.lod_mod()), before, "the old Mod is back");
     assert_eq!(
-        std::fs::read(f.lod_mod().join("meshes/landscape/lod/block.nif")).unwrap(),
-        first
+        mod_names(&f),
+        [MOD],
+        "the backup is put back under its name"
     );
-    assert!(!f.instance().join("mods/LOD (lodwright) previous").exists());
+    assert_eq!(enabled_lines(&f), 1);
 }
 
 #[test]
-fn every_lodwright_failure_maps_to_its_exit_code_and_leaves_the_instance_unchanged() {
+fn lodwright_refusals_keep_their_codes_and_exit_4_and_leave_the_instance_unchanged() {
     let f = Fixture::new("raul-lodgen-codes");
-    f.mode("ok");
     assert_eq!(f.generate(&[]).0, Some(0));
-    for (mode, exit, status, code, lodwright_code) in [
-        (
-            "failed",
-            4,
-            "failed",
-            "lodwright_failed",
-            Some("output_not_empty"),
-        ),
-        ("usage", 4, "failed", "lodwright_failed", Some("usage")),
-        (
-            "unsupported",
-            2,
-            "unsupported",
-            "unsupported",
-            Some("missing_capability"),
-        ),
-        ("newer", 2, "refused", "contract_refused", None),
-        ("garbage", 4, "failed", "tool_failed", None),
-        ("nomanifest", 4, "failed", "tool_failed", None),
-        ("newermanifest", 2, "refused", "contract_refused", None),
-    ] {
-        std::fs::remove_file(f.instance().join(".raul/lod/out/manifest.json")).ok();
-        let before = f.state();
-        f.mode(mode);
-        let (got, result, finished) = f.generate(&[]);
-        assert_eq!(got, Some(exit), "{mode}: {result}");
-        assert_eq!(finished["status"], status, "{mode}");
-        assert_eq!(finished["code"], code, "{mode}");
-        assert_eq!(finished["changed"], false, "{mode}");
-        assert_eq!(
-            result["error"]["lodwright_code"].as_str(),
-            lodwright_code,
-            "{mode}"
-        );
-        assert_eq!(f.state(), before, "{mode} changed the Instance");
-    }
-}
-
-#[test]
-fn a_newer_lodwright_result_is_refused_with_a_plain_reason() {
-    let f = Fixture::new("raul-lodgen-newer");
-    f.mode("newer");
-    let (code, _, finished) = f.generate(&[]);
-    assert_eq!(code, Some(2));
-    let message = finished["message"].as_str().unwrap();
-    assert!(
-        message.contains("version 2") && message.contains("reads version 1"),
-        "{message}"
-    );
-}
-
-#[test]
-fn sigint_stops_lodwright_and_exits_4_with_nothing_added() {
-    let f = Fixture::new("raul-lodgen-sigint");
     let before = f.state();
-    f.mode("slow");
-    let words = f.argv(&[]);
-    let args: Vec<&str> = words.iter().map(String::as_str).collect();
-    let child = f
-        .command(&args)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .unwrap();
-    let pid_file = f.path("tools/pid");
-    let start = Instant::now();
-    while std::fs::read_to_string(&pid_file)
-        .unwrap_or_default()
-        .trim()
-        .is_empty()
-    {
-        assert!(
-            start.elapsed() < Duration::from_secs(20),
-            "the fake never started"
-        );
-        std::thread::sleep(Duration::from_millis(20));
-    }
-    let fake = std::fs::read_to_string(&pid_file)
-        .unwrap()
-        .trim()
-        .to_owned();
-    std::thread::sleep(Duration::from_millis(300));
-    let raul_pid = child.id().to_string();
-    assert!(
-        Command::new("kill")
-            .args(["-INT", &raul_pid])
-            .status()
-            .unwrap()
-            .success()
-    );
-    let out = child.wait_with_output().unwrap();
-    assert_eq!(
-        out.status.code(),
-        Some(4),
-        "{}",
-        String::from_utf8_lossy(&out.stderr)
-    );
-    let (result, finished) = check_stream(&out);
-    assert_eq!(finished["status"], "cancelled");
-    assert_eq!(result["mod"], Value::Null);
-    let alive = Command::new("kill")
-        .args(["-0", &fake])
-        .stderr(Stdio::null())
-        .status()
-        .unwrap();
-    assert!(!alive.success(), "lodwright is still running");
-    assert_eq!(f.state(), before);
+
+    // A folder with files and no manifest is not an output folder lodwright may write into.
+    std::fs::remove_dir_all(f.out_dir()).unwrap();
+    std::fs::create_dir_all(f.out_dir()).unwrap();
+    std::fs::write(f.out_dir().join("stray.txt"), "not lodwright's").unwrap();
+    let (got, result, finished) = f.generate(&[]);
+    assert_eq!(got, Some(4), "{result}");
+    assert_eq!(finished["status"], "failed");
+    assert_eq!(finished["code"], "lodwright_failed");
+    assert_eq!(result["error"]["lodwright_code"], "output_not_empty");
+    assert_eq!(finished["changed"], false);
+    assert_eq!(f.state(), before, "output_not_empty changed the Instance");
+
+    // A world the plugins do not define.
+    std::fs::remove_dir_all(f.out_dir()).unwrap();
+    let (got, result, finished) = f.generate(&["--world", "NoSuchWorld"]);
+    assert_eq!(got, Some(4), "{result}");
+    assert_eq!(finished["code"], "lodwright_failed");
+    assert_eq!(result["error"]["lodwright_code"], "world_not_found");
+    assert_eq!(finished["changed"], false);
+    assert_eq!(f.state(), before, "world_not_found changed the Instance");
 }
 
 #[test]
-fn a_dry_run_or_a_missing_program_starts_nothing() {
+fn a_stop_during_the_generation_adds_nothing_and_the_next_run_resumes() {
+    let f = Fixture::new("raul-lodgen-stop");
+    // One thread, so the blocks finish in order and a stop after the first one leaves the rest unbuilt.
+    f.settings("threads = 1\n");
+    let before = f.state();
+
+    // Stopped before the call starts: nothing is written into the Instance.
+    let cancelled = CancelToken::new();
+    cancelled.cancel();
+    let outcome = f.in_process(&cancelled, &mut |_| {});
+    assert_eq!(outcome.exit_code, 4, "{:?}", outcome.result);
+    assert_eq!(
+        outcome.result.status,
+        raul_drivers::events::Status::Cancelled
+    );
+    assert!(!outcome.changed);
+    assert_eq!(f.state(), before);
+
+    // Stopped after the first finished block: what finished is kept in the work folder, the Instance is unchanged.
+    // The cancel is set inside the emit, before the call goes on to its next safe point.
+    let cancel = CancelToken::new();
+    let stop = cancel.clone();
+    let outcome = f.in_process(&cancel, &mut |e: Event| {
+        if matches!(e, Event::Progress { .. }) {
+            stop.cancel();
+        }
+    });
+    assert_eq!(outcome.exit_code, 4, "{:?}", outcome.result);
+    assert_eq!(
+        outcome.result.status,
+        raul_drivers::events::Status::Cancelled
+    );
+    assert_eq!(outcome.result.mod_name, None);
+    assert!(!outcome.changed);
+    assert_eq!(f.state(), before, "a stopped run changed the Instance");
+    let partial: Value =
+        serde_json::from_slice(&std::fs::read(f.out_dir().join("manifest.json")).unwrap()).unwrap();
+    // An interrupted manifest is the library's own answer to the cancel (a finished run writes a digest).
+    assert_eq!(partial["request_digest"], "", "{partial}");
+    assert!(
+        partial["blocks"].as_array().is_some_and(|b| !b.is_empty()),
+        "the finished block is in the manifest: {partial}"
+    );
+
+    // The next run keeps the finished block and completes the Mod.
+    let outcome = f.in_process(&CancelToken::new(), &mut |_| {});
+    assert_eq!(outcome.exit_code, 0, "{:?}", outcome.result);
+    assert!(outcome.changed);
+    assert_eq!(outcome.result.mod_name.as_deref(), Some(MOD));
+    let lodwright = outcome.result.lodwright.expect("the lodwright result");
+    assert_eq!(lodwright["code"], "generated");
+    assert!(
+        lodwright["blocks"]["up_to_date"].as_u64().unwrap_or(0) >= 1,
+        "{lodwright}"
+    );
+    assert_eq!(mod_names(&f), [MOD]);
+}
+
+#[test]
+fn a_dry_run_or_a_bad_input_starts_nothing() {
     let f = Fixture::new("raul-lodgen-dry");
     let before = f.state();
-    f.mode("ok");
+    // A dry run builds and checks the request, and runs and writes nothing.
     let (code, result, _) = f.generate(&["--dry-run"]);
     assert_eq!(code, Some(0));
     assert_eq!(
         (result["dry_run"].as_bool(), result["tool"].is_null()),
         (Some(true), true)
     );
-    let out = f.raul(&[
-        "lod",
-        "generate",
-        "--json",
-        "--instance",
-        s(&f.instance()),
-        "--lodwright",
-        "/no/such/lodwright",
-    ]);
-    assert_eq!(out.status.code(), Some(2));
-    assert_eq!(check_stream(&out).0["error"]["code"], "tool_missing");
-    let out = f.raul(&[
-        "lod",
-        "generate",
-        "--json",
-        "--instance",
-        s(&f.path("nowhere")),
-    ]);
-    assert_eq!(check_stream(&out).0["error"]["code"], "instance_invalid");
-    assert!(f.args().is_empty(), "lodwright was started");
-    assert_eq!(f.state(), before);
-    assert_eq!(
-        f.raul(&["lod", "generate", "--timeout-secs", "0"])
-            .status
-            .code(),
-        Some(5)
-    );
+    assert!(!f.out_dir().exists(), "the dry run wrote an output folder");
     let out = f.raul(&[
         "lod",
         "generate",
@@ -441,6 +447,36 @@ fn a_dry_run_or_a_missing_program_starts_nothing() {
         "--dry-run",
     ]);
     assert!(String::from_utf8_lossy(&out.stdout).contains("dry run passed"));
+    assert_eq!(f.state(), before, "a dry run changed the Instance");
+    let out = f.raul(&[
+        "lod",
+        "generate",
+        "--json",
+        "--instance",
+        s(&f.path("nowhere")),
+    ]);
+    assert_eq!(check_stream(&out).0["error"]["code"], "instance_invalid");
+    // The program flag is gone: lodwright is not a program `raul` is given.
+    assert_eq!(
+        f.raul(&[
+            "lod",
+            "generate",
+            "--instance",
+            s(&f.instance()),
+            "--lodwright",
+            "/no/such/lodwright",
+        ])
+        .status
+        .code(),
+        Some(5)
+    );
+    assert_eq!(
+        f.raul(&["lod", "generate", "--timeout-secs", "0"])
+            .status
+            .code(),
+        Some(5)
+    );
+    assert_eq!(f.state(), before, "a refused run changed the Instance");
 }
 
 /// nvmod has its own `lod`, and writes a run log for every command it runs: `raul lod generate` leaves none.
@@ -449,16 +485,8 @@ fn lod_generate_never_reaches_nvmod() {
     let f = Fixture::new("raul-lodgen-dispatch");
     let logs = f.path("state/logs");
     std::fs::remove_dir_all(&logs).unwrap();
-    f.mode("ok");
     assert_eq!(f.generate(&[]).0, Some(0));
-    let out = f.raul(&[
-        "lod",
-        "generate",
-        "--instance",
-        s(&f.instance()),
-        "--lodwright",
-        s(&f.path("tools/lodwright")),
-    ]);
+    let out = f.raul(&["lod", "generate", "--instance", s(&f.instance())]);
     assert!(
         String::from_utf8_lossy(&out.stdout).contains("up to date"),
         "{out:?}"

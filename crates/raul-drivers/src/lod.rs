@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! LOD through lodwright-rs: the request document the Toolbox builds from a Profile and passes to
-//! `lodwright generate --request <file>`, checked against the `lodwright-request` v1 schema lodwright publishes
-//! (a snapshot is in `contracts/snapshots/lodwright-rs/`), and the manifest lodwright leaves in its output folder.
-//! [`generate`] runs lodwright with that request and keeps its output as one Mod.
+//! LOD through lodwright-rs, linked into `raul`: the request document the Toolbox builds from a Profile, checked
+//! against the `lodwright-request` v1 schema lodwright publishes (a snapshot is in `contracts/snapshots/lodwright-rs/`),
+//! and the manifest lodwright leaves in its output folder. [`generate`] calls lodwright's library API in process with
+//! that request and keeps its output as one Mod.
 
 mod generate;
+mod inproc;
 
-pub use generate::{LODWRIGHT, LODWRIGHT_RESULT_VERSIONS, LodOutcome, LodRequest, generate};
+pub use generate::{LODWRIGHT, LodOutcome, LodRequest, generate, generate_with_cancel};
 
 use std::path::{Path, PathBuf};
 
@@ -364,11 +365,11 @@ pub struct LodResult {
     pub files: Option<u64>,
     /// The worlds the request names; empty for every world with terrain.
     pub worlds: Vec<String>,
-    /// The request file passed to lodwright, or `null` when none was written.
+    /// The request file, or `null`: lodwright is called in process with the request, so no file is written.
     pub request: Option<PathBuf>,
-    /// The lodwright program that ran, or `null` when none did.
+    /// lodwright, linked into `raul` (its name and version), or `null` when no generation started.
     pub tool: Option<crate::events::ToolInfo>,
-    /// The `lodwright-result` document lodwright printed, as it printed it, or `null` when it printed none.
+    /// The `lodwright-result` document of the run, as lodwright returned it, or `null` when it returned none.
     pub lodwright: Option<Value>,
     /// Set unless the status is `success`.
     pub error: Option<LodError>,
@@ -396,19 +397,19 @@ pub enum LodErrorCode {
     /// No request can be built from the Profile: no Load order, no Staging tree, settings that cannot be read, or
     /// an output folder lodwright refuses (exit code 2).
     PlanRefused,
-    /// No lodwright program: none is bundled next to `raul` and `--lodwright` was not given (exit code 2).
+    /// Not produced: lodwright is linked into `raul`, so there is no program to find (exit code 2).
     ToolMissing,
-    /// The lodwright program changed between its checksum and its start (exit code 3); it was not started.
+    /// Not produced: lodwright is linked into `raul`, so there is no program to check (exit code 3).
     ToolUnverifiable,
-    /// lodwright could not be started, ended without a result, or printed one that is not a `lodwright-result`
-    /// (exit code 4).
+    /// The generation stopped unexpectedly, ran past the timeout, reported a status that is not `ok`, or the work
+    /// folder could not be made (exit code 4).
     ToolFailed,
-    /// lodwright printed a `lodwright-result` or left a manifest of a version this build does not read (exit
-    /// code 2).
+    /// The output folder holds a manifest of a version this build does not read (exit code 2).
     ContractRefused,
-    /// lodwright ran and failed (its exit code 1 or 2; exit code 4); `lodwright_code` says why.
+    /// lodwright's generation failed (exit code 4); `lodwright_code` says why.
     LodwrightFailed,
-    /// lodwright cannot do what the request asks yet (its exit code 3; exit code 2). Nothing was written.
+    /// lodwright cannot do what the request asks yet (exit code 2). Nothing was written. Not produced by the linked
+    /// library, which reports such a request as `LodwrightFailed`.
     Unsupported,
     /// The run was cancelled (exit code 4); the Instance is as it was.
     Cancelled,

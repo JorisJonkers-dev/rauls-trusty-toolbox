@@ -24,11 +24,11 @@ const ALLOWED: &[(&str, &str)] = &[
     ),
     (
         "raul-cli/tests/lod_generate.rs",
-        "runs the built raul binary and sends it SIGINT to test cancellation",
+        "runs the built raul binary as a black box",
     ),
     (
-        "raul-cli/tests/lod_generate_real.rs",
-        "runs the built raul binary as a black box",
+        "raul-cli/tests/lod_stop.rs",
+        "runs the built raul binary as a black box, to make the Instance",
     ),
     (
         "raul-cli/tests/ttw.rs",

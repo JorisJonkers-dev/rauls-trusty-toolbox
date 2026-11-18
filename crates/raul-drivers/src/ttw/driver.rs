@@ -3,15 +3,11 @@
 //! its progress to [`Event`]s while it runs, reads the `ttwright-result` it returns, and adds the output to the
 //! Instance as one Mod with nvmod's mod-install library. Every outcome but success leaves the Instance as it was.
 
-use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-use std::sync::mpsc;
 use std::time::Duration;
 
 use nvmod_instance::{NvmodInstance, find_ci};
 use nvmod_modinstall::{InstallError, Limits, Request};
-use raul_runner::{Call, Output, Runner, ToolError};
-use serde_json::Value;
 
 use super::{CONTRACT, MOD_NAME, SCHEMA_VERSION, TtwError, TtwErrorCode, TtwResult};
 use crate::events::{Event, Status, ToolInfo};
@@ -27,9 +23,6 @@ pub const DEFAULT_TIMEOUT: Duration = Duration::from_hours(3);
 
 /// The folder inside the Instance where ttwright writes, kept between a cancelled run and `--resume`.
 pub const WORK_DIR: &str = ".raul/ttw";
-
-/// How often the event file is read while ttwright runs.
-const POLL: Duration = Duration::from_millis(100);
 
 /// What `raul ttw` was asked to do. The CLI fills the paths from flags or from `raul config`.
 #[derive(Debug, Clone)]
@@ -227,132 +220,6 @@ fn prepare(req: &TtwRequest, profile: &mut String) -> Result<Ready, (TtwErrorCod
         fallout3,
         newvegas,
         package,
-    })
-}
-
-/// How one event line of a Component becomes [`Event`]s: the parsed line, whether a warning about it was given
-/// already, and where the events go.
-pub(crate) type MapLine = fn(&Value, &mut bool, &mut dyn FnMut(Event));
-
-/// Reads the lines a Component appends to its event file and turns each into [`Event`]s.
-pub(crate) struct EventTail {
-    file: PathBuf,
-    offset: u64,
-    partial: String,
-    warned: bool,
-    map: MapLine,
-}
-
-impl EventTail {
-    pub(crate) fn new(file: PathBuf, map: MapLine) -> EventTail {
-        EventTail {
-            file,
-            offset: 0,
-            partial: String::new(),
-            warned: false,
-            map,
-        }
-    }
-
-    /// Emit every complete line written since the last call; with `last`, also a final line without a newline.
-    pub(crate) fn drain(&mut self, emit: &mut dyn FnMut(Event), last: bool) {
-        if let Ok(mut f) = std::fs::File::open(&self.file)
-            && f.seek(SeekFrom::Start(self.offset)).is_ok()
-        {
-            let mut bytes = Vec::new();
-            if let Ok(n) = f.read_to_end(&mut bytes) {
-                self.offset += n as u64;
-                self.partial.push_str(&String::from_utf8_lossy(&bytes));
-            }
-        }
-        while let Some(end) = self.partial.find('\n') {
-            let line: String = self.partial.drain(..=end).collect();
-            self.line(line.trim(), emit);
-        }
-        if last && !self.partial.trim().is_empty() {
-            let line = std::mem::take(&mut self.partial);
-            self.line(line.trim(), emit);
-        }
-    }
-
-    fn line(&mut self, line: &str, emit: &mut dyn FnMut(Event)) {
-        if line.is_empty() {
-            return;
-        }
-        if let Ok(v) = serde_json::from_str::<Value>(line) {
-            (self.map)(&v, &mut self.warned, emit);
-        }
-    }
-}
-
-/// One `ttwright-events` line as [`Event`]s. Only the event-tail test reads ttwright lines now (ttwright runs in process).
-#[cfg(test)]
-fn ttwright_line(v: &Value, warned: &mut bool, emit: &mut dyn FnMut(Event)) {
-    if v["schema_version"].as_i64() != Some(TTWRIGHT_EVENTS_VERSION) {
-        if !*warned {
-            *warned = true;
-            emit(Event::Warning {
-                message: format!(
-                    "ttwright writes events of version {}; this raul reads {TTWRIGHT_EVENTS_VERSION}, so progress is not shown",
-                    v["schema_version"]
-                ),
-            });
-        }
-        return;
-    }
-    let text = |k: &str| v[k].as_str().map(str::to_owned);
-    match v["event"].as_str() {
-        Some("phase") => {
-            if let Some(phase) = text("phase") {
-                emit(Event::Phase { phase });
-            }
-        }
-        Some("progress") => emit(Event::Progress {
-            phase: text("phase").unwrap_or_default(),
-            done: v["done"].as_u64().unwrap_or(0),
-            of: v["of"].as_u64().unwrap_or(0),
-            message: text("message"),
-        }),
-        Some("warning") => emit(Event::Warning {
-            message: text("message").unwrap_or_default(),
-        }),
-        // `started` and `finished` are the driver's own to report.
-        _ => {}
-    }
-}
-
-/// Run the Component `tool` through `runner`, turning the lines of its event file into events while it runs.
-pub(crate) fn run_streaming(
-    runner: &Runner,
-    tool: &str,
-    call_program: &Path,
-    args: &[String],
-    sha256: &str,
-    mut tail: EventTail,
-    emit: &mut dyn FnMut(Event),
-) -> Result<Output, ToolError> {
-    let (tx, rx) = mpsc::channel();
-    std::thread::scope(|scope| {
-        scope.spawn(|| {
-            let mut call = Call::new(tool, call_program, args);
-            call.expected_sha256 = Some(sha256);
-            let _ = tx.send(runner.run_any(&call));
-        });
-        loop {
-            match rx.recv_timeout(POLL) {
-                Ok(result) => {
-                    tail.drain(emit, true);
-                    return result;
-                }
-                Err(mpsc::RecvTimeoutError::Timeout) => tail.drain(emit, false),
-                Err(mpsc::RecvTimeoutError::Disconnected) => {
-                    return Err(ToolError::Failed {
-                        tool: tool.to_owned(),
-                        reason: "the run ended without an answer".to_owned(),
-                    });
-                }
-            }
-        }
     })
 }
 
@@ -580,51 +447,9 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
     )
 }
 
-/// Where a bundled Component program is, given the folder `raul` runs from: `components/` next to it (the
-/// portable archive and the Windows installer), `../Resources/components/` (the macOS app), or
-/// `../lib/<package>/components/` (the Linux packages).
-#[must_use]
-pub fn bundled(exe_dir: &Path, name: &str) -> Option<PathBuf> {
-    let file = format!("{name}{}", std::env::consts::EXE_SUFFIX);
-    let mut candidates = vec![
-        exe_dir.join("components").join(&file),
-        exe_dir.join("../Resources/components").join(&file),
-    ];
-    if let Ok(entries) = std::fs::read_dir(exe_dir.join("../lib")) {
-        let mut libs: Vec<PathBuf> = entries.flatten().map(|e| e.path()).collect();
-        libs.sort();
-        candidates.extend(libs.into_iter().map(|l| l.join("components").join(&file)));
-    }
-    candidates.into_iter().find(|c| c.is_file())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nvmod_testkit::{TempDir, write_file};
-
-    #[test]
-    fn a_bundled_program_is_found_in_each_package_layout() {
-        let file = format!("{TTWRIGHT}{}", std::env::consts::EXE_SUFFIX);
-        for layout in [
-            "app/components",
-            "Contents/Resources/components",
-            "usr/lib/raul/components",
-        ] {
-            let root = TempDir::new("raul-bundled");
-            write_file(root.path(), &format!("{layout}/{file}"), b"x");
-            let exe_dir = match layout {
-                "app/components" => root.path().join("app"),
-                "Contents/Resources/components" => root.path().join("Contents/MacOS"),
-                _ => root.path().join("usr/bin"),
-            };
-            std::fs::create_dir_all(&exe_dir).unwrap();
-            let found = bundled(&exe_dir, TTWRIGHT).expect(layout);
-            assert!(found.ends_with(format!("components/{file}")), "{layout}");
-        }
-        let empty = TempDir::new("raul-bundled-none");
-        assert_eq!(bundled(empty.path(), TTWRIGHT), None);
-    }
 
     #[test]
     fn every_status_has_its_exit_code() {
@@ -638,43 +463,6 @@ mod tests {
         ] {
             assert_eq!(exit_code(status), code, "{status:?}");
         }
-    }
-
-    #[test]
-    fn the_event_tail_reads_whole_lines_and_warns_once_about_a_newer_version() {
-        let dir = TempDir::new("raul-tail");
-        let file = dir.path().join("events.ndjson");
-        let mut tail = EventTail::new(file.clone(), ttwright_line);
-        let mut seen = Vec::new();
-        tail.drain(&mut |e| seen.push(e), false);
-        assert!(seen.is_empty(), "no file yet");
-        std::fs::write(
-            &file,
-            concat!(
-                "{\"schema_version\":1,\"event\":\"phase\",\"phase\":\"assets\"}\n",
-                "not json\n",
-                "{\"schema_version\":2,\"event\":\"phase\",\"phase\":\"x\"}\n",
-                "{\"schema_version\":3,\"event\":\"phase\",\"phase\":\"y\"}\n",
-                "{\"schema_version\":1,\"event\":\"progress\",\"phase\":\"assets\",\"done\":1,\"of\":2}\n",
-                "{\"schema_version\":1,\"event\":\"warning\",\"message\":\"w\"}\n",
-                "{\"schema_version\":1,\"event\":\"phase\",\"pha",
-            ),
-        )
-        .unwrap();
-        tail.drain(&mut |e| seen.push(e), false);
-        assert_eq!(seen.len(), 4, "{seen:?}");
-        assert!(matches!(&seen[0], Event::Phase { phase } if phase == "assets"));
-        assert!(matches!(&seen[1], Event::Warning { message } if message.contains("version 2")));
-        assert!(matches!(&seen[2], Event::Progress { done: 1, of: 2, .. }));
-        assert!(matches!(&seen[3], Event::Warning { message } if message == "w"));
-        // The unfinished line is completed by a later write.
-        let mut f = std::fs::OpenOptions::new()
-            .append(true)
-            .open(&file)
-            .unwrap();
-        std::io::Write::write_all(&mut f, b"se\":\"post_install\"}").unwrap();
-        tail.drain(&mut |e| seen.push(e), true);
-        assert!(matches!(&seen[4], Event::Phase { phase } if phase == "post_install"));
     }
 }
 

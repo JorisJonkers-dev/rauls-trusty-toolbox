@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish.workspace = true
-description = "Drivers of the process Components (TTW through ttwright, LOD through lodwright) and the raul-events stream."
+description = "Drivers of the process Components (TTW through ttwright, LOD through lodwright, both linked in process) and the raul-events stream."
 
 [dependencies]
 nvmod-core = { workspace = true }
@@ -15,7 +15,8 @@ nvmod-loadorder = { workspace = true }
 nvmod-modinstall = { workspace = true }
 ttwright-core = { workspace = true }
 ttwright-contract = { workspace = true }
-raul-runner = { workspace = true }
+lodwright-api = { workspace = true }
+lodwright-contract = { workspace = true }
 jsonschema = { workspace = true }
 toml = { workspace = true }
 schemars = { workspace = true }
@@ -24,6 +25,7 @@ serde_json = { workspace = true }
 
 [dev-dependencies]
 nvmod-testkit = { workspace = true }
+lodwright-testkit = { workspace = true }
 
 [lints]
 workspace = true

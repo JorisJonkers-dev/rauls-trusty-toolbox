@@ -57,7 +57,9 @@ usage:
   raul detect [--folder <dir>] [--json]
                               find Fallout: New Vegas and Fallout 3 copies (Steam, GOG, Epic), or check one folder
   raul bench [--quick] [--out <dir>] [--lodwright <bin>]
-                              run the benchmark suite on synthetic fixtures; writes bench.json and bench.md
+                              run the benchmark suite on synthetic fixtures; writes bench.json and bench.md.
+                              --lodwright is accepted but not run: lodwright is linked into raul, and the LOD
+                              case stays skipped until a synthetic plan fixture exists
   raul bench compare <base.json> <head.json> [--threshold <percent>]
                               compare two reports; slower cases are warnings, never failures
   raul update check [--json]  look for a newer Toolbox release on GitHub (nothing is downloaded or sent)
@@ -73,9 +75,11 @@ usage:
                               the lodwright request a LOD run would send for the Profile (its active plugins,
                               its Staging tree and its raul-lod.toml); nothing is run
   raul lod generate [--instance <dir>] [--profile <name>] [--world <name>]... [--dry-run]
-                    [--lodwright <path>] [--timeout-secs <n>] [--json]
-                              generate LOD with the bundled lodwright from that request and keep the output as
-                              the Mod `LOD (lodwright)`; --json streams raul-events lines
+                    [--timeout-secs <n>] [--json]
+                              generate LOD with lodwright, linked into raul, from that request and keep the output
+                              as the Mod `LOD (lodwright)`; --json streams raul-events lines. --timeout-secs is
+                              checked between terrain blocks, worlds and steps, so a step already running finishes
+                              first
   raul <nvmod command> ...    every nvmod command (install, sort, run, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";

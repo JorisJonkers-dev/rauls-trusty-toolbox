@@ -17,7 +17,8 @@ use serde::{Deserialize, Serialize};
 pub struct Options {
     /// Fewer iterations, for tests and pull-request CI.
     pub quick: bool,
-    /// A lodwright binary; without one the LOD case is skipped.
+    /// A lodwright binary. Nothing runs it: the LOD case is skipped until a synthetic plan fixture exists, and the
+    /// value only changes the reason the report gives.
     pub lodwright: Option<PathBuf>,
 }
 
@@ -127,7 +128,8 @@ pub fn run_suite(options: &Options) -> Report {
     skipped.push(Skipped {
         name: "lod/generate".into(),
         reason: match &options.lodwright {
-            None => "no lodwright binary given (--lodwright <path>)".into(),
+            None => "no synthetic lodwright plan fixture yet (lodwright is linked into raul; --lodwright is not run)"
+                .into(),
             Some(p) => format!("{}: no synthetic lodwright plan fixture yet", p.display()),
         },
     });

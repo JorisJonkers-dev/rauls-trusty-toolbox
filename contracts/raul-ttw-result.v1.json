@@ -36,18 +36,18 @@
       ]
     },
     "ToolInfo": {
-      "description": "The Component a driver ran. ttwright runs in raul's own process, so its `tool` names the raul executable.",
+      "description": "The Component a driver ran. ttwright and lodwright run in raul's own process, so their `tool` names the raul\nexecutable.",
       "properties": {
         "name": {
           "description": "The Component's name, for example `ttwright`.",
           "type": "string"
         },
         "path": {
-          "description": "The file that ran: for ttwright, the raul executable.",
+          "description": "The file that ran: for ttwright and lodwright, the raul executable.",
           "type": "string"
         },
         "sha256": {
-          "description": "The SHA-256 of that file, checked again right before it was started; empty for ttwright, which runs in\nraul's own process and starts no file of its own.",
+          "description": "The SHA-256 of that file, checked again right before it was started; empty for ttwright and lodwright, which\nrun in raul's own process and start no file of their own.",
           "type": "string"
         },
         "version": {

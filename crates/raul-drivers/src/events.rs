@@ -46,7 +46,7 @@ pub enum Event {
         instance: PathBuf,
         /// The Profile that gets the result.
         profile: String,
-        /// The program that runs.
+        /// The Component that runs: its program, or the raul executable when it is linked into raul.
         tool: ToolInfo,
     },
     /// A phase of the Component's work began. The phases are the Component's own (for `ttw`: `package`,
@@ -111,17 +111,18 @@ pub enum Status {
     Cancelled,
 }
 
-/// The Component a driver ran. ttwright runs in raul's own process, so its `tool` names the raul executable.
+/// The Component a driver ran. ttwright and lodwright run in raul's own process, so their `tool` names the raul
+/// executable.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ToolInfo {
     /// The Component's name, for example `ttwright`.
     pub name: String,
     /// Its version as the program reported it in its result; `null` in the `started` event, before it ran.
     pub version: Option<String>,
-    /// The file that ran: for ttwright, the raul executable.
+    /// The file that ran: for ttwright and lodwright, the raul executable.
     pub path: PathBuf,
-    /// The SHA-256 of that file, checked again right before it was started; empty for ttwright, which runs in
-    /// raul's own process and starts no file of its own.
+    /// The SHA-256 of that file, checked again right before it was started; empty for ttwright and lodwright, which
+    /// run in raul's own process and start no file of their own.
     pub sha256: String,
 }
 
