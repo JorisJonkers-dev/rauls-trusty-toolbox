@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795000420147,
+  "lastUpdate": 1795001446122,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4213,6 +4213,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.918796,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "66c5350f34ee492ac78082064d03a22020bd1b8f",
+          "message": "build: move to nvmod v0.8.0, nv-rs v0.7.0 and lodwright-rs v0.4.1 (#279)",
+          "timestamp": "2026-11-18T12:29:32+01:00",
+          "tree_id": "e62cf251fcb61acf5f75e6519459a9866b544058",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/66c5350f34ee492ac78082064d03a22020bd1b8f"
+        },
+        "date": 1795001445491,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.6687500000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.656325000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.048927,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.257897,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.296244,
             "unit": "ms"
           }
         ]
