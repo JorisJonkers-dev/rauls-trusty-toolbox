@@ -233,7 +233,7 @@ fn a_held_instance_lock_refuses_a_target_change_and_changes_nothing() {
 }
 
 #[test]
-fn profile_create_makes_the_profile_in_process_and_a_second_call_is_not_an_error() {
+fn profile_create_makes_the_profile_in_process_and_a_held_lock_refuses_it() {
     let inst = Instance::new();
     let root = s(&inst.root());
     let request = ProfileRequest {
@@ -245,5 +245,55 @@ fn profile_create_makes_the_profile_in_process_and_a_second_call_is_not_an_error
     let held = InstanceGuard::acquire(&inst.root(), "test").unwrap();
     let again = service().profile_create(&request);
     drop(held);
-    assert!(again.is_err(), "a held Instance lock refuses the job");
+    match again {
+        Err(ServiceError::Failed(e)) => assert_eq!(e.exit, ExitClass::Refused, "{e:?}"),
+        other => panic!("a held Instance lock refuses the job: {other:?}"),
+    }
+}
+
+#[test]
+fn a_move_of_a_mod_matches_the_command_line_and_an_unknown_mod_is_a_refusal() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    let root = s(&inst.root());
+    let answer = service()
+        .mods_change(&ModsRequest {
+            instance: root.clone(),
+            profile: None,
+            step: ModStep::Move {
+                name: "Plain Mod".to_owned(),
+                position: 1,
+            },
+            dry_run: true,
+        })
+        .unwrap();
+    let cli = InProcessExec::new()
+        .run(&[
+            "mods".to_owned(),
+            "reorder".to_owned(),
+            "Plain Mod".to_owned(),
+            "--position".to_owned(),
+            "1".to_owned(),
+            "--instance".to_owned(),
+            root.clone(),
+            "--dry-run".to_owned(),
+            "--json".to_owned(),
+        ])
+        .unwrap();
+    assert_eq!(cli.code, Some(0), "{cli:?}");
+    assert_eq!(
+        answer,
+        serde_json::from_str::<ModsReport>(&cli.stdout).unwrap()
+    );
+
+    let unknown = service().mods_change(&ModsRequest {
+        instance: root,
+        profile: None,
+        step: ModStep::Disable(vec!["No Such Mod".to_owned()]),
+        dry_run: true,
+    });
+    match unknown {
+        Err(ServiceError::Failed(e)) => assert_eq!(e.exit, ExitClass::Refused, "{e:?}"),
+        other => panic!("an unknown Mod is refused: {other:?}"),
+    }
 }
