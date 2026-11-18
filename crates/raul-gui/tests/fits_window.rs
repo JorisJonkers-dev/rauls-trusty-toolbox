@@ -22,7 +22,7 @@ const SMALLEST: [f32; 2] = [402.0, 480.0];
 const LARGE: [f32; 2] = [1920.0, 1080.0];
 
 /// Views that do not fit yet, and the ticket that fixes each.
-const KNOWN: &[(&str, &str)] = &[("setup", "#211")];
+const KNOWN: &[(&str, &str)] = &[];
 
 struct Quiet;
 

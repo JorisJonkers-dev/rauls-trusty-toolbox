@@ -4,7 +4,7 @@
 
 use super::home::{Mark, icon, mark};
 use super::settings::{
-    LABEL_WIDTH, Pending, Visits, WAITING, available, config_answer, error_block, failure_of,
+    Pending, Visits, WAITING, available, config_answer, error_block, failure_of, label_width,
     path_field, read_config, settle, share_config, start, start_then, waiting,
 };
 use super::{Fixture, Page, PageCx};
@@ -426,7 +426,12 @@ impl Page for Setup {
                 });
             });
         } else {
-            self.step_page(ui, cx);
+            // The page never asks for more than the window has, so a long line wraps instead of widening it.
+            let room = (ui.ctx().content_rect().width() - 48.0).max(200.0);
+            ui.scope(|ui| {
+                ui.set_max_width(ui.available_width().min(room));
+                self.step_page(ui, cx);
+            });
         }
     }
 
@@ -493,8 +498,9 @@ impl Setup {
 
     fn find_row(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>, key: Key) {
         let t = *cx.tokens;
-        ui.horizontal(|ui| {
-            ui.add_space(LABEL_WIDTH + ui.spacing().item_spacing.x);
+        let gap = label_width(ui) + ui.spacing().item_spacing.x;
+        ui.horizontal_wrapped(|ui| {
+            ui.add_space(gap);
             let can = available(&detect_command());
             if ui.add_enabled(can, egui::Button::new(FIND)).clicked() {
                 self.find(cx, key);
@@ -536,8 +542,9 @@ impl Setup {
         self.field(ui, cx, Key::NewVegas);
         self.find_row(ui, cx, Key::NewVegas);
         if self.state.game.saved.is_some() && !self.state.game.changed() {
+            let gap = label_width(ui) + ui.spacing().item_spacing.x;
             ui.horizontal(|ui| {
-                ui.add_space(LABEL_WIDTH + ui.spacing().item_spacing.x);
+                ui.add_space(gap);
                 mark(ui, &t, Mark::Ok, GAME_FOUND);
             });
             ui.add_space(8.0);
@@ -547,13 +554,26 @@ impl Setup {
 
     fn ttw(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
-        ui.horizontal_wrapped(|ui| {
+        // One card per line when the page is narrow, two side by side otherwise; the width is worked out once, from
+        // the whole row (UI-RULES A6).
+        let row = ui.available_width();
+        let width = if row < 480.0 {
+            (row - 40.0).max(120.0)
+        } else {
+            ((row - 80.0) / 2.0).clamp(200.0, 340.0)
+        };
+        let cards = |ui: &mut egui::Ui| {
             for (want, title, sub) in [(false, TTW_NO, TTW_NO_SUB), (true, TTW_YES, TTW_YES_SUB)] {
-                if option_card(ui, &t, self.state.want_ttw == want, title, sub) {
+                if option_card(ui, &t, self.state.want_ttw == want, title, sub, width) {
                     self.state.want_ttw = want;
                 }
             }
-        });
+        };
+        if row < 480.0 {
+            ui.vertical(cards);
+        } else {
+            ui.horizontal_wrapped(cards);
+        }
         ui.add_space(12.0);
         if self.state.want_ttw {
             self.field(ui, cx, Key::Fallout3);
@@ -667,12 +687,16 @@ impl Setup {
             None if refused => Some(MISSING_REFUSED),
             None => None,
         };
-        ui.horizontal(|ui| {
+        // What the step is doing and what Next waits for get lines of their own above the buttons, so the buttons
+        // keep their room at the smallest window (UI-RULES A6).
+        ui.horizontal_wrapped(|ui| {
             ui.label(RichText::new(self.state_line()).color(t.muted.color()));
             progress(ui, &t, step);
-            if let Some(why) = why {
-                ui.label(RichText::new(why).color(t.muted.color()));
-            }
+        });
+        if let Some(why) = why {
+            ui.add(egui::Label::new(RichText::new(why).color(t.muted.color())).wrap());
+        }
+        ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 // The engine step's Install is its primary button until the engine is in.
                 let primary = !(step == Step::Engine && self.state.engine != EngineStep::Installed);
@@ -782,7 +806,14 @@ fn progress(ui: &mut egui::Ui, t: &Tokens, step: Step) {
 }
 
 /// One of two choices drawn as a card with a radio; clicking anywhere on it chooses it.
-fn option_card(ui: &mut egui::Ui, t: &Tokens, chosen: bool, title: &str, sub: &str) -> bool {
+fn option_card(
+    ui: &mut egui::Ui,
+    t: &Tokens,
+    chosen: bool,
+    title: &str,
+    sub: &str,
+    width: f32,
+) -> bool {
     let stroke = if chosen { t.accent } else { t.line };
     let frame = egui::Frame::new()
         .fill(if chosen { t.sel.color() } else { t.bg.color() })
@@ -790,7 +821,6 @@ fn option_card(ui: &mut egui::Ui, t: &Tokens, chosen: bool, title: &str, sub: &s
         .corner_radius(8)
         .inner_margin(egui::Margin::symmetric(14, 12));
     // Each card adds its margins (2 x 14) and stroke to this width.
-    let width = ((ui.available_width() - 80.0) / 2.0).clamp(200.0, 340.0);
     let inner = frame.show(ui, |ui| {
         ui.set_width(width);
         ui.vertical(|ui| {
