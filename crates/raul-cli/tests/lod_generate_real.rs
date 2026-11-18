@@ -15,7 +15,6 @@ use std::process::{Command, Output};
 use lodwright_testkit::land::Heights;
 use lodwright_testkit::world::{SyntheticWorld, world_plugin};
 use nvmod_testkit::{BaseBuilder, TempDir, snapshot};
-use raul_core::known_good::KnownGood;
 use serde_json::Value;
 
 const MOD: &str = "LOD (lodwright)";
@@ -28,21 +27,33 @@ fn lodwright() -> PathBuf {
     path
 }
 
-/// The lodwright-rs version of the latest Known-good set, without its `v`.
+/// The lodwright-rs version this build ships, from the Component's own `Cargo.toml`, without its `v`.
 fn shipped_lodwright_version() -> String {
     let text = std::fs::read_to_string(
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../known-good.toml"),
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../components/lodwright-rs/Cargo.toml"),
     )
-    .expect("read known-good.toml");
-    let set = KnownGood::parse(&text)
-        .expect("known-good.toml parses")
-        .latest_known_good()
-        .expect("a known-good set")
-        .clone();
-    set.components["lodwright-rs"]
-        .version
-        .trim_start_matches('v')
-        .to_owned()
+    .expect("read components/lodwright-rs/Cargo.toml");
+    let mut in_package = false;
+    for line in text.lines() {
+        let line = line.trim();
+        if line.starts_with('[') {
+            in_package = line == "[package]" || line == "[workspace.package]";
+            continue;
+        }
+        if !in_package {
+            continue;
+        }
+        if let Some(value) = line.strip_prefix("version")
+            && let Some(value) = value.trim().strip_prefix('=')
+        {
+            return value
+                .trim()
+                .trim_matches('"')
+                .trim_start_matches('v')
+                .to_owned();
+        }
+    }
+    panic!("components/lodwright-rs/Cargo.toml states no version");
 }
 
 struct Fixture {
