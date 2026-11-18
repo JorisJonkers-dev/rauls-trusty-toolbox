@@ -10,8 +10,7 @@ use raul_drivers::events::Status;
 use raul_drivers::ttw::{self, TtwRequest};
 
 use super::{
-    CancelToken, ENGINE_NOT_YET, Error, ErrorKind, Event, Outcome, Output, Progress, Request, Step,
-    plan,
+    CancelToken, Error, ErrorKind, Event, Outcome, Output, Progress, Request, Step, engine, plan,
 };
 
 /// Run the setup `request` asks for: report the plan, then run each planned step in order, reporting it as a
@@ -19,9 +18,9 @@ use super::{
 /// typed [`Error`]; a stop asked for through `cancel` ends it before the next step, or inside a step that checks
 /// the token, as [`Outcome::Cancelled`].
 ///
-/// The engine step is a boundary for the engine install (#275): it reports that it is not done yet and writes
-/// nothing. No step starts a process of its own; a Mod archive that needs the request's `extract_tool` is the
-/// one exception, and nvmod starts it.
+/// The engine step installs and checks nv-rs through the engine install library (`engine.rs`). No step starts a process of its own, with two exceptions: a Mod archive that needs the request's
+/// `extract_tool` (nvmod starts it), and the engine install, which runs `cargo` for a source build and `curl` and
+/// `gh` to fetch and verify the release.
 ///
 /// # Errors
 /// An [`Error`] naming the step, the job and the reason; the Instance is as that step left it (each job puts
@@ -178,16 +177,7 @@ fn execute(
             let r = api::profile::create(&request, &mut detail(step, progress), cancel);
             Ok(finish(step, r)?.is_some())
         }
-        Step::Engine => {
-            // The boundary for #275: the engine install is not part of this job yet.
-            progress.report(&Event::Detail {
-                step: step.clone(),
-                label: ENGINE_NOT_YET.to_owned(),
-                done: None,
-                total: None,
-            });
-            Ok(true)
-        }
+        Step::Engine => engine::run(req, step, progress, cancel),
         Step::Target => {
             let request = api::target::SetRequest {
                 instance,
