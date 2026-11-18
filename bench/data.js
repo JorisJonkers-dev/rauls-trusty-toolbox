@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794964853994,
+  "lastUpdate": 1794965657018,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -3429,6 +3429,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.1057760000000005,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7f277966e02b21e29dbfe98c0054fe448445155b",
+          "message": "feat(gui): unpack a TTW package that arrives in an archive (#242)\n\n* feat(gui): unpack a TTW package that arrives in an archive\n\n* fix(gui): keep watching when a settled package does not check out yet",
+          "timestamp": "2026-11-18T02:33:04+01:00",
+          "tree_id": "a1e1312263968fbce4a389f7bbc54ba54b5d93fc",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7f277966e02b21e29dbfe98c0054fe448445155b"
+        },
+        "date": 1794965656682,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.128998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.661592,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.583175,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.516512,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.119715,
             "unit": "ms"
           }
         ]
