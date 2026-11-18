@@ -286,13 +286,13 @@ pub struct ModsApplied {
     pub total: usize,
     /// Why a step failed. The earlier steps were undone ([`ModsApplied::undone`]) so the Instance is as it was.
     pub error: Option<ViewError>,
-    /// The earlier steps that were undone with `raul rollback` after a failure.
+    /// The earlier steps that were undone (the rollback job) after a failure.
     pub undone: usize,
 }
 
 /// Applies the staged edits of the Mods screen, one `raul mods ...` per step. When every step went through the
 /// screen is reloaded from the last report (so nothing is staged any more). When one fails, the steps before it
-/// are undone with `raul rollback` (each step has its own journal), the edits stay staged, and the error says
+/// are undone by the rollback job (each step has its own journal), the edits stay staged, and the error says
 /// what happened; an undo that fails too is said in the error, with how many steps are still applied.
 pub fn apply_mods(
     screen: &mut ModsScreen,
@@ -318,7 +318,7 @@ pub fn apply_mods(
                     };
                     if let Err(why) = service.rollback(&undo) {
                         error.effect = format!(
-                            "{} step(s) are still applied: undo them with `raul rollback`. {}",
+                            "{} step(s) are still applied: undo them with Undo. {}",
                             journaled - undone,
                             why.view_error().what
                         );

@@ -458,12 +458,18 @@ pub(crate) fn start_then(
             args
         })
     });
-    cx.jobs
-        .start_then(entry.action, entry.args(command.rest()), then, entry.writes)
-        .map_err(|e| match e {
-            JobError::Busy(_) => msg::JOB_BUSY,
-            JobError::Unknown(_) | JobError::NotCancellable(_) => msg::JOB_NOT_STARTED,
-        })
+    // An action that is converted runs as a typed job in process (`raul_ui_service::direct`); the page reads its
+    // answer the same way, so nothing above this call knows the difference.
+    let started = match raul_ui_service::direct::for_command(entry.action, &command.rest()) {
+        Some(job) if then.is_none() => cx.jobs.start_direct(entry.action, job, entry.writes),
+        _ => cx
+            .jobs
+            .start_then(entry.action, entry.args(command.rest()), then, entry.writes),
+    };
+    started.map_err(|e| match e {
+        JobError::Busy(_) => msg::JOB_BUSY,
+        JobError::Unknown(_) | JobError::NotCancellable(_) => msg::JOB_NOT_STARTED,
+    })
 }
 
 /// Whether this build can start `command` from the window.

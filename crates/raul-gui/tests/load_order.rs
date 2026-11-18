@@ -11,9 +11,9 @@ use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::load_order::{APPLIED_STATUS, SORT, UNDO, UNDONE_STATUS};
 use raul_gui::shell::App;
-use raul_ui_service::{Exec, ProcessExec};
+use raul_ui_service::{CancelHandle, Exec, Output, ProcessExec};
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 const MASTERLIST: &str = "plugins:\n  - name: 'Other\\.esp'\n    msg:\n      - {type: warn, content: 'A synthetic warning'}\n";
@@ -122,6 +122,47 @@ impl Fixture {
     }
 }
 
+/// The real runner, noting the command word of every command line it is asked to run.
+struct Recording {
+    inner: ProcessExec,
+    words: Arc<Mutex<Vec<String>>>,
+}
+
+impl Recording {
+    fn note(&self, args: &[String]) {
+        self.words
+            .lock()
+            .unwrap()
+            .push(args.first().cloned().unwrap_or_default());
+    }
+}
+
+impl Exec for Recording {
+    fn run(&self, args: &[String]) -> Result<Output, String> {
+        self.note(args);
+        self.inner.run(args)
+    }
+
+    fn run_streaming(
+        &self,
+        args: &[String],
+        on_line: &mut dyn FnMut(&str),
+    ) -> Result<Output, String> {
+        self.note(args);
+        self.inner.run_streaming(args, on_line)
+    }
+
+    fn run_cancellable(
+        &self,
+        args: &[String],
+        on_line: &mut dyn FnMut(&str),
+        cancel: &CancelHandle,
+    ) -> Result<Output, String> {
+        self.note(args);
+        self.inner.run_cancellable(args, on_line, cancel)
+    }
+}
+
 /// Runs frames until the jobs the page starts have ended and it has taken their answers.
 fn settle(h: &mut Harness<'static, App>) {
     for _ in 0..6 {
@@ -135,7 +176,11 @@ fn settle(h: &mut Harness<'static, App>) {
 fn sort_preview_apply_then_undo_restores_the_lists_byte_for_byte() {
     let f = Fixture::new();
     let before = f.lists();
-    let exec = ProcessExec::new(f.path("raul")).with_grace(Duration::from_secs(5));
+    let words = Arc::new(Mutex::new(Vec::new()));
+    let exec = Recording {
+        inner: ProcessExec::new(f.path("raul")).with_grace(Duration::from_secs(5)),
+        words: Arc::clone(&words),
+    };
     let app = App::new(Jobs::new(Arc::new(exec)));
     let mut h = Harness::builder()
         .with_size([1280.0, 800.0])
@@ -176,4 +221,13 @@ fn sort_preview_apply_then_undo_restores_the_lists_byte_for_byte() {
     );
     assert_eq!(f.lists(), before, "Undo restores both lists byte for byte");
     assert!(h.query_by_label(UNDO).is_none(), "nothing left to undo");
+    let words = words.lock().unwrap();
+    assert!(
+        words.iter().any(|w| w == "sort"),
+        "the sort is a command line: {words:?}"
+    );
+    assert!(
+        !words.iter().any(|w| w == "rollback"),
+        "Undo runs in process, as a typed job, not as a command line: {words:?}"
+    );
 }

@@ -33,6 +33,7 @@ eframe = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
+nvmod-api = { workspace = true }
 egui_kittest = { workspace = true }
 nvmod-testkit = { workspace = true }
 ttwright-testkit = { path = "../../components/ttwright-rs/crates/ttwright-testkit" }
@@ -62,6 +63,8 @@ raul-ui-model = { path = "crates/raul-ui-model" }
 raul-ui-service = { path = "crates/raul-ui-service" }
 raul-cli = { path = "../raul-cli" }
 raul-runner = { path = "../raul-runner" }
+nvmod-api = { path = "../../components/nvmod-rs/crates/nvmod-api" }
+raul-core = { path = "../raul-core" }
 nvmod-core = { path = "../../components/nvmod-rs/crates/nvmod-core" }
 nvmod-testkit = { path = "../../components/nvmod-rs/crates/nvmod-testkit" }
 nvmod-modinstall = { path = "../../components/nvmod-rs/crates/nvmod-modinstall" }

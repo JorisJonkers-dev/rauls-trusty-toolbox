@@ -20,6 +20,7 @@ nvmod-api = { workspace = true }
 nvmod-core = { workspace = true }
 nvmod-instance = { workspace = true }
 nvmod-pe = { workspace = true }
+nvmod-run = { workspace = true }
 
 [dev-dependencies]
 nvmod-testkit = { workspace = true }
