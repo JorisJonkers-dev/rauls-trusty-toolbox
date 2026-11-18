@@ -89,7 +89,9 @@ fn number_keys_open_the_pages_in_order() {
             _ => egui::Key::Num5,
         };
         h.key_press(key);
-        h.run();
+        // A page that opens starts its reads, which keep repainting while they run: a fixed number of frames is
+        // enough to see the page change, and `run` would wait for the reads to settle.
+        h.run_steps(8);
         assert_eq!(h.state().view(), View::Page(page));
     }
 }
@@ -98,7 +100,7 @@ fn number_keys_open_the_pages_in_order() {
 fn a_sidebar_entry_opens_its_page() {
     let mut h = harness(1280.0, app());
     h.get_all_by_label(msg::PAGE_LOD).next().unwrap().click();
-    h.run();
+    h.run_steps(8);
     assert_eq!(h.state().view(), View::Page(PageId::Lod));
 }
 
@@ -106,10 +108,10 @@ fn a_sidebar_entry_opens_its_page() {
 fn the_setup_strip_opens_the_home_of_each_value() {
     let mut h = harness(1280.0, app());
     h.get_by_label_contains(msg::NEW_VEGAS).click();
-    h.run();
+    h.run_steps(8);
     assert_eq!(h.state().view(), View::Page(PageId::Settings));
     h.get_by_label_contains(msg::ENGINE).click();
-    h.run();
+    h.run_steps(8);
     assert_eq!(h.state().view(), View::Page(PageId::Versions));
 }
 
