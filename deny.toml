@@ -15,11 +15,7 @@ feature-depth = 1
 version = 2
 db-urls = ["https://github.com/rustsec/advisory-db"]
 # Add RUSTSEC ids here only with a comment saying why the advisory does not apply.
-ignore = [
-    # chrono is flagged as unmaintained with no safe upgrade. It comes in through ttwright-core, which reads dates
-    # with it; it is no vulnerability. Remove this entry when ttwright-core moves to jiff or time.
-    "RUSTSEC-2026-0543",
-]
+ignore = []
 yanked = "warn"
 
 [licenses]
