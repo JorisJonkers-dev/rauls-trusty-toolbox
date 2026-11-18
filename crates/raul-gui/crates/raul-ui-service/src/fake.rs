@@ -614,8 +614,7 @@ mod tests {
     }
 
     #[test]
-    fn setup_and_mods_requests_are_the_words_after_the_command() {
-        use raul_ui_model::mods::ModStep;
+    fn setup_requests_are_the_words_after_the_command() {
         let mut setup = SetupRequest::fresh("/i", "/b", "m.yaml");
         setup.mods = vec!["a.zip".into(), "b.zip".into()];
         setup.skip_nv_rs = true;
@@ -661,50 +660,6 @@ mod tests {
         );
         let restart = SetupRequest::restart("/i", true).job_spec(raul_ui_model::job::JobId(1));
         assert!(restart.writes && !restart.cancellable);
-
-        let mods = |step, dry_run| ModsRequest {
-            instance: "/i".into(),
-            profile: Some("P".into()),
-            step,
-            dry_run,
-        };
-        assert_eq!(
-            mods(ModStep::Enable(vec!["A".into(), "B C".into()]), true).args(),
-            [
-                "enable",
-                "A",
-                "B C",
-                "--instance",
-                "/i",
-                "--profile",
-                "P",
-                "--dry-run"
-            ]
-        );
-        assert_eq!(
-            mods(ModStep::Disable(vec!["A".into()]), false).args(),
-            ["disable", "A", "--instance", "/i", "--profile", "P"]
-        );
-        assert_eq!(
-            mods(
-                ModStep::Move {
-                    name: "A".into(),
-                    position: 3
-                },
-                false
-            )
-            .args(),
-            [
-                "reorder",
-                "A",
-                "--position",
-                "3",
-                "--instance",
-                "/i",
-                "--profile",
-                "P"
-            ]
-        );
     }
 
     #[test]
@@ -764,10 +719,5 @@ mod tests {
                 "--apply"
             ]
         );
-        let target = TargetRequest {
-            instance: "/i".into(),
-            target: RuntimeTarget::Vanilla,
-        };
-        assert_eq!(target.args(), ["vanilla", "--instance", "/i"]);
     }
 }

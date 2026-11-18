@@ -195,6 +195,10 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
             }),
             instance => rollback(Path::new(instance)),
         }),
+        "profile-create" => Some(profile_create(&nvmod_api::profile::CreateRequest {
+            instance: PathBuf::from(value_of(rest, "--instance")),
+            name: option_of(rest, "--name"),
+        })),
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
@@ -347,6 +351,33 @@ fn value_of<'a>(rest: &'a [String], flag: &str) -> &'a str {
         .map_or("", String::as_str)
 }
 
+/// `nvmod_api::mods::change`: enables, disables or moves Mods of a profile. Its document is the report, as
+/// `raul mods enable|disable|reorder --json` prints it. A dry run only plans and takes no lock; a change holds the
+/// Instance lock while it runs.
+pub fn mods_change(request: &nvmod_api::mods::ChangeRequest) -> DirectJob {
+    let instance = request.instance.clone();
+    let dry_run = request.dry_run;
+    let request = request.clone();
+    let run = move |progress: &mut dyn Progress, cancel: &CancelToken| {
+        nvmod_api::mods::change(&request, progress, cancel)
+    };
+    if dry_run {
+        DirectJob::reading(run)
+    } else {
+        DirectJob::writing(instance, "mods", run)
+    }
+}
+
+/// `nvmod_api::profile::create`: makes a profile of the Instance, under the Instance lock.
+pub fn profile_create(request: &nvmod_api::profile::CreateRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::writing(
+        request.instance.clone(),
+        "profile",
+        move |progress, cancel| nvmod_api::profile::create(&request, progress, cancel),
+    )
+}
+
 /// `nvmod_api::install::rollback` of the Instance at `instance`: undoes the last install, sort or Mods change.
 /// Its report is the document `raul rollback --json` prints.
 pub fn rollback(instance: &Path) -> DirectJob {
@@ -356,6 +387,17 @@ pub fn rollback(instance: &Path) -> DirectJob {
     DirectJob::writing(instance, "rollback", move |progress, cancel| {
         nvmod_api::install::rollback(&request, progress, cancel)
     })
+}
+
+/// `nvmod_api::target::set`: sets what the Instance at `request.instance` runs on. The command has no `--json`, so
+/// the document is the outcome only.
+pub fn target(request: &nvmod_api::target::SetRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::writing(
+        request.instance.clone(),
+        "target",
+        move |progress, cancel| nvmod_api::target::set(&request, progress, cancel),
+    )
 }
 
 /// The exit class of a job's error kind: the code the command line would have ended with, except that an
