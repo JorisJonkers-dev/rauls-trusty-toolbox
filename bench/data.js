@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795027584312,
+  "lastUpdate": 1795030671473,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4409,6 +4409,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 11.332208,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1047abe506acbf8390bd8661d877ea0e9f06c5e5",
+          "message": "build: move to nvmod v0.9.0, ttwright-rs v0.4.3 and loot-rs v0.6.2 (#284)\n\nnvmod v0.9.0 carries the doctor, conflicts and tree jobs and links loot-rs v0.6.2, so loot-rs moves with it. ttwright-rs v0.4.3 holds cc below 1.9 for Windows builds and no longer uses chrono, so the advisory exception for it leaves deny.toml.",
+          "timestamp": "2026-11-18T20:34:13+01:00",
+          "tree_id": "d5f1fc4a5b01010bfb55b5083e53b88beeee7e2b",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/1047abe506acbf8390bd8661d877ea0e9f06c5e5"
+        },
+        "date": 1795030670963,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.318979,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.531749999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.091611,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 7.1382959999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.491869,
             "unit": "ms"
           }
         ]
