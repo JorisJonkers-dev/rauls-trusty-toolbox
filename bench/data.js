@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795045130203,
+  "lastUpdate": 1795045729225,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4948,6 +4948,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.238541,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "173d464eda5245cb3db6894ea338dbe4291e15cd",
+          "message": "feat(gui): run Mods change, target and profile creation in process (#300)\n\n* feat(gui): run the Mods change, target and profile creation as direct jobs\n\n* test(gui): cover a Mods move, an unknown Mod and a locked profile creation\n\n* test(gui): the missing-profile retry runs on a real Instance\n\n* test(gui): make the unmakable-profile test independent of the host\n\n* test(gui): poll for the ready page instead of a fixed wait in the wizard test\n\n* test(gui): keep clicking Next until the Ready page is up in the wizard test\n\n* test(gui): accept both ends of a Stop that races the end of the LOD run",
+          "timestamp": "2026-11-19T00:47:20+01:00",
+          "tree_id": "e09db0224a917de98aa1b0bee734a06bb6b5559e",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/173d464eda5245cb3db6894ea338dbe4291e15cd"
+        },
+        "date": 1795045728163,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.896553,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.683105,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.770269,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.082661,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 11.108104,
             "unit": "ms"
           }
         ]
