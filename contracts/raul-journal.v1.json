@@ -1,0 +1,85 @@
+{
+  "$defs": {
+    "TakenOver": {
+      "description": "Where a journal came from, when it did not start in `raul`.",
+      "properties": {
+        "from": {
+          "description": "What it was taken over from: `nvmod-setup`.",
+          "type": "string"
+        },
+        "version": {
+          "description": "The version of the program that wrote the old state, as that state names it.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "version"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The document in the journal file (Contract `raul-journal`, version 1).",
+  "properties": {
+    "complete": {
+      "default": false,
+      "description": "Whether every step of the plan finished.",
+      "type": "boolean"
+    },
+    "contract": {
+      "const": "raul-journal",
+      "description": "Always `raul-journal`.",
+      "type": "string"
+    },
+    "finished": {
+      "description": "The ids of the steps that finished, in the order they finished.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "plan": {
+      "default": [],
+      "description": "The ids of the steps of the setup, in order, as the plan named them when the run began (see `Step::id`).",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "raul_version": {
+      "description": "The version of `raul` that last wrote the file.",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "description": "The document version; 1.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "taken_over": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TakenOver"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Set when the journal was made from an unfinished `nvmod setup` and not by `raul` itself."
+    }
+  },
+  "required": [
+    "complete",
+    "contract",
+    "finished",
+    "plan",
+    "raul_version",
+    "schema_version",
+    "taken_over"
+  ],
+  "title": "JournalDoc",
+  "type": "object"
+}

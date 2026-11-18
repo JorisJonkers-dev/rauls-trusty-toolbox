@@ -281,3 +281,20 @@ fn every_snapshot_equals_the_schema_of_the_pinned_component() {
         }
     }
 }
+
+#[test]
+fn journal_fixtures_read_back_and_the_old_version_is_not_valid() {
+    use raul_core::journal::JournalDoc;
+    for doc in reads_back::<JournalDoc>("raul-journal") {
+        assert!(doc.finished.iter().all(|f| doc.plan.contains(f)));
+        assert_eq!(doc.complete, doc.finished.len() == doc.plan.len());
+    }
+    let validator = validator(&raul_core::journal::schema());
+    for (path, old) in fixtures("raul-journal-v0") {
+        assert!(!validator.is_valid(&old), "{}", path.display());
+    }
+    let (_, good) = fixtures("raul-journal").remove(0);
+    let mut newer = good;
+    newer["schema_version"] = 2.into();
+    assert!(!validator.is_valid(&newer));
+}

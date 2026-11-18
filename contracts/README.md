@@ -15,6 +15,7 @@ removing, renaming or retyping one is.
 | `raul-events` | 1 | the JSON lines of a driver command: `raul ttw --json` |
 | `raul-ttw-result` | 1 | the `result` event of `raul ttw --json` |
 | `raul-lod-result` | 1 | the `result` event of `raul lod generate --json` |
+| `raul-journal` | 1 | the file `.raul/setup-journal.json` in an Instance (on disk) |
 
 `snapshots/` holds the schemas of the Component Contracts the Toolbox reads, as their releases published them:
 `snapshots/ttwright-rs/` is ttwright-rs v0.3.0 (`ttwright-result`, `ttwright-events`, `ttwright-contracts`, all v1).
@@ -57,6 +58,37 @@ A command line `raul config` cannot read exits 5 with a usage line on standard e
 The file itself is an on-disk document with `schema_version = 1` (the first version: a file without one is read as
 version 1). Keys this build does not know survive a `set`. `raul config` is the file's only writer: the GUI and
 scripts run one `set` at a time.
+
+## `raul-journal`
+
+The setup job's resume journal, an on-disk document: `<instance>/.raul/setup-journal.json`. The setup writes it after each
+step that finishes, so a setup that was interrupted continues at the first unfinished step, starts again, or is
+removed from `raul`. Nothing is created in the Instance folder before the first step has made it.
+
+| Field | Meaning |
+| --- | --- |
+| `schema_version`, `contract`, `raul_version` | the version (1), `raul-journal`, and the `raul` that last wrote the file |
+| `plan` | the ids of the steps of the run, in order (`init`, `profile`, `engine`, `target`, `ttw`, `mod:<file name>`, `stage`, `sort`, `stamp`, `verify`) |
+| `finished` | the ids of the steps that finished, in order; a Mod step is matched to the request by its file name |
+| `complete` | every step of the plan finished |
+| `taken_over` | `null`, or where the journal came from: `from` is `nvmod-setup` and `version` the version that wrote that state |
+
+Opening a journal of an older version migrates it after a copy was kept next to it (`setup-journal.json.v0.bak`,
+never replacing an earlier copy); version 0 was the draft shape `{"schema_version": 0, "steps": [...]}`. A newer
+version is refused with a plain reason and the file is left as it is. Every write goes to a temporary file that is
+renamed over the journal, so an interrupted write leaves the old file whole. The setup job is the only writer; the
+Toolbox has no Instance lock yet.
+
+An Instance that holds an unfinished `nvmod setup` state (`.nvmod/setup.json`) and no journal is taken over once: its
+finished steps become the journal's (its `nv-rs` step is `engine`), a copy of the file is kept as
+`.raul/nvmod-setup.json.bak`, and the old file is not touched. The copy stops a later takeover after the journal was removed.
+
+| Error `code` | Meaning |
+| --- | --- |
+| `newer_schema` | the file's `schema_version` is newer than this `raul` reads; nothing was written |
+| `unreadable` | the file cannot be read or is not a journal; nothing was written |
+| `write_failed` | the file or a copy could not be written; the old file is as it was |
+| `takeover_refused` | the `nvmod` state cannot be read or is newer than this `raul` reads; it was left as it is |
 
 ## `raul-events`
 

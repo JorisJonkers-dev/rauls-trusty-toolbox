@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "contract": "raul-journal",
+  "raul_version": "0.1.0",
+  "taken_over": { "from": "nvmod-setup", "version": "0.9.0" },
+  "plan": ["init", "profile", "engine", "target", "mod:Example.zip", "stage", "sort", "verify"],
+  "finished": ["init", "profile", "engine", "target"],
+  "complete": false
+}
