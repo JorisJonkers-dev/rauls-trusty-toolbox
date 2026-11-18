@@ -1771,6 +1771,7 @@ dependencies = [
  "jsonschema",
  "nvmod-api",
  "nvmod-core",
+ "nvmod-install",
  "nvmod-instance",
  "nvmod-pe",
  "nvmod-run",

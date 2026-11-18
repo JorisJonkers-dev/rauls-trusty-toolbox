@@ -9,6 +9,7 @@
 //! Error>`. A cancel that arrives while the last step runs is not seen; the run ends as done. A cancelled run is an [`Outcome::Cancelled`], a result and not an error; the first failing step stops
 //! the run with its typed [`Error`]. The resume journal is in [`crate::journal`] (`journal::run` is this job with it); the wizard is not part of this module.
 
+mod engine;
 mod plan;
 mod run;
 
@@ -18,12 +19,10 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
+pub use engine::EngineOptions;
 pub use nvmod_api::CancelToken;
 pub use plan::plan;
 pub use run::run;
-
-/// The label key of the detail event the engine step reports until the engine install lands (#275).
-pub const ENGINE_NOT_YET: &str = "setup.engine.not-yet";
 
 /// What the person chose for a setup. Every path is absolute; the caller makes them so.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -44,10 +43,14 @@ pub struct Request {
     #[serde(default)]
     pub copy: bool,
     /// Put the nv-rs engine in the Instance and make it the target (nvmod's `setup` does this unless told
-    /// `--skip-nv-rs`; here it is opt-in, so a request that leaves it out keeps the vanilla target). Until the engine install lands (#275) the engine
-    /// step installs nothing, and the target step still sets the nv-rs target.
+    /// `--skip-nv-rs`; here it is opt-in, so a request that leaves it out keeps the vanilla target). The engine step installs and
+    /// checks nv-rs in process through the engine install library (see `engine.rs`; it goes with the play mode,
+    /// #260), and the target step then sets the nv-rs target.
     #[serde(default)]
     pub engine: bool,
+    /// How the engine step gets nv-rs (a source build or the release); read only when `engine` is set.
+    #[serde(default)]
+    pub engine_options: EngineOptions,
     /// Install Tale of Two Wastelands; `None` skips the step.
     #[serde(default)]
     pub ttw: Option<Ttw>,
@@ -101,7 +104,7 @@ pub enum Step {
     ImportMo2,
     /// Make the first Profile.
     Profile,
-    /// Put the nv-rs engine in the Instance (`#275`; today it only reports that it is not done yet).
+    /// Put the nv-rs engine in the Instance and check it (goes with the play mode, #260).
     Engine,
     /// Make nv-rs the target of the Instance.
     Target,
@@ -275,7 +278,8 @@ pub enum ErrorKind {
     Refused,
     /// The step failed and put back what it had started.
     Failed,
-    /// Every step ran and the check does not pass.
+    /// Every step ran and the check does not pass, or the engine step could not verify the checksum or
+    /// attestation of the release (nothing was installed).
     Unverified,
     /// A check inside a job failed: a bug, never a property of the input.
     Internal,

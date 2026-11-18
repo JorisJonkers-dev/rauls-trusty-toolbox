@@ -55,6 +55,7 @@ impl Scratch {
             import_mo2: None,
             copy: false,
             engine: false,
+            engine_options: raul_core::setup::EngineOptions::default(),
             ttw: None,
             mods: Vec::new(),
             answers: None,
