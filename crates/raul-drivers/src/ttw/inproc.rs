@@ -5,8 +5,7 @@ use std::time::{Duration, Instant};
 
 use crate::events::Event;
 
-/// The result of running ttwright in process. The install of the driver switches to it in the next step.
-#[allow(dead_code)]
+/// The result of running ttwright in process.
 pub(crate) struct InProc {
     /// The exit code the `ttwright` program would have ended with.
     pub exit_code: i32,
@@ -15,7 +14,6 @@ pub(crate) struct InProc {
 }
 
 /// Run ttwright's install in process, mapping progress to `Event`s.
-#[allow(dead_code)]
 pub(crate) fn install_in_process(
     job: &ttwright_core::api::InstallJob,
     timeout: Duration,
@@ -86,6 +84,32 @@ pub(crate) fn install_in_process(
     })
 }
 
+/// [`install_in_process`] for a caller whose event callback is not `Send`: the events cross a channel and `emit`
+/// is called on the calling thread, while the install runs on another.
+pub(crate) fn install_with_events(
+    job: &ttwright_core::api::InstallJob,
+    timeout: Duration,
+    emit: &mut dyn FnMut(Event),
+) -> InProc {
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::scope(|scope| {
+        let worker = scope.spawn(move || {
+            install_in_process(job, timeout, &mut |event| {
+                let _ = tx.send(event);
+            })
+        });
+        for event in rx {
+            emit(event);
+        }
+        worker.join().unwrap_or_else(|_| InProc {
+            exit_code: 1,
+            doc: serde_json::json!({
+                "error": { "message": "ttwright stopped unexpectedly" },
+            }),
+        })
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -106,5 +130,18 @@ mod tests {
             status == "failed" || status == "unsupported",
             "unexpected status: {status}"
         );
+    }
+
+    #[test]
+    fn events_reach_a_callback_that_is_not_send() {
+        let job = InstallJob {
+            mpi_path: PathBuf::from("/definitely/does/not/exist.mpi"),
+            ..Default::default()
+        };
+        let seen = std::cell::RefCell::new(0_u32);
+        let out = install_with_events(&job, Duration::from_secs(1), &mut |_| {
+            *seen.borrow_mut() += 1;
+        });
+        assert_ne!(out.exit_code, 0);
     }
 }

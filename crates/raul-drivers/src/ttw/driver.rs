@@ -176,8 +176,8 @@ struct Ready {
     fallout3: PathBuf,
     newvegas: PathBuf,
     package: PathBuf,
-    program: PathBuf,
-    sha256: String,
+    /// The ttwright program and its SHA-256 when one was given; `None` runs ttwright in this process.
+    program: Option<(PathBuf, String)>,
 }
 
 fn missing(what: &str, flag: &str, key: &str) -> String {
@@ -229,22 +229,19 @@ fn prepare(req: &TtwRequest, profile: &mut String) -> Result<Ready, (TtwErrorCod
         ));
     }
     let program = match &req.ttwright {
-        Some(p) if p.is_file() => p.clone(),
+        Some(p) if p.is_file() => {
+            let bytes =
+                std::fs::read(p).map_err(|e| (ToolMissing, format!("{}: {e}", p.display())))?;
+            Some((p.clone(), sha256_hex(&bytes)))
+        }
         Some(p) => {
             return Err((
                 ToolMissing,
                 format!("the ttwright program {} is not a file", p.display()),
             ));
         }
-        None => {
-            return Err((
-                ToolMissing,
-                "no ttwright program: none is bundled next to raul; pass --ttwright <path>".into(),
-            ));
-        }
+        None => None,
     };
-    let bytes = std::fs::read(&program)
-        .map_err(|e| (ToolMissing, format!("{}: {e}", program.display())))?;
     Ok(Ready {
         instance,
         profile: profile.clone(),
@@ -252,7 +249,6 @@ fn prepare(req: &TtwRequest, profile: &mut String) -> Result<Ready, (TtwErrorCod
         newvegas,
         package,
         program,
-        sha256: sha256_hex(&bytes),
     })
 }
 
@@ -506,11 +502,20 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
             format!("{}: {e}", work.display()),
         );
     }
-    let tool = ToolInfo {
-        name: TTWRIGHT.to_owned(),
-        version: None,
-        path: ready.program.clone(),
-        sha256: ready.sha256.clone(),
+    let tool = match &ready.program {
+        Some((path, sha256)) => ToolInfo {
+            name: TTWRIGHT.to_owned(),
+            version: None,
+            path: path.clone(),
+            sha256: sha256.clone(),
+        },
+        // Linked into raul: there is no file to name, so the running executable stands for it.
+        None => ToolInfo {
+            name: TTWRIGHT.to_owned(),
+            version: None,
+            path: std::env::current_exe().unwrap_or_default(),
+            sha256: String::new(),
+        },
     };
     draft.result.tool = Some(tool.clone());
     draft.result.staging = Some(dest.clone());
@@ -522,48 +527,64 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         tool,
     });
 
-    let runner = Runner {
-        timeout: req.timeout,
-        max_output: 16 * 1024 * 1024,
-        ..Runner::default()
-    };
-    let args = arguments(req, &ready, &dest, &events);
-    let output = run_streaming(
-        &runner,
-        TTWRIGHT,
-        &ready.program,
-        &args,
-        &ready.sha256,
-        EventTail::new(events.clone(), ttwright_line),
-        emit,
-    );
-    let journal = dest.join(".ttwright-journal.json").is_file();
-    let output = match output {
-        Ok(o) => o,
-        Err(ToolError::Unverifiable { reason, .. }) => {
-            let _ = clear(&work);
-            draft.result.staging = None;
-            return draft.fail(Status::Unverifiable, TtwErrorCode::ToolUnverifiable, reason);
-        }
-        Err(e) if nvmod_core::cancel::requested() => {
-            draft.result.resumable = true;
-            return draft.fail(
-                Status::Cancelled,
-                TtwErrorCode::Cancelled,
-                format!("cancelled ({e}); `raul ttw --resume` continues"),
-            );
-        }
-        Err(e) => {
-            draft.result.resumable = journal;
-            return draft.fail(Status::Failed, TtwErrorCode::ToolFailed, e.to_string());
-        }
-    };
-    let doc = match read_result(&output.stdout) {
-        Ok(doc) => doc,
-        Err((status, code, message)) => {
-            draft.result.resumable = journal && status == Status::Failed;
-            return draft.fail(status, code, message);
-        }
+    let (exit_code, doc, journal) = if let Some((program, sha256)) = &ready.program {
+        let runner = Runner {
+            timeout: req.timeout,
+            max_output: 16 * 1024 * 1024,
+            ..Runner::default()
+        };
+        let args = arguments(req, &ready, &dest, &events);
+        let output = run_streaming(
+            &runner,
+            TTWRIGHT,
+            program,
+            &args,
+            sha256,
+            EventTail::new(events.clone(), ttwright_line),
+            emit,
+        );
+        let journal = dest.join(".ttwright-journal.json").is_file();
+        let output = match output {
+            Ok(o) => o,
+            Err(ToolError::Unverifiable { reason, .. }) => {
+                let _ = clear(&work);
+                draft.result.staging = None;
+                return draft.fail(Status::Unverifiable, TtwErrorCode::ToolUnverifiable, reason);
+            }
+            Err(e) if nvmod_core::cancel::requested() => {
+                draft.result.resumable = true;
+                return draft.fail(
+                    Status::Cancelled,
+                    TtwErrorCode::Cancelled,
+                    format!("cancelled ({e}); `raul ttw --resume` continues"),
+                );
+            }
+            Err(e) => {
+                draft.result.resumable = journal;
+                return draft.fail(Status::Failed, TtwErrorCode::ToolFailed, e.to_string());
+            }
+        };
+        let doc = match read_result(&output.stdout) {
+            Ok(doc) => doc,
+            Err((status, code, message)) => {
+                draft.result.resumable = journal && status == Status::Failed;
+                return draft.fail(status, code, message);
+            }
+        };
+        (output.exit_code, doc, journal)
+    } else {
+        let job = ttwright_core::api::InstallJob {
+            mpi_path: ready.package.clone(),
+            fallout3_path: Some(ready.fallout3.clone()),
+            falloutnv_path: Some(ready.newvegas.clone()),
+            destination_path: dest.clone(),
+            dry_run: req.dry_run,
+            resume: req.resume,
+            ..ttwright_core::api::InstallJob::default()
+        };
+        let done = super::inproc::install_with_events(&job, req.timeout, emit);
+        let journal = dest.join(".ttwright-journal.json").is_file();
+        (done.exit_code, done.doc, journal)
     };
     if let Some(tool) = &mut draft.result.tool {
         tool.version = doc["tool"]["version"].as_str().map(str::to_owned);
@@ -578,7 +599,7 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         Some(code) => format!("{what} ({code}): {ttwright_message}"),
         None => format!("{what}: {ttwright_message}"),
     };
-    match output.exit_code {
+    match exit_code {
         0 => {}
         1 | 2 => {
             draft.result.resumable = journal;

@@ -77,12 +77,6 @@ fn parse(args: &[String]) -> Result<Flags, String> {
     })
 }
 
-/// The bundled ttwright next to the running `raul`.
-fn bundled_ttwright() -> Option<PathBuf> {
-    let exe = std::env::current_exe().ok()?;
-    ttw::bundled(exe.parent()?, ttw::TTWRIGHT)
-}
-
 pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let Flags {
         mut req,
@@ -109,7 +103,6 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
     req.fallout3 = req.fallout3.or_else(|| from_config(Key::GameFallout3));
     req.newvegas = req.newvegas.or_else(|| from_config(Key::GameNewVegas));
     req.package = req.package.or_else(|| from_config(Key::TtwPackage));
-    req.ttwright = req.ttwright.or_else(bundled_ttwright);
 
     let mut printer = Printer {
         command: "ttw",
