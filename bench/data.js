@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1794965657018,
+  "lastUpdate": 1794981955950,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -3478,6 +3478,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.119715,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6b77a9656f71c4489ffbb19f0e81bb0f8568a744",
+          "message": "fix(deps): pin rust crate ctrlc to =3.5.2 (#243)\n\nCo-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-18T06:04:50Z",
+          "tree_id": "9a868f3c4725190bba0f87efe27123fd52600b95",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6b77a9656f71c4489ffbb19f0e81bb0f8568a744"
+        },
+        "date": 1794981955312,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.5679299999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.028236000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 29.209008,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 3.7536739999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.921479,
             "unit": "ms"
           }
         ]
