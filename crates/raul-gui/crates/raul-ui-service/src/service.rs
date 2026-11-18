@@ -311,34 +311,6 @@ pub struct ModsRequest {
     pub dry_run: bool,
 }
 
-impl ModsRequest {
-    /// The words after `raul mods`, before `--json`.
-    pub fn args(&self) -> Vec<String> {
-        let mut rest = Vec::new();
-        match &self.step {
-            ModStep::Enable(names) => {
-                rest.push("enable".to_owned());
-                rest.extend(names.iter().cloned());
-            }
-            ModStep::Disable(names) => {
-                rest.push("disable".to_owned());
-                rest.extend(names.iter().cloned());
-            }
-            ModStep::Move { name, position } => {
-                rest.push("reorder".to_owned());
-                rest.push(name.clone());
-                push(&mut rest, "position", &position.to_string());
-            }
-        }
-        push(&mut rest, "instance", &self.instance);
-        push_opt(&mut rest, "profile", self.profile.as_ref());
-        if self.dry_run {
-            rest.push("--dry-run".to_owned());
-        }
-        rest
-    }
-}
-
 /// What `raul doctor --instance` needs.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct DoctorRequest {
@@ -403,16 +375,6 @@ pub enum RuntimeTarget {
     NvRs,
 }
 
-impl RuntimeTarget {
-    /// The word of the command line.
-    pub fn word(self) -> &'static str {
-        match self {
-            Self::Vanilla => "vanilla",
-            Self::NvRs => "nv-rs",
-        }
-    }
-}
-
 /// What `raul target` needs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TargetRequest {
@@ -420,15 +382,6 @@ pub struct TargetRequest {
     pub instance: String,
     /// What it should run on.
     pub target: RuntimeTarget,
-}
-
-impl TargetRequest {
-    /// The words after `raul target`. The command has no `--json`.
-    pub fn args(&self) -> Vec<String> {
-        let mut rest = vec![self.target.word().to_owned()];
-        push(&mut rest, "instance", &self.instance);
-        rest
-    }
 }
 
 /// What `raul tools list` and `raul tools verify` need.
@@ -476,14 +429,6 @@ impl ProfileRequest {
             instance: instance.to_owned(),
             name: DEFAULT_PROFILE.to_owned(),
         }
-    }
-
-    /// The words after `raul profile`.
-    pub fn args(&self) -> Vec<String> {
-        let mut rest = vec!["create".to_owned()];
-        push(&mut rest, "name", &self.name);
-        push(&mut rest, "instance", &self.instance);
-        rest
     }
 }
 
@@ -1035,14 +980,29 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn set_target(&self, r: &TargetRequest) -> Result<TargetReport, ServiceError> {
-        let (out, args) = self.invoke_with(Action::Target, r.args(), false)?;
-        match out.code {
-            Some(0) => Ok(TargetReport {
-                instance: r.instance.clone(),
-                target: r.target,
-            }),
-            _ => Err(failure(&out, "target", &args)),
+        // The job the target switch starts, run to its end: in process, under the Instance lock, no command line.
+        let target = match r.target {
+            RuntimeTarget::Vanilla => nvmod_api::target::Target::Vanilla,
+            RuntimeTarget::NvRs => nvmod_api::target::Target::NvRs,
+        };
+        let request = nvmod_api::target::SetRequest {
+            instance: PathBuf::from(&r.instance),
+            target,
+        };
+        let spec = JobSpec::new(JobId(0), Action::Target, Vec::new()).writing();
+        let out = run_direct(
+            &spec,
+            crate::direct::target(&request),
+            &mut |_| {},
+            &CancelHandle::new(),
+        );
+        if out.code != Some(0) {
+            return Err(ServiceError::Failed(failure_error(&out, "target")));
         }
+        Ok(TargetReport {
+            instance: r.instance.clone(),
+            target: r.target,
+        })
     }
 
     fn tools_list(&self, r: &ToolsRequest) -> Result<ToolsReport, ServiceError> {
@@ -1075,11 +1035,27 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn mods_change(&self, r: &ModsRequest) -> Result<ModsReport, ServiceError> {
-        let (out, args) = self.with_profile(Action::Mods, &r.instance, || r.args())?;
-        match out.code {
-            Some(0) => Self::parse(Action::Mods, &out, &args),
-            _ => Err(failure(&out, "mods", &args)),
-        }
+        let request = nvmod_api::mods::ChangeRequest {
+            instance: PathBuf::from(&r.instance),
+            profile: r.profile.clone(),
+            change: match &r.step {
+                ModStep::Enable(names) => nvmod_api::mods::Change::Enable {
+                    mods: names.clone(),
+                },
+                ModStep::Disable(names) => nvmod_api::mods::Change::Disable {
+                    mods: names.clone(),
+                },
+                ModStep::Move { name, position } => nvmod_api::mods::Change::Move {
+                    name: name.clone(),
+                    to: nvmod_api::mods::Place::Position(*position),
+                },
+            },
+            dry_run: r.dry_run,
+        };
+        let out = self.direct_with_profile(Action::Mods, &r.instance, || {
+            crate::direct::mods_change(&request)
+        })?;
+        Self::direct_answer(&out, "mods")
     }
 
     fn conflicts(&self, r: &ConflictsRequest) -> Result<ConflictsReport, ServiceError> {
@@ -1130,7 +1106,7 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn profile_create(&self, r: &ProfileRequest) -> Result<(), ServiceError> {
-        self.profile_create_checked(r)
+        Self::profile_create_checked(r)
     }
 }
 
@@ -1147,13 +1123,14 @@ impl<E: Exec> CliService<E> {
         if !is_missing_profile(&out) {
             return Ok((out, args));
         }
-        self.profile_create_checked(&ProfileRequest::default_for(instance))?;
+        Self::profile_create_checked(&ProfileRequest::default_for(instance))?;
         self.invoke(action, rest())
     }
 
     /// Runs the direct job `make` makes for `action`; when it refused because the Instance has no profile, makes the
     /// default one and runs it once more (the direct counterpart of [`Self::with_profile`]). Nothing here starts a
     /// process for the job itself.
+    #[allow(clippy::unused_self)] // a method like `with_profile`, whose callers hold the service
     fn direct_with_profile(
         &self,
         action: Action,
@@ -1168,7 +1145,7 @@ impl<E: Exec> CliService<E> {
         if !is_missing_profile(&out) {
             return Ok(out);
         }
-        self.profile_create_checked(&ProfileRequest::default_for(instance))?;
+        Self::profile_create_checked(&ProfileRequest::default_for(instance))?;
         Ok(run())
     }
 
@@ -1187,18 +1164,29 @@ impl<E: Exec> CliService<E> {
     }
 
     /// Makes the default profile of an Instance that has none, and says plainly when that did not work.
-    fn profile_create_checked(&self, r: &ProfileRequest) -> Result<(), ServiceError> {
-        let (out, args) = self.invoke(Action::Profile, r.args())?;
+    fn profile_create_checked(r: &ProfileRequest) -> Result<(), ServiceError> {
+        let request = nvmod_api::profile::CreateRequest {
+            instance: PathBuf::from(&r.instance),
+            name: Some(r.name.clone()),
+        };
+        let spec = JobSpec::new(JobId(0), Action::Profile, Vec::new()).writing();
+        let out = run_direct(
+            &spec,
+            crate::direct::profile_create(&request),
+            &mut |_| {},
+            &CancelHandle::new(),
+        );
         if out.code == Some(0) {
             return Ok(());
         }
-        // A profile that is already there is what was asked for: the command refuses nothing when it is.
+        // A profile that is already there is what was asked for: the job refuses nothing else about it.
         if is_missing_profile(&out) {
             return Ok(());
         }
-        let mut e = no_profile_error(&cause_of(&out.stderr, "profile"));
-        e.repro = Some(repro(&args));
-        Err(ServiceError::Failed(e))
+        Err(ServiceError::Failed(no_profile_error(&cause_of(
+            &out.stderr,
+            "profile",
+        ))))
     }
 
     fn setup_report(r: &SetupRequest) -> Result<SetupReport, ServiceError> {
@@ -1271,10 +1259,6 @@ mod tests {
         assert!(names_a_missing_profile("the Instance has no profile"));
         assert!(!names_a_missing_profile("no such plugin"));
         assert_eq!(ProfileRequest::default_for("/i").name, DEFAULT_PROFILE);
-        assert_eq!(
-            ProfileRequest::default_for("/i").args(),
-            ["create", "--name", "Default", "--instance", "/i"]
-        );
     }
 
     /// A direct job that refuses `times` times as an Instance with no profile does, then answers an empty report.
@@ -1299,42 +1283,27 @@ mod tests {
     }
 
     #[test]
-    fn a_missing_profile_is_made_before_the_direct_job_runs_again() {
-        let exec = crate::fake::ScriptedExec::new();
-        exec.on_run(&[], 0, "");
-        let svc = CliService::new(exec);
-        let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let out = svc
-            .direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 1))
-            .unwrap();
-        assert_eq!(out.code, Some(0));
-        assert_eq!(runs.load(std::sync::atomic::Ordering::SeqCst), 2);
-        let calls = svc.exec().calls();
-        assert_eq!(calls.len(), 1, "only the profile is made by a command");
-        assert_eq!(calls[0][..2], ["profile", "create"]);
-    }
-
-    #[test]
     fn a_direct_job_that_works_first_time_never_makes_a_profile() {
         let svc = CliService::new(crate::fake::ScriptedExec::new());
         let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
         svc.direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 0))
             .unwrap();
+        assert_eq!(runs.load(std::sync::atomic::Ordering::SeqCst), 1);
         assert!(svc.exec().calls().is_empty());
     }
 
     #[test]
     fn a_profile_that_cannot_be_made_is_a_plain_error() {
         let exec = crate::fake::ScriptedExec::new();
-        exec.on_run(
-            &[],
-            2,
-            "raul profile: refused: the Instance folder is not there\n",
-        );
         let svc = CliService::new(exec);
         let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        // A path below a regular file can never be made an Instance, on any host (a fixed `/i` could be created as root).
+        let dir = nvmod_testkit::TempDir::new("no-profile");
+        let file = dir.path().join("file");
+        std::fs::write(&file, b"x").unwrap();
+        let instance = file.join("i").display().to_string();
         let err = svc
-            .direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 9))
+            .direct_with_profile(Action::Plugins, &instance, || needs_a_profile(&runs, 9))
             .unwrap_err();
         let e = err.view_error();
         assert_eq!(e.what, NO_PROFILE_WHAT);

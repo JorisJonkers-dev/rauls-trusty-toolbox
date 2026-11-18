@@ -61,10 +61,6 @@ fn the_default_profile_is_made_for_an_instance_that_has_none() {
         (calls[0].instance.as_str(), calls[0].name.as_str()),
         ("/inst", "Default")
     );
-    assert_eq!(
-        calls[0].args(),
-        ["create", "--name", "Default", "--instance", "/inst"]
-    );
 }
 
 #[test]

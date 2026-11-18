@@ -251,7 +251,7 @@ impl ModsPreview {
     }
 }
 
-/// Dry-runs the staged edits of the Mods screen, one `raul mods ... --dry-run` per step, and writes nothing.
+/// Dry-runs the staged edits of the Mods screen, one direct dry run per step, and writes nothing.
 /// An empty answer means nothing is staged.
 ///
 /// # Errors

@@ -414,7 +414,7 @@ fn verify_is_a_report_whether_or_not_it_verified_and_a_missing_instance_is_refus
 }
 
 #[test]
-fn target_is_set_through_the_command_without_a_json_flag() {
+fn target_is_set_in_process_and_a_missing_instance_is_refused() {
     let inst = Instance::new();
     let svc = service();
     let done = svc
@@ -424,6 +424,8 @@ fn target_is_set_through_the_command_without_a_json_flag() {
         })
         .unwrap();
     assert_eq!(done.target, RuntimeTarget::NvRs);
+    let file = std::fs::read_to_string(inst.root().join("nvmod-instance.json")).unwrap();
+    assert!(file.contains("\"nv-rs\""), "{file}");
     let ServiceError::Failed(e) = svc
         .set_target(&TargetRequest {
             instance: s(&inst.work.path().join("none")),
@@ -434,13 +436,6 @@ fn target_is_set_through_the_command_without_a_json_flag() {
         panic!("expected a refusal");
     };
     assert_eq!(e.exit, ExitClass::Refused);
-    assert_eq!(
-        e.repro.unwrap(),
-        format!(
-            "raul target vanilla --instance {}",
-            s(&inst.work.path().join("none"))
-        )
-    );
 }
 
 #[test]
