@@ -380,7 +380,12 @@ impl Ttw {
                 {
                     unpack(&path, unpack_to.as_deref())
                 } else {
-                    check_package(&path).map_err(|p| p.why().to_owned())
+                    // A file under a package's name that does not check out yet may be a download that stalled
+                    // for a moment: the watch goes on.
+                    match check_package(&path) {
+                        Ok(info) => Ok(info),
+                        Err(_) => continue,
+                    }
                 };
                 let _ = tx.send(answer);
                 if let Some(repaint) = repaint {
