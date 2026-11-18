@@ -37,6 +37,7 @@ workspace = true
 [dev-dependencies]
 nvmod-testkit = { workspace = true }
 lodwright-testkit = { workspace = true }
+ttwright-testkit = { workspace = true }
 jsonschema = { workspace = true }
 toml = { workspace = true }
 
