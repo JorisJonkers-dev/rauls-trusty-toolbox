@@ -1,5 +1,49 @@
 # Changelog
 
+## [0.4.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.3.0...v0.4.0) (2026-11-18)
+
+
+### Features
+
+* **drivers:** install TTW through ttwright linked into raul ([#270](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/270)) ([d193bb0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d193bb07c887fe23f6ba949f536e71089ee89236))
+* **drivers:** run ttwright's install in process ([#264](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/264)) ([02ffd22](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/02ffd228fc375dae15f97a5edf24c53f3ebf2ffd))
+* **gui:** add InProcessExec, an Exec that runs raul in this process ([#268](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/268)) ([46add02](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/46add0211442f008c1fa79729581c1cb3e1dd8b8))
+* **gui:** check a TTW package by name, size and contents ([#223](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/223)) ([dca2e32](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/dca2e32ebf2849a021e140471561fa1d526cd5c6))
+* **gui:** copy the details of every error ([#189](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/189)) ([51e787f](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/51e787f8248f5a0ff0ffcc2c9614f92a6282804e))
+* **gui:** find the newest valid TTW package over several folders ([#228](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/228)) ([acc63e1](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/acc63e16a9f24d0e273071cc02ba075f0b662634))
+* **gui:** no command lines on Versions, Home and dialogs ([#200](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/200)) ([7b99b8c](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7b99b8c017e731e0b44969beb7979cbcff496919))
+* **gui:** open the TTW download page and find the package for me ([#187](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/187)) ([da82eea](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/da82eeaf1c7a38000963235bb768e59e845119f0))
+* **gui:** search Downloads and the Desktop and show the size of the package found ([#238](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/238)) ([0daedc1](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/0daedc1b73f1a3d56075d968d9c1a14616547857))
+* **gui:** search the folders Settings points at for the TTW package ([#241](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/241)) ([7399eb5](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7399eb55925a2174614d072eba684406d24a77fd))
+* **gui:** show no command lines in the setup wizard ([#220](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/220)) ([5280df2](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/5280df257ef159f6bb031bdd5ffb2e881bd797ca))
+* **gui:** show no command lines in the TTW flow ([#219](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/219)) ([f4fa06a](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f4fa06a471fa1141a5a45a8d10675b4f19832bbc))
+* **gui:** show no command lines on the Load order page ([#218](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/218)) ([625bf7f](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/625bf7fd2084c29d8ca6d3c324be0c11579de9c2))
+* **gui:** show no command lines on the LOD page ([#217](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/217)) ([116109e](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/116109e3040e16c99ed60300708d23392c16aa28))
+* **gui:** tell when a download is complete ([#224](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/224)) ([ba7ef93](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ba7ef9341d31caeedae4405539d3c2750e0c1ea3))
+* **gui:** unpack a TTW package that arrives in an archive ([#242](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/242)) ([7f27796](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7f277966e02b21e29dbfe98c0054fe448445155b))
+* **gui:** watch Downloads for the TTW package once the user agrees ([#240](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/240)) ([3986768](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/398676874caf293652ae83685d5aa13d58633a59))
+
+
+### Bug Fixes
+
+* **ci:** give the Components follower's commands the cargo registry token ([#182](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/182)) ([56d2719](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/56d27193f0328acd0cc5349afc196110117a8a67))
+* **ci:** read the cargo registry token from the job environment ([#184](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/184)) ([b05d8e2](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b05d8e21c4abd323d07055c90cb87731acc474ed))
+* **ci:** run the Component follower on Node 24 ([#158](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/158)) ([c0eaa30](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/c0eaa30e309570ed4b90621a8a108276a5a48aae))
+* **deps:** pin rust crate ctrlc to =3.5.2 ([#243](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/243)) ([6b77a96](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6b77a9656f71c4489ffbb19f0e81bb0f8568a744))
+* **gui:** end a chained job as its second command ended ([#222](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/222)) ([edffb36](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/edffb368f375ab9caaaa00447bca6cb1d8028612))
+* **gui:** fit the Home page to the smallest window ([#229](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/229)) ([e4548b0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e4548b08fb25dd29ca02dce922f2be3cc8e443c6))
+* **gui:** fit the Load order page to the smallest window ([#232](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/232)) ([da85974](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/da85974c671b0c8417fd9815cda5f384fc6e8d3b))
+* **gui:** fit the LOD page to the smallest window ([#231](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/231)) ([030560c](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/030560cfe02005c79a232a77e2a510d24848d4b6))
+* **gui:** fit the Settings page to the smallest window ([#233](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/233)) ([e7a57b7](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e7a57b772b0d4924742b2e342e00a86a630ec653))
+* **gui:** fit the Setup wizard page to the smallest window ([#237](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/237)) ([d9e9cb2](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d9e9cb29fcd7a9c047cb1f1397d675024a663b67))
+* **gui:** fit the TTW flow page to the smallest window ([#234](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/234)) ([8a1390e](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/8a1390e2dc863456e880f05b02f525ff69acb332))
+* **gui:** fit the Versions page to the smallest window ([#230](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/230)) ([4dbcce1](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/4dbcce1997ab9c9c36bdaa680d62bf2dad880397))
+* **gui:** say ready to play only when the game can start ([#186](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/186)) ([e8acb88](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e8acb88cd8ba4be38f7a01d3f8cba267b42ef4c5))
+* **gui:** search Downloads once without a home folder ([#192](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/192)) ([d412a15](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d412a152916d93b592777c0ae6f731c95abbe722))
+* **gui:** set up the default profile and keep the word out of the UI ([#190](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/190)) ([d0f0297](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d0f0297f65da163fc0bfb4002f518f3fa89a1fe0))
+* **gui:** show one version and drop known-good from the UI ([#188](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/188)) ([66275e3](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/66275e383f60bf1ac8af4eadf226624af9a7eb04))
+* **gui:** use the found TTW package only after it is saved ([#221](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/221)) ([3ffdd65](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3ffdd65076d01fa13d7eb63987778bfadeae65ef))
+
 ## [0.3.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.2.0...v0.3.0) (2026-11-17)
 
 
