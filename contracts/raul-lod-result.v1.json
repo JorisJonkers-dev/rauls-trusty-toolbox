@@ -46,32 +46,32 @@
         },
         {
           "const": "tool_missing",
-          "description": "No lodwright program: none is bundled next to `raul` and `--lodwright` was not given (exit code 2).",
+          "description": "Not produced: lodwright is linked into `raul`, so there is no program to find (exit code 2).",
           "type": "string"
         },
         {
           "const": "tool_unverifiable",
-          "description": "The lodwright program changed between its checksum and its start (exit code 3); it was not started.",
+          "description": "Not produced: lodwright is linked into `raul`, so there is no program to check (exit code 3).",
           "type": "string"
         },
         {
           "const": "tool_failed",
-          "description": "lodwright could not be started, ended without a result, or printed one that is not a `lodwright-result`\n(exit code 4).",
+          "description": "The generation stopped unexpectedly, ran past the timeout, reported a status that is not `ok`, or the work\nfolder could not be made (exit code 4).",
           "type": "string"
         },
         {
           "const": "contract_refused",
-          "description": "lodwright printed a `lodwright-result` or left a manifest of a version this build does not read (exit\ncode 2).",
+          "description": "The output folder holds a manifest of a version this build does not read (exit code 2).",
           "type": "string"
         },
         {
           "const": "lodwright_failed",
-          "description": "lodwright ran and failed (its exit code 1 or 2; exit code 4); `lodwright_code` says why.",
+          "description": "lodwright's generation failed (exit code 4); `lodwright_code` says why.",
           "type": "string"
         },
         {
           "const": "unsupported",
-          "description": "lodwright cannot do what the request asks yet (its exit code 3; exit code 2). Nothing was written.",
+          "description": "lodwright cannot do what the request asks yet (exit code 2). Nothing was written. Not produced by the linked\nlibrary, which reports such a request as `LodwrightFailed`.",
           "type": "string"
         },
         {
@@ -122,18 +122,18 @@
       ]
     },
     "ToolInfo": {
-      "description": "The Component a driver ran. ttwright runs in raul's own process, so its `tool` names the raul executable.",
+      "description": "The Component a driver ran. ttwright and lodwright run in raul's own process, so their `tool` names the raul\nexecutable.",
       "properties": {
         "name": {
           "description": "The Component's name, for example `ttwright`.",
           "type": "string"
         },
         "path": {
-          "description": "The file that ran: for ttwright, the raul executable.",
+          "description": "The file that ran: for ttwright and lodwright, the raul executable.",
           "type": "string"
         },
         "sha256": {
-          "description": "The SHA-256 of that file, checked again right before it was started; empty for ttwright, which runs in\nraul's own process and starts no file of its own.",
+          "description": "The SHA-256 of that file, checked again right before it was started; empty for ttwright and lodwright, which\nrun in raul's own process and start no file of their own.",
           "type": "string"
         },
         "version": {
@@ -190,7 +190,7 @@
       "type": "string"
     },
     "lodwright": {
-      "description": "The `lodwright-result` document lodwright printed, as it printed it, or `null` when it printed none."
+      "description": "The `lodwright-result` document of the run, as lodwright returned it, or `null` when it returned none."
     },
     "mod": {
       "description": "The LOD Mod (`LOD (lodwright)`), or `null` when the run did not get that far.",
@@ -204,7 +204,7 @@
       "type": "string"
     },
     "request": {
-      "description": "The request file passed to lodwright, or `null` when none was written.",
+      "description": "The request file, or `null`: lodwright is called in process with the request, so no file is written.",
       "type": [
         "string",
         "null"
@@ -230,7 +230,7 @@
           "type": "null"
         }
       ],
-      "description": "The lodwright program that ran, or `null` when none did."
+      "description": "lodwright, linked into `raul` (its name and version), or `null` when no generation started."
     },
     "up_to_date": {
       "description": "lodwright found its earlier output current for the same request and inputs and wrote nothing, and the Mod\nwas already there: nothing changed.",
