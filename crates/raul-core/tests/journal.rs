@@ -5,7 +5,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use nvmod_testkit::{BaseBuilder, PeBuilder, PluginBuilder, TempDir, ZipBuilder, write_file};
+use nvmod_testkit::{
+    BaseBuilder, Mo2Builder, ModSpec, PeBuilder, PluginBuilder, TempDir, ZipBuilder, write_file,
+};
 use raul_core::journal::{self, ErrorKind, FILE_NAME, FOLDER, Journal, NVMOD_COPY, RunError};
 use raul_core::setup::{CancelToken, Event, Outcome, Request, Step};
 use serde_json::{Value, json};
@@ -468,8 +470,72 @@ fn errors_carry_a_code_and_copy_text_without_a_command_line() {
         (ErrorKind::Unreadable, "unreadable"),
         (ErrorKind::WriteFailed, "write_failed"),
         (ErrorKind::TakeoverRefused, "takeover_refused"),
+        (ErrorKind::PlanMismatch, "plan_mismatch"),
     ] {
         assert_eq!(kind.code(), code);
     }
     assert_eq!(RunError::Journal(e.clone()).copy_text(), text);
+}
+
+#[test]
+fn a_request_that_is_not_the_journals_setup_is_refused_before_any_step() {
+    let s = Scratch::new();
+    let mut request = s.request();
+    request.mods = vec![s.archive("Better.zip")];
+    let cancel = CancelToken::new();
+    let mut stop = cancel_after("mod:Better.zip", &cancel);
+    journal::run(&request, &mut stop, &cancel).unwrap();
+
+    // The same setup without the Mod: a finished step is missing from it.
+    request.mods.clear();
+    let (result, events) = run_journaled(&request, &CancelToken::new());
+    assert!(matches!(&result, Err(RunError::Journal(e)) if e.kind == ErrorKind::PlanMismatch));
+    assert_eq!(started(&events), [] as [String; 0]);
+
+    // Two archives of one file name cannot be told apart.
+    let t = Scratch::new();
+    let mut twice = t.request();
+    let one = t.archive("Same.zip");
+    let other = t.work.path().join("other");
+    fs::create_dir_all(&other).unwrap();
+    fs::copy(&one, other.join("Same.zip")).unwrap();
+    twice.mods = vec![one, other.join("Same.zip")];
+    let (result, _) = run_journaled(&twice, &CancelToken::new());
+    let Err(RunError::Journal(e)) = result else {
+        panic!("expected a refusal")
+    };
+    assert!(e.summary.contains("mod:Same.zip"), "{e}");
+    assert!(!t.instance().exists());
+}
+
+#[test]
+fn an_imported_setup_is_complete_with_the_sort_it_keeps_out_of_the_plan() {
+    let s = Scratch::new();
+    let mo2 = TempDir::new("journal-mo2");
+    Mo2Builder::new(s.base.path())
+        .mod_dir(ModSpec::new("Core").file("Core.esp", &PluginBuilder::new().build()))
+        .profile("Default", &["+Core"], &["Core.esp"])
+        .write(mo2.path());
+    let mut request = s.request();
+    request.import_mo2 = Some(mo2.path().to_path_buf());
+    let (result, _) = run_journaled(&request, &CancelToken::new());
+    assert!(matches!(result, Ok(Outcome::Done(_))));
+    let doc = read(&s.instance());
+    assert_eq!(doc["complete"], true);
+    assert_eq!(doc["plan"], doc["finished"]);
+    assert_eq!(
+        doc["finished"],
+        json!(["import-mo2", "stage", "stamp", "verify"])
+    );
+}
+
+#[test]
+fn an_object_that_is_not_an_nvmod_state_is_not_taken_over() {
+    let s = Scratch::new();
+    fs::create_dir_all(s.instance()).unwrap();
+    write_nvmod_state(&s.instance(), &json!({"schema_version": 1}));
+    assert_eq!(
+        Journal::open(&s.instance()).unwrap_err().kind,
+        ErrorKind::TakeoverRefused
+    );
 }

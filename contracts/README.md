@@ -68,7 +68,7 @@ removed from `raul`. Nothing is created in the Instance folder before the first 
 | Field | Meaning |
 | --- | --- |
 | `schema_version`, `contract`, `raul_version` | the version (1), `raul-journal`, and the `raul` that last wrote the file |
-| `plan` | the ids of the steps of the run, in order (`init`, `profile`, `engine`, `target`, `ttw`, `mod:<file name>`, `stage`, `sort`, `stamp`, `verify`) |
+| `plan` | the ids of the steps of the run that are not left out (an imported Instance keeps its order, so it has no `sort`), in order (`init`, `import-mo2`, `profile`, `engine`, `target`, `ttw`, `mod:<file name>`, `stage`, `sort`, `stamp`, `verify`) |
 | `finished` | the ids of the steps that finished, in order; a Mod step is matched to the request by its file name |
 | `complete` | every step of the plan finished |
 | `taken_over` | `null`, or where the journal came from: `from` is `nvmod-setup` and `version` the version that wrote that state |
@@ -89,6 +89,7 @@ finished steps become the journal's (its `nv-rs` step is `engine`), a copy of th
 | `unreadable` | the file cannot be read or is not a journal; nothing was written |
 | `write_failed` | the file or a copy could not be written; the old file is as it was |
 | `takeover_refused` | the `nvmod` state cannot be read or is newer than this `raul` reads; it was left as it is |
+| `plan_mismatch` | the request names a step twice (two Mod archives of one file name), or leaves out a step the journal holds as finished; nothing was run |
 
 ## `raul-events`
 

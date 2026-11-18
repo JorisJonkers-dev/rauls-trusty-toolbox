@@ -13,6 +13,9 @@
 //! steps that setup finished become the journal's, a copy of its file is kept in `.raul/`, and `nvmod`'s own file
 //! is not touched. The copy also marks the takeover as done, so removing the journal does not take it over again.
 //!
+//! A step that finished is written after it ended, so a crash in between repeats that step on a resume. A write
+//! that fails stops the run through the caller's cancel token, which stays cancelled.
+//!
 //! The journal has one writer at a time, the setup job, as the configuration file has. The Toolbox has no
 //! Instance lock yet, so the journal does not claim one.
 
@@ -22,7 +25,9 @@ use std::path::{Path, PathBuf};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::setup::{self, CancelToken, Event, Outcome, Planned, Progress, Request, Step};
+use crate::setup::{
+    self, CancelToken, Event, Outcome, Planned, Progress, Request, SkipReason, Step,
+};
 
 /// The Contract name of the journal file.
 pub const CONTRACT: &str = "raul-journal";
@@ -104,10 +109,12 @@ pub enum ErrorKind {
     WriteFailed,
     /// The state of an unfinished `nvmod setup` cannot be taken over; it was left as it is.
     TakeoverRefused,
+    /// The request is not the setup the journal holds: it names a step twice, or leaves out a finished one.
+    PlanMismatch,
 }
 
 impl ErrorKind {
-    /// A stable code: `newer_schema`, `unreadable`, `write_failed` or `takeover_refused`.
+    /// A stable code: `newer_schema`, `unreadable`, `write_failed`, `takeover_refused` or `plan_mismatch`.
     #[must_use]
     pub const fn code(self) -> &'static str {
         match self {
@@ -115,6 +122,7 @@ impl ErrorKind {
             Self::Unreadable => "unreadable",
             Self::WriteFailed => "write_failed",
             Self::TakeoverRefused => "takeover_refused",
+            Self::PlanMismatch => "plan_mismatch",
         }
     }
 }
@@ -254,9 +262,11 @@ impl Journal {
         });
         journal.doc.plan = old.plan;
         journal.doc.finished = old.finished;
-        write_atomic(&copy, text.as_bytes())?;
-        if let Err(e) = journal.save() {
-            let _ = std::fs::remove_file(&copy);
+        // The journal first: a crash between the two writes leaves a journal and no copy, never the reverse (a copy
+        // with no journal would stop the takeover for good).
+        journal.save()?;
+        if let Err(e) = write_atomic(&copy, text.as_bytes()) {
+            let _ = std::fs::remove_file(Self::file(instance));
             return Err(e);
         }
         Ok(journal)
@@ -337,6 +347,31 @@ impl Journal {
             }
         }
         done
+    }
+
+    /// Check that `request` can continue this journal: no two of its steps have one id (two Mod archives of one
+    /// file name cannot be told apart), and every finished step is one of its steps.
+    ///
+    /// # Errors
+    /// [`ErrorKind::PlanMismatch`], with the step named; nothing is written.
+    pub fn check_plan(&self, request: &Request) -> Result<(), Error> {
+        let ids: Vec<String> = setup::plan(request).iter().map(|p| p.step.id()).collect();
+        let mismatch = |why: String| Error::new(ErrorKind::PlanMismatch, why);
+        if let Some(id) = ids
+            .iter()
+            .enumerate()
+            .find_map(|(i, id)| ids[..i].contains(id).then_some(id))
+        {
+            return Err(mismatch(format!(
+                "the setup names the step {id} twice; the journal cannot tell them apart. Give the archives different file names"
+            )));
+        }
+        if let Some(id) = self.doc.finished.iter().find(|f| !ids.contains(f)) {
+            return Err(mismatch(format!(
+                "the journal holds the finished step {id}, which this setup does not have. Ask for the same setup again, or start over"
+            )));
+        }
+        Ok(())
     }
 
     /// The first step of `request` that is neither finished nor skipped, or `None` when nothing is left.
@@ -476,9 +511,7 @@ fn nvmod_state(file: &Path, text: &str) -> Result<Option<NvmodState>, Error> {
     struct State {
         #[serde(default)]
         nvmod_version: String,
-        #[serde(default)]
         plan: Vec<Entry>,
-        #[serde(default)]
         completed: Vec<Entry>,
         #[serde(default)]
         complete: bool,
@@ -527,30 +560,21 @@ fn nvmod_state(file: &Path, text: &str) -> Result<Option<NvmodState>, Error> {
 }
 
 /// Copy `file` to `name` next to it without replacing a copy that is already there (`name`, else `name.1`, ...).
+/// The copy is written whole or not at all.
 fn keep_copy(file: &Path, name: &str) -> Result<(), Error> {
     let dir = file.parent().unwrap_or_else(|| Path::new("."));
     let bytes = std::fs::read(file).map_err(|e| write_failed(file, &e))?;
-    for n in 0.. {
-        let target = if n == 0 {
-            dir.join(name)
-        } else {
-            dir.join(format!("{name}.{n}"))
-        };
-        match std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&target)
-        {
-            Ok(mut f) => {
-                return std::io::Write::write_all(&mut f, &bytes)
-                    .and_then(|()| f.sync_all())
-                    .map_err(|e| write_failed(&target, &e));
+    let target = (0..10_000)
+        .map(|n| {
+            if n == 0 {
+                dir.join(name)
+            } else {
+                dir.join(format!("{name}.{n}"))
             }
-            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
-            Err(e) => return Err(write_failed(&target, &e)),
-        }
-    }
-    unreachable!("the counter does not end")
+        })
+        .find(|t| std::fs::symlink_metadata(t).is_err())
+        .ok_or_else(|| write_failed(file, &"no free name for a copy"))?;
+    write_atomic(&target, &bytes)
 }
 
 /// Write `bytes` to `file` through a temporary file next to it (created new, synced, then renamed over it).
@@ -621,7 +645,14 @@ struct Recording<'a> {
 impl Progress for Recording<'_> {
     fn report(&mut self, event: &Event) {
         match event {
-            Event::Planned { steps } => self.journal.set_plan(steps),
+            Event::Planned { steps } => {
+                let kept: Vec<Planned> = steps
+                    .iter()
+                    .filter(|p| p.skip != Some(SkipReason::KeepsImportedOrder))
+                    .cloned()
+                    .collect();
+                self.journal.set_plan(&kept);
+            }
             Event::Finished { step, .. } if self.failed.is_none() => {
                 if let Err(e) = self.journal.record_finished(step) {
                     self.failed = Some(e);
@@ -647,6 +678,7 @@ pub fn run(
     cancel: &CancelToken,
 ) -> Result<Outcome, RunError> {
     let mut journal = Journal::open(&request.instance).map_err(RunError::Journal)?;
+    journal.check_plan(request).map_err(RunError::Journal)?;
     let resumed = Request {
         done: journal.resume(request),
         ..request.clone()
