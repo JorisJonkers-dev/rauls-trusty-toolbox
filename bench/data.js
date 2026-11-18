@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795040003414,
+  "lastUpdate": 1795041547090,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4801,6 +4801,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.110782,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e26c5347568406f152fa8aade8242d25061eb982",
+          "message": "feat(core): engine step installs nv-rs in process (#297)\n\n* feat(core): engine step installs nv-rs in process through the install library\n\n* fix(core): stop the engine install on cancel and read NVMOD_CARGO\n\n* test(core): run the installed fake engine through the runner",
+          "timestamp": "2026-11-18T23:37:27+01:00",
+          "tree_id": "052f307f0ee51648426acf92caee3b7c83953e27",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e26c5347568406f152fa8aade8242d25061eb982"
+        },
+        "date": 1795041546216,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.282171,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.476999000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.103402,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.1650849999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.568117,
             "unit": "ms"
           }
         ]
