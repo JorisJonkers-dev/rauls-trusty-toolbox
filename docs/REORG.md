@@ -15,8 +15,8 @@ The stack works, but its division of work grew by accident:
   pipeline, the TTW, LOD and engine drivers, the pin file of external tools and their fetch and verification, the
   update model, the run settings, the GUI's view model and the GUI itself. The Toolbox, which is meant to be the
   product, is thin glue over it.
-- **Two pin files.** nvmod's `tools.lock.toml` pins the external tools; the Toolbox's `known-good.toml` pins the
-  Components. They describe the same thing twice and can disagree.
+- **Two pin files.** nvmod's `tools.lock.toml` pins the external tools; the Toolbox's earlier Component pin file repeated
+  the submodule pins. They described the same thing twice and could disagree (removed, ADR-0018).
 - **Contracts in three places.** Schemas are defined by their producers, snapshotted in nvmod's `contracts/`, and
   checked by a compatibility matrix in the private workshop.
 - **Two benchmark front doors.** `raul bench` (synthetic) and the nv-rs fork's `nv-rs-dev bench` (in game) overlap
@@ -39,9 +39,10 @@ The stack works, but its division of work grew by accident:
 4. **The producer owns its Contract.** A Component defines and versions the schemas of what it emits and publishes
    them with its release. The Toolbox owns the registry of which versions work together, the snapshots and the
    compatibility check.
-5. **One pin file.** `known-good.toml` is the only place that says which Component versions belong together. The
-   Rolling channel does not break this: a newer engine build is offered only when every Contract version it emits
-   is one the current set's consumers accept, and the engine a player runs is that player's local state, not a pin.
+5. **One set of pins.** The submodule pins and the lock files are the only place that says which Component versions
+   belong together (ADR-0018). The Rolling channel does not break this: a newer engine build is offered only when
+   every Contract version it emits is one the current set's consumers accept, and the engine a player runs is that
+   player's local state, not a pin.
 6. **The private workshop holds research and decisions only.** No code tickets, no code that ships.
 7. **Rust native.** Shipped code, and the checks that gate a release, are Rust. Python stays only in research and
    one-off scripts (section 9). One recorded exception until its port lands in M3: the fork's in-game bench harness.
@@ -71,13 +72,13 @@ The stack works, but its division of work grew by accident:
 | Setup pipeline (detect, Instance, TTW, mods, sort, LOD, launch) with journal and resume | Toolbox | **moves from nvmod** |
 | Drivers of the process Components (TTW, LOD, engine install, engine check, launch) | Toolbox | **moves from nvmod** |
 | Subprocess Runner (argument vector, no shell, scrubbed environment, limits, process-tree kill, sandbox) | Toolbox | **moves from nvmod** with its callers |
-| Tool supply: pins, fetch, checksum and attestation check, content-addressed store, side-by-side install, Rolling channel, pointer rollback | Toolbox | **moves from nvmod**; `tools.lock.toml` folds into `known-good.toml` |
+| Tool supply: pins, fetch, checksum and attestation check, content-addressed store, side-by-side install, Rolling channel, pointer rollback | Toolbox | **moves from nvmod**; `tools.lock.toml` folds into `supply.toml` |
 | Updates listing (engine builds, Components, masterlist, LOD staleness, mod rows from nvmod) | Toolbox | **moves from nvmod** (never built there) |
 | Run settings per Profile, Play sheet, launcher features (VRAM watchdog, HUD, desktop hints), shader warm-up | Toolbox | **moves from nvmod and from the local wrapper** |
 | View model and service seam of the GUI | Toolbox | **moves from nvmod** (`nvmod-ui-model`, `nvmod-ui-service`) |
 | The GUI | Toolbox | moves from nvmod (already planned, #12) |
 | Stack Doctor (gathers each Component's checks into one report), support bundle, logs view | Toolbox | **new / moves** |
-| Known-good sets, Contract registry and snapshots, compatibility check, end-to-end run, release gate | Toolbox | compat and e2e move from the workshop (#21), rewritten in Rust |
+| Contract registry and snapshots, compatibility check, end-to-end run, release gate | Toolbox | compat and e2e move from the workshop (#21), rewritten in Rust |
 | Bench front door (`raul bench`): synthetic suite, Component micro-benches, ingest of in-game `summary.json` | Toolbox | stays; gains in-game ingest |
 | Installers, update check of `raul` itself, signing, Nix packaging of the product | Toolbox | stays; Nix packaging of the GUI moves from nvmod |
 | Detection of game copies | Toolbox | stays (ttwright and nvmod keep only what their own CLI needs) |
@@ -104,7 +105,7 @@ the installation check); installing **mods** is `nvmod-modinstall`, which stays.
 | CLI `setup.rs`, `setup_state.rs`, `verify.rs`, `profile_apply.rs` | setup pipeline with journal and resume | `raul-core` | `raul setup`, `raul verify` |
 | `nvmod-ui-model`, `nvmod-ui-service` | view model and service seam | `raul-ui-model`, `raul-ui-service` | — |
 | `gui/` | the GUI | `raul-gui` (nested workspace) | `raul` with no arguments |
-| `contracts/`, `tools.lock.toml` | snapshots and pins | `contracts/`, `known-good.toml` plus `supply.toml` | `raul known-good` |
+| `contracts/`, `tools.lock.toml` | snapshots and pins | `contracts/`, `supply.toml` | — |
 
 The CLI commands `setup`, `ttw`, `lod`, `install-nv-rs`, `run`, `tools`, `verify` and `contracts` move to `raul`.
 They are removed from nvmod when they move (section 12, decision 5); only `raul` has them afterwards. After M2 nvmod starts no subprocess at all: its test that forbids `std::process::Command` keeps
@@ -144,9 +145,9 @@ state across a write.
 | What | From | To | Kind |
 | --- | --- | --- | --- |
 | Orchestration, tool supply, Runner, view model, GUI (section 3) | nvmod-rs | Toolbox | move with history (section 10.2); a crate that only partly moves is first split inside nvmod-rs so every move is a whole directory; a moving path is frozen (bug fixes only) from its split until the removal pull request lands |
-| `tools.lock.toml` | nvmod-rs | `known-good.toml` and `supply.toml` | merge: `known-good.toml` names the versions of each set and the Contract versions they speak; `supply.toml` (generated, checked) holds per-platform asset URL, checksum and attestation identity for each version a set names. A version is named only in `known-good.toml`. The active Rolling-channel engine is the player's local state, not a pin |
+| `tools.lock.toml` | nvmod-rs | `supply.toml` and the submodule pins | merge: the Component versions are the submodule pins and the lock files (ADR-0018); `supply.toml` (generated, checked) holds per-platform asset URL, checksum and attestation identity for each version a pin names. The active Rolling-channel engine is the player's local state, not a pin |
 | Contract snapshots (`contracts/`) | nvmod-rs | Toolbox `contracts/` | move; the compatibility check reads them |
-| Compatibility matrix, its check and the release gate | workshop | Toolbox | move and rewrite in Rust as `raul known-good check` (exists) and `raul e2e` |
+| Compatibility matrix, its check and the release gate | workshop | Toolbox | move and rewrite in Rust as `raul e2e` |
 | Synthetic end-to-end run | workshop | Toolbox | move and rewrite in Rust (`raul e2e`) |
 | Workshop ADRs on the GUI home, the user-facing release and packaging | workshop | Toolbox ADRs 0001 to 0006 | mark superseded (already decided) |
 | The TTW installer's own GUI | ttwright-rs | — | retire; `raul` is the one UI |
@@ -291,13 +292,12 @@ Defects found in the Toolbox while mapping it, each a new ticket:
 
 - the command-parity test ADR-0004 promises does not exist (the list of the Toolbox's own commands has no reader);
 - the `plugin-headers` bench case only reads files and parses no header;
-- the Contract versions recorded in `known-good.toml` are parsed but never checked against the Components;
+- the Contract versions the Toolbox recorded per set were parsed but never checked against the Components (the file
+  is removed, ADR-0018);
 - `raul update check` starts `curl` outside the Runner's rules (no output cap or scrubbed environment);
-- the pin of a Component is worked out three times (the check, the submodule script and the bump workflow);
+- the pin of a Component is worked out twice (the submodule script and the bump workflow);
 - `raul bench --quick` takes the upper of the two middle runs as the median, and the bench names do not change when
   what a case measures changes;
-- `raul known-good bump` writes the new set as `known-good` at once; it must write `candidate`, and only the check
-  promotes it;
 - the update check compares versions by a hand-written prefix rule that ignores pre-release and build parts.
 
 ### 5.4 The private workshop (65 open)
@@ -313,12 +313,11 @@ decisions or the private real-data seam. The per-ticket table is kept in the wor
 They follow their code: mod-management tickets to nvmod-rs, orchestration and UI tickets to the Toolbox (section 5).
 The workshop keeps only research, owner decisions and the private real-data seam.
 
-### 6.2 Compat, e2e and the release gate versus the Known-good set
+### 6.2 Compat, e2e and the release gate versus the pinned Component set
 
-One mechanism, here: `known-good.toml` is the chain of sets; `contracts/` holds the snapshots of every Contract
-version a set speaks; `raul known-good check` and `raul e2e` (synthetic fixtures, no game data) decide whether a
-candidate set becomes known-good; a Component's Release test (run on the owner's machine) gates the Component release
-that feeds the bump. The workshop's matrix, check and gate are retired after the Rust versions run in CI. The
+One mechanism, here: the submodule pins and the lock files are the set (ADR-0018); `contracts/` holds the snapshots of
+every Contract version a set speaks; `raul e2e` (synthetic fixtures, no game data) and a Component's Release test (run
+on the owner's machine) gate the Component release that feeds the bump. The workshop's matrix, check and gate are retired after the Rust versions run in CI. The
 behaviour of the Rolling channel amendment is kept: nv-rs alone may move ahead of the set, with a capabilities diff,
 side-by-side install and pointer rollback, now implemented in the Toolbox's tool supply.
 
@@ -340,7 +339,7 @@ versioned Contract.
 ### 6.4 Contracts in three places
 
 Producer-owned schemas, a registry here (principle 4). Each Component keeps `contracts/<name>.v<N>.json` and
-answers `<tool> contracts --json`; the Toolbox snapshots each version a Known-good set speaks and fails a bump whose
+answers `<tool> contracts --json`; the Toolbox snapshots each version a pinned set speaks and fails a bump whose
 snapshot differs from the pinned release. The workshop's contract tickets move here (registry, handshake index) and
 to the producers (each producer's own schema work). nvmod keeps only its own Contracts (the Instance schema, the
 mod update report, `nvse-usage`).
@@ -363,7 +362,7 @@ mod update report, `nvse-usage`).
 | `raul-detect` (detected game copies) | Toolbox | `raul detect --json` exists without a schema | M2; Components take the detected paths as arguments and never scan when driven by `raul` |
 | `raul-updates`, setup journal, run settings | Toolbox | do not exist yet | M2 and M5 |
 
-A Contract without a row here cannot be part of a Known-good set. When the `contracts` command moves to `raul`,
+A Contract without a row here cannot be part of a pinned Component set. When the `contracts` command moves to `raul`,
 nvmod keeps answering `nvmod contracts --json` for its own schemas.
 
 ### 6.5 Local wrappers
@@ -395,7 +394,7 @@ nearly finished and can finish early.
 
 ```mermaid
 flowchart LR
-  M0[M0 Reorg] --> M1[M1 First Known-good set]
+  M0[M0 Reorg] --> M1[M1 First pinned set]
   M1 --> M2[M2 Toolbox owns orchestration]
   M2 --> M5[M5 One UI: install, run, updates]
   D[UI design pass and toolkit decision] --> M5
@@ -406,7 +405,7 @@ flowchart LR
 ```
 
 The engine tracks (M3, M4) and LOD (M6) start now: they touch only nv-rs and lodwright-rs code and wait on nothing in
-the reorganisation. They reach the product through Component releases and Known-good bumps. M5 needs M2 and the
+the reorganisation. They reach the product through Component releases and Component bumps. M5 needs M2 and the
 design pass; it does not wait for M3, M4 or M6, it shows what the current set can do.
 
 ### Bench lock
@@ -420,7 +419,7 @@ its lock time in the result, so the cost of a gate is visible.
 | Milestone | Contents | Gate |
 | --- | --- | --- |
 | **M0 Reorg** | this plan; ticket closes, merges, moves and parks; docs that cite moved tickets; public-safety pass over the fork's docs and scripts | every open piece of work is a ticket in its home with size, acceptance criteria, dependencies and the number it moves (a goal and a measured share, or "enabler"); the public-text check passes on every recreated ticket |
-| **M1 First Known-good set** | Toolbox 0.1.0 (#11) on the current set; nvmod 0.6.0 and lodwright 0.3.0 Release tests and releases; nv-rs 0.5.0 after the walking fix; the bump of the set (#18), written as `candidate` and promoted by the check | each Release test passes and its recorded result is attached to the release pull request; `raul known-good check` passes on the new set |
+| **M1 First pinned set** | Toolbox 0.1.0 (#11) on the current set; nvmod 0.6.0 and lodwright 0.3.0 Release tests and releases; nv-rs 0.5.0 after the walking fix; the bump of the set (#18) | each Release test passes and its recorded result is attached to the release pull request; `raul e2e` passes on the new set |
 | **M2 Toolbox owns orchestration** | see section 10.2 for the order; Runner first with no `Command` exceptions left; one pin file; tool supply; drivers; setup pipeline; `raul-events`, `raul-journal`, `raul-plan`, `raul-doctor`, `raul-detect`; view model and service seam; one `raul` binary (#13); ttwright-rs restructure and first pinned release before the TTW driver moves; nvmod's product commands are removed as they move | the pre-move baseline (section 10.2) replays with the same results through `raul`; `raul e2e` passes on synthetic fixtures; the crate-graph test passes; the command inventory test shows every moved command in `raul`; the Toolbox Release test passes on the owner's machine; time box: eight weeks, after which the remaining moves are re-planned rather than left half done |
 | **M3 Hitch-free, unlimited fps native Linux** | in order of measured share: (1) bench and run-options Contracts (nv-rs#231) and the walking fix (nv-rs#324, nv-rs#325); (2) hitch recorder (nv-rs#112) and the hitch hunt (nv-rs#242); (3) loader, mesh and audio updates on the main thread (nv-rs#317) and the asset services pool (nv-rs#254), 20 to 27% plus 7%; (4) typed shader batch and constants (nv-rs#318), 33% in the first room, offered upstream where the file is upstream's; (5) scripts, 11%: a new measuring ticket; (6) the largest main-thread wait (nv-rs#252, nv-rs#253) and the draw and render thread A/Bs (nv-rs#191, nv-rs#192); (7) shader-cache stutter (nv-rs#320), present pacing (nv-rs#248), draw submission (nv-rs#241); prepared bench saves (nv-rs#193); the in-game harness's Rust port | on the quick suite's three scenes and the walking route, at 2560x1440, unlimited, five runs each under the lock: walking succeeds in 5 of 5; p99 at or under 6.9 ms (144 fps) in interiors and 11.1 ms (90 fps) in the dense town; no frame over 33 ms after the first 10 s of a scene |
 | **M3b Playable on the Linux desktop** | window input gaps (nv-rs#213, nv-rs#214, nv-rs#216, nv-rs#217, nv-rs#218), desktop validation (nv-rs#203, nv-rs#281, nv-rs#283, nv-rs#285), the hardware checklist (nv-rs#287, the owner's) | the hardware checklist passes on the owner's desktop |
@@ -452,7 +451,7 @@ every move, so Windows is kept green while it is not yet a target.
 | nv-rs#325 walking fix (blocks nv-rs#195) | **finish:** bring the quick suite under 120 s, pass 5 of 5 runs, update the bench docs, merge |
 | nv-rs#112 hitch recorder | **finish after nv-rs#325:** in-game A/B under the lock; merge if the overhead is at most 1% per frame |
 | nv-rs#316 pipeline-cache eviction log | **done:** merged on 2026-11-16 |
-| Toolbox 0.1.0 (#5, #11) | **finish first:** it ships the current Known-good set and depends on no held Component release |
+| Toolbox 0.1.0 (#5, #11) | **finish first:** it ships the current Component set and depends on no held Component release |
 | nvmod 0.6.0 (nvmod-rs#65, Release test nvmod-rs#70) | **finish second:** its test (Doctor, then `nvmod run` starts nv-rs) runs against the nv-rs build of the current set and needs no new engine release; it unfreezes nvmod for M2 |
 | lodwright 0.3.0 (lodwright-rs#65, Release test lodwright-rs#82) | **finish third:** generate, verify, in-game load; the in-game part takes one bench-lock slot |
 | nv-rs 0.5.0 (nv-rs#103, Release test nv-rs#195) | **finish after nv-rs#325:** the quick suite is part of its test |
@@ -468,14 +467,14 @@ that do not wait on the walking fix first, so nvmod's freeze ends sooner and M2 
 - **Toolbox rule:** the Toolbox writes no game-format parser or game logic of its own beyond game detection; where it
   needs one (for example reading interface art for the install skin), it uses a Component's library. Checking
   Contracts and sets is not game logic.
-- **Pin rule:** a version of a Component is decided in exactly one file, `known-good.toml`; the submodule pointers and
-  `supply.toml` are derived from it and a check fails when they disagree.
+- **Pin rule:** a version of a Component is decided in exactly one place, its submodule pin and its lock files; the
+  `supply.toml` rows are derived from the pins and a check fails when they disagree.
 - **Contract rule:** a Contract is defined by its producer, versioned by an integer `schema_version`, published as a
-  release asset, and snapshotted by the Toolbox per Known-good set. The producer's published schema is authoritative;
+  release asset, and snapshotted by the Toolbox per pinned set. The producer's published schema is authoritative;
   the Toolbox fetches it at bump time and fails the bump when its snapshot differs. N is the newest version a
   consumer knows; it accepts N and N-1 and refuses N+1 with a plain reason. A producer announces the versions it can
   emit through `<tool> contracts --json`, whose own envelope carries a `schema_version`. A snapshot is removed when no
-  supported set names it. The Contract versions in `known-good.toml` are generated from the handshake, never typed.
+  supported set names it. The Contract versions a build records are generated from the handshake, never typed.
   Wire Contracts (what a program prints) and on-disk Contracts (what a program keeps: Instance, Profile, journal,
   settings) are separate classes: on-disk ones also define migration on open, a backup before migrating, and refusal
   of a newer version.
@@ -499,7 +498,7 @@ Small, reviewable steps:
 
 1. Land this plan. Record the decisions as Toolbox ADRs: orchestration, tool supply and the view model live in the
    Toolbox (restates ADR-0002's reason for linking nvmod: its mod-management libraries, not its orchestration; and
-   amends ADR-0003's "nvmod keeps the view model"); one pin file (amends ADR-0005: the Toolbox's tool supply, not
+   amends ADR-0003's "nvmod keeps the view model"); one set of pins (ADR-0018; amends ADR-0005: the Toolbox's tool supply, not
    nvmod, verifies checksums and attestations); producer-owned Contracts with a Toolbox registry; one bench front
    door; the Rolling channel, moved here from nvmod-rs `docs/DECISIONS.md` (which keeps a pointer). ADR-0012
    (egui) replaces ADR-0003's toolkit line and re-opens ADR-0004's reason for a nested GUI workspace.
@@ -530,7 +529,7 @@ The Toolbox pins nvmod-rs by release tag, so each repository builds at every ste
 5. The workshop's matrix, check and gate stay on until the Toolbox's Rust versions have passed on two consecutive
    bumps; nvmod keeps `contracts/` until the Toolbox's snapshots cover every Contract a set names.
 
-Order of the groups: Runner; tool supply and the pin-file fold (with the check retargeted from `tools.lock.toml`);
+Order of the groups: Runner; tool supply and the pin fold (`tools.lock.toml` into `supply.toml`);
 drivers and launch; setup pipeline with `raul-journal`; view model and service seam with `raul-events`; GUI after the
 toolkit decision.
 

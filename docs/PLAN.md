@@ -1,5 +1,7 @@
 # Plan: Raul's tRusty Toolbox
 
+> Note: the Known-good set described below was removed (ADR-0018); the submodule pins and the lock files are the set.
+
 Status: **superseded in part by [REORG.md](REORG.md) (2026-11-16).** Where the two differ (who owns orchestration, tool
 supply, the Runner and the view model; the order of work; the release order), REORG.md and ADRs 0007 to 0011 win.
 Original status: **Phase 0 reviewed; decisions recorded 2026-11-16** (section 9, and ADRs 0001 to 0006 in

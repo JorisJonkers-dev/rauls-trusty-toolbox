@@ -17,8 +17,8 @@ If you were invited to contribute:
 
 ## Components are submodules
 
-The five Components live under `components/` as git submodules pinned to the versions of the
-latest Known-good set in `known-good.toml`. Each keeps its own repository, history, issues, CI and
+The five Components live under `components/` as git submodules pinned to the versions they
+were released at, and the lock files fix the Rust crates. Each keeps its own repository, history, issues, CI and
 releases. A change to a Component is a pull request in that Component's repository; it reaches
 this repository only as a pointer bump.
 
@@ -51,17 +51,14 @@ request in that repository. If you must work inside `components/<repo>`, first r
 After the Component's release is out:
 
 ```sh
-cd components/<repo>
-git fetch --tags origin
-git checkout vX.Y.Z
-cd ../..
-# add a new [[set]] to known-good.toml that moves only this Component (status "candidate")
-raul known-good check
-git add components/<repo> known-good.toml
+scripts/bump-component.sh <component> <tag>
+cargo update --workspace
+cargo update --workspace --manifest-path crates/raul-gui/Cargo.toml
+git add components/<repo> Cargo.lock crates/raul-gui/Cargo.lock
 git commit -m "chore(deps): bump <repo> to vX.Y.Z"
 ```
 
-One pull request moves one Component. The set becomes `known-good` in the same pull request once
-the full pipeline and the end-to-end run pass on it.
+A bump changes the submodule pointer and the lock files only. One pull request moves one Component,
+and it merges once the full pipeline and the end-to-end run pass on it.
 
 Security vulnerabilities must be reported privately as described in `SECURITY.md`.

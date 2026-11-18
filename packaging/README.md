@@ -10,7 +10,7 @@ Installers are built by `.github/workflows/release.yml` with
 | Windows x64 | NSIS `-setup.exe` (per user, no administrator rights), portable `.zip` |
 | macOS 13+ | universal (arm64 and x86_64) `.app` in a `.dmg` |
 
-Each package holds `raul`, the Component programs of the shipped Known-good set under `components/` (ADR-0005)
+Each package holds `raul`, the Component programs at their pinned versions under `components/` (ADR-0005)
 where a build exists for that platform, `THIRD-PARTY-NOTICES.md` and the licence texts. No game file is ever
 included.
 
