@@ -1289,8 +1289,13 @@ mod tests {
         let exec = crate::fake::ScriptedExec::new();
         let svc = CliService::new(exec);
         let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        // A path below a regular file can never be made an Instance, on any host (a fixed `/i` could be created as root).
+        let dir = nvmod_testkit::TempDir::new("no-profile");
+        let file = dir.path().join("file");
+        std::fs::write(&file, b"x").unwrap();
+        let instance = file.join("i").display().to_string();
         let err = svc
-            .direct_with_profile(Action::Plugins, "/i", || needs_a_profile(&runs, 9))
+            .direct_with_profile(Action::Plugins, &instance, || needs_a_profile(&runs, 9))
             .unwrap_err();
         let e = err.view_error();
         assert_eq!(e.what, NO_PROFILE_WHAT);
