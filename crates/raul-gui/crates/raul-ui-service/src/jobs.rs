@@ -133,6 +133,15 @@ impl<'a> Feed<'a> {
         (self.sink)(event);
     }
 
+    /// Lets one line of a stream in, when it is an event: the line a streaming direct job reports, read as the line a
+    /// command printed would be.
+    pub(crate) fn stream_line(&mut self, line: &str) {
+        if let Some(event) = line_event(self.spec, line) {
+            self.streamed = true;
+            self.stream(event);
+        }
+    }
+
     pub(crate) fn next_seq(&mut self) -> u64 {
         self.last_seq += 1;
         self.last_seq

@@ -12,7 +12,8 @@ use raul_ui_model::Screen;
 /// A command of the real command line that the GUI drives.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Action {
-    /// `raul setup`: the first run, base copy to a modded Instance.
+    /// `raul setup`: the first run, base copy to a modded Instance. The GUI runs the setup job of `raul-core` as a
+    /// streaming job in process ([`crate::direct::setup`]); the command line is its equivalent.
     Setup,
     /// `raul import-mo2`: a new Instance from an MO2 profile.
     ImportMo2,

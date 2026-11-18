@@ -71,6 +71,7 @@ removed from `raul`. Nothing is created in the Instance folder before the first 
 | `plan` | the ids of the steps of the run that are not left out (an imported Instance keeps its order, so it has no `sort`), in order (`init`, `import-mo2`, `profile`, `engine`, `target`, `ttw`, `mod:<file name>`, `stage`, `sort`, `stamp`, `verify`) |
 | `finished` | the ids of the steps that finished, in order; a Mod step is matched to the request by its file name |
 | `complete` | every step of the plan finished |
+| `request` | the setup request the run was started with (the request of `raul-core`'s setup job, without its list of finished steps), so `raul setup --resume --instance <dir>` needs the Instance and nothing else; `null` before a run started, or for an `nvmod` state whose command line could not be read |
 | `taken_over` | `null`, or where the journal came from: `from` is `nvmod-setup` and `version` the version that wrote that state |
 
 Opening a journal of an older version migrates it after a copy was kept next to it (`setup-journal.json.v0.bak`,
