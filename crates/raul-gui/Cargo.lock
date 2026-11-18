@@ -3333,6 +3333,7 @@ dependencies = [
 name = "raul-ui-service"
 version = "0.0.0"
 dependencies = [
+ "nvmod-core",
  "nvmod-testkit",
  "raul-cli",
  "raul-runner",

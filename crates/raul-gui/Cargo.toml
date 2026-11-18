@@ -60,6 +60,7 @@ raul-ui-model = { path = "crates/raul-ui-model" }
 raul-ui-service = { path = "crates/raul-ui-service" }
 raul-cli = { path = "../raul-cli" }
 raul-runner = { path = "../raul-runner" }
+nvmod-core = { path = "../../components/nvmod-rs/crates/nvmod-core" }
 nvmod-testkit = { path = "../../components/nvmod-rs/crates/nvmod-testkit" }
 nvmod-modinstall = { path = "../../components/nvmod-rs/crates/nvmod-modinstall" }
 serde = { version = "=1.0.229", features = ["derive"] }

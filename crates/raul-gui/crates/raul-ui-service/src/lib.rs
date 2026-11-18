@@ -4,6 +4,7 @@
 //! * [`Service`]: what screens and wizards ask of the world. [`CliService`] answers by running the `raul`
 //!   command line through the streaming Runner and reading its `--json` output, [`FakeService`] from a script.
 //! * [`jobs`]: runs a command line as a job whose events go into the job table of `raul-ui-model`.
+//! * [`inproc`]: the same command line run in this process, for tests and for a build with no `raul` beside it.
 //! * [`registry`]: the table that ties every GUI action to the command line that does the same, and the checks
 //!   that fail when a screen or an action has no equivalent.
 //! * [`wiring`]: drives the install, MO2 import and TTW wizards of `raul-ui-model` with a service.
@@ -17,6 +18,7 @@ pub mod conflicts;
 pub mod dto;
 pub mod exec;
 pub mod fake;
+pub mod inproc;
 pub mod jobs;
 pub mod lifecycle;
 pub mod registry;
@@ -28,6 +30,7 @@ pub use conflicts::{
 };
 pub use exec::{CancelHandle, Exec, Output, ProcessExec};
 pub use fake::{FakeService, ScriptedExec};
+pub use inproc::InProcessExec;
 pub use jobs::{JobSpec, cancel_job};
 pub use lifecycle::{CategoryEntry, LifecycleReport, LifecycleRequest, LifecycleStep, Where};
 pub use service::{
