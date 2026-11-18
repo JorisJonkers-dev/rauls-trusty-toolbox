@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795037349624,
+  "lastUpdate": 1795038146429,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4703,6 +4703,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.139863,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a1fbb350d4507b174ff2066cf1b91430f3068b07",
+          "message": "feat(core): setup resume journal taking over nvmod setups (#292)\n\n* feat(core): setup resume journal that takes over an unfinished nvmod setup\n\n* fix(core): journal takeover order, plan check and complete flag",
+          "timestamp": "2026-11-18T22:38:38+01:00",
+          "tree_id": "ca16ae5cdca381d371a8aa4d894e77960f93e4d7",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a1fbb350d4507b174ff2066cf1b91430f3068b07"
+        },
+        "date": 1795038145767,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.4257300000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.099768,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.445417,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.075771,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.877555000000001,
             "unit": "ms"
           }
         ]
