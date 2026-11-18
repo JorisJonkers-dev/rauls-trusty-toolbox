@@ -124,7 +124,8 @@ lock files are the set of Component versions (ADR-0018). CI checks that every po
 repository's default branch. The `Components` workflow (`components.yml`) runs a self-hosted Renovate every 15 minutes
 (`.github/renovate-components.json`). It finds a new release of a Component's repository itself, with no message from
 that repository, and opens a pull request that moves only that Component: the submodule pointer, with both lock files
-refreshed. nvmod moves with the loot-rs it links (ADR-0015). Pipeline Complete decides whether the pull request merges,
+refreshed. Renovate lists files with git and never sees inside a submodule, so the release a pointer is at is also
+written in `components/<repo>.version`; `scripts/bump-component.sh` keeps it equal and CI fails when it drifts. nvmod moves with the loot-rs it links (ADR-0015). Pipeline Complete decides whether the pull request merges,
 and auto-merge lands it. The release (`release.yml`) packages `raul` with the Component programs at those pins.
 
 ## Workspaces and lock files

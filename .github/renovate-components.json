@@ -41,12 +41,12 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "The release of nv-rs the submodule is pinned at (its release-please manifest); each later release tag of its repository is an update.",
+      "description": "The release of nv-rs the submodule is pinned at (its pin file under components/, which scripts/bump-component.sh keeps equal to the release-please manifest of the commit checked out in the submodule); each later release tag of its repository is an update.",
       "managerFilePatterns": [
-        "/^components/nv-rs/\\.release-please-manifest\\.json$/"
+        "/^components/nv-rs\\.version$/"
       ],
       "matchStrings": [
-        "\"\\.\":\\s*\"(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\""
+        "^(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\\s*$"
       ],
       "depNameTemplate": "nv-rs",
       "packageNameTemplate": "JorisJonkers-dev/nv-rs",
@@ -57,12 +57,12 @@
     },
     {
       "customType": "regex",
-      "description": "The release of nvmod-rs the submodule is pinned at (its release-please manifest); each later release tag of its repository is an update.",
+      "description": "The release of nvmod-rs the submodule is pinned at (its pin file under components/, which scripts/bump-component.sh keeps equal to the release-please manifest of the commit checked out in the submodule); each later release tag of its repository is an update.",
       "managerFilePatterns": [
-        "/^components/nvmod-rs/\\.release-please-manifest\\.json$/"
+        "/^components/nvmod-rs\\.version$/"
       ],
       "matchStrings": [
-        "\"\\.\":\\s*\"(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\""
+        "^(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\\s*$"
       ],
       "depNameTemplate": "nvmod",
       "packageNameTemplate": "JorisJonkers-dev/nvmod-rs",
@@ -73,12 +73,12 @@
     },
     {
       "customType": "regex",
-      "description": "The release of lodwright-rs the submodule is pinned at (its release-please manifest); each later release tag of its repository is an update.",
+      "description": "The release of lodwright-rs the submodule is pinned at (its pin file under components/, which scripts/bump-component.sh keeps equal to the release-please manifest of the commit checked out in the submodule); each later release tag of its repository is an update.",
       "managerFilePatterns": [
-        "/^components/lodwright-rs/\\.release-please-manifest\\.json$/"
+        "/^components/lodwright-rs\\.version$/"
       ],
       "matchStrings": [
-        "\"\\.\":\\s*\"(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\""
+        "^(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\\s*$"
       ],
       "depNameTemplate": "lodwright-rs",
       "packageNameTemplate": "JorisJonkers-dev/lodwright-rs",
@@ -89,12 +89,12 @@
     },
     {
       "customType": "regex",
-      "description": "The release of ttwright-rs the submodule is pinned at (its release-please manifest); each later release tag of its repository is an update.",
+      "description": "The release of ttwright-rs the submodule is pinned at (its pin file under components/, which scripts/bump-component.sh keeps equal to the release-please manifest of the commit checked out in the submodule); each later release tag of its repository is an update.",
       "managerFilePatterns": [
-        "/^components/ttwright-rs/\\.release-please-manifest\\.json$/"
+        "/^components/ttwright-rs\\.version$/"
       ],
       "matchStrings": [
-        "\"\\.\":\\s*\"(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\""
+        "^(?<currentValue>[0-9]+\\.[0-9]+\\.[0-9]+)\\s*$"
       ],
       "depNameTemplate": "ttwright-rs",
       "packageNameTemplate": "JorisJonkers-dev/ttwright-rs",
