@@ -31,12 +31,12 @@ raul-ui-model = { workspace = true }
 raul-ui-service = { workspace = true }
 eframe = { workspace = true }
 serde_json = { workspace = true }
-raul-engine = { workspace = true, optional = true }
+raul-engine = { workspace = true }
 
 [features]
 default = []
 # The engine's crates linked in process (ADR-0016): on in release builds, off in the fast loops and workspace-wide CI.
-engine = ["dep:raul-engine", "raul-engine/engine"]
+engine = ["raul-engine/engine"]
 
 [dev-dependencies]
 nvmod-api = { workspace = true }
