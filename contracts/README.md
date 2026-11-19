@@ -254,7 +254,15 @@ there, and nothing is written (`up_to_date: true`, `changed: false`); a removed 
 | `failed` | 4 | `lodwright_failed` | lodwright's generation returned an error; `lodwright_code` is its code |
 | `failed` | 4 | `tool_failed` | stopped unexpectedly, ran past the timeout, or reported a status other than `ok` |
 | `failed` | 4 | `add_mod_failed` | the output was written, but replacing the Mod failed and was rolled back |
+| `refused` | 2 | `run_in_progress` | another run of the same Profile is going; this one did not start |
 | `cancelled` | 4 | `cancelled` | stopped by `raul` on SIGINT or SIGTERM |
+
+One run per Profile goes at a time: a run holds an operating-system lock on `<instance>/.raul/lod/<Profile>/run.lock`
+until it ends (the system releases it when the process dies, so none is left behind), and a second `raul lod generate`
+of the same Profile is refused with `run_in_progress`. A run reads the Profile's settings once, when it builds its
+request: `raul lod settings` stays usable while it goes, says "A run is in progress. Changes apply to the next run."
+(`run_in_progress: true` in its document), and the change shows as out of date once the run has ended. A dry run
+takes no lock.
 
 In every case but `success` the Instance is as it was before the command. lodwright keeps its own output folder
 between runs (that is how it knows a later run is `up_to_date`); the Mod is a copy of it.

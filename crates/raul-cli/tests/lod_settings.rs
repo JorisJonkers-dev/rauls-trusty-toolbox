@@ -370,3 +370,24 @@ fn a_command_line_the_settings_verbs_do_not_take_is_a_usage_error() {
     let doc: SettingsDoc = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(doc.error.unwrap().what, catalogue::INSTANCE_INVALID);
 }
+
+#[test]
+fn a_change_while_a_run_is_going_is_saved_and_says_it_applies_to_the_next_run() {
+    let f = Fixture::new("raul-lodset-running");
+    let held = raul_drivers::lod::RunLock::try_acquire(&f.instance(), "Default")
+        .unwrap()
+        .expect("no run holds the Profile");
+    let (code, doc) = f.settings(&["set", "output.trees", "false"]);
+    assert_eq!(code, Some(0));
+    assert!(doc.run_in_progress, "{doc:?}");
+    assert!(doc.change.unwrap().changed, "the change is saved");
+    let out = f.raul(&["lod", "settings", "reset", "--instance", s(&f.instance())]);
+    assert!(out.status.success(), "{out:?}");
+    assert!(
+        String::from_utf8_lossy(&out.stdout).contains(catalogue::RUN_IN_PROGRESS),
+        "{out:?}"
+    );
+    drop(held);
+    let (_, doc) = f.settings(&["show"]);
+    assert!(!doc.run_in_progress);
+}

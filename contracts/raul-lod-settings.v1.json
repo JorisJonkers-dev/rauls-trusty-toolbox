@@ -398,6 +398,11 @@
         "null"
       ]
     },
+    "run_in_progress": {
+      "default": false,
+      "description": "A LOD run of the Profile is going: it uses the settings it started with, and a change applies to the next run.",
+      "type": "boolean"
+    },
     "schema_version": {
       "const": 1,
       "description": "The document version; 1.",
@@ -423,6 +428,7 @@
     "options",
     "profile",
     "restore_point",
+    "run_in_progress",
     "schema_version",
     "warnings"
   ],
