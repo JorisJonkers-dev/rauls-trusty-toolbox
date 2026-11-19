@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795097580021,
+  "lastUpdate": 1795099207969,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5977,6 +5977,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.479481,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c2fc2591f78ace14b3e3929e6f67cffdf20be1f8",
+          "message": "feat(lod): one LOD run per Profile at a time; settings edits apply to the next run (#367)\n\nA generate holds an operating-system lock on .raul/lod/<Profile>/run.lock\nwhile it runs; the system releases it when the process ends, also when it\nis killed. A second generate of the same Profile is refused with the new\ncode run_in_progress (exit code 2) and starts nothing. A run reads the\nsettings once, when it builds its request, so raul lod settings stays\nusable during a run: it saves the change, says that it applies to the next\nrun, and reports run_in_progress in its document.\n\nRefs #343, part of #38",
+          "timestamp": "2026-11-19T15:35:08+01:00",
+          "tree_id": "146268613b021d6fe222a9fe934f8fe5143c538a",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/c2fc2591f78ace14b3e3929e6f67cffdf20be1f8"
+        },
+        "date": 1795099206942,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.304757,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.780892,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.148027,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.065666,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.989712,
             "unit": "ms"
           }
         ]
