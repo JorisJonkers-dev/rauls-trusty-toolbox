@@ -8,7 +8,7 @@
 
 use crate::exec::{CancelHandle, Exec, Output};
 use std::io::Write;
-use std::sync::mpsc;
+use std::sync::{Mutex, PoisonError, mpsc};
 use std::time::Duration;
 
 /// How often a running command is asked whether it was told to stop.
@@ -71,8 +71,8 @@ impl Exec for InProcessExec {
         on_line: &mut dyn FnMut(&str),
         cancel: &CancelHandle,
     ) -> Result<Output, String> {
-        // A flag left set by an earlier run would stop this one before it started.
-        nvmod_core::cancel::reset();
+        let _active = Active::enter();
+        let mut asked = false;
         let (tx, rx) = mpsc::channel();
         let mut lines = Lines::new(on_line);
         let mut stderr = Vec::new();
@@ -87,6 +87,7 @@ impl Exec for InProcessExec {
             });
             loop {
                 if cancel.is_requested() {
+                    asked = true;
                     nvmod_core::cancel::request();
                     break;
                 }
@@ -101,7 +102,7 @@ impl Exec for InProcessExec {
         });
         // The flag belongs to one run: left set, it would stop the next command before it started. It is read and
         // reset here, before anything can return, so a panic or an error from the command line does not leave it set.
-        let stopped = finish_flag();
+        let stopped = Active::finish(asked);
         // Keep what was streamed before the run ended, whether it finished, was stopped or failed.
         drain(&rx, &mut lines, &mut stderr);
         lines.finish();
@@ -130,11 +131,43 @@ impl Exec for InProcessExec {
     }
 }
 
-/// Reads whether the cancel flag was set for the run that just ended, then clears it.
-fn finish_flag() -> bool {
-    let stopped = nvmod_core::cancel::requested();
-    nvmod_core::cancel::reset();
-    stopped
+/// How many cancellable runs are going on. The cancel flag is one flag of the process, so a run that starts while
+/// another goes on must not clear it, and a run that ends while another goes on must not read or clear it.
+static ACTIVE: Mutex<usize> = Mutex::new(0);
+
+/// One cancellable run, counted while it lasts.
+struct Active(());
+
+impl Active {
+    /// Counts a run in; a flag left set by an earlier run would stop this one before it started, so it is cleared
+    /// when no other run goes on.
+    fn enter() -> Self {
+        let mut n = ACTIVE.lock().unwrap_or_else(PoisonError::into_inner);
+        if *n == 0 {
+            nvmod_core::cancel::reset();
+        }
+        *n += 1;
+        Self(())
+    }
+
+    /// Whether the run was told to stop: by its own handle (`asked`) or, when it is the only one going on, by the
+    /// flag, which is then cleared.
+    fn finish(asked: bool) -> bool {
+        let n = ACTIVE.lock().unwrap_or_else(PoisonError::into_inner);
+        if *n == 1 {
+            let flagged = nvmod_core::cancel::requested();
+            nvmod_core::cancel::reset();
+            asked || flagged
+        } else {
+            asked
+        }
+    }
+}
+
+impl Drop for Active {
+    fn drop(&mut self) {
+        *ACTIVE.lock().unwrap_or_else(PoisonError::into_inner) -= 1;
+    }
 }
 
 /// Hands over every chunk already sent, without waiting for more, so nothing a command wrote before it ended is lost.
@@ -352,8 +385,10 @@ mod tests {
         let _turn = FLAG
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let active = Active::enter();
         nvmod_core::cancel::request();
-        assert!(finish_flag());
+        assert!(Active::finish(false));
+        drop(active);
         assert!(!nvmod_core::cancel::requested());
     }
 
