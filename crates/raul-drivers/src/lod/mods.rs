@@ -41,6 +41,7 @@ pub struct GeneratedMod {
     /// The Mod's folder name.
     pub name: String,
     /// Its place in the Profile's list, 1 the highest priority (separators count, as in `raul mods list`).
+    #[schemars(range(min = 1))]
     pub position: usize,
     /// Whether the Profile enables it.
     pub enabled: bool,
