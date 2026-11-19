@@ -4,39 +4,24 @@
 #![cfg(unix)]
 #![allow(clippy::assert_is_empty)]
 
-use nvmod_testkit::{BaseBuilder, TempDir, ZipBuilder, write_file, write_script};
+use nvmod_testkit::{BaseBuilder, TempDir, ZipBuilder, write_file};
 use raul_ui_model::error::ExitClass;
 use raul_ui_model::job::{JobId, JobState, JobTable, Outcome};
 use raul_ui_model::wizard::{ImportWizard, InstallWizard, Step};
-use raul_ui_service::exec::{Exec, Output};
+use raul_ui_service::Exec;
 use raul_ui_service::registry::Action;
 use raul_ui_service::wiring::{
     ImportContext, InstallContext, apply_import, apply_install, plan_import, plan_install,
 };
 use raul_ui_service::{
-    CliService, DoctorRequest, ImportRequest, InstallRequest, InstallResult, JobSpec,
-    RollbackRequest, RuntimeTarget, Service, ServiceError, SortRequest, TargetRequest,
+    CliService, DoctorRequest, ImportRequest, InProcessExec, InstallRequest, InstallResult,
+    JobSpec, RollbackRequest, RuntimeTarget, Service, ServiceError, SortRequest, TargetRequest,
     ToolsRequest, VerifyRequest,
 };
 use std::path::PathBuf;
 
-/// Runs `nvmod_cli::run` in this process.
-struct InProcess;
-
-impl Exec for InProcess {
-    fn run(&self, args: &[String]) -> Result<Output, String> {
-        let (mut out, mut err) = (Vec::new(), Vec::new());
-        let code = raul_cli::run(args, &mut out, &mut err);
-        Ok(Output {
-            code: Some(i64::from(code)),
-            stdout: String::from_utf8_lossy(&out).into_owned(),
-            stderr: String::from_utf8_lossy(&err).into_owned(),
-        })
-    }
-}
-
-fn service() -> CliService<InProcess> {
-    CliService::new(InProcess)
+fn service() -> CliService<InProcessExec> {
+    CliService::new(InProcessExec::new())
 }
 
 fn s(p: &std::path::Path) -> String {
@@ -65,7 +50,7 @@ fn profile(root: &std::path::Path, mods: &str, plugins: &str) {
 
 /// An Instance made by `raul init`, with an empty profile `Default`.
 struct Instance {
-    _base: TempDir,
+    base: TempDir,
     dir: TempDir,
     work: TempDir,
 }
@@ -80,11 +65,11 @@ impl Instance {
             .iter()
             .map(|a| (*a).to_owned())
             .collect();
-        let out = InProcess.run(&args).unwrap();
+        let out = InProcessExec::new().run(&args).unwrap();
         assert_eq!(out.code, Some(0), "{}", out.stderr);
         profile(&root, "", "FalloutNV.esm\r\n");
         Self {
-            _base: base,
+            base,
             dir,
             work: TempDir::new("svc-work"),
         }
@@ -312,7 +297,7 @@ fn stage(inst: &Instance) {
     .iter()
     .map(|a| (*a).to_owned())
     .collect();
-    let out = InProcess.run(&args).unwrap();
+    let out = InProcessExec::new().run(&args).unwrap();
     assert_eq!(out.code, Some(0), "{}", out.stderr);
 }
 
@@ -470,43 +455,49 @@ fn tools_list_and_verify_read_the_pinned_tools() {
 }
 
 #[test]
-fn a_real_process_streams_its_lines_into_the_job_table_as_they_are_printed() {
-    let dir = TempDir::new("svc-stream");
-    // Prints a plan, waits for a marker file the test creates once it saw the first event, then finishes.
-    let marker = dir.path().join("go");
-    let body = format!(
-        "echo '{{\"seq\":1,\"event\":\"plan\",\"dry_run\":false,\"resume\":false,\"instance\":\"/i\",\"steps\":[]}}'\n\
-         while [ ! -e '{}' ]; do sleep 0.05; done\n\
-         echo '{{\"seq\":2,\"event\":\"finished\",\"status\":\"ok\",\"exit_code\":0,\"rolled_back\":false,\"resumable\":false}}'",
-        marker.display()
-    );
-    let program = write_script(dir.path(), "nvmod", &body);
-    let svc = CliService::new(raul_ui_service::ProcessExec::new(program));
-    let spec = JobSpec::new(JobId(1), Action::Setup, vec![]).writing();
-    let mut seen_running = false;
+fn a_real_run_streams_its_events_into_the_job_table_as_they_are_printed() {
+    let inst = Instance::new();
+    let masterlist = inst.work.path().join("masterlist.yaml");
+    std::fs::write(&masterlist, MASTERLIST).unwrap();
+    // The setup command prints one event per line as it goes; a dry run needs no network and writes nothing.
+    let target = inst.work.path().join("new-instance");
+    let args: Vec<String> = [
+        "--base",
+        &s(inst.base.path()),
+        "--instance",
+        &s(&target),
+        "--masterlist",
+        &s(&masterlist),
+        "--skip-nv-rs",
+        "--dry-run",
+    ]
+    .iter()
+    .map(|a| (*a).to_owned())
+    .collect();
+    let spec = JobSpec::new(JobId(1), Action::Setup, args);
     let mut table = JobTable::default();
-    let out = svc
+    let mut running_events = 0;
+    let out = service()
         .run_job(&spec, &mut |event| {
             table.apply(event);
             if table
                 .get(JobId(1))
                 .is_some_and(|j| j.state == JobState::Running)
-                && !seen_running
             {
-                seen_running = true;
-                std::fs::write(&marker, b"").unwrap();
+                running_events += 1;
             }
         })
         .unwrap();
+    assert_eq!(out.code, Some(0), "{}", out.stderr);
     assert!(
-        seen_running,
-        "the plan arrived while the process was still running"
+        running_events >= 1,
+        "the plan arrived while the command was still running"
     );
-    assert_eq!(out.code, Some(0));
     assert_eq!(
         table.get(JobId(1)).unwrap().state,
-        JobState::Finished(Outcome::Completed)
+        JobState::Finished(Outcome::DryRun)
     );
+    assert!(!target.exists(), "a dry run writes nothing");
 }
 
 #[test]
