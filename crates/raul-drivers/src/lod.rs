@@ -6,6 +6,7 @@
 
 mod generate;
 mod inproc;
+pub mod settings;
 
 pub use generate::{LODWRIGHT, LodOutcome, LodRequest, generate, generate_with_cancel};
 
@@ -41,8 +42,8 @@ pub const SETTINGS_FILE: &str = "raul-lod.toml";
 /// The folder inside the Instance where lodwright writes and keeps its manifest between runs.
 pub const WORK_DIR: &str = ".raul/lod";
 
-/// The LOD settings of a Profile.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// The LOD settings of a Profile. [`settings`] reads and changes them option by option.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Settings {
     /// Worlds to generate (editor ids); empty means every world with terrain.
@@ -58,6 +59,135 @@ pub struct Settings {
     /// Let the output folder lie inside a git working tree, which is refused otherwise (raul and lodwright both
     /// check). Not a LOD generation setting: it changes where output may go, not what is built.
     pub allow_in_repo: bool,
+    /// Per terrain level: what differs from the defaults. When any level sets anything, the request lists all four
+    /// levels, the rest at their defaults.
+    pub levels: Levels,
+}
+
+/// The terrain levels the settings change, by their cell count (`[levels.4]` to `[levels.32]`).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Levels {
+    /// Level 4.
+    #[serde(rename = "4", skip_serializing_if = "Option::is_none")]
+    pub l4: Option<Level>,
+    /// Level 8.
+    #[serde(rename = "8", skip_serializing_if = "Option::is_none")]
+    pub l8: Option<Level>,
+    /// Level 16.
+    #[serde(rename = "16", skip_serializing_if = "Option::is_none")]
+    pub l16: Option<Level>,
+    /// Level 32.
+    #[serde(rename = "32", skip_serializing_if = "Option::is_none")]
+    pub l32: Option<Level>,
+}
+
+impl Levels {
+    /// The settings of `level` (4, 8, 16 or 32).
+    #[must_use]
+    pub fn of(&self, level: u32) -> Option<&Level> {
+        match level {
+            4 => self.l4.as_ref(),
+            8 => self.l8.as_ref(),
+            16 => self.l16.as_ref(),
+            32 => self.l32.as_ref(),
+            _ => None,
+        }
+    }
+}
+
+/// One terrain level's settings; each one the file leaves out takes its default.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Level {
+    /// The allowed vertical error is twice this many units.
+    pub quality: Option<f32>,
+    /// Vertex cap per block, 3 to 32767.
+    pub max_vertices: Option<u32>,
+    /// Diffuse texture edge in pixels, a power of two from 4 to 4096.
+    pub diffuse_size: Option<u32>,
+    /// Normal texture edge in pixels, a power of two from 4 to 4096.
+    pub normal_size: Option<u32>,
+}
+
+/// The terrain levels of the request: none (the generator's defaults) when the settings change no level and not
+/// `always`, else all four with what the settings change and the defaults for the rest.
+#[must_use]
+pub fn levels_of(settings: &Settings, always: bool) -> Vec<lodwright_contract::LevelRequest> {
+    let any = LEVELS_ALL.iter().any(|l| settings.levels.of(*l).is_some());
+    if !any && !always {
+        return Vec::new();
+    }
+    let default = |level: u32, field: &str| {
+        settings::default_value(&format!("levels.{level}.{field}"))
+            .and_then(|v| v.as_f64())
+            .unwrap_or_default()
+    };
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    // the defaults are small and whole
+    LEVELS_ALL
+        .iter()
+        .map(|&level| {
+            let set = settings.levels.of(level).cloned().unwrap_or_default();
+            lodwright_contract::LevelRequest {
+                level,
+                quality: set.quality.unwrap_or(default(level, "quality") as f32),
+                max_vertices: set
+                    .max_vertices
+                    .unwrap_or(default(level, "max_vertices") as u32),
+                diffuse_size: set
+                    .diffuse_size
+                    .unwrap_or(default(level, "diffuse_size") as u32),
+                normal_size: set
+                    .normal_size
+                    .unwrap_or(default(level, "normal_size") as u32),
+            }
+        })
+        .collect()
+}
+
+const LEVELS_ALL: [u32; 4] = settings::LEVELS;
+
+/// The parts of the request the settings decide: `terrain`, `objects`, `trees`, `inclusion` and `limits`.
+#[must_use]
+pub fn request_parts(settings: &Settings) -> Value {
+    let mut limits = serde_json::Map::new();
+    if let Some(t) = settings.threads {
+        limits.insert("threads".into(), t.into());
+    }
+    if let Some(m) = settings.memory_mib {
+        limits.insert("memory_mib".into(), m.into());
+    }
+    let o = &settings.output;
+    let i = &settings.inclusion;
+    json!({
+        "terrain": {
+            "enabled": o.terrain,
+            "levels": levels_of(settings, false),
+            "land_textures": o.land_textures,
+            "water": o.water,
+        },
+        "objects": { "enabled": o.objects },
+        "trees": { "enabled": o.trees },
+        "inclusion": {
+            "exclude_plugins": i.exclude_plugins,
+            "only_plugins": i.only_plugins,
+            "exclude_records": i.exclude_records,
+            "exclude_models": i.exclude_models,
+        },
+        "limits": limits,
+    })
+}
+
+/// The `request_digest` lodwright gives `request`: equal digests mean an output folder stays up to date.
+///
+/// # Errors
+///
+/// The document does not read as a lodwright request.
+pub fn digest(request: &Value) -> Result<String, String> {
+    serde_json::from_value::<lodwright_contract::Request>(request.clone())
+        .map(|r| r.digest())
+        .map_err(|e| e.to_string())
 }
 
 /// Which objects enter object LOD (lodwright's inclusion rules).
@@ -110,12 +240,24 @@ impl Settings {
     ///
     /// The file exists but cannot be read or holds something these settings do not have.
     pub fn load(instance: &NvmodInstance, profile: &str) -> Result<Settings, String> {
-        let file = instance.profile_dir(profile).join(SETTINGS_FILE);
-        match std::fs::read_to_string(&file) {
-            Ok(text) => toml::from_str(&text).map_err(|e| format!("{}: {e}", file.display())),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Settings::default()),
-            Err(e) => Err(format!("{}: {e}", file.display())),
-        }
+        Settings::load_file(&instance.profile_dir(profile).join(SETTINGS_FILE))
+    }
+
+    /// The settings in `file`, checked as [`settings::check_table`] does, or the defaults when it does not exist.
+    ///
+    /// # Errors
+    ///
+    /// The file exists but cannot be read, or holds a key or value that is refused; the reason is in plain words.
+    pub fn load_file(file: &Path) -> Result<Settings, String> {
+        let text = match std::fs::read_to_string(file) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Settings::default()),
+            Err(e) => return Err(format!("{}: {e}", file.display())),
+        };
+        let table: toml::Table = text
+            .parse()
+            .map_err(|e: toml::de::Error| format!("{}: {e}", file.display()))?;
+        settings::check_table(&table).map_err(|r| format!("{}: {}", file.display(), r.line()))
     }
 }
 
@@ -155,19 +297,8 @@ pub fn plan(
 ) -> Result<Plan, String> {
     let settings = Settings::load(instance, profile)?;
     let allow_in_repo = allow_in_repo || settings.allow_in_repo;
-    let slots =
-        nvmod_loadorder::read_slots(&instance.profile_dir(profile)).map_err(|e| describe(&e))?;
-    let plugins: Vec<String> = slots
-        .into_iter()
-        .filter(|s| s.active)
-        .map(|s| s.name)
-        .collect();
-    if plugins.is_empty() {
-        return Err(format!("profile `{profile}` has no active plugin"));
-    }
-    let data_folder = nvmod_loadorder::staging_data(instance, profile).map_err(|e| describe(&e))?;
+    let (plugins, data_folder) = inputs(instance, profile)?;
     let absolute = |p: &Path| std::path::absolute(p).map_err(|e| format!("{}: {e}", p.display()));
-    let data_folder = absolute(&data_folder)?;
     let output_dir = absolute(&instance.root)?.join(WORK_DIR).join("out");
     // lodwright's own rule for the output folder, checked before it is asked.
     if output_dir.starts_with(&data_folder) {
@@ -191,15 +322,7 @@ pub fn plan(
     } else {
         worlds.to_vec()
     };
-    let mut limits = serde_json::Map::new();
-    if let Some(t) = settings.threads {
-        limits.insert("threads".into(), t.into());
-    }
-    if let Some(m) = settings.memory_mib {
-        limits.insert("memory_mib".into(), m.into());
-    }
-    let o = &settings.output;
-    let i = &settings.inclusion;
+    let parts = request_parts(&settings);
     let request = json!({
         "schema_version": REQUEST_VERSION,
         "contract": REQUEST_CONTRACT,
@@ -207,16 +330,11 @@ pub fn plan(
         "plugins": plugins,
         "worlds": worlds,
         "output_dir": output_dir.display().to_string(),
-        "terrain": { "enabled": o.terrain, "levels": [], "land_textures": o.land_textures, "water": o.water },
-        "objects": { "enabled": o.objects },
-        "trees": { "enabled": o.trees },
-        "inclusion": {
-            "exclude_plugins": i.exclude_plugins,
-            "only_plugins": i.only_plugins,
-            "exclude_records": i.exclude_records,
-            "exclude_models": i.exclude_models,
-        },
-        "limits": limits,
+        "terrain": parts["terrain"],
+        "objects": parts["objects"],
+        "trees": parts["trees"],
+        "inclusion": parts["inclusion"],
+        "limits": parts["limits"],
     });
     check_request(&request)?;
     Ok(Plan {
@@ -226,6 +344,47 @@ pub fn plan(
         request,
         allow_in_repo,
     })
+}
+
+/// The Profile's active plugins in Load order and its Staging tree's `Data` folder (absolute).
+fn inputs(instance: &NvmodInstance, profile: &str) -> Result<(Vec<String>, PathBuf), String> {
+    let slots =
+        nvmod_loadorder::read_slots(&instance.profile_dir(profile)).map_err(|e| describe(&e))?;
+    let plugins: Vec<String> = slots
+        .into_iter()
+        .filter(|s| s.active)
+        .map(|s| s.name)
+        .collect();
+    if plugins.is_empty() {
+        return Err(format!("profile `{profile}` has no active plugin"));
+    }
+    let data_folder = nvmod_loadorder::staging_data(instance, profile).map_err(|e| describe(&e))?;
+    let data_folder =
+        std::path::absolute(&data_folder).map_err(|e| format!("{}: {e}", data_folder.display()))?;
+    Ok((plugins, data_folder))
+}
+
+/// What the settings of `profile` would quietly build nothing for: world names no plugin defines, inclusion rules
+/// naming a plugin that is not active, and rules that leave no plugin for object LOD. Worlds are read from the
+/// plugins only when the settings name any. Settings that cannot be read give no warnings (the settings commands
+/// refuse them).
+#[must_use]
+pub fn settings_warnings(instance: &NvmodInstance, profile: &str) -> Vec<settings::Warning> {
+    let Ok(s) = Settings::load(instance, profile) else {
+        return Vec::new();
+    };
+    let found = inputs(instance, profile);
+    let plugins = found.as_ref().ok().map(|(p, _)| p.as_slice());
+    let worlds = if s.worlds.is_empty() {
+        Ok(Vec::new())
+    } else {
+        found.as_ref().map_err(Clone::clone).and_then(|(p, data)| {
+            lodwright_api::load::load_worlds(data, p)
+                .map(|w| w.iter().map(|w| w.name().to_owned()).collect())
+                .map_err(|e| e.summary)
+        })
+    };
+    settings::warnings(&s, plugins, worlds.as_deref().map_err(String::as_str))
 }
 
 fn describe(e: &nvmod_loadorder::Error) -> String {

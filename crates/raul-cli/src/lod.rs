@@ -17,7 +17,7 @@ use crate::printer::Printer;
 
 const USAGE_LINE: &str = "lod takes `plan [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] \
      [--json]` or `generate [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] [--dry-run] \
-     [--timeout-secs <n>] [--json]`";
+     [--timeout-secs <n>] [--json]` or `settings show|set|unset|reset|undo ...`";
 
 struct Flags {
     instance: Option<PathBuf>,
@@ -82,6 +82,7 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
     match args.first().map(String::as_str) {
         Some("plan") => plan(&args[1..], out, err),
         Some("generate") => generate(&args[1..], out, err),
+        Some("settings") => crate::lod_settings::run(&args[1..], out, err),
         _ => crate::usage(err, USAGE_LINE),
     }
 }
@@ -92,7 +93,7 @@ fn refused(err: &mut dyn Write, why: &str) -> u8 {
 }
 
 /// The Instance from `raul config`, when the flags name none.
-fn configured_instance() -> Option<PathBuf> {
+pub(crate) fn configured_instance() -> Option<PathBuf> {
     raul_core::config::default_file()
         .and_then(|f| Config::load(&f).ok())
         .and_then(|c| c.get(Key::Instance))
