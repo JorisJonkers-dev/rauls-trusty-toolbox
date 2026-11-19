@@ -78,6 +78,8 @@ pub struct ProcessExec {
     program: PathBuf,
     grace: Duration,
     timeout: Duration,
+    env: Vec<(String, String)>,
+    replaced: Vec<(String, Vec<String>)>,
 }
 
 impl ProcessExec {
@@ -87,6 +89,8 @@ impl ProcessExec {
             program: program.into(),
             grace: raul_runner::STOP_GRACE,
             timeout: COMMAND_TIMEOUT,
+            env: Vec::new(),
+            replaced: Vec::new(),
         }
     }
 
@@ -110,6 +114,38 @@ impl ProcessExec {
         self
     }
 
+    /// Also give the program `name` with `value` in its environment, without touching this process's own: how a test
+    /// points `raul` at a configuration and a state folder of its own (`RAUL_CONFIG_DIR`, `NVMOD_STATE_DIR`).
+    #[must_use]
+    pub fn with_env(mut self, name: &str, value: &str) -> Self {
+        self.env.push((name.to_owned(), value.to_owned()));
+        self
+    }
+
+    /// Pass `with` in place of every `argument` of the command line: how a test hands a file where a page asks for the
+    /// pinned masterlist (`--fetch-masterlist`), so nothing is fetched. Words that are values of other options are not
+    /// looked at specially: only a word equal to `argument` is replaced.
+    #[must_use]
+    pub fn with_argument_replaced(mut self, argument: &str, with: &[&str]) -> Self {
+        self.replaced.push((
+            argument.to_owned(),
+            with.iter().map(|w| (*w).to_owned()).collect(),
+        ));
+        self
+    }
+
+    /// The command line as it is started: `args` with the replacements made.
+    fn arguments(&self, args: &[String]) -> Vec<String> {
+        args.iter()
+            .flat_map(|a| {
+                self.replaced
+                    .iter()
+                    .find(|(from, _)| from == a)
+                    .map_or_else(|| vec![a.clone()], |(_, to)| to.clone())
+            })
+            .collect()
+    }
+
     /// The program it runs.
     pub fn program(&self) -> &std::path::Path {
         &self.program
@@ -118,11 +154,14 @@ impl ProcessExec {
     /// The Runner: no output cap beyond the default, the timeout above, and the person's own environment, since
     /// `raul` is the Toolbox itself and needs the same home, display and Steam variables as their shell.
     fn runner(&self) -> Runner {
-        Runner {
+        let runner = Runner {
             timeout: self.timeout,
             ..Runner::default()
         }
-        .inherit_all()
+        .inherit_all();
+        self.env
+            .iter()
+            .fold(runner, |runner, (name, value)| runner.with_env(name, value))
     }
 }
 
@@ -151,7 +190,8 @@ impl Exec for ProcessExec {
         on_line: &mut dyn FnMut(&str),
         cancel: &CancelHandle,
     ) -> Result<Output, String> {
-        let call = Call::new("raul", &self.program, args);
+        let args = self.arguments(args);
+        let call = Call::new("raul", &self.program, &args);
         match self
             .runner()
             .run_streaming(&call, cancel, self.grace, on_line)
@@ -207,6 +247,50 @@ mod tests {
         assert_eq!(out.code, Some(3));
         assert_eq!(out.stdout, "one\ntwo\n");
         assert!(out.stderr.contains("bad"));
+    }
+
+    #[test]
+    fn the_environment_given_reaches_the_program_and_not_this_process() {
+        let dir = nvmod_testkit::TempDir::new("exec-env");
+        let p = nvmod_testkit::write_script(
+            dir.path(),
+            "raul",
+            "echo \"$RAUL_CONFIG_DIR|$NVMOD_STATE_DIR\"",
+        );
+        let out = ProcessExec::new(p)
+            .with_env("RAUL_CONFIG_DIR", "/the/config")
+            .with_env("NVMOD_STATE_DIR", "/the/state")
+            .run(&[])
+            .unwrap();
+        assert_eq!(out.stdout.trim(), "/the/config|/the/state");
+        assert!(std::env::var_os("NVMOD_STATE_DIR").is_none_or(|v| v != "/the/state"));
+    }
+
+    #[test]
+    fn a_replaced_argument_is_passed_as_its_replacement_everywhere_it_stands() {
+        let dir = nvmod_testkit::TempDir::new("exec-replace");
+        let p = nvmod_testkit::write_script(dir.path(), "raul", "for a do echo \"[$a]\"; done");
+        let exec = ProcessExec::new(p)
+            .with_argument_replaced("--fetch-masterlist", &["--masterlist", "/the/file"]);
+        let out = exec
+            .run(&args(&[
+                "sort",
+                "--fetch-masterlist",
+                "--apply",
+                "--fetch-masterlist",
+            ]))
+            .unwrap();
+        assert_eq!(
+            out.stdout,
+            "[sort]\n[--masterlist]\n[/the/file]\n[--apply]\n[--masterlist]\n[/the/file]\n"
+        );
+        let plain = ProcessExec::new(dir.path().join("raul"))
+            .run(&args(&["a", "--fetch-masterlist"]))
+            .unwrap();
+        assert_eq!(
+            plain.stdout, "[a]\n[--fetch-masterlist]\n",
+            "nothing is replaced unless asked"
+        );
     }
 
     #[test]
