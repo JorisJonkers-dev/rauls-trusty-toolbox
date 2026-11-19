@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The pages of the minimum viable Toolbox and their toolkit-free state (`docs/UI-RULES.md` P1).
 //!
-//! The sidebar has two groups: **Play** (Home, Load order, LOD) and **System** (Versions, Settings). Keys 1 to 5
-//! open them in this order. The setup wizard and the TTW flow are [`Flow`]s: they run on the same shell but are
+//! The sidebar has two groups: **Play** (Home, Mods, Load order, LOD) and **System** (Versions, Settings). Keys 1
+//! to 6 open them in this order. The setup wizard and the TTW flow are [`Flow`]s: they run on the same shell but are
 //! not sidebar pages.
 //!
 //! Each page and flow has a module of its own here. The shell owns this file; a page's module is its owner's to
@@ -11,6 +11,7 @@
 pub mod home;
 pub mod load_order;
 pub mod lod;
+pub mod mods;
 pub mod settings;
 pub mod setup;
 pub mod ttw;
@@ -19,7 +20,7 @@ pub mod versions;
 /// A sidebar group.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Group {
-    /// Home, Load order and LOD.
+    /// Home, Mods, Load order and LOD.
     Play,
     /// Versions and Settings.
     System,
@@ -30,6 +31,8 @@ pub enum Group {
 pub enum PageId {
     /// The start page: the launch panel and what needs attention.
     Home,
+    /// The Mods of the Profile: enable, order and remove them; generated LOD has its own treatment.
+    Mods,
     /// The plugin order: sort with a preview, apply and undo.
     LoadOrder,
     /// Distant land: generate it and see which blocks are up to date.
@@ -42,8 +45,9 @@ pub enum PageId {
 
 impl PageId {
     /// Every page, in sidebar order.
-    pub const ALL: [PageId; 5] = [
+    pub const ALL: [PageId; 6] = [
         PageId::Home,
+        PageId::Mods,
         PageId::LoadOrder,
         PageId::Lod,
         PageId::Versions,
@@ -53,19 +57,20 @@ impl PageId {
     /// The group it is listed in.
     pub fn group(self) -> Group {
         match self {
-            PageId::Home | PageId::LoadOrder | PageId::Lod => Group::Play,
+            PageId::Home | PageId::Mods | PageId::LoadOrder | PageId::Lod => Group::Play,
             PageId::Versions | PageId::Settings => Group::System,
         }
     }
 
-    /// The number key that opens it, 1 to 5.
+    /// The number key that opens it, 1 to 6.
     pub fn key(self) -> u8 {
         match self {
             PageId::Home => 1,
-            PageId::LoadOrder => 2,
-            PageId::Lod => 3,
-            PageId::Versions => 4,
-            PageId::Settings => 5,
+            PageId::Mods => 2,
+            PageId::LoadOrder => 3,
+            PageId::Lod => 4,
+            PageId::Versions => 5,
+            PageId::Settings => 6,
         }
     }
 
@@ -78,6 +83,7 @@ impl PageId {
     pub fn slug(self) -> &'static str {
         match self {
             PageId::Home => "home",
+            PageId::Mods => "mods",
             PageId::LoadOrder => "load-order",
             PageId::Lod => "lod",
             PageId::Versions => "versions",
@@ -158,7 +164,7 @@ mod tests {
             assert_eq!(PageId::from_key(page.key()), Some(page));
         }
         assert_eq!(PageId::from_key(0), None);
-        assert_eq!(PageId::from_key(6), None);
+        assert_eq!(PageId::from_key(7), None);
     }
 
     #[test]
@@ -167,6 +173,7 @@ mod tests {
         assert_eq!(
             groups,
             [
+                Group::Play,
                 Group::Play,
                 Group::Play,
                 Group::Play,

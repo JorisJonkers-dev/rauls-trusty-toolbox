@@ -61,11 +61,12 @@ fn copied<S>(h: &mut Harness<'_, S>) -> Option<String> {
 }
 
 #[test]
-fn the_shell_opens_on_home_with_the_five_pages_in_the_sidebar() {
+fn the_shell_opens_on_home_with_the_six_pages_in_the_sidebar() {
     let h = harness(1280.0, app());
     assert_eq!(h.state().view(), View::Page(PageId::Home));
     for title in [
         msg::PAGE_HOME,
+        msg::PAGE_MODS,
         msg::PAGE_LOAD_ORDER,
         msg::PAGE_LOD,
         msg::PAGE_VERSIONS,
@@ -86,7 +87,8 @@ fn number_keys_open_the_pages_in_order() {
             2 => egui::Key::Num2,
             3 => egui::Key::Num3,
             4 => egui::Key::Num4,
-            _ => egui::Key::Num5,
+            5 => egui::Key::Num5,
+            _ => egui::Key::Num6,
         };
         h.key_press(key);
         // A page that opens starts its reads, which keep repainting while they run: a fixed number of frames is
