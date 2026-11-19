@@ -127,7 +127,7 @@ jobs:
             local outs=()
             for t in "$@"; do
               rustup target add "$t" >/dev/null
-              cargo build --release --locked --manifest-path "$manifest" -p "$package" --target "$t" ${CARGO_FEATURES:+--features "$CARGO_FEATURES"}
+              cargo build --release --locked --manifest-path "$manifest" -p "$package" --target "$t" ${RAUL_BUILD_FEATURES:+--features "$RAUL_BUILD_FEATURES"}
               outs+=("$(dirname "$manifest")/target/$t/release/$bin")
             done
             if [ "$#" -gt 1 ]; then lipo -create -output "$OUT/$bin" "${outs[@]}"; else cp "${outs[0]}" "$OUT/$bin"; fi
@@ -143,7 +143,7 @@ jobs:
           # The engine's crates are linked into raul (feature `engine`, ADR-0016). nv-rs builds its own Windows release with a
           # static C runtime and the engine is built the same way here, so it runs on the linkage it was tested with.
           if [ "$RUNNER_OS" = Windows ]; then export CARGO_ENCODED_RUSTFLAGS='-Ctarget-feature=+crt-static'; fi
-          CARGO_FEATURES=engine build crates/raul-gui/Cargo.toml raul-gui "raul$exe" "${targets[@]}"
+          RAUL_BUILD_FEATURES=engine build crates/raul-gui/Cargo.toml raul-gui "raul$exe" "${targets[@]}"
           unset CARGO_ENCODED_RUSTFLAGS
           OUT=target/bundle/components
           build components/lodwright-rs/Cargo.toml lodwright-cli "lodwright$exe" "${targets[@]}"

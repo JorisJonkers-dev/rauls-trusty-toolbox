@@ -4,6 +4,10 @@
 //! Everything here sits behind the cargo feature `engine`: without it the crate is empty and the engine's closure
 //! (wgpu, winit and the engine crates) is not compiled. The typed jobs are added to this crate one at a time.
 
+// The linked crates, so the Toolbox reaches them through this one adapter (and the build compiles and links them).
+#[cfg(feature = "engine")]
+pub use {fork_api, fork_play};
+
 /// Whether this build links the engine's crates.
 pub const ENGINE_LINKED: bool = cfg!(feature = "engine");
 

@@ -41,6 +41,11 @@ allow = [
     "0BSD",
     "MPL-2.0",
     "LGPL-3.0",
+    # The linked nv-rs engine crates declare GPL-3.0-or-later and are not publish = false, so they are not private.
+    # scripts/check-gpl-scope.sh (run in the ci and gui workflows) fails when that id appears outside components/nv-rs.
+    "GPL-3.0-or-later",
+    # A dependency of the engine's tree (also allowed by nv-rs's own deny.toml).
+    "BSL-1.0",
 ]
 confidence-threshold = 0.8
 # esplugin (GPL-3.0) reaches this workspace only through lodwright-testkit, a dev-dependency of the GUI window tests,
@@ -59,7 +64,10 @@ ignore = true
 
 [bans]
 multiple-versions = "warn"
-wildcards = "deny"
+# The nv-rs crates are not publish = false and depend on each other by path with no version, which cargo-deny
+# counts as wildcards ("deny" would refuse the whole engine closure, and allow-wildcard-paths covers private crates
+# only). The Toolbox's own manifests pin versions exactly.
+wildcards = "warn"
 allow-wildcard-paths = true
 highlight = "all"
 deny = []
