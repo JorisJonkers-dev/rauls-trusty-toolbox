@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795101057378,
+  "lastUpdate": 1795101203109,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6124,6 +6124,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.702065000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8d915fff7e584da23989e5335963a542c3931c54",
+          "message": "feat(lod): progress for object and tree LOD, and plain words for each step of a run (#370)\n\nlodwright 0.5.0 reports finished object and tree blocks with done and\ntotal. They become raul-events progress lines of the phase objects or\ntrees, with the world as the message; terrain keeps world and level. The\nLOD page names each step in plain words instead of showing the phase\nkey, and shows a step it does not know as Working, never as an error.\n\nRefs #351, part of #38",
+          "timestamp": "2026-11-19T15:11:45Z",
+          "tree_id": "da593443e20fe227ba74677dd5c80f81307c3092",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/8d915fff7e584da23989e5335963a542c3931c54"
+        },
+        "date": 1795101202364,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.072529,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.617467,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.290584000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.48933,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.907433999999999,
             "unit": "ms"
           }
         ]
