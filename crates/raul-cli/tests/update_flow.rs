@@ -36,7 +36,10 @@ fn download_install_and_rollback_are_refused_with_a_reason_before_anything_is_fe
         assert_eq!(code, REFUSED, "{command}: {err}");
         let doc: Value = serde_json::from_str(&out).unwrap();
         assert_eq!(doc["ok"], false);
-        assert!(err.contains("new version from the release page"), "{command}: {err}");
+        assert!(
+            err.contains("new version from the release page"),
+            "{command}: {err}"
+        );
         for word in ["curl", "sha256", "SHA256SUMS"] {
             assert!(!err.contains(word), "{command}: {err}");
         }

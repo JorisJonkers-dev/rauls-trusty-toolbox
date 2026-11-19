@@ -109,6 +109,108 @@ pub enum Update {
     Failed(String),
 }
 
+/// What this install can do about updates, as `raul update status --json` names it. Nothing here reaches the network.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
+pub struct UpdateStatus {
+    /// Whether this install can be updated from inside the window.
+    pub updatable: bool,
+    /// When it cannot: why, in plain words.
+    #[serde(default)]
+    pub reason: Option<String>,
+    /// A version that was downloaded and is ready to install.
+    #[serde(default)]
+    pub staged: Option<String>,
+    /// The version before the last update, which going back restores.
+    #[serde(default)]
+    pub previous: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct StatusDoc {
+    status: UpdateStatus,
+}
+
+/// Reads what `raul update status --json` printed.
+///
+/// # Errors
+/// When it is not that document.
+pub fn parse_status(stdout: &str) -> Result<UpdateStatus, String> {
+    serde_json::from_str::<StatusDoc>(stdout.trim())
+        .map(|d| d.status)
+        .map_err(|e| format!("not an update status document: {e}"))
+}
+
+/// Reads the version a finished download (`staged`) or install (`installed`) names in its `--json` answer.
+///
+/// # Errors
+/// When the answer is not that document.
+pub fn parse_applied(stdout: &str, key: &str) -> Result<String, String> {
+    let doc: serde_json::Value =
+        serde_json::from_str(stdout.trim()).map_err(|e| format!("not an update document: {e}"))?;
+    doc[key]["to"]
+        .as_str()
+        .map(str::to_owned)
+        .ok_or_else(|| format!("the update document names no {key} version"))
+}
+
+/// `raul update status`: what this install can do about updates; local, nothing is fetched.
+pub fn status_command() -> Command {
+    Command::read("update-status", 2, &["update", "status"])
+}
+
+/// `raul update download --tag v<version>`: downloads that release, checks it and gets it ready. The one step that
+/// downloads, and only on a press.
+pub fn download_command(version: &str) -> Command {
+    Command::write(
+        "update-download",
+        2,
+        &["update", "download", "--tag", &format!("v{version}")],
+    )
+}
+
+/// `raul update install`: installs what was downloaded and checks the new version, going back if it does not work.
+pub fn install_update_command() -> Command {
+    Command::write("update-install", 2, &["update", "install"])
+}
+
+/// `raul update rollback`: goes back to the version before the last update.
+pub fn rollback_command() -> Command {
+    Command::write("update-rollback", 2, &["update", "rollback"])
+}
+
+/// Where applying an update is.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum Apply {
+    /// Nothing is under way.
+    #[default]
+    Idle,
+    /// A version is being downloaded and checked.
+    Downloading,
+    /// A version is downloaded and checked, ready to install.
+    Ready(String),
+    /// The downloaded version is being installed and checked.
+    Installing,
+    /// The version is installed; starting raul again uses it.
+    Installed(String),
+    /// The version before is being restored.
+    RollingBack,
+    /// The version before is back; starting raul again uses it.
+    WentBack(String),
+    /// A step did not work; what it said. Nothing is half done.
+    Failed(String),
+}
+
+/// The step the page offers next beside the version.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Step {
+    /// Download this version.
+    Download(String),
+    /// Install the downloaded version.
+    Install,
+    /// Start raul again.
+    Restart,
+}
+
 /// The state of About and Update.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct State {
@@ -116,6 +218,10 @@ pub struct State {
     pub shipped: Fetch<Shipped>,
     /// The update check, if one was asked for.
     pub update: Update,
+    /// What this install can do about updates, read when the page opens.
+    pub status: Fetch<UpdateStatus>,
+    /// Where downloading, installing and going back are.
+    pub apply: Apply,
 }
 
 impl State {
@@ -148,6 +254,67 @@ impl State {
             UpdateAction::Update
         } else {
             UpdateAction::Check
+        }
+    }
+
+    /// Whether a download, an install or a rollback is running.
+    pub fn busy(&self) -> bool {
+        matches!(
+            self.apply,
+            Apply::Downloading | Apply::Installing | Apply::RollingBack
+        )
+    }
+
+    /// Why this install cannot be updated from the window, when that is known.
+    pub fn not_updatable(&self) -> Option<&str> {
+        match &self.status {
+            Fetch::Ready(s) if !s.updatable => Some(s.reason.as_deref().unwrap_or("")),
+            _ => None,
+        }
+    }
+
+    fn updatable(&self) -> bool {
+        matches!(&self.status, Fetch::Ready(s) if s.updatable)
+    }
+
+    /// The step offered next: install what is downloaded, start raul again after an install or a rollback, or download
+    /// the newer release the check found. `None` while a step runs, when this install cannot update itself, and when
+    /// there is nothing to do.
+    pub fn next_step(&self) -> Option<Step> {
+        if self.busy() || !self.updatable() {
+            return None;
+        }
+        match &self.apply {
+            Apply::Ready(_) => Some(Step::Install),
+            Apply::Installed(_) | Apply::WentBack(_) => Some(Step::Restart),
+            Apply::Idle | Apply::Failed(_) => {
+                self.newer().map(|r| Step::Download(r.version.clone()))
+            }
+            Apply::Downloading | Apply::Installing | Apply::RollingBack => None,
+        }
+    }
+
+    /// The version a person may go back to: the one before the last update, offered unless a step runs, the new version
+    /// was only just installed (restart first) or the old one was only just restored.
+    pub fn go_back_to(&self) -> Option<&str> {
+        if self.busy()
+            || !self.updatable()
+            || matches!(self.apply, Apply::Installed(_) | Apply::WentBack(_))
+        {
+            return None;
+        }
+        match &self.status {
+            Fetch::Ready(s) => s.previous.as_deref(),
+            _ => None,
+        }
+    }
+
+    /// Settle `apply` from what the status says on first read: a download that is already there is ready to install.
+    pub fn settle_from_status(&mut self) {
+        if let (Apply::Idle, Fetch::Ready(s)) = (&self.apply, &self.status)
+            && let Some(v) = &s.staged
+        {
+            self.apply = Apply::Ready(v.clone());
         }
     }
 
@@ -287,6 +454,161 @@ mod tests {
             State::default()
                 .details("a", "b")
                 .starts_with("Toolbox version: not read yet\n")
+        );
+    }
+
+    #[test]
+    fn the_status_and_the_answers_of_each_step_are_read() {
+        let s = parse_status(
+            r#"{"current":"0.2.0","status":{"updatable":true,"reason":null,"staged":"0.3.0","previous":"0.1.0","confirmed":false}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            (s.updatable, s.staged.as_deref(), s.previous.as_deref()),
+            (true, Some("0.3.0"), Some("0.1.0"))
+        );
+        let s =
+            parse_status(r#"{"status":{"updatable":false,"reason":"Nix updates it."}}"#).unwrap();
+        assert_eq!(
+            (s.updatable, s.reason.as_deref()),
+            (false, Some("Nix updates it."))
+        );
+        assert!(parse_status("nope").is_err());
+        assert_eq!(
+            parse_applied(r#"{"ok":true,"staged":{"to":"0.3.0"}}"#, "staged").unwrap(),
+            "0.3.0"
+        );
+        assert_eq!(
+            parse_applied(r#"{"ok":true,"installed":{"to":"0.3.0"}}"#, "installed").unwrap(),
+            "0.3.0"
+        );
+        assert!(parse_applied(r#"{"ok":false}"#, "staged").is_err());
+    }
+
+    #[test]
+    fn the_commands_of_each_step_are_named_and_only_download_names_a_release() {
+        assert_eq!(
+            download_command("0.3.0").shown(),
+            "raul update download --tag v0.3.0"
+        );
+        assert!(download_command("0.3.0").writes);
+        assert_eq!(download_command("0.3.0").rest(), ["--tag", "v0.3.0"]);
+        assert_eq!(install_update_command().shown(), "raul update install");
+        assert_eq!(rollback_command().shown(), "raul update rollback");
+        assert!(
+            !status_command().writes
+                && install_update_command().writes
+                && rollback_command().writes
+        );
+    }
+
+    fn updatable(previous: Option<&str>, staged: Option<&str>) -> Fetch<UpdateStatus> {
+        Fetch::Ready(UpdateStatus {
+            updatable: true,
+            reason: None,
+            staged: staged.map(str::to_owned),
+            previous: previous.map(str::to_owned),
+        })
+    }
+
+    fn found() -> Update {
+        Update::Checked {
+            raul: "0.2.0".into(),
+            newer: Some(Release {
+                version: "0.3.0".into(),
+                url: "u".into(),
+            }),
+        }
+    }
+
+    #[test]
+    fn the_steps_follow_each_other_one_press_at_a_time() {
+        let mut s = State {
+            update: found(),
+            status: updatable(None, None),
+            ..State::default()
+        };
+        assert_eq!(s.next_step(), Some(Step::Download("0.3.0".into())));
+        s.apply = Apply::Downloading;
+        assert!(s.busy() && s.next_step().is_none() && s.go_back_to().is_none());
+        s.apply = Apply::Ready("0.3.0".into());
+        assert_eq!(s.next_step(), Some(Step::Install));
+        s.apply = Apply::Installing;
+        assert!(s.next_step().is_none());
+        s.apply = Apply::Installed("0.3.0".into());
+        assert_eq!(s.next_step(), Some(Step::Restart));
+        s.apply = Apply::Failed("did not work".into());
+        assert_eq!(
+            s.next_step(),
+            Some(Step::Download("0.3.0".into())),
+            "a failed step can be tried again"
+        );
+    }
+
+    #[test]
+    fn nothing_is_offered_when_this_install_cannot_update_itself_or_nothing_is_newer() {
+        let mut s = State {
+            update: found(),
+            status: Fetch::Ready(UpdateStatus {
+                updatable: false,
+                reason: Some("Nix updates it.".into()),
+                ..UpdateStatus::default()
+            }),
+            ..State::default()
+        };
+        assert_eq!(s.next_step(), None);
+        assert_eq!(s.not_updatable(), Some("Nix updates it."));
+        s.status = Fetch::Loading;
+        assert_eq!(
+            (s.next_step(), s.not_updatable()),
+            (None, None),
+            "nothing is offered before the status is known"
+        );
+        s.status = updatable(None, None);
+        s.update = Update::Checked {
+            raul: "0.2.0".into(),
+            newer: None,
+        };
+        assert_eq!(s.next_step(), None);
+    }
+
+    #[test]
+    fn going_back_is_offered_while_a_previous_version_is_kept_and_nothing_runs() {
+        let mut s = State {
+            status: updatable(Some("0.1.0"), None),
+            ..State::default()
+        };
+        assert_eq!(s.go_back_to(), Some("0.1.0"));
+        s.apply = Apply::Installed("0.2.0".into());
+        assert_eq!(s.go_back_to(), None, "restart first");
+        s.apply = Apply::RollingBack;
+        assert_eq!(s.go_back_to(), None);
+        s.apply = Apply::WentBack("0.1.0".into());
+        assert_eq!((s.go_back_to(), s.next_step()), (None, Some(Step::Restart)));
+        s.apply = Apply::Idle;
+        s.status = updatable(None, None);
+        assert_eq!(s.go_back_to(), None, "nothing is kept");
+    }
+
+    #[test]
+    fn a_download_that_is_already_there_is_ready_to_install() {
+        let mut s = State {
+            status: updatable(None, Some("0.3.0")),
+            ..State::default()
+        };
+        s.settle_from_status();
+        assert_eq!(s.apply, Apply::Ready("0.3.0".into()));
+        assert_eq!(s.next_step(), Some(Step::Install));
+        let mut s = State {
+            apply: Apply::Downloading,
+            status: updatable(None, Some("0.3.0")),
+            ..State::default()
+        };
+        s.settle_from_status();
+        assert_eq!(
+            s.apply,
+            Apply::Downloading,
+            "a step that runs is not overruled"
         );
     }
 }
