@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! `raul lod plan`: the `lodwright-request` document `raul lod generate` would send to lodwright for a Profile,
 //! checked against lodwright's published schema; nothing is run or written. `raul lod generate`: generate LOD with
-//! lodwright, linked into `raul`, from that request and keep its output as the Mod `LOD (lodwright)`; `--json` streams
-//! `raul-events` lines.
+//! lodwright, linked into `raul`, from that request and keep its output as the Profile's LOD Mod,
+//! `Generated LOD (<Profile>)`; `--json` streams `raul-events` lines. `raul lod mods`: the generated LOD Mods the
+//! Profile lists (`raul-lod-mods`); nothing is written.
 
+use std::fmt::Write as _;
 use std::io::Write;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -16,8 +18,9 @@ use raul_drivers::lod::{self, LodRequest};
 use crate::printer::Printer;
 
 const USAGE_LINE: &str = "lod takes `plan [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] \
-     [--json]` or `generate [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] [--dry-run] \
-     [--timeout-secs <n>] [--json]`";
+     [--json]`, `generate [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] [--dry-run] \
+     [--timeout-secs <n>] [--json]`, `mods [--instance <dir>] [--profile <name>] [--json]` \
+     or `settings show|set|unset|reset|undo ...`";
 
 struct Flags {
     instance: Option<PathBuf>,
@@ -82,17 +85,77 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
     match args.first().map(String::as_str) {
         Some("plan") => plan(&args[1..], out, err),
         Some("generate") => generate(&args[1..], out, err),
+        Some("mods") => mods(&args[1..], out, err),
+        Some("settings") => crate::lod_settings::run(&args[1..], out, err),
         _ => crate::usage(err, USAGE_LINE),
     }
 }
 
 fn refused(err: &mut dyn Write, why: &str) -> u8 {
-    let _ = writeln!(err, "raul lod plan: refused: {why}");
+    refused_as(err, "plan", why)
+}
+
+fn refused_as(err: &mut dyn Write, verb: &str, why: &str) -> u8 {
+    let _ = writeln!(err, "raul lod {verb}: refused: {why}");
     crate::REFUSED
 }
 
+/// `raul lod mods`: the generated LOD Mods the Profile lists, highest priority first.
+fn mods(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    let flags = match parse(args, false) {
+        Ok(f) if f.worlds.is_empty() => f,
+        Ok(_) => {
+            return crate::usage(
+                err,
+                &format!("--world is not an option of mods\n{USAGE_LINE}"),
+            );
+        }
+        Err(why) => return crate::usage(err, &format!("{why}\n{USAGE_LINE}")),
+    };
+    let Some(root) = flags.instance.or_else(configured_instance) else {
+        return refused_as(
+            err,
+            "mods",
+            "no Instance: pass --instance <dir> or run `raul config set storage.root <dir>`",
+        );
+    };
+    let instance = match NvmodInstance::open_read_only(&root) {
+        Ok(i) => i,
+        Err(e) => return refused_as(err, "mods", &format!("{}: {e}", root.display())),
+    };
+    let profile = match instance.resolve_profile(flags.profile.as_deref()) {
+        Ok(p) => p,
+        Err(e) => return refused_as(err, "mods", &e.to_string()),
+    };
+    let doc = lod::generated_mods(&instance, &profile);
+    let text = if flags.json {
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&doc).unwrap_or_default()
+        )
+    } else if doc.mods.is_empty() {
+        format!(
+            "raul lod mods: profile `{profile}` lists no generated LOD Mod; `raul lod generate` makes `{}`\n",
+            doc.own_name
+        )
+    } else {
+        let mut text = format!("raul lod mods: profile `{profile}`\n");
+        for m in &doc.mods {
+            let state = if m.enabled { "enabled" } else { "disabled" };
+            let built = match (&m.lodwright_version, m.legacy) {
+                (_, true) => " (old name; the next `raul lod generate` replaces it)".to_owned(),
+                (Some(v), false) => format!(" (lodwright {v})"),
+                (None, false) => String::new(),
+            };
+            let _ = writeln!(text, "  {:>3}  {}  {state}{built}", m.position, m.name);
+        }
+        text
+    };
+    crate::write_or_fail(out, err, &text)
+}
+
 /// The Instance from `raul config`, when the flags name none.
-fn configured_instance() -> Option<PathBuf> {
+pub(crate) fn configured_instance() -> Option<PathBuf> {
     raul_core::config::default_file()
         .and_then(|f| Config::load(&f).ok())
         .and_then(|c| c.get(Key::Instance))
@@ -192,12 +255,12 @@ fn generate(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         } else if r.up_to_date {
             format!(
                 "raul lod generate: `{}` is up to date; nothing was written\n",
-                lod::MOD_NAME
+                r.mod_name.as_deref().unwrap_or_default()
             )
         } else {
             format!(
                 "raul lod generate: wrote `{}` ({} files) into profile `{}`\n",
-                lod::MOD_NAME,
+                r.mod_name.as_deref().unwrap_or_default(),
                 r.files.unwrap_or(0),
                 r.profile
             )

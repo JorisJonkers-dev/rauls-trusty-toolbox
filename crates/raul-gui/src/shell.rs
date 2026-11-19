@@ -269,6 +269,7 @@ impl App {
             egui::Key::Num3,
             egui::Key::Num4,
             egui::Key::Num5,
+            egui::Key::Num6,
         ];
         let pressed = ctx.input(|i| {
             keys.iter()
@@ -524,6 +525,7 @@ pub fn instance_of(stdout: &str) -> Option<Option<String>> {
 pub fn page_title(page: PageId) -> &'static str {
     match page {
         PageId::Home => msg::PAGE_HOME,
+        PageId::Mods => msg::PAGE_MODS,
         PageId::LoadOrder => msg::PAGE_LOAD_ORDER,
         PageId::Lod => msg::PAGE_LOD,
         PageId::Versions => msg::PAGE_VERSIONS,

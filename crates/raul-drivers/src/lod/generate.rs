@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! `raul lod generate`: lodwright's generate, called in process through `lodwright-api` with the request the Profile
-//! gives (its progress becomes `raul-events` lines), and its output kept as the Mod `LOD (lodwright)`. A second run
+//! gives (its progress becomes `raul-events` lines), and its output kept as the Profile's LOD Mod (`Generated LOD (<Profile>)`). A second run
 //! over an unchanged Load order is `up_to_date` and writes nothing. Every outcome but success leaves the Instance as
 //! it was.
 
@@ -11,13 +11,15 @@ use lodwright_api::{CancelToken, GenerateOutcome, GenerateRequest};
 use lodwright_contract::{Request as LodwrightRequest, Status as LodwrightStatus};
 use nvmod_instance::{NvmodInstance, find_ci};
 use nvmod_modinstall::lifecycle::{self, Action};
+use nvmod_modinstall::mods::{Change, ModsError, Place};
 use nvmod_modinstall::{InstallError, Limits, Request};
 use serde_json::Value;
 
 use super::inproc;
+use super::marker::{self, LEGACY_MOD_NAME, META_FILE, Marker, mod_name};
 use super::{
-    CONTRACT, LodError, LodErrorCode, LodResult, MANIFEST_FILE, MOD_NAME, SCHEMA_VERSION, WORK_DIR,
-    plan, read_manifest,
+    CONTRACT, LodError, LodErrorCode, LodResult, MANIFEST_FILE, SCHEMA_VERSION, SHARED_OUTPUT_DIR,
+    WORK_DIR, plan, read_manifest,
 };
 use crate::events::{Event, Status, ToolInfo};
 use crate::ttw::driver::{clear, count_files};
@@ -143,74 +145,141 @@ fn copy_output(from: &Path, to: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-/// Put the output into the Instance as [`MOD_NAME`]. An existing LOD Mod is renamed out of the way first, removed
-/// once the new one is in, and renamed back when the new one cannot be added. Returns the Mod's file count, and a
-/// warning when the old Mod could not be removed (the new one is in and active either way).
+/// Whether `profile` lists the Mod `name`, and if so whether it enables it.
+fn listed(instance: &NvmodInstance, profile: &str, name: &str) -> Option<bool> {
+    nvmod_modinstall::mods::list(instance, profile)
+        .into_iter()
+        .find(|r| r.kind == "mod" && r.name.eq_ignore_ascii_case(name))
+        .map(|r| r.state == "enabled")
+}
+
+fn mods_error(e: ModsError) -> String {
+    match e {
+        ModsError::Refused(w) | ModsError::Failed(w) => w,
+    }
+}
+
+const REMOVE: Action = Action::Remove {
+    force: true,
+    dependants: Vec::new(),
+};
+
+fn rename(instance: &NvmodInstance, profile: &str, from: &str, to: &str) -> Result<(), String> {
+    let action = Action::Rename { to: to.to_owned() };
+    lifecycle::apply(instance, profile, from, &action, false)
+        .map(|_| ())
+        .map_err(mods_error)
+}
+
+fn remove(instance: &NvmodInstance, profile: &str, name: &str) -> Result<(), String> {
+    lifecycle::apply(instance, profile, name, &REMOVE, false)
+        .map(|_| ())
+        .map_err(mods_error)
+}
+
+fn change(instance: &NvmodInstance, profile: &str, change: &Change) -> Result<(), String> {
+    nvmod_modinstall::mods::apply(instance, profile, change, false)
+        .map(|_| ())
+        .map_err(mods_error)
+}
+
+/// A backup an interrupted run left behind is this command's own. Beside the Mod `name` it is the older copy and
+/// goes; alone it is the only copy, stopped between the rename and the install, and is renamed back.
+fn recover(instance: &NvmodInstance, profile: &str, name: &str) -> Result<(), String> {
+    let mods = instance.root.join("mods");
+    let previous = format!("{name} previous");
+    if find_ci(&mods, &previous).is_none() {
+        return Ok(());
+    }
+    if find_ci(&mods, name).is_some() {
+        remove(instance, profile, &previous)
+    } else {
+        rename(instance, profile, &previous, name)
+    }
+}
+
+/// The Mod the new LOD replaces, as `profile` has it.
+struct Replaced {
+    /// Its line in the Profile while the new Mod goes in: `<name> previous`, or the old shared name.
+    line: String,
+    /// Whether the Profile lists it, and if so whether it enables it.
+    enabled: Option<bool>,
+    /// It is the Mod of the old shared name, which other Profiles may list too.
+    legacy: bool,
+}
+
+/// The `meta.ini` of the Mod the next run of `profile` replaces, when it has one: the Profile's own LOD Mod (or the
+/// copy an interrupted run renamed aside), or the old shared one when the Profile lists that instead.
+fn replaced_meta(instance: &NvmodInstance, profile: &str, name: &str) -> Option<Vec<u8>> {
+    let mods = instance.root.join("mods");
+    let legacy_previous = format!("{LEGACY_MOD_NAME} previous");
+    let dir = find_ci(&mods, name)
+        .or_else(|| find_ci(&mods, &format!("{name} previous")))
+        .or_else(|| listed(instance, profile, LEGACY_MOD_NAME).and(find_ci(&mods, LEGACY_MOD_NAME)))
+        // An interrupted run of the old shared Mod left only its renamed-aside copy.
+        .or_else(|| {
+            listed(instance, profile, &legacy_previous).and(find_ci(&mods, &legacy_previous))
+        })?;
+    std::fs::read(find_ci(&dir, META_FILE)?).ok()
+}
+
+/// Put the output into the Instance as the Mod `name` of `profile`. The Mod it replaces (the Profile's own LOD Mod,
+/// or the old shared one the Profile lists) gives the new one its place and its enabled state; a new Mod goes on
+/// top, enabled. The Profile's own Mod is renamed out of the way first, removed once the new one is in, and renamed
+/// back when the new one cannot be added. The old shared Mod is removed, or only disabled in this Profile while
+/// another Profile lists it. Returns the Mod's file count (its `meta.ini` not counted), and warnings for steps after
+/// the new Mod was in place that did not work.
 fn replace_mod(
     instance: &NvmodInstance,
     profile: &str,
+    name: &str,
     source: &Path,
-) -> Result<(u64, Option<String>), String> {
-    let previous = format!("{MOD_NAME} previous");
+) -> Result<(u64, Vec<String>), String> {
     let mods = instance.root.join("mods");
-    let lifecycle_error = |e: nvmod_modinstall::mods::ModsError| match e {
-        nvmod_modinstall::mods::ModsError::Refused(w)
-        | nvmod_modinstall::mods::ModsError::Failed(w) => w,
+    let previous = format!("{name} previous");
+    recover(instance, profile, name)?;
+    recover(instance, profile, LEGACY_MOD_NAME)?;
+    let replaced = if find_ci(&mods, name).is_some() {
+        rename(instance, profile, name, &previous)?;
+        Some(Replaced {
+            enabled: listed(instance, profile, &previous),
+            line: previous.clone(),
+            legacy: false,
+        })
+    } else if find_ci(&mods, LEGACY_MOD_NAME).is_some()
+        && let Some(enabled) = listed(instance, profile, LEGACY_MOD_NAME)
+    {
+        Some(Replaced {
+            line: LEGACY_MOD_NAME.to_owned(),
+            enabled: Some(enabled),
+            legacy: true,
+        })
+    } else {
+        None
     };
-    let remove = Action::Remove {
-        force: true,
-        dependants: Vec::new(),
-    };
-    // A backup an interrupted run left behind is this command's own. Beside a LOD Mod it is the older copy and
-    // goes first; alone it is the only copy, stopped between the rename and the install, and is renamed back.
-    if find_ci(&mods, &previous).is_some() {
-        if find_ci(&mods, MOD_NAME).is_some() {
-            lifecycle::apply(instance, profile, &previous, &remove, false)
-                .map_err(lifecycle_error)?;
-        } else {
-            let back = Action::Rename {
-                to: MOD_NAME.to_owned(),
-            };
-            lifecycle::apply(instance, profile, &previous, &back, false)
-                .map_err(lifecycle_error)?;
-        }
-    }
-    let had = find_ci(&mods, MOD_NAME).is_some();
-    if had {
-        lifecycle::apply(
-            instance,
-            profile,
-            MOD_NAME,
-            &Action::Rename {
-                to: previous.clone(),
+    // Puts the Profile back as it was when the new Mod cannot be added or placed.
+    let undo = |why: String| -> String {
+        match &replaced {
+            Some(r) if !r.legacy => match rename(instance, profile, &previous, name) {
+                Ok(()) => why,
+                Err(e) => format!(
+                    "{why}; the old LOD Mod stays as `{previous}`, because renaming it back failed too: {e}"
+                ),
             },
-            false,
-        )
-        .map_err(lifecycle_error)?;
-    }
+            _ => why,
+        }
+    };
     let request = Request {
         instance,
         profile,
         archive: source,
-        name: Some(MOD_NAME),
+        name: Some(name),
         dry_run: false,
         answers: None,
         limits: Limits::default(),
     };
-    match nvmod_modinstall::install(&request) {
-        Ok(report) => {
-            if had {
-                let removed = lifecycle::apply(instance, profile, &previous, &remove, false);
-                if let Err(e) = removed {
-                    let warning = format!(
-                        "the new LOD Mod is in, but the old one, `{previous}`, could not be removed: {}; remove it with `raul mods remove`",
-                        lifecycle_error(e)
-                    );
-                    return Ok((report.files.len() as u64, Some(warning)));
-                }
-            }
-            Ok((report.files.len() as u64, None))
-        }
+    let report = match nvmod_modinstall::install(&request) {
+        Ok(report) => report,
         Err(e) => {
             let why = match e {
                 InstallError::Refused(w) | InstallError::Failed(w) => w,
@@ -218,26 +287,88 @@ fn replace_mod(
                     "the output holds a FOMOD that needs answers".to_owned()
                 }
             };
-            if had {
-                let back = lifecycle::apply(
-                    instance,
-                    profile,
-                    &previous,
-                    &Action::Rename {
-                        to: MOD_NAME.to_owned(),
-                    },
-                    false,
-                );
-                if let Err(e) = back {
-                    return Err(format!(
-                        "{why}; the old LOD Mod stays as `{previous}`, because renaming it back failed too: {}",
-                        lifecycle_error(e)
-                    ));
-                }
+            return Err(undo(why));
+        }
+    };
+    let files = report
+        .files
+        .iter()
+        .filter(|f| !f.eq_ignore_ascii_case(META_FILE))
+        .count() as u64;
+    // The new Mod is on top and enabled; it takes the replaced Mod's place and state.
+    if let Some(r) = &replaced
+        && let Some(enabled) = r.enabled
+    {
+        let placed = change(
+            instance,
+            profile,
+            &Change::Move {
+                name: name.to_owned(),
+                to: Place::Before(r.line.clone()),
+            },
+        )
+        .and_then(|()| {
+            if enabled {
+                Ok(())
+            } else {
+                change(instance, profile, &Change::Disable(vec![name.to_owned()]))
             }
-            Err(why)
+        });
+        if let Err(why) = placed {
+            let why = match remove(instance, profile, name) {
+                Ok(()) => why,
+                Err(e) => format!("{why}; removing the new LOD Mod failed too: {e}"),
+            };
+            return Err(undo(why));
         }
     }
+    Ok((
+        files,
+        drop_replaced(instance, profile, replaced.as_ref(), &previous),
+    ))
+}
+
+/// Takes the replaced Mod out once the new one is in place: the Profile's renamed-aside copy is removed; the old
+/// shared Mod is removed, or only disabled in this Profile while another Profile lists it. Returns a warning for each
+/// step that did not work (the new Mod is in either way).
+fn drop_replaced(
+    instance: &NvmodInstance,
+    profile: &str,
+    replaced: Option<&Replaced>,
+    previous: &str,
+) -> Vec<String> {
+    let mut warnings = Vec::new();
+    match replaced {
+        Some(r) if r.legacy => {
+            let elsewhere = instance
+                .profiles()
+                .iter()
+                .any(|p| p != profile && listed(instance, p, LEGACY_MOD_NAME).is_some());
+            let done = if elsewhere {
+                change(
+                    instance,
+                    profile,
+                    &Change::Disable(vec![LEGACY_MOD_NAME.to_owned()]),
+                )
+            } else {
+                remove(instance, profile, LEGACY_MOD_NAME)
+            };
+            if let Err(e) = done {
+                warnings.push(format!(
+                    "the new LOD Mod is in, but the old one, `{LEGACY_MOD_NAME}`, could not be turned off or removed: {e}; disable or remove it with `raul mods`"
+                ));
+            }
+        }
+        Some(_) => {
+            if let Err(e) = remove(instance, profile, previous) {
+                warnings.push(format!(
+                    "the new LOD Mod is in, but the old one, `{previous}`, could not be removed: {e}; remove it with `raul mods remove`"
+                ));
+            }
+        }
+        None => {}
+    }
+    warnings
 }
 
 /// Clears the output folder after a run that failed while writing it and left no manifest. Without a manifest the next
@@ -284,6 +415,20 @@ pub fn generate_with_cancel(
         }
     };
     r.profile.clone_from(&profile);
+    let name = mod_name(&profile);
+    let mods = instance.root.join("mods");
+    // The Mod name, and the name an interrupted run renames it aside to, must be ours before anything replaces,
+    // renames or removes them. The old shared name's backup is ours by name: that Mod had no marker.
+    let previous = format!("{name} previous");
+    if let Some(taken) = [&name, &previous]
+        .into_iter()
+        .find(|n| find_ci(&mods, n).is_some() && !marker::is_generated(&mods, n))
+    {
+        let why = format!(
+            "a Mod named `{taken}` is in the Instance and is not generated LOD; rename or remove it, then generate again; nothing changed"
+        );
+        return fail(r, Status::Refused, LodErrorCode::PlanRefused, None, why);
+    }
     let plan = match plan(&instance, &profile, &req.worlds, req.allow_in_repo) {
         Ok(p) => p,
         Err(why) => return fail(r, Status::Refused, LodErrorCode::PlanRefused, None, why),
@@ -297,6 +442,20 @@ pub fn generate_with_cancel(
         });
     if req.dry_run {
         return done(r, false);
+    }
+    // The output folder every Profile shared before becomes the first generating Profile's own, so its manifest
+    // keeps the blocks that are still current.
+    let shared = instance.root.join(SHARED_OUTPUT_DIR);
+    if shared.is_dir() && !plan.output_dir.exists() {
+        let moved = plan
+            .output_dir
+            .parent()
+            .map_or(Ok(()), std::fs::create_dir_all)
+            .and_then(|()| std::fs::rename(&shared, &plan.output_dir));
+        if let Err(e) = moved {
+            let why = format!("{}: {e}", shared.display());
+            return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
+        }
     }
     // The folder above the output holds the output and, after a run, the Mod's copy; it is lodwright's work folder.
     let work = plan
@@ -384,8 +543,8 @@ pub fn generate_with_cancel(
         let why = "cancelled before the Mod was replaced; nothing was added";
         return fail(r, Status::Cancelled, LodErrorCode::Cancelled, None, why);
     }
-    match read_manifest(&plan.output_dir) {
-        Ok(Some(_)) => {}
+    let manifest = match read_manifest(&plan.output_dir) {
+        Ok(Some(m)) => m,
         Ok(None) => {
             let why = "LOD generation reported success but left no manifest";
             return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
@@ -398,14 +557,13 @@ pub fn generate_with_cancel(
             };
             return fail(r, status, code, None, why);
         }
-    }
-    let current = find_ci(&instance.root.join("mods"), MOD_NAME);
+    };
     if doc.code == "up_to_date"
-        && let Some(dir) = current
+        && let Some(dir) = find_ci(&mods, &name)
     {
         r.up_to_date = true;
-        r.mod_name = Some(MOD_NAME.to_owned());
-        r.files = Some(count_files(&dir));
+        r.mod_name = Some(name);
+        r.files = Some(count_files(&dir) - u64::from(find_ci(&dir, META_FILE).is_some()));
         return done(r, false);
     }
     emit(Event::Phase {
@@ -418,14 +576,29 @@ pub fn generate_with_cancel(
         let why = format!("{}: {e}", copy.display());
         return fail(r, Status::Failed, LodErrorCode::AddModFailed, None, why);
     }
-    let replaced = replace_mod(&instance, &profile, &copy);
+    let marker = Marker {
+        profile: profile.clone(),
+        request_digest: manifest["request_digest"]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned(),
+        lodwright_version: doc.tool.version.clone(),
+    };
+    let previous = replaced_meta(&instance, &profile, &name);
+    let meta = marker::meta_ini(previous.as_deref(), &marker);
+    if let Err(e) = std::fs::write(copy.join(META_FILE), meta) {
+        let _ = clear(&copy);
+        let why = format!("{}: {e}", copy.join(META_FILE).display());
+        return fail(r, Status::Failed, LodErrorCode::AddModFailed, None, why);
+    }
+    let replaced = replace_mod(&instance, &profile, &name, &copy);
     let _ = clear(&copy);
     match replaced {
-        Ok((files, warning)) => {
-            if let Some(message) = warning {
+        Ok((files, warnings)) => {
+            for message in warnings {
                 emit(Event::Warning { message });
             }
-            r.mod_name = Some(MOD_NAME.to_owned());
+            r.mod_name = Some(name);
             r.files = Some(files);
             done(r, true)
         }

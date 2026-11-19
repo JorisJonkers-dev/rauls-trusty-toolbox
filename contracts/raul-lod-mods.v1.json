@@ -1,0 +1,108 @@
+{
+  "$defs": {
+    "GeneratedMod": {
+      "description": "One generated LOD Mod in a Profile.",
+      "properties": {
+        "enabled": {
+          "description": "Whether the Profile enables it.",
+          "type": "boolean"
+        },
+        "legacy": {
+          "description": "It has the name every Profile shared before and no marker: the Profile's next `raul lod generate` hands its\nplace and state to the Profile's own Mod.",
+          "type": "boolean"
+        },
+        "lodwright_version": {
+          "description": "The lodwright version that built it; `null` without a marker.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "The Mod's folder name.",
+          "type": "string"
+        },
+        "own": {
+          "description": "It is this Profile's own LOD Mod, the one `raul lod generate` replaces.",
+          "type": "boolean"
+        },
+        "position": {
+          "description": "Its place in the Profile's list, 1 the highest priority (separators count, as in `raul mods list`).",
+          "format": "uint",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "profile": {
+          "description": "The Profile it was generated for; `null` for a Mod of the old name without a marker.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "request_digest": {
+          "description": "lodwright's digest of the request it was built from; `null` without a marker.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "enabled",
+        "legacy",
+        "lodwright_version",
+        "name",
+        "own",
+        "position",
+        "profile",
+        "request_digest"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The generated LOD Mods of a Profile (Contract `raul-lod-mods`, version 1).",
+  "properties": {
+    "contract": {
+      "const": "raul-lod-mods",
+      "description": "Always `raul-lod-mods`.",
+      "type": "string"
+    },
+    "instance": {
+      "description": "The Instance.",
+      "type": "string"
+    },
+    "mods": {
+      "description": "The generated LOD Mods the Profile lists, highest priority first; empty when it lists none.",
+      "items": {
+        "$ref": "#/$defs/GeneratedMod"
+      },
+      "type": "array"
+    },
+    "own_name": {
+      "description": "The name `raul lod generate` gives this Profile's LOD Mod, whether or not it exists yet.",
+      "type": "string"
+    },
+    "profile": {
+      "description": "The Profile.",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "description": "The document version; 1.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "contract",
+    "instance",
+    "mods",
+    "own_name",
+    "profile",
+    "schema_version"
+  ],
+  "title": "LodMods",
+  "type": "object"
+}

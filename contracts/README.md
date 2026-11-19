@@ -15,6 +15,8 @@ removing, renaming or retyping one is.
 | `raul-events` | 1 | the JSON lines of a driver command: `raul ttw --json` |
 | `raul-ttw-result` | 1 | the `result` event of `raul ttw --json` |
 | `raul-lod-result` | 1 | the `result` event of `raul lod generate --json` |
+| `raul-lod-mods` | 1 | `raul lod mods --json` |
+| `raul-lod-settings` | 1 | `raul lod settings show\|set\|unset\|reset\|undo --json` |
 | `raul-journal` | 1 | the file `.raul/setup-journal.json` in an Instance (on disk) |
 
 `snapshots/` holds the schemas of the Component Contracts the Toolbox reads, as their releases published them:
@@ -141,7 +143,9 @@ checks every request against the snapshot before it prints or passes it. The req
 - `data_folder`: the Profile's Staging tree `Data` folder;
 - `plugins`: the Profile's active plugins, in Load order;
 - `worlds`: the `--world` flags, else the Profile's settings, else empty (every world with terrain);
-- `output_dir`: `<instance>/.raul/lod/out`, where lodwright keeps its manifest between runs;
+- `output_dir`: `<instance>/.raul/lod/<Profile>/out`, the Profile's own folder, where lodwright keeps its manifest
+  between runs (the folder `<instance>/.raul/lod/out` every Profile shared before becomes the first generating
+  Profile's own);
 - the switches, inclusion rules and limits of the Profile's settings.
 
 The settings are `raul-lod.toml` in the Profile's folder; every key is optional:
@@ -164,9 +168,20 @@ land_textures = true
 water = true
 objects = true
 trees = true
+
+[levels.16]            # per terrain level 4, 8, 16 or 32; each key optional
+quality = 20.0         # the allowed vertical error is twice this; at least 0
+max_vertices = 2000    # 3 to 32767
+diffuse_size = 256     # a power of two from 4 to 4096
+normal_size = 256      # a power of two from 4 to 4096
 ```
 
-The output folder (`<instance>/.raul/lod/out`) may not lie inside a git working tree (a `.git` in it or any folder
+A key that is absent takes the current default, so the file holds only what was changed. Without a `levels` table the
+request's `terrain.levels` is empty and lodwright uses its own levels; when any level sets anything, the request lists
+all four levels, each value the file does not set at its default (levels 4, 8, 16, 32 with quality 10, 15, 20, 25,
+2000 vertices and 256 pixel textures, the Toolbox's copy of lodwright's defaults until lodwright publishes them).
+
+The output folder (`<instance>/.raul/lod/<Profile>/out`) may not lie inside a git working tree (a `.git` in it or any folder
 above it): `raul lod plan` and `raul lod generate` refuse it with `plan_refused`, and lodwright refuses it too. Either
 `allow_in_repo = true` in the Profile's `raul-lod.toml` or `--allow-in-repo` on the command allows it; `raul` then
 skips its own check and tells lodwright it is allowed. The flag applies to that run only and writes nothing to the
@@ -179,13 +194,57 @@ generation setting. An output folder inside the data folder stays refused either
 `contracts/fixtures/lodwright-request/profile-settings.json` is the request of a Profile with the settings in its
 test, with the two folders written as `<data>` and `<output>`.
 
+## `raul-lod-settings`
+
+`raul lod settings show|set|unset|reset|undo [--instance <dir>] [--profile <name>] [--json]` reads and changes a
+Profile's `raul-lod.toml` option by option, through the functions the GUI's LOD settings view calls
+(`raul_drivers::lod::settings`). `--json` prints one document: the Instance, the Profile, the file and whether it
+exists, every option (`key`, `tier`, `kind`, `value`, `default`, `overridden`, `restores`, `min`, `max`), the restore
+point, the `change` the command made and, when refused, the `error`.
+
+- `set <key> <value>...` writes one option: `true`/`false`, a number, or the names of a list (none for an empty
+  list). Setting an option to its default writes it: it then counts as changed.
+- `unset <key>` removes one key, also one this version does not know (so a typo can be removed); the file goes when
+  nothing is left.
+- `reset` is Restore defaults: it removes every key that is a LOD generation setting (`restores: true`), also those
+  set to their default value, and keeps the rest (`allow_in_repo`). It never writes a default value. Before it
+  writes, it keeps the file as it was in `raul-lod.toml.previous`, replacing an earlier copy; the file goes when
+  nothing is left. `--dry-run` lists the keys it would remove (`change.keys`) and writes nothing.
+- `undo` puts the `.previous` copy back and removes it (one level). The next `set` or `unset` removes it too, so
+  Undo is offered until the next change.
+
+Every change is checked before it is written: each key must be an option, each value of its kind and in its range,
+and lodwright's own `Request::validate` must accept the request the settings give. A refused command changes
+nothing; `error.code` is one of `instance_invalid`, `profile_missing`, `unreadable`, `unknown_key`, `wrong_type`,
+`out_of_range`, `not_a_power_of_two`, `not_a_record`, `empty_name`, `rejected` or `nothing_to_undo` (exit code 2),
+or `write_failed` (exit code 4). `error.what` and `error.detail` ("Nothing changed.") are catalogue strings; `key`
+and `reason` are data beside them. `raul lod plan` refuses a file with an unknown key with the same words.
+
+`show` and `set` also list `warnings`: what the settings allow but that builds less than asked. They never refuse
+and never stop a save. `unknown_world`: a world in `worlds` that no active plugin defines (it would build nothing;
+the plugins are read only when `worlds` names any; `worlds_unchecked` when they cannot be read).
+`plugin_not_active`: a plugin in `exclude_plugins` or `only_plugins` that is not active in the Profile (lodwright
+stops with an error for it). `no_object_left`: every plugin in `only_plugins` is also in `exclude_plugins`. An object
+enters object LOD when neither the plugin of its reference nor that of its base object is in `exclude_plugins` and,
+when `only_plugins` is not empty, one of them is in it; names match without regard to case. The memory budget is
+advisory: lodwright checks an estimate before it starts, measured on Linux and best effort elsewhere.
+
+The fixtures in `fixtures/raul-lod-settings/` are what the command prints, with the Instance written as
+`<instance>` (`crates/raul-cli/tests/lod_settings.rs`).
+
 ## `raul-lod-result`
 
 `raul lod generate` builds the request (above) and calls lodwright's library API (`lodwright-api`) in process with it,
 mapping lodwright's progress to `raul-events` lines; it reads the manifest in lodwright's output folder and keeps the
-output as the Mod `LOD (lodwright)`, enabled in the Profile, so the next run loads it. A second run over an
-unchanged Load order: lodwright answers `up_to_date`, the Mod is already there, and nothing is written
-(`up_to_date: true`, `changed: false`). lodwright's block progress becomes `progress` events of the phase `terrain`.
+output as the Profile's LOD Mod, `Generated LOD (<Profile>)`: one Mod for every world of that Profile. Its `meta.ini`
+carries the marker section `[raulGeneratedLod]` (`generated=true`, `profile`, `requestDigest`, `lodwrightVersion`);
+every other key of the file is kept, so a category the user gave the Mod survives the next run. A new Mod goes on top
+of the Profile, enabled; a run that replaces the Mod keeps its place and its enabled state, so a disabled LOD Mod stays
+disabled. A Mod named `LOD (lodwright)`, the name every Profile shared before, is generated LOD too: the next run of a
+Profile that lists it gives the Profile's own Mod its place and state, then removes it, or only disables it in that
+Profile while another Profile lists it. A Mod of the new name that is not generated LOD is refused (`plan_refused`)
+and nothing changes. A second run over an unchanged Load order: lodwright answers `up_to_date`, the Mod is already
+there, and nothing is written (`up_to_date: true`, `changed: false`); a removed Mod is made again. lodwright's block progress becomes `progress` events of the phase `terrain`.
 
 | `status` | Exit code | `error.code` | lodwright |
 | --- | --- | --- | --- |
@@ -202,3 +261,13 @@ between runs (that is how it knows a later run is `up_to_date`); the Mod is a co
 
 The tests run `raul lod generate` with the linked lodwright on a synthetic world (`crates/raul-cli/tests/lod_generate.rs`),
 and the cancel and resume cases call the same generation in process with a cancel token.
+
+## `raul-lod-mods`
+
+`raul lod mods --json` lists the generated LOD Mods a Profile has in its mod list, highest priority first, and writes
+nothing. A Mod is generated LOD when its `meta.ini` carries the `[raulGeneratedLod]` marker, or when it has the name
+every Profile shared before, `LOD (lodwright)` (`legacy: true`, and `profile`, `request_digest` and
+`lodwright_version` are `null`). `own` marks the Profile's own Mod, `own_name`, which `raul lod generate` replaces; a
+Profile may also list another Profile's LOD Mod. `position` counts separators, as `raul mods list` does, and starts
+at 1. An Instance that cannot be opened, or a Profile it does not have, is refused (exit code 2) with one line on
+standard error and no document; a Profile whose mod list is empty or unreadable lists no Mods.

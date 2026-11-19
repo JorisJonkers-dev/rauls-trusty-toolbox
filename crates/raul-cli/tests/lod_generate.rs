@@ -19,7 +19,9 @@ use raul_drivers::events::Event;
 use raul_drivers::lod::{self, LodRequest};
 use serde_json::Value;
 
-const MOD: &str = "LOD (lodwright)";
+const MOD: &str = "Generated LOD (Default)";
+const PREVIOUS: &str = "Generated LOD (Default) previous";
+const LEGACY: &str = "LOD (lodwright)";
 
 /// The lodwright-rs version this build links, from the Component's own `Cargo.toml`, without its `v`.
 fn shipped_lodwright_version() -> String {
@@ -94,7 +96,7 @@ impl Fixture {
     }
 
     fn out_dir(&self) -> PathBuf {
-        self.instance().join(".raul/lod/out")
+        self.instance().join(".raul/lod/Default/out")
     }
 
     fn lod_mod(&self) -> PathBuf {
@@ -273,18 +275,276 @@ fn a_new_output_replaces_the_lod_mod_and_leaves_one() {
     assert_eq!(mod_names(&f), [MOD], "one Mod");
     assert_eq!(enabled_lines(&f), 1);
     // A backup an interrupted run left behind is removed when the next run replaces the Mod.
-    let out = f.raul(&[
-        "mods",
-        "create",
-        "LOD (lodwright) previous",
-        "--instance",
-        s(&f.instance()),
-    ]);
+    let out = f.raul(&["mods", "create", PREVIOUS, "--instance", s(&f.instance())]);
     assert!(out.status.success(), "{out:?}");
+    // It is a renamed-aside copy of the LOD Mod, so it carries the marker.
+    std::fs::copy(
+        f.lod_mod().join("meta.ini"),
+        f.instance().join("mods").join(PREVIOUS).join("meta.ini"),
+    )
+    .unwrap();
     f.settings("[output]\nwater = true\n");
     let (code, result, _) = f.generate(&[]);
     assert_eq!(code, Some(0), "{result}");
     assert_eq!(mod_names(&f), [MOD], "the backup is gone");
+}
+
+/// The lines of the Profile's `modlist.txt`, `+Name` or `-Name`, highest priority first.
+fn modlist(f: &Fixture, profile: &str) -> Vec<String> {
+    std::fs::read_to_string(f.instance().join(format!("profiles/{profile}/modlist.txt")))
+        .unwrap()
+        .lines()
+        .filter(|l| !l.trim().is_empty() && !l.starts_with('#'))
+        .map(str::to_owned)
+        .collect()
+}
+
+/// Runs `raul <args> --instance <instance>` and expects it to succeed.
+fn raul_ok(f: &Fixture, args: &[&str]) {
+    let inst = f.instance();
+    let mut all = args.to_vec();
+    all.extend_from_slice(&["--instance", s(&inst)]);
+    let out = f.raul(&all);
+    assert!(out.status.success(), "{all:?}: {out:?}");
+}
+
+#[test]
+fn the_lod_mod_is_named_for_its_profile_and_marked_as_generated() {
+    let f = Fixture::new("raul-lodgen-marker");
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["mod"], MOD);
+    assert_eq!(lod::mod_name("Default"), MOD);
+    let marker = lod::read_marker(&f.lod_mod()).expect("the Mod carries the marker");
+    assert_eq!(marker.profile, "Default");
+    assert_eq!(marker.lodwright_version, shipped_lodwright_version());
+    let manifest: Value =
+        serde_json::from_slice(&std::fs::read(f.out_dir().join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(
+        Some(marker.request_digest.as_str()),
+        manifest["request_digest"].as_str(),
+        "the marker names the request the LOD was built from"
+    );
+    assert!(
+        marker.request_digest.starts_with("sha256:"),
+        "{}",
+        marker.request_digest
+    );
+    assert!(lod::is_generated(&f.instance().join("mods"), MOD));
+}
+
+#[test]
+fn a_new_run_keeps_the_place_the_state_and_the_meta_ini_keys_of_the_lod_mod() {
+    let f = Fixture::new("raul-lodgen-keep");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    raul_ok(&f, &["mods", "create", "Alpha", "--top"]);
+    raul_ok(&f, &["mods", "create", "Beta", "--bottom"]);
+    raul_ok(&f, &["mods", "reorder", MOD, "--position", "2"]);
+    raul_ok(&f, &["mods", "disable", MOD]);
+    let meta = f.lod_mod().join("meta.ini");
+    let mut text = std::fs::read_to_string(&meta).unwrap();
+    text.push_str("\n[Custom]\nkey=1\n");
+    let text = text.replacen("[General]", "[General]\ncategory=\"5,\"", 1);
+    std::fs::write(&meta, &text).unwrap();
+    let before = modlist(&f, "Default");
+    assert_eq!(before[1], format!("-{MOD}"), "{before:?}");
+
+    f.settings("[output]\nwater = false\n");
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["lodwright"]["code"], "generated", "{result}");
+    assert_eq!(
+        modlist(&f, "Default"),
+        before,
+        "the LOD Mod keeps its place and stays disabled"
+    );
+    let text = std::fs::read_to_string(&meta).unwrap();
+    assert!(text.contains("category=\"5,\""), "{text}");
+    assert!(text.contains("[Custom]"), "{text}");
+    assert!(lod::read_marker(&f.lod_mod()).is_some(), "{text}");
+    assert_eq!(mod_names(&f), ["Alpha", "Beta", MOD], "no backup is left");
+
+    // A disabled LOD Mod that is current is left as it is.
+    let state = f.state();
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["up_to_date"], true, "{result}");
+    assert_eq!(f.state(), state);
+}
+
+#[test]
+fn each_profile_has_its_own_output_folder_and_the_shared_one_becomes_the_first_profiles() {
+    let f = Fixture::new("raul-lodgen-folders");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    // The folder of a run before each Profile had its own: the next run takes it over and finds its LOD current.
+    let shared = f.instance().join(".raul/lod/out");
+    std::fs::rename(f.out_dir(), &shared).unwrap();
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["lodwright"]["code"], "up_to_date", "{result}");
+    assert!(!shared.exists(), "the shared folder was moved");
+    assert!(f.out_dir().join("manifest.json").is_file());
+}
+
+#[test]
+fn a_removed_lod_mod_is_made_again_at_the_top() {
+    let f = Fixture::new("raul-lodgen-removed");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    raul_ok(&f, &["mods", "create", "Alpha", "--top"]);
+    raul_ok(&f, &["mods", "remove", MOD]);
+    assert!(!f.lod_mod().exists());
+    let (code, result, finished) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["up_to_date"], false, "{result}");
+    assert_eq!(finished["changed"], true);
+    assert!(f.lod_mod().is_dir());
+    assert_eq!(modlist(&f, "Default")[0], format!("+{MOD}"));
+}
+
+/// Turns the Profile's LOD Mod into one an earlier raul made: the old shared name and a `meta.ini` without the
+/// marker.
+fn make_legacy(f: &Fixture) {
+    raul_ok(f, &["mods", "rename", MOD, LEGACY]);
+    std::fs::write(
+        f.instance().join("mods").join(LEGACY).join("meta.ini"),
+        "[General]\ngameName=newvegas\n",
+    )
+    .unwrap();
+}
+
+#[test]
+fn the_old_shared_lod_mod_becomes_the_profile_s_own_in_its_place() {
+    let f = Fixture::new("raul-lodgen-legacy");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    raul_ok(&f, &["mods", "create", "Alpha", "--top"]);
+    make_legacy(&f);
+    raul_ok(&f, &["mods", "disable", LEGACY]);
+    assert!(lod::is_generated(&f.instance().join("mods"), LEGACY));
+    assert_eq!(
+        modlist(&f, "Default"),
+        ["+Alpha".to_owned(), format!("-{LEGACY}")]
+    );
+
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["mod"], MOD);
+    assert_eq!(
+        modlist(&f, "Default"),
+        ["+Alpha".to_owned(), format!("-{MOD}")],
+        "the new Mod takes the old one's place and state"
+    );
+    assert_eq!(mod_names(&f), ["Alpha", MOD], "the old Mod is removed");
+}
+
+#[test]
+fn the_old_shared_lod_mod_stays_for_another_profile_that_lists_it() {
+    let f = Fixture::new("raul-lodgen-legacy-shared");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    make_legacy(&f);
+    let other = f.instance().join("profiles/Other");
+    std::fs::create_dir_all(&other).unwrap();
+    for file in ["plugins.txt", "loadorder.txt"] {
+        std::fs::copy(
+            f.instance().join("profiles/Default").join(file),
+            other.join(file),
+        )
+        .unwrap();
+    }
+    std::fs::write(other.join("modlist.txt"), format!("+{LEGACY}\n")).unwrap();
+
+    let (code, result, _) = f.generate(&["--profile", "Default"]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(
+        modlist(&f, "Default"),
+        [format!("+{MOD}"), format!("-{LEGACY}")],
+        "the old Mod is turned off here, not removed"
+    );
+    assert_eq!(modlist(&f, "Other"), [format!("+{LEGACY}")]);
+    assert_eq!(mod_names(&f), [MOD, LEGACY]);
+}
+
+/// `raul lod mods --json` for the Fixture's Instance, checked against its schema.
+fn lod_mods(f: &Fixture) -> Value {
+    let inst = f.instance();
+    let out = f.raul(&["lod", "mods", "--json", "--instance", s(&inst)]);
+    assert!(out.status.success(), "{out:?}");
+    let doc: Value = serde_json::from_slice(&out.stdout).unwrap();
+    let errors: Vec<String> = validator(&lod::mods_schema())
+        .iter_errors(&doc)
+        .map(|e| e.to_string())
+        .collect();
+    assert!(errors.is_empty(), "{errors:?} {doc}");
+    doc
+}
+
+#[test]
+fn lod_mods_lists_the_generated_mods_of_the_profile_and_nothing_else() {
+    let f = Fixture::new("raul-lodgen-list");
+    let doc = lod_mods(&f);
+    assert_eq!(doc["own_name"], MOD);
+    assert_eq!(doc["mods"], serde_json::json!([]));
+    assert_eq!(f.generate(&[]).0, Some(0));
+    raul_ok(&f, &["mods", "create", "Alpha", "--top"]);
+    raul_ok(&f, &["mods", "disable", MOD]);
+    let doc = lod_mods(&f);
+    let mods = doc["mods"].as_array().unwrap();
+    assert_eq!(mods.len(), 1, "{doc}");
+    assert_eq!(mods[0]["name"], MOD);
+    assert_eq!(mods[0]["position"], 2);
+    assert_eq!(mods[0]["enabled"], false);
+    assert_eq!(mods[0]["own"], true);
+    assert_eq!(mods[0]["legacy"], false);
+    assert_eq!(mods[0]["profile"], "Default");
+    assert_eq!(
+        mods[0]["lodwright_version"],
+        shipped_lodwright_version().as_str()
+    );
+    make_legacy(&f);
+    let doc = lod_mods(&f);
+    assert_eq!(doc["mods"][0]["name"], LEGACY);
+    assert_eq!(doc["mods"][0]["legacy"], true);
+    assert_eq!(doc["mods"][0]["own"], false);
+    assert_eq!(doc["mods"][0]["profile"], Value::Null);
+    let out = f.raul(&["lod", "mods", "--instance", s(&f.path("nowhere"))]);
+    assert_eq!(out.status.code(), Some(2), "{out:?}");
+}
+
+#[test]
+fn a_mod_that_is_not_generated_lod_but_has_its_name_is_refused() {
+    let f = Fixture::new("raul-lodgen-taken");
+    raul_ok(&f, &["mods", "create", MOD]);
+    let before = f.state();
+    let (code, result, finished) = f.generate(&[]);
+    assert_eq!(code, Some(2), "{result}");
+    assert_eq!(result["error"]["code"], "plan_refused", "{result}");
+    assert!(
+        result["error"]["message"].as_str().unwrap().contains(MOD),
+        "{result}"
+    );
+    assert_eq!(finished["changed"], false);
+    assert_eq!(f.state(), before, "nothing changed");
+}
+
+#[test]
+fn a_mod_that_is_not_generated_lod_but_has_the_backup_name_is_refused_and_kept() {
+    let f = Fixture::new("raul-lodgen-taken-previous");
+    let previous = format!("{MOD} previous");
+    raul_ok(&f, &["mods", "create", &previous]);
+    let before = f.state();
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(2), "{result}");
+    assert!(
+        result["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains(&previous),
+        "{result}"
+    );
+    assert_eq!(
+        f.state(),
+        before,
+        "the user's folder is neither removed nor renamed"
+    );
 }
 
 /// A FOMOD that needs answers in the output makes the Mod's install fail after the old Mod has been moved aside, which
@@ -321,7 +581,7 @@ fn a_backup_left_alone_by_an_interrupted_run_is_put_back_when_the_new_mod_cannot
         "mods",
         "rename",
         MOD,
-        "LOD (lodwright) previous",
+        PREVIOUS,
         "--instance",
         s(&f.instance()),
     ]);

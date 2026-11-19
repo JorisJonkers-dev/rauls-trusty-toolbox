@@ -49,6 +49,16 @@ pub const OWN: &[Own] = &[
         version: raul_drivers::lod::SCHEMA_VERSION,
         schema: raul_drivers::lod::schema,
     },
+    Own {
+        name: raul_drivers::lod::MODS_CONTRACT,
+        version: raul_drivers::lod::MODS_SCHEMA_VERSION,
+        schema: raul_drivers::lod::mods_schema,
+    },
+    Own {
+        name: raul_drivers::lod::settings::CONTRACT,
+        version: raul_drivers::lod::settings::SCHEMA_VERSION,
+        schema: raul_drivers::lod::settings::schema,
+    },
 ];
 
 /// A schema as pretty JSON with a final newline, the form the files in `contracts/` have (see

@@ -109,7 +109,7 @@ trees = false
         "{request}"
     );
     assert!(
-        Path::new(request["output_dir"].as_str().unwrap()).ends_with(".raul/lod/out"),
+        Path::new(request["output_dir"].as_str().unwrap()).ends_with(".raul/lod/Default/out"),
         "{request}"
     );
     let expected: Value =

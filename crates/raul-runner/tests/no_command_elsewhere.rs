@@ -27,6 +27,10 @@ const ALLOWED: &[(&str, &str)] = &[
         "runs the built raul binary as a black box",
     ),
     (
+        "raul-cli/tests/lod_settings.rs",
+        "runs the built raul binary as a black box",
+    ),
+    (
         "raul-cli/tests/lod_stop.rs",
         "runs the built raul binary as a black box, to make the Instance",
     ),

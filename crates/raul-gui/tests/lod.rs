@@ -16,11 +16,13 @@ use raul_gui::pages::lod::{
     STOPPED_STATUS,
 };
 use raul_gui::shell::App;
-use raul_ui_model::pages::lod::MOD_NAME;
 use raul_ui_service::{Exec, ProcessExec};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+
+/// The LOD Mod of the fixture's only Profile.
+const MOD_NAME: &str = "Generated LOD (Default)";
 
 /// A world of `side` by `side` cells with terrain, so a generation takes long enough to be stopped while it runs.
 // The cell indexes are small and the heights are synthetic, so the casts cannot lose anything that matters.
