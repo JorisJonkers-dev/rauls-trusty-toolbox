@@ -127,6 +127,12 @@ jobs:
         if: ${{ !cancelled() }}
         run: mise exec -- cargo deny --locked check
 
+      - name: GPL-3.0-or-later only under components/nv-rs
+        if: ${{ !cancelled() }}
+        run: |
+          scripts/check-gpl-scope.sh --self-test
+          scripts/check-gpl-scope.sh
+
       - name: Advisories (cargo audit)
         if: ${{ !cancelled() }}
         run: mise exec -- cargo audit
