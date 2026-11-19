@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795088098099,
+  "lastUpdate": 1795089747081,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5683,6 +5683,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.262022,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f4b2f7fcb3ba05f623f9242ac075422475a56d13",
+          "message": "fix(engine): plain words for the engine check, a bounded run, and tests that pin both refusals (#331)\n\n* fix(engine): plain words for the engine check, a bounded run, and tests that pin both refusals (#315)\n\n* test(engine): a neutral sample path in the engine check test (#315)",
+          "timestamp": "2026-11-19T13:00:24+01:00",
+          "tree_id": "c615aa142b4b65d69bad4f595fce63da4db87f37",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f4b2f7fcb3ba05f623f9242ac075422475a56d13"
+        },
+        "date": 1795089746677,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.371324,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.863904,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 49.194802,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.591232,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 14.267464,
             "unit": "ms"
           }
         ]
