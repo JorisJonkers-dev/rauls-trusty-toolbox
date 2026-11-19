@@ -11,6 +11,7 @@ name: Engine
 on:
   pull_request:
     paths:
+      - "components/nv-rs"
       - "components/nv-rs/**"
       - "crates/raul-gui/Cargo.toml"
       - "crates/raul-gui/Cargo.lock"
@@ -23,6 +24,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "components/nv-rs"
       - "components/nv-rs/**"
       - "crates/raul-gui/Cargo.toml"
       - "crates/raul-gui/Cargo.lock"
