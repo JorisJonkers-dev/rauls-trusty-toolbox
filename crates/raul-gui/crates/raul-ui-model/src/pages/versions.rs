@@ -147,8 +147,10 @@ pub fn parse_status(stdout: &str) -> Result<UpdateStatus, String> {
 pub fn parse_applied(stdout: &str, key: &str) -> Result<String, String> {
     let doc: serde_json::Value =
         serde_json::from_str(stdout.trim()).map_err(|e| format!("not an update document: {e}"))?;
+    // A download or an install names the version as `{"to": ...}`, a rollback as a plain string.
     doc[key]["to"]
         .as_str()
+        .or_else(|| doc[key].as_str())
         .map(str::to_owned)
         .ok_or_else(|| format!("the update document names no {key} version"))
 }
@@ -481,6 +483,10 @@ mod tests {
         assert_eq!(
             parse_applied(r#"{"ok":true,"installed":{"to":"0.3.0"}}"#, "installed").unwrap(),
             "0.3.0"
+        );
+        assert_eq!(
+            parse_applied(r#"{"ok":true,"back_to":"0.1.0"}"#, "back_to").unwrap(),
+            "0.1.0"
         );
         assert!(parse_applied(r#"{"ok":false}"#, "staged").is_err());
     }

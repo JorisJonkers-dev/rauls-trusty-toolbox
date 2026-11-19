@@ -51,16 +51,16 @@ impl Reason {
     #[must_use]
     pub fn plain(self) -> &'static str {
         match self {
-            Self::Nix => "raul was installed with Nix, so Nix updates it.",
+            Self::Nix => "This copy was installed with Nix, so Nix updates it.",
             Self::System => {
-                "raul was installed by your system's package manager, so the package manager updates it."
+                "This copy was installed by your system's package manager, so the package manager updates it."
             }
             Self::Mac => "On a Mac, download the new version from the release page.",
             Self::ReadOnly => {
-                "raul cannot change the folder it is installed in. Download the new version from the release page."
+                "This copy cannot change the folder it is installed in. Download the new version from the release page."
             }
             Self::Other => {
-                "This copy of raul was installed in a way raul cannot update itself. Download the new version from the release page."
+                "This copy was installed in a way that cannot update itself. Download the new version from the release page."
             }
         }
     }

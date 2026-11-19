@@ -4580,6 +4580,7 @@ dependencies = [
  "nvmod-testkit",
  "raul-cli",
  "raul-engine",
+ "raul-runner",
  "raul-ui-model",
  "raul-ui-service",
  "serde_json",

@@ -128,6 +128,10 @@ impl Exec for Versions {
         self.calls.lock().unwrap().push(args.to_vec());
         let stdout = match args.first().map(String::as_str) {
             Some("version") => r#"{"raul":"0.2.0"}"#.to_owned(),
+            Some("update") if args.get(1).map(String::as_str) == Some("status") => {
+                r#"{"current":"0.2.0","status":{"updatable":true,"reason":null,"staged":null,"previous":null}}"#
+                    .to_owned()
+            }
             Some("update") => r#"{"current":"0.2.0","newer":null}"#.to_owned(),
             _ => "{}".to_owned(),
         };
@@ -160,8 +164,13 @@ fn the_update_button_sits_beside_the_version_and_starts_the_check() {
     };
     assert!(seen(&mut h, "version"), "the version is read");
     assert!(
-        !exec.calls.lock().unwrap().iter().any(|c| c[0] == "update"),
-        "nothing reaches the network before a click"
+        !exec
+            .calls
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|c| c[0] == "update" && c.get(1).is_some_and(|w| w != "status")),
+        "nothing reaches the network before a click (the status is read from this machine only)"
     );
     assert!(
         h.query_by_label(TOOLBOX_LABEL).is_some() && h.query_by_label("0.2.0").is_some(),
