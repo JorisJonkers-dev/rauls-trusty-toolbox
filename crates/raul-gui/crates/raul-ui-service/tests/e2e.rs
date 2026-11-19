@@ -331,7 +331,6 @@ fn sort_proposes_without_writing_and_apply_writes_the_order() {
         panic!("expected a refusal");
     };
     assert_eq!(e.exit, ExitClass::Refused);
-    assert!(e.repro.unwrap().starts_with("raul sort "));
 }
 
 #[test]

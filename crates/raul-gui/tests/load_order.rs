@@ -181,7 +181,10 @@ fn sort_preview_apply_then_undo_restores_the_lists_byte_for_byte() {
         inner: ProcessExec::new(f.path("raul")).with_grace(Duration::from_secs(5)),
         words: Arc::clone(&words),
     };
-    let app = App::new(Jobs::new(Arc::new(exec)));
+    // The sort stays a command line here: the wrapper swaps the pinned masterlist for a file, which a direct sort
+    // (it fetches the pinned one itself) would not go through.
+    let jobs = Jobs::new(Arc::new(exec)).scripted(&["sort-preview", "sort-apply"]);
+    let app = App::new(jobs);
     let mut h = Harness::builder()
         .with_size([1280.0, 800.0])
         .build_eframe(|cc| {
