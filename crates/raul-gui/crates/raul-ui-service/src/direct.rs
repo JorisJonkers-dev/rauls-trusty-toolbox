@@ -71,6 +71,9 @@ pub struct DirectJob {
     usage: bool,
     /// Whether the job writes though it holds no lock, because the Instance it makes does not exist yet.
     creating: bool,
+    /// The profile of the Instance that gets an automatic snapshot before the job, as the command line takes one
+    /// before a change of the lists: `Some(None)` is the profile the Instance has.
+    snapshot: Option<SnapshotPlan>,
 }
 
 impl std::fmt::Debug for DirectJob {
@@ -93,6 +96,7 @@ impl DirectJob {
             body: Self::boxed(run),
             usage: false,
             creating: false,
+            snapshot: None,
         }
     }
 
@@ -107,6 +111,7 @@ impl DirectJob {
             body: Self::boxed(run),
             usage: false,
             creating: false,
+            snapshot: None,
         }
     }
 
@@ -127,6 +132,7 @@ impl DirectJob {
             body: Self::boxed_as(run, render),
             usage: false,
             creating: false,
+            snapshot: None,
         }
     }
 
@@ -141,6 +147,7 @@ impl DirectJob {
             body: Self::boxed_as(run, render),
             usage: false,
             creating: false,
+            snapshot: None,
         }
     }
 
@@ -155,6 +162,7 @@ impl DirectJob {
             body: Self::boxed_as(run, render),
             usage: false,
             creating: true,
+            snapshot: None,
         }
     }
 
@@ -193,7 +201,16 @@ impl DirectJob {
             }),
             usage: true,
             creating: false,
+            snapshot: None,
         }
+    }
+
+    /// Takes an automatic snapshot of `profile` (`None` for the Instance's own) before the job and puts it away again
+    /// when the job did not go through, as `nvmod` does around a change of the lists.
+    #[must_use]
+    pub fn snapshotting(mut self, profile: Option<String>) -> Self {
+        self.snapshot = Some(SnapshotPlan { profile });
+        self
     }
 
     /// The Instance the job writes to, if it does.
@@ -383,6 +400,7 @@ fn value_of<'a>(rest: &'a [String], flag: &str) -> &'a str {
 pub fn mods_change(request: &nvmod_api::mods::ChangeRequest) -> DirectJob {
     let instance = request.instance.clone();
     let dry_run = request.dry_run;
+    let profile = request.profile.clone();
     let request = request.clone();
     let run = move |progress: &mut dyn Progress, cancel: &CancelToken| {
         nvmod_api::mods::change(&request, progress, cancel)
@@ -390,7 +408,7 @@ pub fn mods_change(request: &nvmod_api::mods::ChangeRequest) -> DirectJob {
     if dry_run {
         DirectJob::reading(run)
     } else {
-        DirectJob::writing(instance, "mods", run)
+        DirectJob::writing(instance, "mods", run).snapshotting(profile)
     }
 }
 
@@ -459,6 +477,7 @@ pub fn install_request(
 pub fn install_mod(request: &nvmod_api::install::InstallRequest) -> DirectJob {
     let instance = request.instance.clone();
     let dry_run = request.dry_run;
+    let profile = request.profile.clone();
     let request = request.clone();
     let run = move |progress: &mut dyn Progress, cancel: &CancelToken| {
         nvmod_api::install::install(&request, progress, cancel)
@@ -476,7 +495,7 @@ pub fn install_mod(request: &nvmod_api::install::InstallRequest) -> DirectJob {
     if dry_run {
         DirectJob::reading_as(run, render)
     } else {
-        DirectJob::writing_as(instance, "install", run, render)
+        DirectJob::writing_as(instance, "install", run, render).snapshotting(profile)
     }
 }
 
@@ -605,6 +624,42 @@ fn progress_event(spec: &JobSpec, feed: &mut Feed<'_>, event: &Event) {
     });
 }
 
+/// The profile whose automatic snapshot a job takes first.
+struct SnapshotPlan {
+    profile: Option<String>,
+}
+
+/// The automatic snapshot taken before a change of the lists, kept only when the change went through.
+struct AutoSnapshot {
+    instance: nvmod_instance::NvmodInstance,
+    profile: String,
+    id: String,
+    before: nvmod_backup::Presence,
+}
+
+impl AutoSnapshot {
+    /// Takes the snapshot when the newest one is older than the configured interval; a snapshot that cannot be taken
+    /// is no reason to refuse the change.
+    fn take(root: &Path, profile: Option<&str>) -> Option<Self> {
+        let instance = nvmod_instance::NvmodInstance::open_read_only(root).ok()?;
+        let profile = instance.resolve_profile(profile).ok()?;
+        let config = nvmod_backup::load_config(&instance);
+        let before = nvmod_backup::presence(&instance);
+        let taken =
+            nvmod_backup::auto(&instance, &profile, nvmod_backup::clock::now(), &config).ok()??;
+        Some(Self {
+            instance,
+            profile,
+            id: taken.id,
+            before,
+        })
+    }
+
+    fn discard(self) {
+        nvmod_backup::discard(&self.instance, &self.profile, &self.id, self.before);
+    }
+}
+
 /// Runs `job` as the job `spec` describes, handing each [`JobEvent`] to `sink` as it happens, and answers with what
 /// a command line would have left: the JSON of the result on standard output with exit 0, or the one-line summary
 /// of the error on standard error with the exit code of its class. `spec.args` is not used; `spec.writes` and
@@ -645,8 +700,18 @@ pub fn run_direct(
         Some(Ok(guard)) => Some(guard),
         None => None,
     };
+    let snapshot = job
+        .snapshot
+        .as_ref()
+        .zip(job.instance())
+        .and_then(|(profile, root)| AutoSnapshot::take(root, profile.profile.as_deref()));
     feed.start();
     let end = execute(spec, job.body, &mut feed, cancel);
+    if let Some(snapshot) = snapshot
+        && !matches!(&end, End::Done(reply) if reply.exit == 0)
+    {
+        snapshot.discard();
+    }
     // Released before the end is told: the next writing job may start the moment this one is seen to be over.
     drop(guard);
     let stopped = format!(

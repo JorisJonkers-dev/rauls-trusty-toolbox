@@ -211,3 +211,30 @@ fn profile_files_that_disagree_are_blockers() {
     }
     assert!(!new.exists(), "nothing was written");
 }
+
+#[test]
+fn an_install_takes_an_automatic_snapshot_and_a_failed_one_puts_it_away() {
+    let inst = Instance::new();
+    let root = s(&inst.root());
+    let request = |archive: String| InstallRequest {
+        archive,
+        instance: root.clone(),
+        profile: None,
+        name: Some("Plain Mod".into()),
+        dry_run: false,
+        answers: None,
+    };
+    let missing = s(&inst.work.path().join("missing.zip"));
+    service().install_mod(&request(missing)).unwrap_err();
+    assert!(
+        !inst.root().join(".nvmod/backups").exists(),
+        "a failed install leaves no snapshot behind"
+    );
+    let zip = inst.work.path().join("Plain.zip");
+    ZipBuilder::new().file("P.esp", b"plugin").write(&zip);
+    service().install_mod(&request(s(&zip))).unwrap();
+    assert!(
+        inst.root().join(".nvmod/backups").is_dir(),
+        "an install that went through keeps the snapshot taken before it"
+    );
+}
