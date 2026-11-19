@@ -147,6 +147,13 @@ mod engine {
     };
     use raul_core::setup::EngineOptions;
 
+    /// One build of the fake engine program for the whole test run: on Windows each call compiles a new stand-in, whose
+    /// bytes differ from the last, so a test that packages one and compares with another would never match.
+    fn viewer_bytes() -> Vec<u8> {
+        static BYTES: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
+        BYTES.get_or_init(fake_release_binary).clone()
+    }
+
     const CARGO: &str = env!("CARGO");
 
     struct Rig {
@@ -260,7 +267,7 @@ mod engine {
     #[test]
     fn the_packaged_engine_installs_checks_and_the_target_is_set() {
         let rig = Rig::new();
-        let request = rig.packaged(&fake_release_binary());
+        let request = rig.packaged(&viewer_bytes());
         let (result, events) = record(&request, &CancelToken::new());
         let out = done(result);
         assert!(ids(&out.completed).contains(&"engine".to_owned()));
@@ -270,7 +277,7 @@ mod engine {
             ["setup.engine.installing", "setup.engine.checked"]
         );
         let binary = rig.nv_rs().join("bin").join(nv_viewer_name());
-        assert_eq!(fs::read(binary).expect("binary"), fake_release_binary());
+        assert_eq!(fs::read(binary).expect("binary"), viewer_bytes());
         let record = fs::read_to_string(rig.nv_rs().join("install.json")).expect("record");
         assert!(record.contains("\"method\": \"packaged\""), "{record}");
     }
@@ -278,7 +285,7 @@ mod engine {
     #[test]
     fn no_toolchain_still_uses_the_packaged_engine_and_never_a_release() {
         let rig = Rig::new();
-        let mut request = rig.packaged(&fake_release_binary());
+        let mut request = rig.packaged(&viewer_bytes());
         request.engine_options.cargo = Some(rig.tools.path().join("no-such-cargo"));
         let (result, events) = record(&request, &CancelToken::new());
         done(result);
@@ -291,7 +298,7 @@ mod engine {
     #[test]
     fn a_damaged_packaged_engine_is_unverified_and_nothing_is_installed() {
         let rig = Rig::new();
-        let request = rig.packaged(&fake_release_binary());
+        let request = rig.packaged(&viewer_bytes());
         let viewer = rig.tools.path().join("packaged/bin").join(nv_viewer_name());
         fs::write(viewer, b"tampered").expect("tamper");
         let (result, events) = record(&request, &CancelToken::new());

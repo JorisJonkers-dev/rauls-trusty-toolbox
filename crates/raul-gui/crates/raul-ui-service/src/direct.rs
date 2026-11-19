@@ -650,7 +650,7 @@ pub fn init(request: &nvmod_api::init::CreateRequest) -> DirectJob {
 }
 
 /// What `raul install-nv-rs` takes from the words after it: the Instance, and for a developer a source workspace and
-/// the `cargo` to build it with. The options that used to fetch a release are read and change nothing (#179).
+/// the `cargo` to build it with. The options that used to fetch a release are gone and are refused (#179).
 struct InstallNvRs {
     instance: PathBuf,
     source: Option<PathBuf>,
@@ -660,6 +660,24 @@ struct InstallNvRs {
 fn install_nvrs_request(rest: &[String]) -> Result<InstallNvRs, String> {
     if value_of(rest, "--instance").is_empty() {
         return Err("install-nv-rs: give --instance".to_owned());
+    }
+    for gone in [
+        "--release",
+        "--release-url",
+        "--asset",
+        "--repo",
+        "--gh",
+        "--curl",
+        "--retry-delay-ms",
+    ] {
+        if has_flag(rest, gone) {
+            return Err(format!(
+                "install-nv-rs: {gone} is gone: the engine comes with raul and is never downloaded"
+            ));
+        }
+    }
+    if option_of(rest, "--cargo").is_some() && option_of(rest, "--source").is_none() {
+        return Err("install-nv-rs: --cargo only goes with --source".to_owned());
     }
     Ok(InstallNvRs {
         instance: PathBuf::from(value_of(rest, "--instance")),

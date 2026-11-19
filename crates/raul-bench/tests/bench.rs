@@ -28,10 +28,7 @@ fn report(results: Vec<Measurement>) -> Report {
 
 #[test]
 fn the_quick_suite_measures_sorting_plugin_reading_and_mod_install() {
-    let r = run_suite(&Options {
-        quick: true,
-        lodwright: None,
-    });
+    let r = run_suite(&Options { quick: true });
     let names: Vec<&str> = r.results.iter().map(|m| m.name.as_str()).collect();
     for want in [
         "sort/small",
@@ -51,10 +48,7 @@ fn the_quick_suite_measures_sorting_plugin_reading_and_mod_install() {
 
 #[test]
 fn lod_and_frame_time_are_skipped_with_a_reason_when_their_tools_are_missing() {
-    let r = run_suite(&Options {
-        quick: true,
-        lodwright: None,
-    });
+    let r = run_suite(&Options { quick: true });
     let skipped: Vec<&str> = r.skipped.iter().map(|s| s.name.as_str()).collect();
     assert!(
         skipped.contains(&"lod/generate") && skipped.contains(&"frame-time/camera-path"),
@@ -106,10 +100,7 @@ fn the_comparison_shows_the_change_in_percent() {
 
 #[test]
 fn every_sort_case_sorts_successfully_before_it_is_timed() {
-    let r = run_suite(&Options {
-        quick: true,
-        lodwright: None,
-    });
+    let r = run_suite(&Options { quick: true });
     assert!(
         !r.skipped.iter().any(|s| s.name.starts_with("sort/")),
         "{:?}",

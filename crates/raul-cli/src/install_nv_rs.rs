@@ -2,8 +2,8 @@
 //! `raul install-nv-rs --instance <dir> [--source <dir>] [--cargo <path>]`: put the engine in an Instance. It is the
 //! build that ships next to `raul`, checked against its checksums; nothing is fetched (#179). `--source` builds a
 //! developer's nv-rs workspace instead. The options that used to fetch a release (`--release`, `--release-url`,
-//! `--asset`, `--repo`, `--gh`, `--curl`, `--retry-delay-ms`) are still read, so an old command line works, and change
-//! nothing. It replaces nvmod's command of the same name, which fetches.
+//! `--asset`, `--repo`, `--gh`, `--curl`, `--retry-delay-ms`) are gone and are a usage error. It replaces nvmod's
+//! command of the same name, which fetches.
 
 use std::io::Write;
 use std::path::PathBuf;
@@ -16,9 +16,11 @@ use crate::{FAILED, OK, REFUSED, USAGE};
 
 const USAGE_LINE: &str =
     "usage: raul install-nv-rs --instance <dir> [--source <dir>] [--cargo <path>]";
-/// Options that take a value; the second group is read and ignored (they fetched a release).
+/// Options that take a value.
 const VALUED: &[&str] = &["instance", "source", "cargo"];
-const IGNORED_VALUED: &[&str] = &[
+/// The options that fetched a release: gone, with the reason said.
+const FETCH_OPTIONS: &[&str] = &[
+    "release",
     "release-url",
     "asset",
     "repo",
@@ -37,15 +39,19 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
             let _ = writeln!(err, "{USAGE_LINE}");
             return USAGE;
         };
-        if name == "release" {
-            continue;
-        }
-        let known = VALUED.contains(&name) || IGNORED_VALUED.contains(&name);
-        let Some(value) = known.then(|| words.next()).flatten() else {
+        if FETCH_OPTIONS.contains(&name) {
             let _ = writeln!(
                 err,
-                "raul install-nv-rs: unknown option or missing value: {word}"
+                "raul install-nv-rs: {word} is gone: the engine comes with raul and is never downloaded"
             );
+            return USAGE;
+        }
+        if !VALUED.contains(&name) {
+            let _ = writeln!(err, "raul install-nv-rs: unknown option {word}");
+            return USAGE;
+        }
+        let Some(value) = words.next() else {
+            let _ = writeln!(err, "raul install-nv-rs: {word} needs a value");
             return USAGE;
         };
         match name {
@@ -59,6 +65,13 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
         let _ = writeln!(err, "{USAGE_LINE}");
         return USAGE;
     };
+    if cargo.is_some() && source.is_none() {
+        let _ = writeln!(
+            err,
+            "raul install-nv-rs: --cargo only goes with --source (it builds the engine from source)"
+        );
+        return USAGE;
+    }
     let _guard = match InstanceGuard::acquire(&instance, "install-nv-rs") {
         Ok(guard) => guard,
         Err(e) => {
@@ -92,7 +105,17 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
     }
 }
 
-fn failure(e: &JobError, err: &mut dyn Write) -> u8 {
+/// Print `e` the way this command does: what a failed check printed first, then one headline line last, so the last
+/// line is what a reader (the setup wizard) shows.
+pub(crate) fn failure(e: &JobError, err: &mut dyn Write) -> u8 {
+    let (head, detail) = e
+        .summary
+        .split_once('\n')
+        .unwrap_or((e.summary.as_str(), ""));
+    if !detail.trim().is_empty() {
+        let _ = writeln!(err, "{}", detail.trim_end());
+    }
+    let e = &JobError::new(e.kind, "install_nvrs.install", head);
     match e.kind {
         ErrorKind::Refused => {
             let _ = writeln!(err, "raul install-nv-rs: refused: {}", e.summary);

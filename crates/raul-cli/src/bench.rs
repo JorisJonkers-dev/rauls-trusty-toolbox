@@ -16,15 +16,11 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
     while let Some(a) = rest.next() {
         match a.as_str() {
             "--quick" => options.quick = true,
-            "--out" | "--lodwright" => {
+            "--out" => {
                 let Some(value) = rest.next() else {
-                    return crate::usage(err, &format!("{a} needs a path"));
+                    return crate::usage(err, "--out needs a path");
                 };
-                if a == "--out" {
-                    out_dir = PathBuf::from(value);
-                } else {
-                    options.lodwright = Some(PathBuf::from(value));
-                }
+                out_dir = PathBuf::from(value);
             }
             other => return crate::usage(err, &format!("unknown option {other}")),
         }

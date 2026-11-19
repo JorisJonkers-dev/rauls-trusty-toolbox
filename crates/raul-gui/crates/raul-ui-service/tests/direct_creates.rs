@@ -98,43 +98,24 @@ fn init_refuses_a_missing_base_with_one_line_and_no_command_line() {
     assert!(!out.stderr.contains("raul "), "{:?}", out.stderr);
 }
 
-/// A release address nothing listens on. The options that fetched a release are read and ignored now, so a job that
-/// reached a fetch would fail at once and offline; the refusal below is that there is no packaged engine.
-const OFFLINE: &str = "http://127.0.0.1:9/none";
-
 #[test]
-fn install_nv_rs_refuses_an_instance_with_no_source_and_no_release() {
+fn install_nv_rs_refuses_an_instance_when_no_engine_is_packaged() {
     let inst = Instance::new();
     install_plain(&inst);
     let root = s(&inst.root());
 
-    let rest: Vec<String> = [
-        "--instance",
-        root.as_str(),
-        "--release-url",
-        OFFLINE,
-        "--retry-delay-ms",
-        "0",
-    ]
-    .iter()
-    .map(|w| (*w).to_owned())
-    .collect();
+    let rest: Vec<String> = ["--instance", root.as_str()]
+        .iter()
+        .map(|w| (*w).to_owned())
+        .collect();
     let job = direct::for_command("install-nv-rs", &rest).expect("install-nv-rs is a direct job");
     let spec = JobSpec::new(JobId(3), Action::InstallNvRs, Vec::new());
     let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
 
-    let words: Vec<String> = [
-        "install-nv-rs",
-        "--instance",
-        root.as_str(),
-        "--release-url",
-        OFFLINE,
-        "--retry-delay-ms",
-        "0",
-    ]
-    .iter()
-    .map(|w| (*w).to_owned())
-    .collect();
+    let words: Vec<String> = ["install-nv-rs", "--instance", root.as_str()]
+        .iter()
+        .map(|w| (*w).to_owned())
+        .collect();
     let cli = InProcessExec::new().run(&words).unwrap();
     assert_eq!(out.code, cli.code, "direct {out:?} / command line {cli:?}");
 
@@ -152,18 +133,10 @@ fn a_held_instance_lock_refuses_install_nv_rs() {
     let root = s(&inst.root());
     let held = InstanceGuard::acquire(&inst.root(), "test").unwrap();
 
-    let rest: Vec<String> = [
-        "--instance",
-        root.as_str(),
-        "--release",
-        "--release-url",
-        OFFLINE,
-        "--retry-delay-ms",
-        "0",
-    ]
-    .iter()
-    .map(|w| (*w).to_owned())
-    .collect();
+    let rest: Vec<String> = ["--instance", root.as_str()]
+        .iter()
+        .map(|w| (*w).to_owned())
+        .collect();
     let job = direct::for_command("install-nv-rs", &rest).expect("install-nv-rs is a direct job");
     let spec = JobSpec::new(JobId(4), Action::InstallNvRs, Vec::new());
     let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
@@ -171,4 +144,34 @@ fn a_held_instance_lock_refuses_install_nv_rs() {
 
     assert_eq!(out.code, Some(2), "{out:?}");
     assert!(!out.stderr.is_empty(), "{out:?}");
+}
+
+#[test]
+fn the_options_that_fetched_a_release_are_a_usage_error_as_on_the_command_line() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    let root = s(&inst.root());
+    for option in [
+        &["--release"][..],
+        &["--release-url", "http://127.0.0.1:9/none"],
+        &["--retry-delay-ms", "0"],
+        &["--cargo", "/c"],
+    ] {
+        let mut rest = vec!["--instance".to_owned(), root.clone()];
+        rest.extend(option.iter().map(|w| (*w).to_owned()));
+        let job =
+            direct::for_command("install-nv-rs", &rest).expect("install-nv-rs is a direct job");
+        let spec = JobSpec::new(JobId(5), Action::InstallNvRs, Vec::new());
+        let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+        let mut words = vec!["install-nv-rs".to_owned()];
+        words.extend(rest);
+        let cli = InProcessExec::new().run(&words).unwrap();
+        assert_eq!(out.code, cli.code, "{option:?}: {out:?} / {cli:?}");
+        assert_eq!(
+            out.code,
+            Some(5),
+            "{option:?}: a usage error, not a refusal: {out:?}"
+        );
+        assert!(!out.stderr.is_empty(), "{option:?}");
+    }
 }

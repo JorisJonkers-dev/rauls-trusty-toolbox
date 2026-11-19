@@ -45,6 +45,67 @@ const NOT_REPLAYED: &[(&str, &str)] = &[
     ),
 ];
 
+/// The options nvmod's `setup` took that `raul setup` does not (they fetched an engine release, or named a tool or a
+/// store that no longer exists): they are a usage error here (see `removed_options_are_a_usage_error`), so a replayed
+/// recorded command line goes without them. The recorded outcomes do not depend on them.
+const REMOVED_WITH_VALUE: &[&str] = &[
+    "--release-url",
+    "--asset",
+    "--repo",
+    "--gh",
+    "--curl",
+    "--retry-delay-ms",
+    "--extract-tool",
+    "--installer",
+    "--lock",
+    "--store",
+];
+
+fn without_removed_options(args: Vec<String>) -> Vec<String> {
+    let mut kept = Vec::new();
+    let mut words = args.into_iter();
+    while let Some(word) = words.next() {
+        if word == "--release" {
+            continue;
+        }
+        if REMOVED_WITH_VALUE.contains(&word.as_str()) {
+            words.next();
+            continue;
+        }
+        kept.push(word);
+    }
+    kept
+}
+
+#[test]
+fn removed_options_are_a_usage_error() {
+    for option in [
+        "--release",
+        "--release-url x",
+        "--gh x",
+        "--installer x",
+        "--lock x",
+    ] {
+        let mut args: Vec<String> = [
+            "setup",
+            "--base",
+            "b",
+            "--instance",
+            "i",
+            "--masterlist",
+            "m",
+        ]
+        .iter()
+        .map(|w| (*w).to_owned())
+        .collect();
+        args.extend(option.split(' ').map(str::to_owned));
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let code = run(&args, &mut out, &mut err);
+        assert_eq!(code, raul_cli::USAGE, "{option}");
+        assert!(String::from_utf8(err).unwrap().contains("raul"), "{option}");
+    }
+}
+
 fn baseline_dir() -> PathBuf {
     let tests = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../components/nvmod-rs/crates/nvmod-cli/tests/baseline");
@@ -142,16 +203,18 @@ fn raul_setup_answers_the_transcripts_nvmod_recorded() {
             name == "unsupported-base-refused",
             name == "existing-instance-refused",
         );
-        let args: Vec<String> = case["args"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|a| {
-                a.as_str()
-                    .unwrap()
-                    .replace("<TMP>", &root.path().display().to_string())
-            })
-            .collect();
+        let args = without_removed_options(
+            case["args"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|a| {
+                    a.as_str()
+                        .unwrap()
+                        .replace("<TMP>", &root.path().display().to_string())
+                })
+                .collect(),
+        );
         let (mut out, mut err) = (Vec::new(), Vec::new());
         let code = run(&args, &mut out, &mut err);
         let out = String::from_utf8(out).unwrap();

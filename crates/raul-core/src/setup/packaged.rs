@@ -16,16 +16,25 @@ use super::ErrorKind;
 /// The checksum list the release writes in the packaged engine's folder, in `sha256sum` format: one line per file.
 pub const MANIFEST: &str = "FILES.sha256";
 
-/// Folders that may hold `components/nv-rs`, relative to the folder of the running program: next to it (tarball, portable
-/// zip, NSIS), one up and in `lib/<product>` (deb, `AppImage`) or `Resources` (macOS bundle).
+/// Folders that may hold `components/nv-rs`, relative to the folder of the running program: next to it (tarball,
+/// portable zip, NSIS), in a `lib/raul*` folder one level up (deb and `AppImage`, which name it after the product), or
+/// in the `Resources` of a macOS bundle (the program being in `Contents/MacOS`). Folders of other packages are not
+/// looked at.
 fn candidate_roots(exe_dir: &Path) -> Vec<PathBuf> {
     let mut roots = vec![exe_dir.to_path_buf()];
     if let Some(up) = exe_dir.parent() {
-        roots.push(up.to_path_buf());
-        roots.push(up.join("Resources"));
+        if exe_dir.file_name().is_some_and(|n| n == "MacOS") {
+            roots.push(up.join("Resources"));
+        }
         if let Ok(entries) = std::fs::read_dir(up.join("lib")) {
             let mut dirs: Vec<PathBuf> = entries
                 .flatten()
+                .filter(|e| {
+                    e.file_name()
+                        .to_string_lossy()
+                        .to_ascii_lowercase()
+                        .starts_with("raul")
+                })
                 .map(|e| e.path())
                 .filter(|p| p.is_dir())
                 .collect();
@@ -107,38 +116,70 @@ fn parse(list: &str) -> Result<Vec<(String, PathBuf)>, Problem> {
     Ok(out)
 }
 
-/// Check every file the packaged engine's [`MANIFEST`] lists against its checksum, and return the path of the viewer.
+/// A file of the packaged engine whose checksum matched.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Checked {
+    /// Where it is.
+    pub path: PathBuf,
+    /// Its SHA-256 as the list gives it.
+    pub sha256: String,
+}
+
+/// What [`verify`] found: the viewer and, when the list names one, the capabilities file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Verified {
+    /// The engine's program.
+    pub viewer: Checked,
+    /// The file that says which extender commands the engine implements, when the list names it.
+    pub capabilities: Option<Checked>,
+}
+
+/// Check every file the packaged engine's [`MANIFEST`] lists against its checksum. A listed file must be a regular
+/// file (a link is refused), and the list must name exactly one viewer.
 ///
 /// # Errors
-/// [`ErrorKind::Unverified`] when the list is unreadable or malformed, a listed file is missing or differs, or the
-/// list names no viewer.
-pub fn verify(dir: &Path) -> Result<PathBuf, Problem> {
+/// [`ErrorKind::Unverified`] when the list is unreadable or malformed, a listed file is missing, a link or differs, or
+/// the list names no viewer or more than one.
+pub fn verify(dir: &Path) -> Result<Verified, Problem> {
     let list = std::fs::read_to_string(dir.join(MANIFEST))
         .map_err(|e| unverified(format!("the checksum list cannot be read: {e}")))?;
-    let mut viewer = None;
+    let (mut viewer, mut capabilities) = (None, None);
     for (hash, relative) in parse(&list)? {
         let file = dir.join(&relative);
-        let bytes = std::fs::read(&file)
-            .map_err(|_| unverified(format!("{} is missing", relative.display())))?;
-        if sha256_hex(&bytes) != hash {
-            return Err(unverified(format!(
-                "the checksum of {} does not match",
-                relative.display()
-            )));
+        let plain = std::fs::symlink_metadata(&file).is_ok_and(|m| m.file_type().is_file());
+        if !plain {
+            return Err(unverified("a listed file is missing or is a link"));
         }
-        if relative
+        let bytes = std::fs::read(&file).map_err(|_| unverified("a listed file cannot be read"))?;
+        if sha256_hex(&bytes) != hash {
+            return Err(unverified("the checksum of a file does not match"));
+        }
+        let name = relative
             .file_name()
-            .is_some_and(|n| n.to_string_lossy() == viewer_name())
-        {
-            viewer = Some(file);
+            .map(|n| n.to_string_lossy().into_owned());
+        let checked = Checked {
+            path: file,
+            sha256: hash,
+        };
+        if name.as_deref() == Some(viewer_name().as_str()) {
+            if viewer.replace(checked).is_some() {
+                return Err(unverified("it lists more than one program"));
+            }
+        } else if name.as_deref() == Some(CAPABILITIES) && relative.components().count() == 1 {
+            capabilities = Some(checked);
         }
     }
-    viewer.ok_or_else(|| unverified("it holds no nv-viewer"))
+    let viewer = viewer.ok_or_else(|| unverified("it holds no program"))?;
+    Ok(Verified {
+        viewer,
+        capabilities,
+    })
 }
 
 const STAGING: &str = ".nv-rs-staging";
 const FINAL: &str = "nv-rs";
 const CAPABILITIES: &str = "capabilities.json";
+const RECORD: &str = "install.json";
 /// How long the installation check may take (it reads the whole Data folder) and how much of its output is kept.
 const CHECK_TIMEOUT: Duration = Duration::from_mins(30);
 const CHECK_OUTPUT_CAP: usize = 16 * 1024 * 1024;
@@ -147,20 +188,45 @@ fn io(path: &Path, e: &std::io::Error) -> Problem {
     problem(ErrorKind::Failed, format!("{}: {e}", path.display()))
 }
 
+fn stopped() -> Problem {
+    problem(ErrorKind::Failed, "The install was stopped.")
+}
+
+/// Whether anything, a link included, stands at `path`.
+fn present(path: &Path) -> bool {
+    std::fs::symlink_metadata(path).is_ok()
+}
+
+fn is_link(path: &Path) -> bool {
+    std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink())
+}
+
 /// Put the packaged engine at `packaged` into the Instance at `instance`, as the engine install library does for a
-/// build it fetched: verify, stage, move into place, run the installation check, write the record. On failure the
-/// Instance is as it was.
+/// build it fetched: verify, stage (hashing the copy, not the original), move into place, run the installation check,
+/// write the record. On failure the Instance is as it was; a leftover `nv-rs` folder without a record (a removal that
+/// failed, as can happen on Windows) is an unfinished install and is cleared before the next try. `stop` is asked
+/// before each stage; the check itself cannot be stopped once it runs.
 ///
 /// # Errors
-/// [`ErrorKind::Refused`] when the folder is no Instance or holds an engine already; [`ErrorKind::Unverified`] when the
-/// engine does not match its checksums; [`ErrorKind::Failed`] when copying or the check failed.
-pub fn install(instance: &Path, packaged: &Path) -> Result<(), Problem> {
+/// [`ErrorKind::Refused`] when the folder is no Instance, holds an engine already, or a path in it is a link;
+/// [`ErrorKind::Unverified`] when the engine does not match its checksums; [`ErrorKind::Failed`] when copying or the
+/// check failed, or `stop` said so.
+pub fn install(instance: &Path, packaged: &Path, stop: &dyn Fn() -> bool) -> Result<(), Problem> {
     let found = NvmodInstance::open(instance)
         .map_err(|e| problem(ErrorKind::Refused, format!("not an Instance: {e}")))?;
     let root = std::fs::canonicalize(&found.root)
         .map(|p| nvmod_core::plain_path(&p))
         .map_err(|e| io(&found.root, &e))?;
-    if root.join(FINAL).exists() {
+    let (target, staging) = (root.join(FINAL), root.join(STAGING));
+    for path in [&target, &staging] {
+        if is_link(path) {
+            return Err(problem(
+                ErrorKind::Refused,
+                "A link stands where the engine goes; it was left alone.",
+            ));
+        }
+    }
+    if target.join(RECORD).is_file() || (present(&target) && !target.is_dir()) {
         return Err(problem(
             ErrorKind::Refused,
             format!(
@@ -169,25 +235,48 @@ pub fn install(instance: &Path, packaged: &Path) -> Result<(), Problem> {
             ),
         ));
     }
-    let viewer = verify(packaged)?;
-    let staging = root.join(STAGING);
+    if present(&target) {
+        std::fs::remove_dir_all(&target).map_err(|e| io(&target, &e))?;
+    }
+    let verified = verify(packaged)?;
     let _ = std::fs::remove_dir_all(&staging);
-    let result = stage(packaged, &viewer, &staging).and_then(|()| commit(&found, &root, &staging));
+    let result = if stop() {
+        Err(stopped())
+    } else {
+        stage(&verified, &staging, stop).and_then(|()| {
+            if stop() {
+                Err(stopped())
+            } else {
+                commit(&found, &root, &staging)
+            }
+        })
+    };
     if result.is_err() {
         let _ = std::fs::remove_dir_all(&staging);
     }
     result
 }
 
-fn stage(packaged: &Path, viewer: &Path, staging: &Path) -> Result<(), Problem> {
+/// Copy `from` to `to` and check the copy, not the original, against `sha256`: what was checked is what is installed.
+fn copy_checked(from: &Checked, to: &Path) -> Result<(), Problem> {
+    std::fs::copy(&from.path, to).map_err(|e| io(to, &e))?;
+    let bytes = std::fs::read(to).map_err(|e| io(to, &e))?;
+    if sha256_hex(&bytes) == from.sha256 {
+        Ok(())
+    } else {
+        Err(unverified("a file changed while it was copied"))
+    }
+}
+
+fn stage(verified: &Verified, staging: &Path, stop: &dyn Fn() -> bool) -> Result<(), Problem> {
     let bin = staging.join("bin");
     std::fs::create_dir_all(&bin).map_err(|e| io(&bin, &e))?;
-    let to = bin.join(viewer_name());
-    std::fs::copy(viewer, &to).map_err(|e| io(&to, &e))?;
-    let capabilities = packaged.join(CAPABILITIES);
-    if capabilities.is_file() {
-        let to = staging.join(CAPABILITIES);
-        std::fs::copy(&capabilities, &to).map_err(|e| io(&to, &e))?;
+    copy_checked(&verified.viewer, &bin.join(viewer_name()))?;
+    if stop() {
+        return Err(stopped());
+    }
+    if let Some(capabilities) = &verified.capabilities {
+        copy_checked(capabilities, &staging.join(CAPABILITIES))?;
     }
     Ok(())
 }
@@ -202,6 +291,7 @@ fn commit(found: &NvmodInstance, root: &Path, staging: &Path) -> Result<(), Prob
         let arguments = vec![data.display().to_string(), "--check".to_owned()];
         check(&binary, &arguments)?;
         let bytes = std::fs::read(&binary).map_err(|e| io(&binary, &e))?;
+        // The record keeps the shape nvmod's verify reads, which names the program.
         let record = serde_json::json!({
             "method": "packaged",
             "sha256": sha256_hex(&bytes),
@@ -209,14 +299,16 @@ fn commit(found: &NvmodInstance, root: &Path, staging: &Path) -> Result<(), Prob
         });
         let text = serde_json::to_string_pretty(&record)
             .map_err(|e| problem(ErrorKind::Failed, e.to_string()))?;
-        let file = target.join("install.json");
+        let file = target.join(RECORD);
         std::fs::write(&file, text + "\n").map_err(|e| io(&file, &e))
     };
     finish().inspect_err(|_| {
+        // Where this fails (Windows, with the program still open), the folder has no record and the next try clears it.
         let _ = std::fs::remove_dir_all(&target);
     })
 }
 
+/// Run the installation check. The first line of a failure says what happened; what the check printed follows.
 fn check(binary: &Path, arguments: &[String]) -> Result<(), Problem> {
     let runner = Runner {
         timeout: CHECK_TIMEOUT,
@@ -226,10 +318,10 @@ fn check(binary: &Path, arguments: &[String]) -> Result<(), Problem> {
     };
     let out = runner
         .run_any(&Call::new("nv-viewer", binary, arguments))
-        .map_err(|e| {
+        .map_err(|_| {
             problem(
                 ErrorKind::Failed,
-                format!("The engine's check could not run: {e}"),
+                "The engine's check could not run: it did not start, or it ran for too long.",
             )
         })?;
     if out.exit_code == 0 {
@@ -238,7 +330,7 @@ fn check(binary: &Path, arguments: &[String]) -> Result<(), Problem> {
     Err(problem(
         ErrorKind::Failed,
         format!(
-            "The engine's check did not pass (exit status {}):\n{}{}",
+            "The engine's check did not pass (exit status {}).\n{}{}",
             out.exit_code,
             String::from_utf8_lossy(&out.stdout).trim_end(),
             out.stderr.trim_end()
@@ -314,7 +406,7 @@ pub fn job(
         .or_else(|| std::env::current_exe().ok().and_then(|exe| locate(&exe)))
         .filter(|dir| dir.join(MANIFEST).is_file())
         .ok_or_else(|| job_error(missing()))?;
-    install(instance, &dir).map_err(job_error)?;
+    install(instance, &dir, &|| cancel.is_cancelled()).map_err(job_error)?;
     let binary = instance.join(FINAL).join("bin").join(viewer_name());
     Ok(nvmod_api::Outcome::Done(Installed {
         method: "packaged",
@@ -329,6 +421,13 @@ mod tests {
         FAKE_CHECK_REFUSED, TempDir, fake_failing_release_binary, fake_release_binary,
         nv_viewer_name, write_executable, write_file,
     };
+
+    /// One build of the fake engine program for the whole test run: on Windows each call compiles a new stand-in, whose
+    /// bytes differ from the last, so a test that packages one and compares with another would never match.
+    fn viewer_bytes() -> Vec<u8> {
+        static BYTES: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
+        BYTES.get_or_init(fake_release_binary).clone()
+    }
 
     fn shipped(root: &Path) {
         write_file(root, "components/nv-rs/FILES.sha256", b"");
@@ -359,10 +458,10 @@ mod tests {
         format!("bin/{}", nv_viewer_name())
     }
 
-    fn problem(r: Result<PathBuf, Problem>) -> Problem {
+    fn problem(r: Result<Verified, Problem>) -> Problem {
         match r {
             Err(p) => p,
-            Ok(v) => panic!("expected a problem, got {}", v.display()),
+            Ok(v) => panic!("expected a problem, got {v:?}"),
         }
     }
 
@@ -407,18 +506,18 @@ mod tests {
         let t = TempDir::new("packaged-verify-ok");
         let dir = engine(
             t.path(),
-            &[
-                (&viewer(), fake_release_binary()),
-                ("README", b"hi".to_vec()),
-            ],
+            &[(&viewer(), viewer_bytes()), ("README", b"hi".to_vec())],
         );
-        assert_eq!(verify(&dir).expect("verified"), dir.join(viewer()));
+        assert_eq!(
+            verify(&dir).expect("verified").viewer.path,
+            dir.join(viewer())
+        );
     }
 
     #[test]
     fn a_changed_file_is_unverified() {
         let t = TempDir::new("packaged-verify-changed");
-        let dir = engine(t.path(), &[(&viewer(), fake_release_binary())]);
+        let dir = engine(t.path(), &[(&viewer(), viewer_bytes())]);
         write_file(&dir, &viewer(), b"tampered");
         let p = problem(verify(&dir));
         assert_eq!(p.kind, ErrorKind::Unverified);
@@ -428,7 +527,7 @@ mod tests {
     #[test]
     fn a_missing_file_is_unverified() {
         let t = TempDir::new("packaged-verify-missing");
-        let dir = engine(t.path(), &[(&viewer(), fake_release_binary())]);
+        let dir = engine(t.path(), &[(&viewer(), viewer_bytes())]);
         std::fs::remove_file(dir.join(viewer())).expect("remove");
         assert_eq!(problem(verify(&dir)).kind, ErrorKind::Unverified);
     }
@@ -439,7 +538,7 @@ mod tests {
         let dir = engine(t.path(), &[("README", b"hi".to_vec())]);
         let p = problem(verify(&dir));
         assert_eq!(p.kind, ErrorKind::Unverified);
-        assert!(p.summary.contains("nv-viewer"), "{}", p.summary);
+        assert!(!p.summary.contains("nv-viewer"), "{}", p.summary);
     }
 
     #[test]
@@ -462,8 +561,8 @@ mod tests {
         let t = TempDir::new("packaged-verify-star");
         let dir = t.path().join("components/nv-rs");
         let name = viewer();
-        write_file(&dir, &name, &fake_release_binary());
-        let line = format!("{} *{name}\n", sha256_hex(&fake_release_binary()));
+        write_file(&dir, &name, &viewer_bytes());
+        let line = format!("{} *{name}\n", sha256_hex(&viewer_bytes()));
         write_file(&dir, MANIFEST, line.as_bytes());
         assert!(verify(&dir).is_ok());
     }
@@ -490,16 +589,16 @@ mod tests {
         let dir = engine(
             t.path(),
             &[
-                (&viewer(), fake_release_binary()),
+                (&viewer(), viewer_bytes()),
                 ("capabilities.json", b"{}".to_vec()),
             ],
         );
         let root = instance(&t);
-        install(&root, &dir).expect("installed");
+        install(&root, &dir, &|| false).expect("installed");
         let target = root.join("nv-rs");
         assert_eq!(
             std::fs::read(target.join("bin").join(nv_viewer_name())).expect("viewer"),
-            fake_release_binary()
+            viewer_bytes()
         );
         assert!(target.join("capabilities.json").is_file());
         let record = std::fs::read_to_string(target.join("install.json")).expect("record");
@@ -512,7 +611,7 @@ mod tests {
         let t = TempDir::new("packaged-install-check");
         let dir = engine(t.path(), &[(&viewer(), fake_failing_release_binary())]);
         let root = instance(&t);
-        let p = install(&root, &dir).expect_err("the check fails");
+        let p = install(&root, &dir, &|| false).expect_err("the check fails");
         assert_eq!(p.kind, ErrorKind::Failed);
         assert!(p.summary.contains(FAKE_CHECK_REFUSED), "{}", p.summary);
         assert!(!root.join("nv-rs").exists());
@@ -522,10 +621,10 @@ mod tests {
     #[test]
     fn an_unverified_engine_installs_nothing() {
         let t = TempDir::new("packaged-install-unverified");
-        let dir = engine(t.path(), &[(&viewer(), fake_release_binary())]);
+        let dir = engine(t.path(), &[(&viewer(), viewer_bytes())]);
         write_file(&dir, &viewer(), b"tampered");
         let root = instance(&t);
-        let p = install(&root, &dir).expect_err("unverified");
+        let p = install(&root, &dir, &|| false).expect_err("unverified");
         assert_eq!(p.kind, ErrorKind::Unverified);
         assert!(!root.join("nv-rs").exists());
         assert!(!root.join(".nv-rs-staging").exists());
@@ -534,10 +633,10 @@ mod tests {
     #[test]
     fn an_engine_already_in_the_instance_is_refused_and_left_alone() {
         let t = TempDir::new("packaged-install-twice");
-        let dir = engine(t.path(), &[(&viewer(), fake_release_binary())]);
+        let dir = engine(t.path(), &[(&viewer(), viewer_bytes())]);
         let root = instance(&t);
-        install(&root, &dir).expect("first");
-        let p = install(&root, &dir).expect_err("second");
+        install(&root, &dir, &|| false).expect("first");
+        let p = install(&root, &dir, &|| false).expect_err("second");
         assert_eq!(p.kind, ErrorKind::Refused);
         assert!(p.summary.contains("already installed"), "{}", p.summary);
         assert!(root.join("nv-rs/bin").join(nv_viewer_name()).is_file());
@@ -570,7 +669,7 @@ mod tests {
     #[test]
     fn the_job_installs_the_packaged_engine_and_never_fetches() {
         let t = TempDir::new("packaged-job");
-        let dir = engine(t.path(), &[(&viewer(), fake_release_binary())]);
+        let dir = engine(t.path(), &[(&viewer(), viewer_bytes())]);
         let root = instance(&t);
         let done = run_job(&root, Some(&dir))
             .expect("job")
@@ -586,7 +685,7 @@ mod tests {
         let root = instance(&t);
         let none = run_job(&root, Some(&t.path().join("nope"))).expect_err("missing");
         assert_eq!(none.kind, nvmod_api::ErrorKind::Refused);
-        let dir = engine(t.path(), &[(&viewer(), fake_release_binary())]);
+        let dir = engine(t.path(), &[(&viewer(), viewer_bytes())]);
         write_file(&dir, &viewer(), b"tampered");
         let bad = run_job(&root, Some(&dir)).expect_err("damaged");
         assert_eq!(bad.kind, nvmod_api::ErrorKind::Corrupt);
@@ -610,5 +709,109 @@ mod tests {
         .expect_err("no toolchain");
         assert_eq!(e.kind, nvmod_api::ErrorKind::Refused);
         assert!(!root.join("nv-rs").exists());
+    }
+
+    #[test]
+    fn another_packages_lib_folder_is_not_searched() {
+        let t = TempDir::new("packaged-locate-other");
+        write_file(t.path(), "usr/bin/raul", b"x");
+        shipped(&t.path().join("usr/lib/other-package"));
+        assert_eq!(locate(&t.path().join("usr/bin/raul")), None);
+        shipped(&t.path().join("usr/lib/Raul's tRusty Toolbox"));
+        assert_eq!(
+            locate(&t.path().join("usr/bin/raul")),
+            Some(
+                t.path()
+                    .join("usr/lib/Raul's tRusty Toolbox/components/nv-rs")
+            )
+        );
+    }
+
+    #[test]
+    fn resources_are_searched_only_for_a_program_in_a_bundle() {
+        let t = TempDir::new("packaged-locate-resources");
+        write_file(t.path(), "bin/raul", b"x");
+        shipped(&t.path().join("Resources"));
+        assert_eq!(locate(&t.path().join("bin/raul")), None);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_listed_file_that_is_a_link_is_unverified() {
+        let t = TempDir::new("packaged-verify-link");
+        let dir = engine(t.path(), &[(&viewer(), viewer_bytes())]);
+        let real = t.path().join("real-viewer");
+        std::fs::rename(dir.join(viewer()), &real).unwrap();
+        std::os::unix::fs::symlink(&real, dir.join(viewer())).unwrap();
+        assert_eq!(problem(verify(&dir)).kind, ErrorKind::Unverified);
+    }
+
+    #[test]
+    fn a_list_with_two_programs_is_unverified() {
+        let t = TempDir::new("packaged-verify-two");
+        let other = format!("other/{}", nv_viewer_name());
+        let dir = engine(
+            t.path(),
+            &[(&viewer(), viewer_bytes()), (&other, viewer_bytes())],
+        );
+        assert_eq!(problem(verify(&dir)).kind, ErrorKind::Unverified);
+    }
+
+    #[test]
+    fn a_capabilities_file_not_on_the_list_is_not_installed() {
+        let t = TempDir::new("packaged-caps");
+        let dir = engine(t.path(), &[(&viewer(), viewer_bytes())]);
+        write_file(&dir, "capabilities.json", b"{}");
+        let root = instance(&t);
+        install(&root, &dir, &|| false).expect("installed");
+        assert!(!root.join("nv-rs/capabilities.json").exists());
+    }
+
+    #[test]
+    fn a_stop_asked_for_installs_nothing() {
+        let t = TempDir::new("packaged-stop");
+        let dir = engine(t.path(), &[(&viewer(), viewer_bytes())]);
+        let root = instance(&t);
+        assert!(install(&root, &dir, &|| true).is_err());
+        assert!(!root.join("nv-rs").exists() && !root.join(".nv-rs-staging").exists());
+    }
+
+    #[test]
+    fn an_unfinished_leftover_without_a_record_is_cleared_and_a_retry_works() {
+        let t = TempDir::new("packaged-leftover");
+        let dir = engine(t.path(), &[(&viewer(), viewer_bytes())]);
+        let root = instance(&t);
+        write_file(&root, "nv-rs/bin/half", b"half");
+        install(&root, &dir, &|| false).expect("retry");
+        assert!(root.join("nv-rs/install.json").is_file());
+        assert!(!root.join("nv-rs/bin/half").exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_link_where_the_engine_goes_is_refused_and_not_followed() {
+        let t = TempDir::new("packaged-link-target");
+        let dir = engine(t.path(), &[(&viewer(), viewer_bytes())]);
+        let root = instance(&t);
+        let elsewhere = t.path().join("elsewhere");
+        write_file(&elsewhere, "precious", b"keep");
+        std::os::unix::fs::symlink(&elsewhere, root.join(".nv-rs-staging")).unwrap();
+        let p = install(&root, &dir, &|| false).expect_err("refused");
+        assert_eq!(p.kind, ErrorKind::Refused);
+        assert!(elsewhere.join("precious").is_file());
+    }
+
+    #[test]
+    fn a_failed_check_reads_as_a_headline_then_what_the_check_printed() {
+        let t = TempDir::new("packaged-headline");
+        let dir = engine(t.path(), &[(&viewer(), fake_failing_release_binary())]);
+        let root = instance(&t);
+        let p = install(&root, &dir, &|| false).expect_err("fails");
+        let (head, rest) = p.summary.split_once('\n').expect("two parts");
+        assert!(
+            head.contains("did not pass") && !head.contains("nv-viewer"),
+            "{head}"
+        );
+        assert!(rest.contains(FAKE_CHECK_REFUSED), "{rest}");
     }
 }

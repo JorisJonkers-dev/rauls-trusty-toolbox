@@ -25,15 +25,9 @@ const OPTIONS: &[&str] = &[
     "catalog",
 ];
 
-/// Options a setup recorded by `nvmod setup` may carry that no longer mean anything: they are read and ignored
-/// (the extraction tool is gone, TTW runs in process with no installer, lock or store).
-const IGNORED: &[&str] = &[
-    "extract-tool",
-    "installer",
-    "lock",
-    "store",
-    // The options that fetched an engine release. The engine ships with raul and is never fetched (#179); a recorded
-    // command line that names them still reads, and they change nothing.
+/// Options that fetched an engine release. They are gone: the engine ships with raul and is never downloaded (#179).
+const FETCH_OPTIONS: &[&str] = &[
+    "release",
     "release-url",
     "asset",
     "repo",
@@ -42,12 +36,20 @@ const IGNORED: &[&str] = &[
     "retry-delay-ms",
 ];
 
+/// The message for an option that does not exist (any more): a plain usage error.
+fn unknown(name: &str) -> String {
+    if FETCH_OPTIONS.contains(&name) {
+        format!("--{name} is gone: the engine comes with raul and is never downloaded")
+    } else {
+        format!("unknown option --{name}")
+    }
+}
+
 /// The switches.
 const FLAGS: &[&str] = &[
     "json",
     "dry-run",
     "skip-nv-rs",
-    "release",
     "sort",
     "copy",
     "keep-partial",
@@ -139,6 +141,9 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
             Some((n, v)) => (n, Some(v.to_owned())),
             None => (name, None),
         };
+        if FETCH_OPTIONS.contains(&name) {
+            return Err(unknown(name));
+        }
         if FLAGS.contains(&name) && inline.is_none() {
             match name {
                 "json" => parsed.json = true,
@@ -148,7 +153,6 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
                 "restart" => parsed.restart = true,
                 "yes" => parsed.yes = true,
                 "skip-nv-rs" => request.engine = false,
-                // `release` is read and ignored (the wildcard below): the engine is never fetched.
                 "sort" => request.sort = true,
                 "copy" => request.copy = true,
                 _ => {}
@@ -158,8 +162,8 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
             }
             continue;
         }
-        if !OPTIONS.contains(&name) && !IGNORED.contains(&name) {
-            return Err(format!("unknown option --{name}"));
+        if !OPTIONS.contains(&name) {
+            return Err(unknown(name));
         }
         let value = match inline {
             Some(v) => v,
@@ -208,6 +212,11 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
             // An option an old setup recorded: read, and nothing is done with it.
             _ => {}
         }
+    }
+    if request.engine_options.cargo.is_some() && request.engine_options.source.is_none() {
+        return Err(
+            "--cargo only goes with --source (it builds the engine from source)".to_owned(),
+        );
     }
     if let Some(fallout3) = fallout3 {
         request.ttw = Some(Ttw {
@@ -261,8 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn the_options_that_fetched_an_engine_release_are_read_and_change_nothing() {
-        let plain = parse(&words("--instance /i")).unwrap().request;
+    fn the_options_that_fetched_an_engine_release_are_a_usage_error_with_a_reason() {
         for option in [
             "--release",
             "--release-url x",
@@ -271,13 +279,21 @@ mod tests {
             "--gh x",
             "--curl x",
             "--retry-delay-ms 1",
+            "--release-url=x",
         ] {
-            let r = parse(&words(&format!("--instance /i {option}")))
-                .unwrap_or_else(|e| panic!("{option}: {e}"))
-                .request;
-            assert_eq!(r.engine_options, plain.engine_options, "{option}");
-            assert!(r.engine, "{option}");
+            let e = parse(&words(&format!("--instance /i {option}"))).unwrap_err();
+            assert!(
+                e.contains("is gone") && e.contains("never downloaded"),
+                "{option}: {e}"
+            );
         }
+    }
+
+    #[test]
+    fn a_cargo_without_a_source_is_refused_instead_of_doing_nothing() {
+        let e = parse(&words("--instance /i --cargo /c")).unwrap_err();
+        assert!(e.contains("--cargo") && e.contains("--source"), "{e}");
+        assert!(parse(&words("--instance /i --cargo /c --source /s")).is_ok());
     }
 
     #[test]
@@ -294,12 +310,16 @@ mod tests {
     }
 
     #[test]
-    fn options_an_old_setup_recorded_are_read_and_ignored() {
-        let p = parse(&words(
-            "--instance /i --extract-tool /x --installer /y --lock /l --store /s",
-        ))
-        .unwrap();
-        assert_eq!(p.request.instance, abs("/i"));
+    fn options_that_do_nothing_are_not_accepted() {
+        for option in [
+            "--extract-tool /x",
+            "--installer /y",
+            "--lock /l",
+            "--store /s",
+        ] {
+            let e = parse(&words(&format!("--instance /i {option}"))).unwrap_err();
+            assert!(e.contains("unknown option"), "{option}: {e}");
+        }
     }
 
     #[test]

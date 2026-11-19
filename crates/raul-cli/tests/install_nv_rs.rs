@@ -52,6 +52,10 @@ fn no_instance_is_a_usage_error() {
 
 #[test]
 fn a_copy_without_an_engine_is_refused_with_plain_words_and_nothing_is_installed() {
+    // A development build has no engine next to it; a build that has one is not this test's subject.
+    if raul_core::setup::packaged::locate(&std::env::current_exe().unwrap()).is_some() {
+        return;
+    }
     let t = TempDir::new("install-nv-rs-missing");
     let root = instance(&t);
     let (code, out, err) = go(&["install-nv-rs", "--instance", root.to_str().unwrap()]);
@@ -62,30 +66,56 @@ fn a_copy_without_an_engine_is_refused_with_plain_words_and_nothing_is_installed
 }
 
 #[test]
-fn the_options_that_fetched_a_release_are_read_and_change_nothing() {
+fn the_options_that_fetched_a_release_are_a_usage_error_with_a_reason() {
     let t = TempDir::new("install-nv-rs-old-options");
     let root = instance(&t);
-    let (code, _, err) = go(&[
-        "install-nv-rs",
-        "--instance",
-        root.to_str().unwrap(),
-        "--release",
-        "--release-url",
-        "http://127.0.0.1:9/none",
-        "--retry-delay-ms",
-        "0",
-        "--gh",
-        "gh",
-        "--curl",
-        "curl",
-        "--asset",
-        "a",
-        "--repo",
-        "r",
-    ]);
-    assert_eq!(code, raul_cli::REFUSED, "{err}");
-    assert!(err.contains("install raul again"), "{err}");
-    assert!(!root.join("nv-rs").exists());
+    let root = root.to_str().unwrap();
+    for option in [
+        &["--release"][..],
+        &["--release-url", "http://127.0.0.1:9/none"],
+        &["--retry-delay-ms", "0"],
+        &["--gh", "gh"],
+        &["--curl", "curl"],
+        &["--asset", "a"],
+        &["--repo", "r"],
+    ] {
+        let mut args = vec!["install-nv-rs", "--instance", root];
+        args.extend(option);
+        let (code, _, err) = go(&args);
+        assert_eq!(code, raul_cli::USAGE, "{option:?}: {err}");
+        assert!(
+            err.contains("is gone") && err.contains("never downloaded"),
+            "{err}"
+        );
+    }
+    assert!(!std::path::Path::new(root).join("nv-rs").exists());
+}
+
+#[test]
+fn a_cargo_without_a_source_is_a_usage_error() {
+    let (code, _, err) = go(&["install-nv-rs", "--instance", "/i", "--cargo", "/c"]);
+    assert_eq!(code, raul_cli::USAGE, "{err}");
+    assert!(err.contains("--source"), "{err}");
+}
+
+#[test]
+fn a_failed_check_ends_with_one_plain_headline_line() {
+    // Detail lines come first and the last line is the headline, which is what the wizard shows.
+    let e = nvmod_api::JobError::new(
+        nvmod_api::ErrorKind::Failed,
+        "x",
+        "The engine's check did not pass (exit status 1).\nfirst\nsecond",
+    );
+    let mut err = Vec::new();
+    let code = raul_cli::print_install_failure(&e, &mut err);
+    assert_eq!(code, raul_cli::FAILED);
+    let text = String::from_utf8(err).unwrap();
+    let last = text.lines().last().unwrap();
+    assert!(
+        last.starts_with("raul install-nv-rs: failed and was rolled back: The engine's check"),
+        "{text}"
+    );
+    assert!(text.starts_with("first\nsecond\n"), "{text}");
 }
 
 #[test]

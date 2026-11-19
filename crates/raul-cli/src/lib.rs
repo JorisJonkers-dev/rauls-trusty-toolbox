@@ -67,10 +67,9 @@ usage:
                               the Toolbox version
   raul detect [--folder <dir>] [--json]
                               find Fallout: New Vegas and Fallout 3 copies (Steam, GOG, Epic), or check one folder
-  raul bench [--quick] [--out <dir>] [--lodwright <bin>]
+  raul bench [--quick] [--out <dir>]
                               run the benchmark suite on synthetic fixtures; writes bench.json and bench.md.
-                              --lodwright is accepted but not run: lodwright is linked into raul, and the LOD
-                              case stays skipped until a synthetic plan fixture exists
+                              the LOD case stays skipped until a synthetic plan fixture exists
   raul bench compare <base.json> <head.json> [--threshold <percent>]
                               compare two reports; slower cases are warnings, never failures
   raul update check [--json]  look for a newer Toolbox release on GitHub (nothing is downloaded or sent)
@@ -79,7 +78,7 @@ usage:
                               the game folders, the TTW package and the storage folder (game.newvegas,
                               game.fallout3, ttw.package, storage.root; instance is derived)
   raul setup --base <dir> --instance <dir> --masterlist <file> [--import-mo2 <dir>] [--mod <archive>]...
-             [--fallout3 <dir> [--package <file>]] [--profile <name>] [--source <dir> | --release] [--skip-nv-rs]
+             [--fallout3 <dir> [--package <file>]] [--profile <name>] [--source <dir> [--cargo <path>]] [--skip-nv-rs]
              [--sort] [--copy] [--keep-partial] [--dry-run] [--json]
   raul setup --resume --instance <dir> [--json]
   raul setup --restart --instance <dir> --yes [--json]
@@ -99,7 +98,7 @@ usage:
                               as the Mod `LOD (lodwright)`; --json streams raul-events lines. --timeout-secs is
                               checked between terrain blocks, worlds and steps, so a step already running finishes
                               first
-  raul install-nv-rs --instance <dir> [--source <dir>] [--cargo <path>]
+  raul install-nv-rs --instance <dir> [--source <dir> [--cargo <path>]]
                               put the engine that ships with raul in an Instance and check it; nothing is
                               downloaded. --source builds an nv-rs workspace instead (for developers)
   raul <nvmod command> ...    every nvmod command (install, sort, run, profile, doctor, ...);
@@ -127,6 +126,12 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         }
         Some(_) => nvmod_cli::run_logged(args, out, err),
     }
+}
+
+/// Prints a failed engine install as `raul install-nv-rs` does (exposed for its test).
+#[doc(hidden)]
+pub fn print_install_failure(e: &nvmod_api::JobError, err: &mut dyn Write) -> u8 {
+    install_nv_rs::failure(e, err)
 }
 
 pub(crate) fn write_or_fail(out: &mut dyn Write, err: &mut dyn Write, text: &str) -> u8 {

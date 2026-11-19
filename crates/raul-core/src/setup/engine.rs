@@ -84,11 +84,12 @@ pub(super) fn run(
         if cancel.is_cancelled() {
             return Ok(false);
         }
-        return match packaged::install(&req.instance, &dir) {
+        return match packaged::install(&req.instance, &dir, &|| cancel.is_cancelled()) {
             Ok(()) => {
                 detail(progress, CHECKED);
                 Ok(true)
             }
+            Err(_) if cancel.is_cancelled() => Ok(false),
             Err(problem) => Err(map_problem(step, problem)),
         };
     };
