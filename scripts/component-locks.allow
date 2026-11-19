@@ -1,0 +1,23 @@
+# Differences between the GUI lock and nv-rs's lock for the crates the engine's facade and play entry reach, accepted
+# by hand (scripts/check-component-locks). One per line: name, the GUI versions, the nv-rs versions. Each lock resolves
+# on its own, so some difference is normal; the engine CI job builds and tests against the GUI lock's versions.
+# Remove a line when the difference goes away (the check fails on a line that no longer applies).
+#
+# A later patch or minor release of the same line, picked by the GUI's own dependencies or a later resolution:
+itoa 1.0.19 1.0.18
+js-sys 0.3.107 0.3.106
+tokio 1.54.1 1.53.1
+unicode-ident 1.0.27 1.0.26
+wasm-bindgen 0.2.130 0.2.129
+wasm-bindgen-futures 0.4.80 0.4.79
+wasm-bindgen-macro 0.2.130 0.2.129
+wasm-bindgen-macro-support 0.2.130 0.2.129
+wasm-bindgen-shared 0.2.130 0.2.129
+web-sys 0.3.107 0.3.106
+#
+# Another release line, each lock keeping the one its own resolution chose (cc and shlex are the C compiler driver, used
+# while building only):
+cc 1.2.62 1.11.1
+ordered-float 5.5.1 4.6.0
+shlex 1.3.0 2.0.1
+unicode-width 0.2.3 0.1.14
