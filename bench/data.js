@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795047581778,
+  "lastUpdate": 1795048312906,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5046,6 +5046,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 11.250403,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0777c714079ae9367171d132acd1ceb243ccb6d7",
+          "message": "feat(gui): run init, install-nv-rs, install and import-mo2 as direct jobs (#305)\n\n* feat(gui): run init, install-nv-rs, install and import-mo2 as direct jobs\n\n* fix(gui): take the automatic snapshot around an install and a Mods change, and keep the engine install tests offline\n\n* fix(gui): refuse init and install-nv-rs requests the command line would call a usage error",
+          "timestamp": "2026-11-19T01:30:09+01:00",
+          "tree_id": "16447e3c2bee71636543c11d91fb3d3c0ff59d23",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/0777c714079ae9367171d132acd1ceb243ccb6d7"
+        },
+        "date": 1795048312048,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.545105,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.910728,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 32.91751,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.297529,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 11.171930999999999,
             "unit": "ms"
           }
         ]
