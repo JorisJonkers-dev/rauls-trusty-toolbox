@@ -720,6 +720,42 @@ fn a_generation_inside_a_git_folder_is_refused_before_anything_starts() {
     assert_eq!(f.state(), before);
 }
 
+/// One run per Profile at a time (#343): a second generate while one runs is refused and changes nothing, and a
+/// settings edit made while it runs does not change the running request.
+#[test]
+fn a_second_generate_while_one_runs_is_refused_and_an_edit_waits_for_the_next_run() {
+    let f = Fixture::new("raul-lodgen-one-run");
+    let inst = f.instance();
+    let plan = |f: &Fixture| -> Value {
+        let out = f.raul(&["lod", "plan", "--json", "--instance", s(&inst)]);
+        serde_json::from_slice(&out.stdout).unwrap()
+    };
+    let before = lod::digest(&plan(&f)).unwrap();
+    let mut second = None;
+    let outcome = f.in_process(&CancelToken::new(), &mut |e| {
+        if second.is_none() && matches!(e, Event::Progress { .. } | Event::Phase { .. }) {
+            // While the run is going: edit the settings and start a second run of the same Profile.
+            f.settings("[output]\nwater = false\n");
+            second = Some(f.generate(&[]));
+        }
+    });
+    assert_eq!(outcome.exit_code, 0, "{:?}", outcome.result);
+    let (code, result, finished) = second.expect("the run reported progress");
+    assert_eq!(code, Some(2), "{result}");
+    assert_eq!(finished["code"], "run_in_progress", "{finished}");
+    assert!(
+        result["tool"].is_null(),
+        "the second run started nothing: {result}"
+    );
+    // The run built the request it started with; the edit makes the LOD out of date for the next run.
+    let manifest: Value =
+        serde_json::from_slice(&std::fs::read(f.out_dir().join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(manifest["request_digest"], before.as_str());
+    assert_ne!(lod::digest(&plan(&f)).unwrap(), before);
+    // Once it has finished, the next run goes ahead.
+    assert_eq!(f.generate(&[]).0, Some(0));
+}
+
 #[test]
 fn a_dry_run_or_a_bad_input_starts_nothing() {
     let f = Fixture::new("raul-lodgen-dry");

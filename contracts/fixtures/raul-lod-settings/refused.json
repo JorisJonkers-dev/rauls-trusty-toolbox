@@ -334,6 +334,7 @@
   ],
   "profile": "Default",
   "restore_point": "<instance>/profiles/Default/raul-lod.toml.previous",
+  "run_in_progress": false,
   "schema_version": 1,
   "warnings": []
 }

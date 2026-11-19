@@ -83,6 +83,11 @@
           "const": "add_mod_failed",
           "description": "lodwright succeeded but putting its output into the Instance failed and was rolled back (exit code 4).",
           "type": "string"
+        },
+        {
+          "const": "run_in_progress",
+          "description": "Another run of the same Profile is going; this one did not start (exit code 2).",
+          "type": "string"
         }
       ]
     },

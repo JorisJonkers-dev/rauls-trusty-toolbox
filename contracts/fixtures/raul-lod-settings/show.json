@@ -328,6 +328,7 @@
   ],
   "profile": "Default",
   "restore_point": null,
+  "run_in_progress": false,
   "schema_version": 1,
   "warnings": []
 }
