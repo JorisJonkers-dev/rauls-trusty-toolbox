@@ -290,6 +290,9 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
         "verify" => Some(verify_request(rest).map_or_else(DirectJob::usage, |r| verify(&r))),
         "plugins-list" => Some(plugins_list(&plugins_list_request(rest))),
+        "sort-preview" | "sort-apply" => {
+            Some(sort_request(rest).map_or_else(DirectJob::usage, |(r, source)| sort(&r, &source)))
+        }
         _ => None,
     }
 }
@@ -427,6 +430,184 @@ fn plugins_list_request(rest: &[String]) -> nvmod_api::plugins::ListRequest {
 pub fn plugins_list(request: &nvmod_api::plugins::ListRequest) -> DirectJob {
     let request = request.clone();
     DirectJob::reading(move |progress, cancel| nvmod_api::plugins::list(&request, progress, cancel))
+}
+
+/// Where the masterlist of a sort comes from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MasterlistSource {
+    /// The file the request names.
+    File,
+    /// The masterlist pinned in the lock file, fetched (checksum verified) into the tool store when it is not
+    /// there yet, as `raul sort --fetch-masterlist` does.
+    Pinned {
+        /// The lock file, `None` for the built-in one.
+        lock: Option<PathBuf>,
+        /// The tool store, `None` for the default one.
+        store: Option<PathBuf>,
+    },
+}
+
+/// The request of `raul sort` from the words after it, and where its masterlist comes from; a request the command
+/// line would not take is its usage message.
+fn sort_request(
+    rest: &[String],
+) -> Result<(nvmod_api::loadorder::SortRequest, MasterlistSource), String> {
+    let instance = value_of(rest, "--instance");
+    let masterlist = option_of(rest, "--masterlist");
+    let fetch = has_flag(rest, "--fetch-masterlist");
+    if instance.is_empty() || masterlist.is_some() == fetch {
+        return Err(
+            "sort: give --instance and either --masterlist <file> or --fetch-masterlist".to_owned(),
+        );
+    }
+    let request = nvmod_api::loadorder::SortRequest {
+        instance: PathBuf::from(instance),
+        profile: option_of(rest, "--profile"),
+        masterlist: masterlist.map_or_default(PathBuf::from),
+        apply: has_flag(rest, "--apply"),
+    };
+    let source = if fetch {
+        MasterlistSource::Pinned {
+            lock: option_of(rest, "--lock").map(PathBuf::from),
+            store: option_of(rest, "--store").map(PathBuf::from),
+        }
+    } else {
+        MasterlistSource::File
+    };
+    Ok((request, source))
+}
+
+/// The tool of `tools.lock.toml` that pins the masterlist.
+const MASTERLIST_TOOL: &str = "loot-masterlist-falloutnv";
+
+/// The pinned masterlist, fetched into the tool store when it is not there yet. Fetching is not a job of nvmod's
+/// API (its sort takes the file, "the caller fetches and verifies it"), so it is done here with the same pieces the
+/// command line uses.
+fn fetch_masterlist(
+    instance: &Path,
+    lock: Option<&Path>,
+    store: Option<&Path>,
+) -> Result<PathBuf, JobError> {
+    use nvmod_tools::{Acquire, AcquireError, Curl, Lock, Store, Trust, builtin_lock};
+    const WHAT: &str = "loadorder.sort.fetch";
+    let refused = |why: String| JobError::new(ErrorKind::Refused, WHAT, why);
+    let lock = match lock {
+        None => builtin_lock(),
+        Some(path) => {
+            let text = std::fs::read_to_string(path)
+                .map_err(|e| refused(format!("{}: {e}", path.display())))?;
+            Lock::parse(&text).map_err(refused)?
+        }
+    };
+    let entry = lock.tool(MASTERLIST_TOOL).ok_or_else(|| {
+        refused(format!(
+            "the lock file pins no tool called `{MASTERLIST_TOOL}`, so no masterlist source is pinned: \
+             give a masterlist file instead"
+        ))
+    })?;
+    let store = Store::new(store.map_or_else(Store::default_location, Path::to_path_buf));
+    let curl = Curl {
+        program: "curl".into(),
+    };
+    let trust = Trust::load(instance).map_err(refused)?;
+    let acquire = Acquire {
+        fetcher: &curl,
+        gh: Path::new("gh"),
+        retry_delay: Duration::from_millis(1000),
+        store: &store,
+        trust: Some(&trust),
+    };
+    acquire
+        .fetch(entry)
+        .map(|done| done.path)
+        .map_err(|e| match e {
+            AcquireError::Refused(why) => refused(why),
+            AcquireError::Verification(why) => JobError::new(
+                ErrorKind::Corrupt,
+                WHAT,
+                format!("verification failed: {why}"),
+            ),
+            AcquireError::Failed(why) => JobError::new(
+                ErrorKind::Failed,
+                WHAT,
+                format!("the masterlist could not be fetched: {why}"),
+            ),
+        })
+}
+
+/// The document of `raul sort --json`, from the proposal and what was applied.
+fn sort_document(output: &nvmod_api::loadorder::SortOutput) -> serde_json::Value {
+    let proposal = &output.proposal;
+    let found = &proposal.output;
+    let order: Vec<_> = proposal
+        .proposed
+        .iter()
+        .enumerate()
+        .map(|(index, slot)| {
+            let result = found
+                .plugins
+                .iter()
+                .find(|p| p.name.eq_ignore_ascii_case(&slot.name));
+            serde_json::json!({
+                "position": index + 1,
+                "name": slot.name,
+                "active": slot.active,
+                "installed": result.is_some(),
+                "group": result.map(|r| r.group.clone()),
+                "messages": result.map_or_default(|r| r.messages.iter().map(|m| serde_json::json!({ "kind": m.kind.label(), "text": m.text })).collect::<Vec<_>>()),
+                "generated_messages": result.map_or_default(|r| r.generated_messages.iter().map(|m| serde_json::json!({ "kind": m.kind.label(), "text": m.text })).collect::<Vec<_>>()),
+                "findings": result.map_or_default(|r| r.findings.iter().map(|f| serde_json::json!({
+                    "kind": f.kind.label().replace(' ', ""), "text": f.text, "hard": f.hard,
+                })).collect::<Vec<_>>()),
+            })
+        })
+        .collect();
+    serde_json::json!({
+        "profile": proposal.profile,
+        "reordered": proposal.reordered(),
+        "positions": { "changed": proposal.positions_changed(), "total": proposal.proposed.len() },
+        "order": order,
+        "general_messages": found.general_messages.iter()
+            .chain(&found.generated_general_messages)
+            .map(|m| serde_json::json!({ "kind": m.kind.label(), "text": m.text }))
+            .collect::<Vec<_>>(),
+        "not_installed": found.not_installed,
+        "warnings": found.warnings,
+        "applied": output.applied.as_ref().map(|a| serde_json::json!({
+            "lists_written": a.lists_written,
+            "stamped": a.stamped,
+            "detached": a.detached,
+            "journal": a.journal,
+        })),
+    })
+}
+
+/// `nvmod_api::loadorder::sort`: proposes the Load order of a profile with loot-rs, and with `apply` writes it. Its
+/// document is the one `raul sort --json` prints. A proposal only reads and takes no lock; an apply holds the
+/// Instance lock and takes the automatic snapshot first, as the command line does.
+pub fn sort(request: &nvmod_api::loadorder::SortRequest, source: &MasterlistSource) -> DirectJob {
+    let mut request = request.clone();
+    let source = source.clone();
+    let instance = request.instance.clone();
+    let profile = request.profile.clone();
+    let apply = request.apply;
+    let run = move |progress: &mut dyn Progress, cancel: &CancelToken| {
+        if let MasterlistSource::Pinned { lock, store } = &source {
+            progress.report(&Event::step(
+                "fetch-masterlist",
+                "loadorder.sort.fetching-masterlist",
+            ));
+            request.masterlist =
+                fetch_masterlist(&request.instance, lock.as_deref(), store.as_deref())?;
+        }
+        nvmod_api::loadorder::sort(&request, progress, cancel)
+    };
+    let render = |done: &nvmod_api::loadorder::SortOutput| Ok(Reply::ok(sort_document(done)));
+    if apply {
+        DirectJob::writing_as(instance, "sort", run, render).snapshotting(profile)
+    } else {
+        DirectJob::reading_as(run, render)
+    }
 }
 
 /// The value after `flag` in `rest`, empty when there is none.
