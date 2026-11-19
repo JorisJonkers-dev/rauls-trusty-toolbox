@@ -64,6 +64,10 @@ _Avoid_: Wizard (that word is for the Toolbox's own step-by-step flows)
 A Plugin that another Plugin needs in order to work; it must come earlier in the Load order.
 _Avoid_: Dependency (for plugins)
 
+**LOD Mod**:
+The Mod a LOD generation keeps its output in: one per Profile, named `Generated LOD (<Profile>)` and marked in its `meta.ini` (ADR-0021).
+_Avoid_: LOD folder, LOD output (for the Mod)
+
 **MO2**:
 Mod Organizer 2, the mod manager many players used before; the Toolbox can read its setup and never writes to it.
 _Avoid_: The other manager

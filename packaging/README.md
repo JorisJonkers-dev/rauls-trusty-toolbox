@@ -33,6 +33,11 @@ starts the game from its own binary in a play mode, the packaged folder, `FILES.
 The follow-up to check once a release is built: that each package lays `components/nv-rs/` where the search above
 looks (the release smoke test fails when `FILES.sha256` is missing from a package, not when it is in an unexpected place).
 
+The portable archives (`.tar.gz`, portable `.zip`) also hold `INSTALLED-FILES.sha256`: one checksum line for every
+other file in the package (`scripts/installed-files.sh`, written by `release.yml` after the last file is in place).
+`raul update` checks an unpacked update against it before it installs anything (ADR-0020), and the release smoke test
+checks every portable package with the same script. The AppImage, the deb and the NSIS installer do not carry one.
+
 `icons/raul.png` is a placeholder gear until a designed icon exists.
 
 ## Signing

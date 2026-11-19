@@ -135,7 +135,7 @@ Instance is as it was before the command. A command line `raul` cannot read exit
 
 ## `lodwright-request`, as `raul lod plan` builds it
 
-`raul lod plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]` prints the `lodwright-request` v1
+`raul lod plan [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] [--json]` prints the `lodwright-request` v1
 document `raul lod generate` passes to lodwright, linked into `raul` and called in process. It is lodwright's Contract; `raul`
 checks every request against the snapshot before it prints or passes it. The request holds:
 
@@ -151,6 +151,7 @@ The settings are `raul-lod.toml` in the Profile's folder; every key is optional:
 worlds = ["SyntheticWorld"]
 threads = 2            # unset: lodwright decides
 memory_mib = 4096      # advisory
+allow_in_repo = false  # true: the output folder may lie inside a git working tree
 
 [inclusion]
 exclude_plugins = []
@@ -165,6 +166,16 @@ water = true
 objects = true
 trees = true
 ```
+
+The output folder (`<instance>/.raul/lod/out`) may not lie inside a git working tree (a `.git` in it or any folder
+above it): `raul lod plan` and `raul lod generate` refuse it with `plan_refused`, and lodwright refuses it too. Either
+`allow_in_repo = true` in the Profile's `raul-lod.toml` or `--allow-in-repo` on the command allows it; `raul` then
+skips its own check and tells lodwright it is allowed. The flag applies to that run only and writes nothing to the
+settings. `allow_in_repo` is not part of the request, so it does not change the request digest, and it is not a LOD
+generation setting. An output folder inside the data folder stays refused either way.
+
+`raul-lod.toml` refuses keys it does not know. A file that uses a key added in a later `raul` (such as
+`allow_in_repo`) cannot be read by an earlier one, which refuses to plan until the key is removed.
 
 `contracts/fixtures/lodwright-request/profile-settings.json` is the request of a Profile with the settings in its
 test, with the two folders written as `<data>` and `<output>`.
