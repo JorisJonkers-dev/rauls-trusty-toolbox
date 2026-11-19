@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The toolkit-free state of Versions: raul's own version, the update check and the engine build (UI-RULES P3, P5).
+//! The toolkit-free state of About and Update: raul's own version and the update check (UI-RULES P3, P5).
 //!
-//! Versions shows one version, the Toolbox's own, as plain text, with the update check beside it: `raul update
-//! check` looks for a newer release and downloads nothing. It installs the nv-rs release with `raul install-nv-rs
-//! --release` and shows the build that is active: what `raul verify` says of the installed nv-rs against its install
-//! record. No Component version is shown anywhere, and the release check's set is a build-time idea the page does
-//! not read. Nothing here holds a path; the Instance comes from Settings. Nothing reaches the network until the
-//! update check or Install is pressed and confirmed.
+//! The page shows one version, the Toolbox's own, as plain text, with the update check beside it: `raul update
+//! check` looks for a newer release and downloads nothing. Every packaged Component comes with raul and changes
+//! only when raul does, so no Component version and no per-Component action is shown (ADR-0016, ADR-0018). Nothing
+//! reaches the network until the update check is pressed.
 
-use super::settings::{Command, Config, Fetch, Key};
+use super::settings::{Command, Fetch};
 use serde::Deserialize;
 
 /// The Toolbox's own version, as `raul version --json` names it.
@@ -78,100 +76,9 @@ pub fn update_command() -> Command {
     Command::read("update-check", 2, &["update", "check"])
 }
 
-/// The installed nv-rs, as `raul verify` sees it.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Engine {
-    /// Whether an nv-rs is installed in the Instance.
-    pub installed: bool,
-    /// Whether it is still the file its install record names.
-    pub verified: bool,
-    /// What `raul verify` said, for the detail line.
-    pub message: String,
-}
-
-/// How the engine stands.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EngineStatus {
-    /// Installed and matching its record: the active build.
-    Active,
-    /// Installed, but the program differs from its record.
-    Differs,
-    /// Not installed.
-    Missing,
-}
-
-impl Engine {
-    /// No nv-rs: the Instance does not exist yet, or holds none.
-    pub fn missing() -> Engine {
-        Engine {
-            installed: false,
-            verified: false,
-            message: String::new(),
-        }
-    }
-
-    /// An installed nv-rs that matches its record.
-    pub fn active() -> Engine {
-        Engine {
-            installed: true,
-            verified: true,
-            message: String::new(),
-        }
-    }
-
-    /// How it stands.
-    pub fn status(&self) -> EngineStatus {
-        match (self.installed, self.verified) {
-            (false, _) => EngineStatus::Missing,
-            (true, true) => EngineStatus::Active,
-            (true, false) => EngineStatus::Differs,
-        }
-    }
-}
-
-#[derive(Deserialize)]
-struct VerifyDoc {
-    nv_rs: VerifyNvRs,
-}
-
-#[derive(Deserialize)]
-struct VerifyNvRs {
-    installed: bool,
-    verified: bool,
-    message: String,
-}
-
-/// Reads the `nv_rs` part of what `raul verify --json` printed. The rest of the report is the Doctor's.
-///
-/// # Errors
-/// When it is not that document.
-pub fn parse_verify(stdout: &str) -> Result<Engine, String> {
-    let doc: VerifyDoc = serde_json::from_str(stdout.trim())
-        .map_err(|e| format!("not a raul verify document: {e}"))?;
-    Ok(Engine {
-        installed: doc.nv_rs.installed,
-        verified: doc.nv_rs.verified,
-        message: doc.nv_rs.message,
-    })
-}
-
-/// `raul verify --instance <dir>`: read only.
-pub fn verify_command(instance: &str) -> Command {
-    Command::read("verify", 1, &["verify", "--instance", instance])
-}
-
 /// `raul version`: read only.
 pub fn version_command() -> Command {
     Command::read("version", 1, &["version"])
-}
-
-/// `raul install-nv-rs --instance <dir> --release`: fetches the fork's release, verifies it and runs its check.
-pub fn install_command(instance: &str) -> Command {
-    Command::write(
-        "install-nv-rs",
-        1,
-        &["install-nv-rs", "--instance", instance, "--release"],
-    )
 }
 
 /// The one update action beside the Toolbox version.
@@ -181,22 +88,6 @@ pub enum UpdateAction {
     Check,
     /// Update: a newer release is out.
     Update,
-}
-
-/// Where an install is.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum Install {
-    /// None asked for.
-    #[default]
-    Idle,
-    /// The confirm dialog is open.
-    Asking,
-    /// `raul install-nv-rs` runs.
-    Running,
-    /// It finished; the engine is read again.
-    Done,
-    /// It failed; what it said. The old build, if any, is left as it was.
-    Failed(String),
 }
 
 /// Where the update check is.
@@ -218,17 +109,11 @@ pub enum Update {
     Failed(String),
 }
 
-/// The state of Versions.
+/// The state of About and Update.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct State {
-    /// The configuration, for the Instance.
-    pub config: Fetch<Config>,
-    /// The installed engine.
-    pub engine: Fetch<Engine>,
     /// The Toolbox version, from `raul version`.
     pub shipped: Fetch<Shipped>,
-    /// The install, if one was asked for.
-    pub install: Install,
     /// The update check, if one was asked for.
     pub update: Update,
 }
@@ -251,10 +136,9 @@ impl State {
         }
     }
 
-    /// Whether the update button can be pressed: no check runs and no install does.
+    /// Whether the update button can be pressed: no check runs.
     pub fn can_check_updates(&self) -> bool {
         self.update != Update::Checking
-            && !matches!(self.install, Install::Running | Install::Asking)
     }
 
     /// What the one update button beside the version says: `Update` once a newer release is known, else
@@ -267,27 +151,18 @@ impl State {
         }
     }
 
-    /// The Instance the engine goes into, once the configuration says.
-    pub fn instance(&self) -> Option<&str> {
-        self.config.ready().and_then(|c| c.get(Key::Instance))
-    }
-
-    /// The command Install runs, once there is an Instance.
-    pub fn install_command(&self) -> Option<Command> {
-        self.instance().map(install_command)
-    }
-
-    /// Whether Install can be pressed: there is an Instance and no install runs.
-    pub fn can_install(&self) -> bool {
-        self.instance().is_some() && !matches!(self.install, Install::Running | Install::Asking)
-    }
-
-    /// What the header says needs attention: the engine missing or differing from its record.
-    pub fn needs_attention(&self) -> bool {
-        matches!(
-            self.engine.ready().map(Engine::status),
-            Some(EngineStatus::Missing | EngineStatus::Differs)
-        )
+    /// The details a person can copy into a report: the version that runs, the platform, and where the update
+    /// check stands. No path and nothing about the machine beyond the operating system and architecture.
+    pub fn details(&self, os: &str, arch: &str) -> String {
+        let version = self.raul().unwrap_or("not read yet");
+        let update = match &self.update {
+            Update::Idle => "not checked".to_owned(),
+            Update::Checking => "checking".to_owned(),
+            Update::Checked { newer: None, .. } => "up to date".to_owned(),
+            Update::Checked { newer: Some(r), .. } => format!("{} is out", r.version),
+            Update::Failed(why) => format!("check failed: {why}"),
+        };
+        format!("raul {version}\nplatform: {os} {arch}\nupdate check: {update}\n")
     }
 }
 
@@ -371,8 +246,6 @@ mod tests {
         assert_eq!(s.raul(), Some("0.2.0"), "a failed check keeps the version");
         assert_eq!(s.update_action(), UpdateAction::Check);
         assert!(s.can_check_updates());
-        s.install = Install::Running;
-        assert!(!s.can_check_updates());
     }
 
     #[test]
@@ -388,52 +261,32 @@ mod tests {
     }
 
     #[test]
-    fn verify_tells_active_differing_and_missing_apart() {
-        let read = |installed: bool, verified: bool| {
-            parse_verify(&format!(
-                r#"{{"schema_version":1,"verified":false,"doctor":{{}},"nv_rs":{{"installed":{installed},"verified":{verified},"message":"m"}},"launch_plan":{{}}}}"#
-            ))
-            .unwrap()
-            .status()
-        };
-        assert_eq!(read(true, true), EngineStatus::Active);
-        assert_eq!(read(true, false), EngineStatus::Differs);
-        assert_eq!(read(false, false), EngineStatus::Missing);
-        assert!(parse_verify("{}").is_err());
-        assert_eq!(Engine::missing().status(), EngineStatus::Missing);
-        assert_eq!(Engine::active().status(), EngineStatus::Active);
-    }
-
-    #[test]
-    fn install_needs_an_instance_and_runs_once() {
-        let mut s = State::default();
-        assert!(!s.can_install());
-        assert_eq!(s.install_command(), None);
-        s.config = Fetch::Ready(Config::with("", &[(Key::Instance, "/s/instance")]));
-        assert!(s.can_install());
-        let cmd = s.install_command().unwrap();
-        assert_eq!(
-            cmd.shown(),
-            "raul install-nv-rs --instance /s/instance --release"
-        );
-        assert!(cmd.writes);
-        s.install = Install::Running;
-        assert!(!s.can_install());
-    }
-
-    #[test]
-    fn a_missing_or_differing_engine_needs_attention() {
+    fn the_details_name_the_version_the_platform_and_the_check() {
         let mut s = State {
-            engine: Fetch::Ready(Engine::missing()),
+            shipped: Fetch::Ready(Shipped {
+                raul: "0.2.0".into(),
+            }),
             ..State::default()
         };
-        assert!(s.needs_attention());
-        s.engine = Fetch::Ready(Engine::active());
-        assert!(!s.needs_attention());
-        s.engine = Fetch::Loading;
-        assert!(!s.needs_attention());
-        assert_eq!(verify_command("/i").shown(), "raul verify --instance /i");
-        assert_eq!(version_command().shown(), "raul version");
-        assert_eq!(update_command().shown(), "raul update check");
+        assert_eq!(
+            s.details("linux", "x86_64"),
+            "raul 0.2.0\nplatform: linux x86_64\nupdate check: not checked\n"
+        );
+        s.update = Update::Checked {
+            raul: "0.2.0".into(),
+            newer: Some(Release {
+                version: "0.3.0".into(),
+                url: "https://example.invalid/r".into(),
+            }),
+        };
+        assert!(
+            s.details("linux", "x86_64")
+                .ends_with("update check: 0.3.0 is out\n")
+        );
+        assert!(
+            State::default()
+                .details("a", "b")
+                .starts_with("raul not read yet\n")
+        );
     }
 }

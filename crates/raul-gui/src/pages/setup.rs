@@ -13,12 +13,12 @@ use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText, Stroke};
 use raul_ui_model::pages::settings::{Answer, Command, Config, Fetch, Field, Key, Save};
+use raul_ui_model::pages::setup::install_command;
 use raul_ui_model::pages::setup::{
     Checks, EngineStep, Finding, Missing, State, Step, detect_command, doctor_command,
     init_and_profile_command, init_and_profile_commands, parse_detect, parse_doctor,
     suggest_storage,
 };
-use raul_ui_model::pages::versions::install_command;
 use raul_ui_model::pages::{Flow, PageId, View};
 
 crate::texts!(TEXTS {
@@ -76,7 +76,7 @@ crate::texts!(TEXTS {
     INITIALISING = "Making the Instance in the storage folder";
     INSTALLING = "Downloading and checking the engine. This can take a few minutes.";
     INSTALLED = "Installed and checked.";
-    ENGINE_NOTE = "You can install it again later on Versions.";
+    ENGINE_NOTE = "Run the setup again if the engine ever needs a look.";
     MARK_INSTALLED = "Installed";
     MARK_WORKING = "Working";
     CHECKING = "Running the checks";

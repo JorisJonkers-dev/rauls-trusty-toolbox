@@ -112,7 +112,10 @@ fn the_setup_strip_opens_the_home_of_each_value() {
     assert_eq!(h.state().view(), View::Page(PageId::Settings));
     h.get_by_label_contains(msg::ENGINE).click();
     h.run_steps(8);
-    assert_eq!(h.state().view(), View::Page(PageId::Versions));
+    assert_eq!(
+        h.state().view(),
+        View::Flow(raul_ui_model::pages::Flow::Setup)
+    );
 }
 
 /// Answers `version` and records every command that ran.

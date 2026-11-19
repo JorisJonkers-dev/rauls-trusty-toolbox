@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The toolkit-free state of Home: readiness, what needs attention, and the launch panel (UI-RULES G2, G3).
 //!
-//! Home owns no data (UI-RULES P3): it reads the paths of Settings and the engine of Versions and shows them, each
+//! Home owns no data (UI-RULES P3): it reads the paths of Settings and the engine and shows them, each
 //! row one click from the page that fixes it. Play is blocked only for a blocking problem, and the reason says
 //! which. Play runs `raul run nv-rs`.
 //!
@@ -12,8 +12,90 @@
 
 use super::load_order;
 use super::settings::{Command, Config, Fetch, Key};
-use super::versions::{Engine, EngineStatus};
 use super::{PageId, Severity, View};
+use serde::Deserialize;
+
+/// The installed nv-rs, as `raul verify` sees it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Engine {
+    /// Whether an nv-rs is installed in the Instance.
+    pub installed: bool,
+    /// Whether it is still the file its install record names.
+    pub verified: bool,
+    /// What `raul verify` said, for the detail line.
+    pub message: String,
+}
+
+/// How the engine stands.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EngineStatus {
+    /// Installed and matching its record: the active build.
+    Active,
+    /// Installed, but the program differs from its record.
+    Differs,
+    /// Not installed.
+    Missing,
+}
+
+impl Engine {
+    /// No nv-rs: the Instance does not exist yet, or holds none.
+    pub fn missing() -> Engine {
+        Engine {
+            installed: false,
+            verified: false,
+            message: String::new(),
+        }
+    }
+
+    /// An installed nv-rs that matches its record.
+    pub fn active() -> Engine {
+        Engine {
+            installed: true,
+            verified: true,
+            message: String::new(),
+        }
+    }
+
+    /// How it stands.
+    pub fn status(&self) -> EngineStatus {
+        match (self.installed, self.verified) {
+            (false, _) => EngineStatus::Missing,
+            (true, true) => EngineStatus::Active,
+            (true, false) => EngineStatus::Differs,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+struct VerifyDoc {
+    nv_rs: VerifyNvRs,
+}
+
+#[derive(Deserialize)]
+struct VerifyNvRs {
+    installed: bool,
+    verified: bool,
+    message: String,
+}
+
+/// Reads the `nv_rs` part of what `raul verify --json` printed. The rest of the report is the Doctor's.
+///
+/// # Errors
+/// When it is not that document.
+pub fn parse_verify(stdout: &str) -> Result<Engine, String> {
+    let doc: VerifyDoc = serde_json::from_str(stdout.trim())
+        .map_err(|e| format!("not a raul verify document: {e}"))?;
+    Ok(Engine {
+        installed: doc.nv_rs.installed,
+        verified: doc.nv_rs.verified,
+        message: doc.nv_rs.message,
+    })
+}
+
+/// `raul verify --instance <dir>`: read only.
+pub fn verify_command(instance: &str) -> Command {
+    Command::read("verify", 1, &["verify", "--instance", instance])
+}
 
 /// A readiness row.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -47,7 +129,7 @@ impl RowId {
     pub fn home(self) -> View {
         match self {
             RowId::NewVegas | RowId::Storage => View::Page(PageId::Settings),
-            RowId::Engine => View::Page(PageId::Versions),
+            RowId::Engine => View::Flow(super::Flow::Setup),
             RowId::Ttw => View::Flow(super::Flow::Ttw),
             RowId::LoadOrder => View::Page(PageId::LoadOrder),
             RowId::Lod => View::Page(PageId::Lod),
@@ -128,7 +210,7 @@ impl Block {
     pub fn fix(self) -> View {
         match self {
             Block::Unreadable | Block::NoGame | Block::NoStorage => View::Page(PageId::Settings),
-            Block::NoEngine | Block::EngineDiffers => View::Page(PageId::Versions),
+            Block::NoEngine | Block::EngineDiffers => View::Flow(super::Flow::Setup),
         }
     }
 }
@@ -153,8 +235,7 @@ impl Step {
     pub fn fix(self) -> View {
         match self {
             Step::Game | Step::Storage => View::Page(PageId::Settings),
-            Step::Instance => View::Flow(super::Flow::Setup),
-            Step::Engine => View::Page(PageId::Versions),
+            Step::Instance | Step::Engine => View::Flow(super::Flow::Setup),
             Step::LoadOrder => View::Page(PageId::LoadOrder),
         }
     }
@@ -472,7 +553,7 @@ mod tests {
         assert_eq!(no_storage.block(), Some(Block::NoStorage));
         let no_engine = State::ready(all_set(), Engine::missing());
         assert_eq!(no_engine.block(), Some(Block::NoEngine));
-        assert_eq!(Block::NoEngine.fix(), View::Page(PageId::Versions));
+        assert_eq!(Block::NoEngine.fix(), View::Flow(super::super::Flow::Setup));
         let differs = State::ready(
             all_set(),
             Engine {
@@ -692,5 +773,22 @@ mod tests {
         assert!(!no_paths.reading());
         assert_eq!(no_paths.readiness(), Readiness::Next(Step::Game));
         assert!(!no_paths.can_play());
+    }
+
+    #[test]
+    fn verify_tells_active_differing_and_missing_apart() {
+        let read = |installed: bool, verified: bool| {
+            parse_verify(&format!(
+                r#"{{"schema_version":1,"verified":false,"doctor":{{}},"nv_rs":{{"installed":{installed},"verified":{verified},"message":"m"}},"launch_plan":{{}}}}"#
+            ))
+            .unwrap()
+            .status()
+        };
+        assert_eq!(read(true, true), EngineStatus::Active);
+        assert_eq!(read(true, false), EngineStatus::Differs);
+        assert_eq!(read(false, false), EngineStatus::Missing);
+        assert!(parse_verify("{}").is_err());
+        assert_eq!(Engine::missing().status(), EngineStatus::Missing);
+        assert_eq!(Engine::active().status(), EngineStatus::Active);
     }
 }
