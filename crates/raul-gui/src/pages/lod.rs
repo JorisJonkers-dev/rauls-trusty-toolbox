@@ -76,7 +76,13 @@ crate::texts!(TEXTS {
     CURRENT_STATUS = "LOD is up to date.";
     STOPPED_STATUS = "LOD generation stopped. Nothing changed.";
     OUTPUT_LABEL = "Output";
-    PHASE = "Phase: {phase}";
+    STEP_READ_PLUGINS = "Reading the plugins";
+    STEP_TERRAIN = "Building distant land";
+    STEP_OBJECTS = "Building distant objects";
+    STEP_TREES = "Building distant trees";
+    STEP_MANIFEST = "Listing the files written";
+    STEP_ADD_MOD = "Adding the LOD Mod";
+    STEP_WORKING = "Working";
     UNREADABLE = "The command finished, but what it printed could not be read.";
 });
 
@@ -551,7 +557,7 @@ impl Page for Lod {
                 let what = if self.state.progress.phase.is_empty() {
                     STATE_GENERATING_START.to_owned()
                 } else {
-                    PHASE.replace("{phase}", &self.state.progress.phase)
+                    step_text(&self.state.progress.phase).to_owned()
                 };
                 waiting(ui, &t, &what, &generate_command(&instance));
             }
@@ -695,6 +701,19 @@ fn outcome(status: Status, up_to_date: bool, worlds: &[&str]) -> Outcome {
     }
 }
 
+/// The words for a phase of a LOD run; a phase this build does not know is a step starting, never an error.
+fn step_text(phase: &str) -> &'static str {
+    match phase {
+        "read_plugins" => STEP_READ_PLUGINS,
+        "terrain" => STEP_TERRAIN,
+        "objects" => STEP_OBJECTS,
+        "trees" => STEP_TREES,
+        "manifest" => STEP_MANIFEST,
+        "add_mod" => STEP_ADD_MOD,
+        _ => STEP_WORKING,
+    }
+}
+
 /// The states the snapshot tests render.
 pub fn fixtures() -> Vec<Fixture> {
     const WORLDS: &[&str] = &["NorthRidge", "OldHighway"];
@@ -704,6 +723,13 @@ pub fn fixtures() -> Vec<Fixture> {
         phase: "terrain".to_owned(),
         done: 3,
         total: Some(8),
+    };
+    let mut objects = planned(WORLDS);
+    objects.generating();
+    objects.progress = Progress {
+        phase: "objects".to_owned(),
+        done: 5,
+        total: Some(12),
     };
     let mut built = planned(WORLDS);
     built.generated(outcome(Status::Success, false, WORLDS));
@@ -752,6 +778,7 @@ pub fn fixtures() -> Vec<Fixture> {
         ),
         fixture("planned", planned(&[])),
         fixture("generating", generating),
+        fixture("generating-objects", objects),
         fixture("generated", built),
         fixture("up-to-date", current),
         fixture("error", failed),
@@ -764,6 +791,15 @@ pub fn fixtures() -> Vec<Fixture> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn each_phase_of_a_run_has_its_words_and_an_unknown_one_is_a_step_not_an_error() {
+        assert_eq!(step_text("terrain"), STEP_TERRAIN);
+        assert_eq!(step_text("objects"), STEP_OBJECTS);
+        assert_eq!(step_text("trees"), STEP_TREES);
+        assert_eq!(step_text("add_mod"), STEP_ADD_MOD);
+        assert_eq!(step_text("water_outline"), STEP_WORKING);
+    }
 
     #[test]
     fn the_header_follows_the_blocks_and_the_run() {

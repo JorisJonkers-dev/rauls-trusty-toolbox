@@ -14,7 +14,7 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use lodwright_api::{
-    CancelToken, Error, GenerateOutcome, GenerateRequest, ProgressEvent, generate,
+    CancelToken, Error, GenerateOutcome, GenerateRequest, ProgressEvent, Step, generate,
 };
 
 use crate::events::Event;
@@ -54,19 +54,24 @@ pub(crate) struct Run {
     pub timed_out: bool,
 }
 
-/// One progress event as an [`Event`]: a finished terrain block counts; any other event starts its step.
+/// One progress event as an [`Event`]: a finished block of terrain, objects or trees counts (`phase` `terrain`,
+/// `objects` or `trees`); any other event, of a step this build may not know, starts its step.
 fn map(event: &ProgressEvent) -> Event {
     let phase = event.label_key().trim_start_matches("lod.").to_owned();
-    match (event.level, event.done, event.total) {
-        (Some(level), Some(done), Some(of)) => Event::Progress {
-            phase,
-            done,
-            of,
-            message: Some(format!(
-                "{} level {level}",
-                event.world.as_deref().unwrap_or("?")
-            )),
-        },
+    match (event.done, event.total) {
+        (Some(done), Some(of)) => {
+            let world = event.world.as_deref().unwrap_or("?");
+            let message = match (event.step, event.level) {
+                (Step::Terrain, Some(level)) => format!("{world} level {level}"),
+                _ => world.to_owned(),
+            };
+            Event::Progress {
+                phase,
+                done,
+                of,
+                message: Some(message),
+            }
+        }
         _ => Event::Phase { phase },
     }
 }
@@ -157,7 +162,6 @@ mod tests {
     use std::panic::AssertUnwindSafe;
     use std::time::Instant;
 
-    use lodwright_api::Step;
     use lodwright_contract::Request;
     use lodwright_testkit::land::Heights;
     use lodwright_testkit::world::{SyntheticWorld, world_plugin};
@@ -191,6 +195,31 @@ mod tests {
                 message: Some("Island level 4".to_owned()),
             }
         );
+        for (step, phase) in [(Step::Objects, "objects"), (Step::Trees, "trees")] {
+            let block = ProgressEvent {
+                step,
+                world: Some("Island".to_owned()),
+                level: Some(4),
+                done: Some(2),
+                total: Some(3),
+                up_to_date: true,
+            };
+            assert_eq!(
+                map(&block),
+                Event::Progress {
+                    phase: phase.to_owned(),
+                    done: 2,
+                    of: 3,
+                    message: Some("Island".to_owned()),
+                }
+            );
+            assert_eq!(
+                map(&ProgressEvent::start(step, Some("Island"))),
+                Event::Phase {
+                    phase: phase.to_owned()
+                }
+            );
+        }
         assert_eq!(
             map(&ProgressEvent::start(Step::ReadPlugins, None)),
             Event::Phase {

@@ -102,7 +102,7 @@ finished steps become the journal's (its `nv-rs` step is `engine`), a copy of th
 | `event` | Fields | When |
 | --- | --- | --- |
 | `started` | `dry_run`, `resume`, `instance`, `profile`, `tool` (`name`, `version` (`null` until the result names it), `path`, `sha256`) | the checks passed and the program starts |
-| `phase` | `phase` | a phase began: for `ttw` ttwright's `package`, `preflight`, `checks`, `assets`, `post_install`; for `lod` `terrain`; then `add_mod` |
+| `phase` | `phase` | a phase began: for `ttw` ttwright's `package`, `preflight`, `checks`, `assets`, `post_install`; for `lod` `read_plugins`, `terrain`, `objects`, `trees`, `manifest`; then `add_mod`. A reader shows a phase it does not know as a step starting, never as an error |
 | `progress` | `phase`, `done`, `of` (0 when unknown), `message` | progress within the phase |
 | `warning` | `message` | something went wrong, but the run goes on |
 | `result` | `result` | the command's result document (`raul-ttw-result`, `raul-lod-result`) |
@@ -244,7 +244,7 @@ disabled. A Mod named `LOD (lodwright)`, the name every Profile shared before, i
 Profile that lists it gives the Profile's own Mod its place and state, then removes it, or only disables it in that
 Profile while another Profile lists it. A Mod of the new name that is not generated LOD is refused (`plan_refused`)
 and nothing changes. A second run over an unchanged Load order: lodwright answers `up_to_date`, the Mod is already
-there, and nothing is written (`up_to_date: true`, `changed: false`); a removed Mod is made again. lodwright's block progress becomes `progress` events of the phase `terrain`.
+there, and nothing is written (`up_to_date: true`, `changed: false`); a removed Mod is made again. lodwright's block progress becomes `progress` events of the phase `terrain` (message `<world> level <n>`), `objects` or `trees` (message `<world>`).
 
 | `status` | Exit code | `error.code` | lodwright |
 | --- | --- | --- | --- |
