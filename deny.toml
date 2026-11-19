@@ -31,6 +31,11 @@ allow = [
     "Zlib",
     "Unicode-3.0",
     "CC0-1.0",
+    # The linked nv-rs engine crates declare GPL-3.0-or-later and are not publish = false, so they are not private.
+    # scripts/check-gpl-scope.sh (run in ci and gui workflows) fails when that id appears outside components/nv-rs.
+    "GPL-3.0-or-later",
+    # A dependency of the engine's tree (also allowed by nv-rs's own deny.toml).
+    "BSL-1.0",
     # ttwright-core links these: ba2 (0BSD), symphonia and option-ext (MPL-2.0, file-level copyleft, used unmodified),
     # and the LAME encoder bindings mp3lame-sys and mp3lame-encoder (LGPL-3.0, written with the deprecated id the crates use, which the GPL-3.0 Toolbox may link).
     "0BSD",
