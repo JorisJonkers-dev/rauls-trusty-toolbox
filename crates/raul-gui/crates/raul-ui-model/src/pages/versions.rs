@@ -162,7 +162,7 @@ impl State {
             Update::Checked { newer: Some(r), .. } => format!("{} is out", r.version),
             Update::Failed(why) => format!("check failed: {why}"),
         };
-        format!("raul {version}\nplatform: {os} {arch}\nupdate check: {update}\n")
+        format!("Toolbox version: {version}\nPlatform: {os} {arch}\nUpdate check: {update}\n")
     }
 }
 
@@ -270,7 +270,7 @@ mod tests {
         };
         assert_eq!(
             s.details("linux", "x86_64"),
-            "raul 0.2.0\nplatform: linux x86_64\nupdate check: not checked\n"
+            "Toolbox version: 0.2.0\nPlatform: linux x86_64\nUpdate check: not checked\n"
         );
         s.update = Update::Checked {
             raul: "0.2.0".into(),
@@ -281,12 +281,12 @@ mod tests {
         };
         assert!(
             s.details("linux", "x86_64")
-                .ends_with("update check: 0.3.0 is out\n")
+                .ends_with("Update check: 0.3.0 is out\n")
         );
         assert!(
             State::default()
                 .details("a", "b")
-                .starts_with("raul not read yet\n")
+                .starts_with("Toolbox version: not read yet\n")
         );
     }
 }
