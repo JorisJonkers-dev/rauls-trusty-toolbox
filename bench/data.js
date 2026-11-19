@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795095587980,
+  "lastUpdate": 1795095867042,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5879,6 +5879,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.200411,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "37d6001d61826b748dee6cfc1905ebdde02d4516",
+          "message": "feat(gui): the Mods page with a generated LOD Mod treatment (#361)\n\n* feat(lod): one marked LOD Mod per Profile that keeps its place and state\n\nThe Mod raul lod generate keeps is now Generated LOD (<Profile>), with a\n[raulGeneratedLod] marker in its meta.ini (Profile, request digest and\nlodwright version; every other key kept). A new run keeps the Mod's\nplace and enabled state, so a disabled LOD Mod stays disabled; a new or\nremoved Mod goes on top, enabled. The old shared LOD (lodwright) Mod is\nrecognised and hands its place and state to the Profile's own Mod. A\nMod of the new name without the marker is refused. raul lod mods lists\nthe generated LOD Mods of a Profile (Contract raul-lod-mods v1).\n\n* fix(lod): clippy, the LOD page wording and snapshots, meta.ini from an interrupted copy\n\n* feat(gui): the Mods page with a generated LOD Mod treatment (work in progress)\n\nNot built or tested yet: page, model, registry commands mods-list,\nmods-enable, mods-disable, mods-reorder, mods-remove and lod-mods, the\nsidebar entry (keys 1 to 6) and an end-to-end test.\n\n* fix(gui): the Mods page passes clippy, the registry test drives its commands, and its snapshots\n\nModEntry's flags are what raul mods list reports, so the bool lint is\nallowed there. The registry test's fixture gets one Mod for the Mods\npage's enable, disable, reorder and remove commands. Snapshots: the ten\nMods page states, and every other page with the new sidebar entry.",
+          "timestamp": "2026-11-19T13:42:54Z",
+          "tree_id": "52298b3b63d49eb17a3e1610e0a24631916616c4",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/37d6001d61826b748dee6cfc1905ebdde02d4516"
+        },
+        "date": 1795095866263,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.91414,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.744546000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 37.121872,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.981143,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.011625,
             "unit": "ms"
           }
         ]
