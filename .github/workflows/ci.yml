@@ -133,6 +133,10 @@ jobs:
           scripts/check-gpl-scope.sh --self-test
           scripts/check-gpl-scope.sh
 
+      - name: Release notes contents
+        if: ${{ !cancelled() }}
+        run: scripts/release-contents.sh --self-test
+
       - name: Advisories (cargo audit)
         if: ${{ !cancelled() }}
         run: mise exec -- cargo audit
