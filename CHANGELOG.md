@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.5.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.4.0...v0.5.0) (2026-11-19)
+
+
+### Features
+
+* **core:** engine step installs nv-rs in process ([#297](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/297)) ([e26c534](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e26c5347568406f152fa8aade8242d25061eb982))
+* **core:** setup job that plans and runs nvmod's mod jobs ([#288](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/288)) ([ac540fb](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ac540fba3164d54db4db552d47f85469892a37b2))
+* **core:** setup resume journal taking over nvmod setups ([#292](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/292)) ([a1fbb35](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a1fbb350d4507b174ff2066cf1b91430f3068b07))
+* **deps:** follow nvmod and drop the extract tool ([#299](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/299)) ([f3bc9de](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f3bc9de88d68c8e6bf9df60f7d9a1f66deaddb25))
+* **drivers:** generate LOD through lodwright in process ([#285](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/285)) ([fe96385](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/fe96385068501c9e3357ced31b8d279e76c3ef15))
+* **gui:** link the engine's crates behind the feature engine ([#308](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/308)) ([a4e477f](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a4e477f001369ed2ba43abc75e01b106f67615a8))
+* **gui:** make Versions a plain About and updates page ([#319](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/319)) ([2c80355](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/2c803552ec2c720fddad55470aaed1d7c8ed85b2))
+* **gui:** run every GUI job in process and test that none starts a program ([#316](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/316)) ([72f92d9](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/72f92d969203477fc7c2e9b4c82b6b641d3d4964))
+* **gui:** run init, install-nv-rs, install and import-mo2 as direct jobs ([#305](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/305)) ([0777c71](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/0777c714079ae9367171d132acd1ceb243ccb6d7))
+* **gui:** run Mods change, target and profile creation in process ([#300](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/300)) ([173d464](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/173d464eda5245cb3db6894ea338dbe4291e15cd))
+* **gui:** run the read-only actions as direct jobs ([#295](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/295)) ([b70f398](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b70f398ad9fadaf4329c2cedc228a78d95d00b3b))
+* **gui:** run Undo as a direct job under the Instance lock ([#291](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/291)) ([c860246](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/c860246f7f70d46f95f346779d2f896d653311ab))
+* **gui:** sort the Load order by calling nvmod's sort job directly ([#269](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/269)) ([#321](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/321)) ([77a3ba2](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/77a3ba23bce6c4952c5077a468f01650a07722f1))
+* **release:** installers carry no lodwright or ttwright program; release notes list contents with checksums ([#313](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/313)) ([d39c341](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d39c3415a23f1398c21a488747f0f214e947f4ff))
+* **setup:** raul setup and the wizard run the setup job ([#302](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/302)) ([010a3c1](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/010a3c199d2cc53ac6628820697f074d6c0b52b7))
+
+
+### Bug Fixes
+
+* **ci:** let the Component follower see the pinned releases ([#290](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/290)) ([c8505b2](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/c8505b2716b3e529c658c76a85e17fc2c1848cf7))
+
 ## [0.4.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.3.0...v0.4.0) (2026-11-18)
 
 
