@@ -126,7 +126,7 @@ fn a_stop_request_during_the_generation_adds_nothing_and_the_next_run_completes(
     assert!(!outcome.changed);
     assert_eq!(f.state(), before, "a stopped run changed the Instance");
     // The library itself stopped: its answer to a cancel is an interrupted manifest, with no request digest.
-    let manifest = std::fs::read(f.instance().join(".raul/lod/out/manifest.json")).unwrap();
+    let manifest = std::fs::read(f.instance().join(".raul/lod/Default/out/manifest.json")).unwrap();
     let manifest: serde_json::Value = serde_json::from_slice(&manifest).unwrap();
     assert_eq!(manifest["request_digest"], "", "{manifest}");
 

@@ -29,7 +29,7 @@
         "position": {
           "description": "Its place in the Profile's list, 1 the highest priority (separators count, as in `raul mods list`).",
           "format": "uint",
-          "minimum": 0,
+          "minimum": 1,
           "type": "integer"
         },
         "profile": {

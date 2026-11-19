@@ -45,8 +45,19 @@ pub const MANIFEST_FILE: &str = "manifest.json";
 /// without the file gets lodwright's defaults (every world, terrain, objects and trees, no exclusions).
 pub const SETTINGS_FILE: &str = "raul-lod.toml";
 
-/// The folder inside the Instance where lodwright writes and keeps its manifest between runs.
+/// The folder inside the Instance that holds lodwright's work folder of each Profile.
 pub const WORK_DIR: &str = ".raul/lod";
+
+/// The output folder of `profile` in the Instance at `root`: `<root>/.raul/lod/<Profile>/out`, where lodwright writes
+/// and keeps its manifest between runs. Each Profile has its own, so switching Profiles does not make the next run of
+/// the other one start over (ADR-0021).
+#[must_use]
+pub fn output_dir(root: &Path, profile: &str) -> PathBuf {
+    root.join(WORK_DIR).join(profile).join("out")
+}
+
+/// The output folder every Profile shared before each had its own.
+pub const SHARED_OUTPUT_DIR: &str = ".raul/lod/out";
 
 /// The LOD settings of a Profile. [`settings`] reads and changes them option by option.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -285,7 +296,8 @@ pub struct Plan {
 
 /// Build the request for `profile` of `instance`: the active plugins in Load order, the Staging tree's `Data`
 /// folder, the Profile's settings, and `worlds` when given (they replace the settings' worlds). The output folder
-/// is `<instance>/.raul/lod/out`, where the manifest stays between runs. The request is checked against the
+/// is the Profile's own, `<instance>/.raul/lod/<Profile>/out` ([`output_dir`]), where the manifest stays between
+/// runs. The request is checked against the
 /// `lodwright-request` v1 schema before it is returned.
 ///
 /// An output folder inside a git working tree is refused unless `allow_in_repo` (this run only) or the Profile's
@@ -305,7 +317,7 @@ pub fn plan(
     let allow_in_repo = allow_in_repo || settings.allow_in_repo;
     let (plugins, data_folder) = inputs(instance, profile)?;
     let absolute = |p: &Path| std::path::absolute(p).map_err(|e| format!("{}: {e}", p.display()));
-    let output_dir = absolute(&instance.root)?.join(WORK_DIR).join("out");
+    let output_dir = output_dir(&absolute(&instance.root)?, profile);
     // lodwright's own rule for the output folder, checked before it is asked.
     if output_dir.starts_with(&data_folder) {
         return Err(format!(

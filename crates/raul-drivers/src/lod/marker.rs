@@ -49,8 +49,13 @@ impl Marker {
             return None;
         }
         let field = |key| meta.get_string(SECTION, key).unwrap_or_default();
+        // A marker without its Profile is not one this command wrote.
+        let profile = field(PROFILE);
+        if profile.is_empty() {
+            return None;
+        }
         Some(Marker {
-            profile: field(PROFILE),
+            profile,
             request_digest: field(REQUEST_DIGEST),
             lodwright_version: field(LODWRIGHT_VERSION),
         })
@@ -85,15 +90,13 @@ pub fn is_generated(mods: &Path, name: &str) -> bool {
 }
 
 /// The `meta.ini` of a newly generated LOD Mod: `previous` (the replaced Mod's file, every key kept, such as the
-/// category the user gave it) with the marker set, and a note saying where the Mod comes from unless it has one.
+/// category the user gave it) with the marker set. A Mod made for the first time (no `previous`) also gets a note
+/// saying where it comes from; a replaced Mod keeps its notes as they are, also when the user removed them.
 #[must_use]
 pub fn meta_ini(previous: Option<&[u8]>, marker: &Marker) -> Vec<u8> {
     let mut meta = MetaIni::parse(previous.unwrap_or_default());
     marker.write(&mut meta);
-    if meta
-        .get_string("General", "notes")
-        .is_none_or(|n| n.is_empty())
-    {
+    if previous.is_none() {
         let note = format!(
             "Generated LOD of the Profile {}. Generate it again on the LOD page; files changed here are replaced.",
             marker.profile
@@ -164,6 +167,27 @@ mod tests {
             1,
             "the note is not repeated"
         );
+    }
+
+    #[test]
+    fn a_replaced_meta_ini_keeps_every_user_line_byte_for_byte_and_gets_no_note_back() {
+        let user = b"[General]\r\ngameName=newvegas\r\ncategory=\"3,\"\r\n\r\n[Custom]\r\nkey = spaced value\r\n";
+        let text = String::from_utf8(meta_ini(Some(user), &marker("Default"))).unwrap();
+        assert!(
+            !text.contains("notes="),
+            "a note the user removed stays removed: {text}"
+        );
+        let user_part = String::from_utf8(user.to_vec()).unwrap();
+        for line in user_part.lines().filter(|l| !l.is_empty()) {
+            assert!(text.contains(line), "{line:?} changed in {text}");
+        }
+    }
+
+    #[test]
+    fn a_marker_without_its_profile_is_not_one() {
+        let meta =
+            MetaIni::parse(b"[raulGeneratedLod]\r\ngenerated=true\r\nrequestDigest=sha256:00\r\n");
+        assert_eq!(Marker::read(&meta), None);
     }
 
     #[test]
