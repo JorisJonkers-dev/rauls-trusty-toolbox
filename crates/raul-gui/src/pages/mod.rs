@@ -9,6 +9,7 @@
 pub mod home;
 pub mod load_order;
 pub mod lod;
+pub mod lod_settings;
 pub mod mods;
 pub mod settings;
 pub mod setup;
@@ -127,6 +128,7 @@ pub fn registry() -> Vec<Box<dyn Page>> {
         Box::new(settings::Settings::default()),
         Box::new(setup::Setup::default()),
         Box::new(ttw::Ttw::default()),
+        Box::new(lod_settings::LodSettings::default()),
     ]
 }
 
@@ -141,6 +143,7 @@ pub fn fixtures() -> Vec<Fixture> {
         settings::fixtures(),
         setup::fixtures(),
         ttw::fixtures(),
+        lod_settings::fixtures(),
     ]
     .into_iter()
     .flatten()

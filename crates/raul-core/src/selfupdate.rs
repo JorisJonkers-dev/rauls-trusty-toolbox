@@ -3,5 +3,10 @@
 //! Nothing here touches the network or starts a program; the verified, staged files come from the caller.
 
 pub mod extract;
+pub mod fetch;
+pub mod flow;
+pub mod install;
+pub mod layout;
+pub mod selfcheck;
 pub mod swap;
 pub mod verify;

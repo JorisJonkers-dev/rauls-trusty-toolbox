@@ -17,6 +17,7 @@ use serde_json::Value;
 
 use super::inproc;
 use super::marker::{self, LEGACY_MOD_NAME, META_FILE, Marker, mod_name};
+use super::run_lock::RunLock;
 use super::{
     CONTRACT, LodError, LodErrorCode, LodResult, MANIFEST_FILE, SCHEMA_VERSION, SHARED_OUTPUT_DIR,
     WORK_DIR, plan, read_manifest,
@@ -429,6 +430,23 @@ pub fn generate_with_cancel(
         );
         return fail(r, Status::Refused, LodErrorCode::PlanRefused, None, why);
     }
+    // One run per Profile: held until this run ends, released by the system if the process dies.
+    let _run = if req.dry_run {
+        None
+    } else {
+        match RunLock::try_acquire(&instance.root, &profile) {
+            Ok(Some(lock)) => Some(lock),
+            Ok(None) => {
+                let why = "a LOD run of this Profile is already going; this one did not start; nothing changed";
+                return fail(r, Status::Refused, LodErrorCode::RunInProgress, None, why);
+            }
+            Err(e) => {
+                let why = format!("{}: {e}", RunLock::path(&instance.root, &profile).display());
+                return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
+            }
+        }
+    };
+    // The settings are read once, here: a change made while the run goes applies to the next run.
     let plan = match plan(&instance, &profile, &req.worlds, req.allow_in_repo) {
         Ok(p) => p,
         Err(why) => return fail(r, Status::Refused, LodErrorCode::PlanRefused, None, why),

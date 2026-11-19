@@ -216,6 +216,13 @@ fn text(verb: &str, doc: &SettingsDoc) -> String {
         };
         let _ = writeln!(t, "raul lod settings {verb}: {line}");
     }
+    if doc.run_in_progress {
+        let _ = writeln!(
+            t,
+            "raul lod settings {verb}: {}",
+            settings::catalogue::RUN_IN_PROGRESS
+        );
+    }
     if verb == "show" {
         let _ = writeln!(
             t,

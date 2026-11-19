@@ -26,12 +26,15 @@ path = "src/main.rs"
 
 [dependencies]
 raul-cli = { workspace = true }
+raul-core = { workspace = true }
+raul-drivers = { workspace = true }
 nvmod-modinstall = { workspace = true }
 raul-ui-model = { workspace = true }
 raul-ui-service = { workspace = true }
 eframe = { workspace = true }
 serde_json = { workspace = true }
 raul-engine = { workspace = true }
+raul-runner = { workspace = true }
 
 [features]
 default = []
@@ -75,6 +78,7 @@ raul-cli = { path = "../raul-cli" }
 raul-runner = { path = "../raul-runner" }
 nvmod-api = { path = "../../components/nvmod-rs/crates/nvmod-api" }
 raul-core = { path = "../raul-core" }
+raul-drivers = { path = "../raul-drivers" }
 nvmod-core = { path = "../../components/nvmod-rs/crates/nvmod-core" }
 nvmod-testkit = { path = "../../components/nvmod-rs/crates/nvmod-testkit" }
 nvmod-modinstall = { path = "../../components/nvmod-rs/crates/nvmod-modinstall" }

@@ -92,7 +92,8 @@ pub struct Asset {
 /// A release as the release page describes it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Release {
-    /// The release's id, kept for the whole run.
+    /// The release's id as the release page gives it. The release is pinned by its tag and by the tag's own download
+    /// addresses ([`Release::address_of`]); the id is kept for the person's details and is not what is trusted.
     pub id: u64,
     /// The tag, `v<version>`.
     pub tag_name: String,
@@ -195,7 +196,7 @@ pub fn parse_sums(text: &str) -> Result<Vec<(String, String)>, Error> {
 /// # Errors
 /// [`Error::Fetch`] when the file cannot be read.
 pub fn hash_file(path: &Path) -> Result<String, Error> {
-    let io = |e: std::io::Error| Error::Fetch(format!("{}: {e}", path.display()));
+    let io = |e: std::io::Error| Error::Fetch(format!("a file could not be read ({})", e.kind()));
     let mut file = std::fs::File::open(path).map_err(io)?;
     let mut hasher = Sha256::new();
     let mut block = vec![0_u8; 64 * 1024];
@@ -249,10 +250,20 @@ pub fn download(
     asset: &str,
     work: &Path,
 ) -> Result<Downloaded, Error> {
+    // The name is joined onto the work folder below: it must be one plain file name.
+    let bare = !asset.is_empty()
+        && asset != "."
+        && asset != ".."
+        && !asset.contains(['/', '\\', ':', '\0']);
+    if !bare {
+        return Err(Error::WrongAddress(asset.to_owned()));
+    }
     let version = accept(release, running, allow_older)?;
     let sums_asset = release.asset(SUMS)?;
     let wanted = release.asset(asset)?;
-    let io = |p: &Path, e: &std::io::Error| Error::Fetch(format!("{}: {e}", p.display()));
+    let io = |_: &Path, e: &std::io::Error| {
+        Error::Fetch(format!("a file could not be written ({})", e.kind()))
+    };
     std::fs::create_dir_all(work).map_err(|e| io(work, &e))?;
     let first = work.join("SHA256SUMS.1");
     let second = work.join("SHA256SUMS.2");
@@ -440,6 +451,24 @@ mod tests {
     }
 
     #[test]
+    fn an_asset_name_that_is_not_one_plain_file_name_is_refused_before_anything_happens() {
+        let t = TempDir::new("verify-name");
+        let r = release("v2.0.0");
+        let f = fake(&r, b"x", &hash(b"x"));
+        for bad in ["../x", "a/b", "a\\b", "..", ".", "", "C:x"] {
+            assert!(
+                matches!(
+                    download(&f, &r, "1.0.0", false, bad, t.path()),
+                    Err(Error::WrongAddress(_))
+                ),
+                "{bad}"
+            );
+        }
+        assert!(f.asked.borrow().is_empty());
+        assert!(std::fs::read_dir(t.path()).unwrap().next().is_none());
+    }
+
+    #[test]
     fn an_older_or_equal_version_is_refused_unless_asked_for() {
         let r = release("v2.0.0");
         for running in ["2.0.0", "2.1.0"] {
@@ -526,9 +555,10 @@ mod tests {
                 running: "2".into(),
             },
             Error::NotThatRelease("it is a draft".into()),
+            hash_file(Path::new("/definitely/not/here")).unwrap_err(),
         ] {
             let text = e.to_string();
-            for word in ["raul update", "curl", "sha256sum", "--"] {
+            for word in ["raul update", "curl", "sha256sum", "--", "/", "\\"] {
                 assert!(!text.contains(word), "{word}: {text}");
             }
         }

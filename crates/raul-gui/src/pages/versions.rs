@@ -18,8 +18,9 @@ use crate::theme::Tokens;
 use eframe::egui::{self, RichText};
 use raul_ui_model::pages::settings::Fetch;
 use raul_ui_model::pages::versions::{
-    Release, Shipped, State, Update, UpdateAction, parse_update, parse_version, update_command,
-    version_command,
+    Apply, Release, Shipped, State, Step, Update, UpdateAction, UpdateStatus, download_command,
+    install_update_command, parse_applied, parse_status, parse_update, parse_version,
+    rollback_command, status_command, update_command, version_command,
 };
 use raul_ui_model::pages::{Attention, PageId, View};
 use raul_ui_service::Output;
@@ -39,7 +40,19 @@ crate::texts!(TEXTS {
     UPDATE_NEWEST = "This is the newest release.";
     UPDATE_FOUND = "Version {version} is out; you run {current}.";
     UPDATE_OPEN = "Release page";
-    UPDATE_NOTE = "The check is yours to run: nothing looks for updates until you press the button. An update replaces the Toolbox and everything that comes with it.";
+    UPDATE_NOTE = "Every step is yours to run: nothing is looked up or downloaded until you press its button. An update replaces the Toolbox and everything that comes with it, and the version before is kept so you can go back.";
+    DOWNLOAD = "Download update";
+    INSTALL = "Install update";
+    RESTART = "Restart";
+    GO_BACK = "Go back to version {version}";
+    DOWNLOADING = "Downloading and checking version {version}. This can take a minute.";
+    DOWNLOADED = "Version {version} is downloaded and checked. Installing it replaces the version you run.";
+    INSTALLING = "Installing version {version} and checking that it works.";
+    INSTALLED = "Version {version} is installed. Restart to use it.";
+    ROLLING_BACK = "Going back to the version before.";
+    WENT_BACK = "Version {version} is back. Restart to use it.";
+    KEPT = "Version {version} from before the last update is kept.";
+    NOT_HERE = "{reason}";
     COPY_DETAILS = "Copy details";
     WAITING_NOTE = "This build cannot read it from the window yet.";
 });
@@ -48,6 +61,10 @@ crate::errors!(ERRORS {
     UPDATE_FAILED = (
         "The update check could not finish",
         "Nothing changed. The line below says why."
+    );
+    APPLY_FAILED = (
+        "The update did not finish",
+        "Nothing is half done: the version you run is still in place. The line below says why."
     );
     VERSION_UNREADABLE = (
         "The version could not be read",
@@ -70,6 +87,10 @@ pub struct Versions {
 enum Job {
     Version,
     Update,
+    Status,
+    Download,
+    Install,
+    Rollback,
 }
 
 impl Versions {
@@ -102,6 +123,57 @@ impl Versions {
         }
     }
 
+    /// Read what this install can do about updates; local, nothing is fetched.
+    fn read_status(&mut self, cx: &mut PageCx<'_>) {
+        match start(cx, &status_command()) {
+            Ok(id) => {
+                self.pending.add(Job::Status, id);
+                self.state.status = Fetch::Loading;
+            }
+            Err(e) => self.state.status = Fetch::Failed(e.what.to_owned()),
+        }
+    }
+
+    /// Run one step of applying an update and note it as under way.
+    fn run_step(&mut self, cx: &mut PageCx<'_>, step: &Step) {
+        let (command, job, under_way) = match step {
+            Step::Download(v) => (download_command(v), Job::Download, Apply::Downloading),
+            Step::Install => (install_update_command(), Job::Install, Apply::Installing),
+            Step::Restart => {
+                restart(cx.repaint.as_ref());
+                return;
+            }
+        };
+        match start(cx, &command) {
+            Ok(id) => {
+                self.pending.add(job, id);
+                self.state.apply = under_way;
+            }
+            Err(e) => self.state.apply = Apply::Failed(e.what.to_owned()),
+        }
+    }
+
+    fn go_back(&mut self, cx: &mut PageCx<'_>) {
+        match start(cx, &rollback_command()) {
+            Ok(id) => {
+                self.pending.add(Job::Rollback, id);
+                self.state.apply = Apply::RollingBack;
+            }
+            Err(e) => self.state.apply = Apply::Failed(e.what.to_owned()),
+        }
+    }
+
+    /// Reads what a finished step answered: its version, or the one line that says why it did not work.
+    fn take_step(result: &Result<Output, String>, key: &str) -> Result<String, String> {
+        match result {
+            Ok(out) if out.code == Some(0) => {
+                parse_applied(&out.stdout, key).map_err(|_| APPLY_FAILED.detail.to_owned())
+            }
+            Ok(out) => Err(failure_of(out)),
+            Err(why) => Err(why.clone()),
+        }
+    }
+
     /// Reads what the update check answered, or why there is none.
     fn take_update(&mut self, result: &Result<Output, String>) {
         self.state.update = match result {
@@ -126,6 +198,35 @@ impl Versions {
                     };
                 }
                 Job::Update => self.take_update(&result),
+                Job::Status => {
+                    self.state.status = match &result {
+                        Ok(out) if out.code == Some(0) => parse_status(&out.stdout)
+                            .map_or_else(|_| Fetch::Failed(failure_of(out)), Fetch::Ready),
+                        Ok(out) => Fetch::Failed(failure_of(out)),
+                        Err(why) => Fetch::Failed(why.clone()),
+                    };
+                    self.state.settle_from_status();
+                }
+                Job::Download => {
+                    self.state.apply = match Self::take_step(&result, "staged") {
+                        Ok(v) => Apply::Ready(v),
+                        Err(why) => Apply::Failed(why),
+                    };
+                }
+                Job::Install => {
+                    self.state.apply = match Self::take_step(&result, "installed") {
+                        Ok(v) => Apply::Installed(v),
+                        Err(why) => Apply::Failed(why),
+                    };
+                    self.read_status(cx);
+                }
+                Job::Rollback => {
+                    self.state.apply = match Self::take_step(&result, "back_to") {
+                        Ok(v) => Apply::WentBack(v),
+                        Err(why) => Apply::Failed(why),
+                    };
+                    self.read_status(cx);
+                }
             }
         }
     }
@@ -161,6 +262,9 @@ impl Page for Versions {
             if matches!(self.state.shipped, Fetch::Idle) {
                 self.read_version(cx);
             }
+            if matches!(self.state.status, Fetch::Idle) {
+                self.read_status(cx);
+            }
         }
         self.take_answers(cx);
         let _ = cx.dialogs.take_answer(UPDATE_DIALOG);
@@ -191,25 +295,37 @@ impl Versions {
         let t = *cx.tokens;
         let version = self.state.raul().map(str::to_owned);
         let action = self.state.update_action();
-        let can = self.state.can_check_updates();
+        let step = self.state.next_step();
+        let can = self.state.can_check_updates() && !self.state.busy();
+        let mut clicked = false;
         ui.horizontal_wrapped(|ui| {
             ui.label(RichText::new(TOOLBOX_LABEL).color(t.muted.color()));
             if let Some(v) = &version {
                 ui.label(RichText::new(v).monospace().color(t.text.color()));
             }
-            let label = match action {
-                UpdateAction::Check => CHECK_UPDATES,
-                UpdateAction::Update => UPDATE,
+            let label = match (&step, action) {
+                (Some(Step::Download(_)), _) => DOWNLOAD.to_owned(),
+                (Some(Step::Install), _) => INSTALL.to_owned(),
+                (Some(Step::Restart), _) => RESTART.to_owned(),
+                (None, UpdateAction::Update) if self.state.not_updatable().is_none() => {
+                    UPDATE.to_owned()
+                }
+                (None, _) => CHECK_UPDATES.to_owned(),
             };
-            let button = if action == UpdateAction::Update {
-                shell::primary_button(&t, label)
+            let primary = step.is_some() || action == UpdateAction::Update;
+            let button = if primary {
+                shell::primary_button(&t, &label)
             } else {
-                egui::Button::new(label)
+                egui::Button::new(&label)
             };
-            if ui.add_enabled(can, button).clicked() {
-                self.check_updates(cx);
-            }
+            clicked = ui.add_enabled(can, button).clicked();
         });
+        if clicked {
+            match &step {
+                Some(step) => self.run_step(cx, step),
+                None => self.check_updates(cx),
+            }
+        }
         match &self.state.update {
             Update::Idle => {}
             Update::Checking => {
@@ -244,6 +360,7 @@ impl Versions {
             }
             Update::Failed(why) => error_block(ui, &t, &UPDATE_FAILED, Some(why)),
         }
+        self.apply_lines(ui, cx);
         if version.is_none() {
             match &self.state.shipped {
                 Fetch::Failed(why) if why == WAITING.what => {
@@ -260,6 +377,45 @@ impl Versions {
         }
     }
 
+    /// The lines of the update steps: what is under way or done, why this install cannot update itself, and the way back.
+    fn apply_lines(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
+        let t = *cx.tokens;
+        let version_of = |v: &str, text: &str| text.replace("{version}", v);
+        match self.state.apply.clone() {
+            Apply::Idle => {}
+            Apply::Downloading => {
+                let v = self
+                    .state
+                    .newer()
+                    .map_or(String::new(), |r| r.version.clone());
+                wrapped_mark(ui, &t, Mark::Info, &version_of(&v, DOWNLOADING));
+            }
+            Apply::Ready(v) => wrapped_mark(ui, &t, Mark::Ok, &version_of(&v, DOWNLOADED)),
+            Apply::Installing => {
+                let v = self
+                    .state
+                    .newer()
+                    .map_or(String::new(), |r| r.version.clone());
+                wrapped_mark(ui, &t, Mark::Info, &version_of(&v, INSTALLING));
+            }
+            Apply::Installed(v) => wrapped_mark(ui, &t, Mark::Ok, &version_of(&v, INSTALLED)),
+            Apply::RollingBack => wrapped_mark(ui, &t, Mark::Info, ROLLING_BACK),
+            Apply::WentBack(v) => wrapped_mark(ui, &t, Mark::Ok, &version_of(&v, WENT_BACK)),
+            Apply::Failed(why) => error_block(ui, &t, &APPLY_FAILED, Some(&why)),
+        }
+        if let Some(reason) = self.state.not_updatable() {
+            note(ui, &t, reason);
+        }
+        if let Some(previous) = self.state.go_back_to().map(str::to_owned) {
+            ui.horizontal_wrapped(|ui| {
+                note(ui, &t, &version_of(&previous, KEPT));
+                if ui.small_button(version_of(&previous, GO_BACK)).clicked() {
+                    self.go_back(cx);
+                }
+            });
+        }
+    }
+
     /// The details block, with one button that copies it.
     fn details_section(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
@@ -273,6 +429,25 @@ impl Versions {
         }
         ui.add_space(8.0);
         note(ui, &t, UPDATE_NOTE);
+    }
+}
+
+/// Start raul again and close this window: the new version runs in a fresh process. When it cannot be started the
+/// window stays, so nothing is lost.
+fn restart(repaint: Option<&egui::Context>) {
+    let program = std::env::var_os("APPIMAGE")
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::current_exe().ok());
+    let (Some(program), Ok(cwd)) = (program, std::env::current_dir()) else {
+        return;
+    };
+    let env: std::collections::BTreeMap<String, String> = std::env::vars().collect();
+    let started =
+        raul_runner::start_program(&program.to_string_lossy(), &[], &env, &cwd, false, None);
+    if started.is_ok()
+        && let Some(ctx) = repaint
+    {
+        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
     }
 }
 
@@ -315,6 +490,7 @@ pub fn fixtures() -> Vec<Fixture> {
                 raul: "0.2.0".into(),
                 newer,
             },
+            ..State::default()
         })
     };
     vec![
@@ -360,6 +536,76 @@ pub fn fixtures() -> Vec<Fixture> {
                 update: Update::Failed(
                     "raul update check: the release list could not be read".into(),
                 ),
+                ..State::default()
+            }),
+        ),
+    ]
+    .into_iter()
+    .chain(step_fixtures(&shipped))
+    .collect()
+}
+
+/// The states of the update steps the snapshot tests render.
+fn step_fixtures(shipped: &Shipped) -> Vec<Fixture> {
+    let steps = |apply: Apply, previous: Option<&str>| {
+        Versions::with(State {
+            shipped: Fetch::Ready(shipped.clone()),
+            update: Update::Checked {
+                raul: "0.2.0".into(),
+                newer: Some(Release {
+                    version: "0.3.0".into(),
+                    url: "https://example.invalid/rauls-trusty-toolbox/releases/tag/v0.3.0".into(),
+                }),
+            },
+            status: Fetch::Ready(UpdateStatus {
+                updatable: true,
+                reason: None,
+                staged: None,
+                previous: previous.map(str::to_owned),
+            }),
+            apply,
+        })
+    };
+    vec![
+        Fixture::new(
+            "update-downloaded",
+            steps(Apply::Ready("0.3.0".into()), None),
+        ),
+        Fixture::new("update-installing", steps(Apply::Installing, None)),
+        Fixture::new(
+            "update-installed",
+            steps(Apply::Installed("0.3.0".into()), Some("0.2.0")),
+        ),
+        Fixture::new(
+            "update-apply-failed",
+            steps(Apply::Failed("The new version did not start.".into()), None),
+        ),
+        Fixture::new("update-previous-kept", {
+            let mut page = steps(Apply::Idle, Some("0.1.0"));
+            page.state.update = Update::Checked {
+                raul: "0.2.0".into(),
+                newer: None,
+            };
+            page
+        }),
+        Fixture::new(
+            "update-not-here",
+            Versions::with(State {
+                shipped: Fetch::Ready(shipped.clone()),
+                update: Update::Checked {
+                    raul: "0.2.0".into(),
+                    newer: Some(Release {
+                        version: "0.3.0".into(),
+                        url: "https://example.invalid/rauls-trusty-toolbox/releases/tag/v0.3.0"
+                            .into(),
+                    }),
+                },
+                status: Fetch::Ready(UpdateStatus {
+                    updatable: false,
+                    reason: Some("This copy was installed with Nix, so Nix updates it.".into()),
+                    ..UpdateStatus::default()
+                }),
+                ..State::default()
             }),
         ),
     ]
@@ -397,7 +643,7 @@ mod tests {
                 .lock()
                 .unwrap()
                 .iter()
-                .filter(|c| c[0] == command)
+                .filter(|c| c.join(" ").starts_with(command))
                 .count()
         }
     }
@@ -405,7 +651,8 @@ mod tests {
     impl Exec for Recording {
         fn run(&self, args: &[String]) -> Result<Output, String> {
             self.calls.lock().unwrap().push(args.to_vec());
-            if self.fail_update && args.first().map(String::as_str) == Some("update") {
+            if self.fail_update && args.get(..2) == Some(&["update".to_owned(), "check".to_owned()])
+            {
                 return Ok(Output {
                     code: Some(1),
                     stdout: String::new(),
@@ -414,6 +661,19 @@ mod tests {
             }
             let stdout = match args.first().map(String::as_str) {
                 Some("version") => r#"{"raul":"0.2.0"}"#.to_owned(),
+                Some("update") if args.get(1).map(String::as_str) == Some("status") => {
+                    r#"{"current":"0.2.0","status":{"updatable":true,"reason":null,"staged":null,"previous":null}}"#
+                        .to_owned()
+                }
+                Some("update") if args.get(1).map(String::as_str) == Some("download") => {
+                    r#"{"ok":true,"staged":{"from":"0.2.0","to":"0.3.0","files":["raul"]}}"#.to_owned()
+                }
+                Some("update") if args.get(1).map(String::as_str) == Some("install") => {
+                    r#"{"ok":true,"installed":{"from":"0.2.0","to":"0.3.0","files":["raul"]}}"#.to_owned()
+                }
+                Some("update") if args.get(1).map(String::as_str) == Some("rollback") => {
+                    r#"{"ok":true,"back_to":"0.2.0"}"#.to_owned()
+                }
                 Some("update") => {
                     r#"{"current":"0.2.0","newer":{"version":"0.3.0","url":"https://example.invalid/r"}}"#
                         .to_owned()
@@ -454,7 +714,7 @@ mod tests {
                 .lock()
                 .unwrap()
                 .iter()
-                .rfind(|c| c[0] == command)
+                .rfind(|c| c.join(" ").starts_with(command))
                 .cloned();
             if let Some(call) = found {
                 return call;
@@ -470,7 +730,11 @@ mod tests {
         let mut h = harness("active", exec.clone());
         h.run();
         h.run_steps(2);
-        assert_eq!(exec.count("update"), 0, "nothing checks before a click");
+        assert_eq!(
+            exec.count("update check"),
+            0,
+            "nothing checks before a click"
+        );
         assert!(
             h.query_by_label(super::TOOLBOX_LABEL).is_some(),
             "the version is plain text beside its label"
@@ -486,17 +750,77 @@ mod tests {
             "the update action is a real button beside the version"
         );
         button.click();
-        let call = wait_for_call(&mut h, &exec, "update");
+        let call = wait_for_call(&mut h, &exec, "update check");
         assert_eq!(call, ["update", "check", "--json"], "the button checks");
-        wait_for_label(&mut h, UPDATE);
+        wait_for_label(&mut h, DOWNLOAD);
         assert!(
-            h.query_by_label(UPDATE).is_some(),
-            "a newer release turns the action into Update"
+            h.query_by_label(DOWNLOAD).is_some(),
+            "a newer release turns the action into Download update"
         );
         assert!(
             h.query_all_by_label_contains("0.3.0").next().is_some(),
             "the release that is out is named"
         );
+    }
+
+    #[test]
+    fn the_update_goes_through_download_install_and_restart_one_press_at_a_time() {
+        let exec = Arc::new(Recording::default());
+        let mut h = harness("update-available", exec.clone());
+        h.run_steps(4);
+        wait_for_label(&mut h, DOWNLOAD);
+        assert_eq!(
+            exec.count("update download"),
+            0,
+            "nothing downloads before a press"
+        );
+        h.get_by_label(DOWNLOAD).click();
+        let call = wait_for_call(&mut h, &exec, "update download");
+        assert_eq!(call, ["update", "download", "--tag", "v0.3.0", "--json"]);
+        wait_for_label(&mut h, INSTALL);
+        assert_eq!(
+            exec.count("update install"),
+            0,
+            "installing is a press of its own"
+        );
+        h.get_by_label(INSTALL).click();
+        wait_for_call(&mut h, &exec, "update install");
+        wait_for_label(&mut h, RESTART);
+        assert!(
+            h.query_by_label(RESTART).is_some(),
+            "after an install the next step is Restart"
+        );
+        assert!(
+            h.query_by_label_contains("Version 0.3.0 is installed")
+                .is_some(),
+            "the page says what happened"
+        );
+    }
+
+    #[test]
+    fn going_back_is_offered_while_a_previous_version_is_kept_and_runs_on_a_press() {
+        let exec = Arc::new(Recording::default());
+        let mut h = harness("update-previous-kept", exec.clone());
+        h.run_steps(4);
+        let label = GO_BACK.replace("{version}", "0.1.0");
+        assert!(h.query_by_label(&label).is_some(), "the way back is named");
+        assert_eq!(exec.count("update rollback"), 0);
+        h.get_by_label(&label).click();
+        let call = wait_for_call(&mut h, &exec, "update rollback");
+        assert_eq!(call, ["update", "rollback", "--json"]);
+        wait_for_label(&mut h, RESTART);
+    }
+
+    #[test]
+    fn an_install_that_cannot_update_itself_says_why_and_offers_no_download() {
+        let exec = Arc::new(Recording::default());
+        let mut h = harness("update-not-here", exec.clone());
+        h.run_steps(4);
+        assert!(h.query_by_label_contains("Nix updates it").is_some());
+        for label in [DOWNLOAD, INSTALL, RESTART] {
+            assert!(h.query_by_label(label).is_none(), "{label}");
+        }
+        assert_eq!(exec.count("update download"), 0);
     }
 
     #[test]
@@ -534,15 +858,15 @@ mod tests {
         let mut h = harness("active", exec.clone());
         h.run_steps(4);
         h.get_by_label(CHECK_UPDATES).click();
-        let _ = wait_for_call(&mut h, &exec, "update");
-        wait_for_label(&mut h, UPDATE);
+        let _ = wait_for_call(&mut h, &exec, "update check");
+        wait_for_label(&mut h, DOWNLOAD);
         assert!(
             h.query_by_label(UPDATE_FAILED.what).is_none(),
             "the check answered, so there is no failure to show"
         );
         assert!(
-            h.query_by_label(UPDATE).is_some(),
-            "the button becomes Update once the release is known"
+            h.query_by_label(DOWNLOAD).is_some(),
+            "the button becomes Download update once the release is known"
         );
     }
 
@@ -551,7 +875,11 @@ mod tests {
         let failing = Arc::new(Recording::failing());
         let mut h = harness("update-failed", failing.clone());
         h.run_steps(4);
-        assert_eq!(failing.count("update"), 0, "nothing checks before a click");
+        assert_eq!(
+            failing.count("update check"),
+            0,
+            "nothing checks before a click"
+        );
         assert!(
             h.query_by_label(UPDATE_FAILED.what).is_some(),
             "a failed check is shown where it happened"
@@ -581,7 +909,11 @@ mod tests {
         let exec = Arc::new(Recording::default());
         let mut h = harness("active", exec.clone());
         h.run_steps(4);
-        assert_eq!(exec.count("update"), 0, "nothing checks before a click");
+        assert_eq!(
+            exec.count("update check"),
+            0,
+            "nothing checks before a click"
+        );
         let button = h.get_by_label(CHECK_UPDATES);
         assert_eq!(
             button.accesskit_node().role(),
@@ -589,7 +921,7 @@ mod tests {
             "the update action is a real button beside the version"
         );
         button.click();
-        let call = wait_for_call(&mut h, &exec, "update");
+        let call = wait_for_call(&mut h, &exec, "update check");
         assert_eq!(call, ["update", "check", "--json"], "the button checks");
     }
 
@@ -599,14 +931,14 @@ mod tests {
         let mut h = harness("active", exec.clone());
         h.run_steps(4);
         h.get_by_label(CHECK_UPDATES).click();
-        wait_for_label(&mut h, UPDATE);
+        wait_for_label(&mut h, DOWNLOAD);
         // Press every action the page offers, then see what ran.
-        h.get_by_label(UPDATE).click();
+        h.get_by_label(DOWNLOAD).click();
         h.run_steps(8);
         let calls = exec.calls.lock().unwrap();
         assert!(
             calls.iter().all(|c| c[0] == "version" || c[0] == "update"),
-            "the page runs only the version read and the update check, not {calls:?}"
+            "the page runs only the version read and the update steps, not {calls:?}"
         );
     }
 
