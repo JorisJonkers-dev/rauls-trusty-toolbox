@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795087389295,
+  "lastUpdate": 1795088098099,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5634,6 +5634,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.560992,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6e68927948d2d2d0135c0c15a69e661289f31ff4",
+          "message": "ci(renovate): leave loot-rs to the nvmod bump (#328)\n\nThe shared preset's first-party Cargo git rule makes the hosted Renovate app bump the loot-rs tag in Cargo.toml on its own. Here loot-rs moves with nvmod (ADR-0015): scripts/bump-component.sh takes the tag nvmod links. A lone bump builds a second loot-rs beside nvmod's, leaves components/loot-rs behind and does not refresh crates/raul-gui/Cargo.lock, as in #327.",
+          "timestamp": "2026-11-19T12:33:12+01:00",
+          "tree_id": "27e081176850ba2997a60fb789c6d31ffe2ce8c9",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6e68927948d2d2d0135c0c15a69e661289f31ff4"
+        },
+        "date": 1795088097359,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.3764560000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.168882,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.532229,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.086026,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.262022,
             "unit": "ms"
           }
         ]
