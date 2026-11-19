@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795093450140,
+  "lastUpdate": 1795095587980,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5830,6 +5830,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.980772,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b5459bf1d857350e0da0dbc4eaba9281049ecba1",
+          "message": "feat(lod): a work folder per Profile, and fixes to the generated LOD Mod (#363)\n\nlodwright's output and manifest move to <instance>/.raul/lod/<Profile>/out\n(ADR-0021); the first generate takes the shared folder over. A folder with\nthe backup name that is not generated LOD is refused instead of removed or\nrenamed; the old shared Mod's meta.ini is also read from its backup; a\nmarker needs its Profile; the note is written only for a new Mod; the\nraul-lod-mods position starts at 1 in the schema; the README says what\nraul lod mods refuses.\n\nRefs #334, part of #38",
+          "timestamp": "2026-11-19T14:38:00+01:00",
+          "tree_id": "012b1247929a100b3e7bc280a29aa85d1b68fd4e",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b5459bf1d857350e0da0dbc4eaba9281049ecba1"
+        },
+        "date": 1795095587033,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.0471840000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.732968,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.747607,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.5012459999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.200411,
             "unit": "ms"
           }
         ]
