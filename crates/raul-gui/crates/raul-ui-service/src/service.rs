@@ -936,11 +936,16 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn sort(&self, r: &SortRequest) -> Result<SortReport, ServiceError> {
-        let (out, args) = self.with_profile(Action::Sort, &r.instance, || r.args())?;
-        match out.code {
-            Some(0) => Self::parse(Action::Sort, &out, &args),
-            _ => Err(failure(&out, "sort", &args)),
-        }
+        let request = nvmod_api::loadorder::SortRequest {
+            instance: PathBuf::from(&r.instance),
+            profile: r.profile.clone(),
+            masterlist: PathBuf::from(&r.masterlist),
+            apply: r.apply,
+        };
+        let out = self.direct_with_profile(Action::Sort, &r.instance, || {
+            crate::direct::sort(&request, &crate::direct::MasterlistSource::File)
+        })?;
+        Self::direct_answer(&out, "sort")
     }
 
     fn verify(&self, r: &VerifyRequest) -> Result<VerifyReport, ServiceError> {

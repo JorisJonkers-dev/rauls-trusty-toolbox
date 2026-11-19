@@ -13,6 +13,7 @@ nvmod-api = { workspace = true }
 nvmod-backup = { workspace = true }
 nvmod-core = { workspace = true }
 nvmod-instance = { workspace = true }
+nvmod-tools = { workspace = true }
 raul-core = { workspace = true }
 raul-cli = { workspace = true }
 raul-ui-model = { workspace = true }
