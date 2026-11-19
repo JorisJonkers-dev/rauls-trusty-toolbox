@@ -98,7 +98,7 @@ jobs:
 
       - name: Release build without the engine, then with it
         env:
-          WARM: ${{ steps.cache.outputs.cache-hit == 'true' && 'warm (cache restored)' || 'cold (no cache)' }}
+          WARM: ${{ steps.cache.outputs.cache-hit == 'true' && 'warm (exact cache hit)' || 'cold or partly warm (no exact cache hit)' }}
         run: |
           set -euo pipefail
           table="$RUNNER_TEMP/build-time.md"
@@ -109,6 +109,8 @@ jobs:
             echo "| Build | Wall clock | Peak memory of the machine | Exit |"
             echo "|---|---|---|---|"
           } >"$table"
+          # Downloads are not part of either build's time.
+          cargo fetch --locked
           ../../scripts/measure-build "without the engine" "$table" -- \
             env CARGO_TARGET_DIR=target-base cargo build --release --locked -p raul-gui
           ../../scripts/measure-build "with the engine" "$table" -- \
