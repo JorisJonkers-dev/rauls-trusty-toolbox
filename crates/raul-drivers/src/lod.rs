@@ -55,6 +55,9 @@ pub struct Settings {
     pub threads: Option<u32>,
     /// An advisory memory budget in MiB.
     pub memory_mib: Option<u64>,
+    /// Let the output folder lie inside a git working tree, which is refused otherwise (raul and lodwright both
+    /// check). Not a LOD generation setting: it changes where output may go, not what is built.
+    pub allow_in_repo: bool,
 }
 
 /// Which objects enter object LOD (lodwright's inclusion rules).
@@ -127,6 +130,9 @@ pub struct Plan {
     pub output_dir: PathBuf,
     /// The request document.
     pub request: Value,
+    /// The output folder may lie inside a git working tree: the Profile's settings or the run allow it. lodwright is
+    /// told so, since it checks too; it is not part of the request.
+    pub allow_in_repo: bool,
 }
 
 /// Build the request for `profile` of `instance`: the active plugins in Load order, the Staging tree's `Data`
@@ -134,12 +140,21 @@ pub struct Plan {
 /// is `<instance>/.raul/lod/out`, where the manifest stays between runs. The request is checked against the
 /// `lodwright-request` v1 schema before it is returned.
 ///
+/// An output folder inside a git working tree is refused unless `allow_in_repo` (this run only) or the Profile's
+/// `allow_in_repo` key allows it.
+///
 /// # Errors
 ///
-/// Why no request can be built: the Profile has no Load order or no Staging tree, its settings cannot be read, or
-/// the request does not pass the schema.
-pub fn plan(instance: &NvmodInstance, profile: &str, worlds: &[String]) -> Result<Plan, String> {
+/// Why no request can be built: the Profile has no Load order or no Staging tree, its settings cannot be read, the
+/// output folder is refused, or the request does not pass the schema.
+pub fn plan(
+    instance: &NvmodInstance,
+    profile: &str,
+    worlds: &[String],
+    allow_in_repo: bool,
+) -> Result<Plan, String> {
     let settings = Settings::load(instance, profile)?;
+    let allow_in_repo = allow_in_repo || settings.allow_in_repo;
     let slots =
         nvmod_loadorder::read_slots(&instance.profile_dir(profile)).map_err(|e| describe(&e))?;
     let plugins: Vec<String> = slots
@@ -162,9 +177,11 @@ pub fn plan(instance: &NvmodInstance, profile: &str, worlds: &[String]) -> Resul
             data_folder.display()
         ));
     }
-    if let Some(repo) = output_dir.ancestors().find(|a| a.join(".git").exists()) {
+    if !allow_in_repo && let Some(repo) = output_dir.ancestors().find(|a| a.join(".git").exists()) {
         return Err(format!(
-            "the output folder {} lies inside the git working tree {}; lodwright refuses that",
+            "the output folder {} lies inside the git working tree {}, where LOD is not written unless it is \
+             allowed: allow it for this Profile with `allow_in_repo = true` in its {SETTINGS_FILE}, or for one run \
+             with --allow-in-repo",
             output_dir.display(),
             repo.display()
         ));
@@ -207,6 +224,7 @@ pub fn plan(instance: &NvmodInstance, profile: &str, worlds: &[String]) -> Resul
         data_folder,
         output_dir,
         request,
+        allow_in_repo,
     })
 }
 
@@ -326,6 +344,14 @@ mod tests {
         assert_eq!(s, Settings::default());
         assert!(s.output.terrain && s.output.objects && s.output.trees);
         assert!(toml::from_str::<Settings>("[output]\nsky = true\n").is_err());
+    }
+
+    #[test]
+    fn output_in_a_git_folder_is_allowed_only_when_the_settings_say_so() {
+        assert!(!Settings::default().allow_in_repo);
+        let s: Settings = toml::from_str("allow_in_repo = true\n").unwrap();
+        assert!(s.allow_in_repo);
+        assert_eq!(s.output, Output::default(), "the key changes nothing else");
     }
 }
 

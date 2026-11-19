@@ -103,11 +103,8 @@ fn say(
 fn fail(json: bool, what: &str, e: &flow::Error, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let _ = writeln!(err, "raul update {what}: {e}");
     if json {
-        let _ = writeln!(
-            out,
-            "{}",
-            serde_json::json!({ "ok": false, "error": e.to_string() })
-        );
+        let doc = serde_json::json!({ "ok": false, "error": e.to_string(), "detail": e.detail() });
+        let _ = writeln!(out, "{doc}");
     }
     match e {
         flow::Error::NotHere(_) | flow::Error::NothingStaged => crate::REFUSED,

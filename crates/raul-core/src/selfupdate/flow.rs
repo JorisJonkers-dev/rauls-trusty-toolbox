@@ -56,12 +56,24 @@ impl std::fmt::Display for Error {
             Self::Install(e) => write!(f, "{e}"),
             Self::Swap(e) => write!(f, "{e}"),
             Self::NothingStaged => f.write_str("There is no update downloaded yet."),
-            Self::Io(why) => write!(f, "The update could not be prepared: {why}"),
+            Self::Io(_) => f.write_str("The update could not be prepared."),
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+impl Error {
+    /// The technical text, with paths, for the details a person can copy. [`std::fmt::Display`] holds none.
+    #[must_use]
+    pub fn detail(&self) -> String {
+        match self {
+            Self::Io(why) => why.clone(),
+            Self::Unpack(e) => e.detail(),
+            other => other.to_string(),
+        }
+    }
+}
 
 fn io(path: &Path, e: &std::io::Error) -> Error {
     Error::Io(format!("{}: {e}", path.display()))

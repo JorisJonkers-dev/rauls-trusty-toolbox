@@ -15,8 +15,9 @@ use raul_drivers::lod::{self, LodRequest};
 
 use crate::printer::Printer;
 
-const USAGE_LINE: &str = "lod takes `plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]` or \
-     `generate [--instance <dir>] [--profile <name>] [--world <name>]... [--dry-run] [--timeout-secs <n>] [--json]`";
+const USAGE_LINE: &str = "lod takes `plan [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] \
+     [--json]` or `generate [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] [--dry-run] \
+     [--timeout-secs <n>] [--json]`";
 
 struct Flags {
     instance: Option<PathBuf>,
@@ -24,6 +25,7 @@ struct Flags {
     worlds: Vec<String>,
     json: bool,
     dry_run: bool,
+    allow_in_repo: bool,
     timeout: Duration,
 }
 
@@ -41,6 +43,7 @@ fn parse(args: &[String], generate: bool) -> Result<Flags, String> {
         worlds: Vec::new(),
         json: false,
         dry_run: false,
+        allow_in_repo: false,
         timeout: DEFAULT_TIMEOUT,
     };
     let mut rest = args.iter();
@@ -55,6 +58,7 @@ fn parse(args: &[String], generate: bool) -> Result<Flags, String> {
             "--instance" => f.instance = Some(PathBuf::from(value()?)),
             "--profile" => f.profile = Some(value()?),
             "--world" => f.worlds.push(value()?),
+            "--allow-in-repo" => f.allow_in_repo = true,
             "--dry-run" if generate => f.dry_run = true,
             "--timeout-secs" if generate => {
                 let secs = value()?
@@ -113,7 +117,7 @@ fn plan(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Ok(p) => p,
         Err(e) => return refused(err, &e.to_string()),
     };
-    let plan = match lod::plan(&instance, &profile, &flags.worlds) {
+    let plan = match lod::plan(&instance, &profile, &flags.worlds, flags.allow_in_repo) {
         Ok(p) => p,
         Err(why) => return refused(err, &why),
     };
@@ -160,6 +164,7 @@ fn generate(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         profile: flags.profile,
         worlds: flags.worlds,
         dry_run: flags.dry_run,
+        allow_in_repo: flags.allow_in_repo,
         timeout: flags.timeout,
     };
     let json = flags.json;
