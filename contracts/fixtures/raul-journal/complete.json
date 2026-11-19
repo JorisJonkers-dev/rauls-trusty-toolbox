@@ -5,5 +5,6 @@
   "taken_over": null,
   "plan": ["init", "profile", "stage", "sort", "verify"],
   "finished": ["init", "profile", "stage", "sort", "verify"],
+  "request": null,
   "complete": true
 }

@@ -81,6 +81,11 @@ pub struct JournalDoc {
     /// Whether every step of the plan finished.
     #[serde(default)]
     pub complete: bool,
+    /// The setup request the run was started with, as `raul-core` writes it (its `done` list left out), so a
+    /// resume needs the Instance and nothing else. `null` until a run has started, and when an `nvmod setup` state
+    /// was taken over whose command line could not be read.
+    #[serde(default)]
+    pub request: Option<serde_json::Value>,
 }
 
 /// The JSON Schema of [`JournalDoc`], as `contracts/raul-journal.v1.json` holds it.
@@ -194,6 +199,7 @@ impl Journal {
             plan: Vec::new(),
             finished: Vec::new(),
             complete: false,
+            request: None,
         }
     }
 
@@ -262,6 +268,7 @@ impl Journal {
         });
         journal.doc.plan = old.plan;
         journal.doc.finished = old.finished;
+        journal.doc.request = old.request;
         // The journal first: a crash between the two writes leaves a journal and no copy, never the reverse (a copy
         // with no journal would stop the takeover for good).
         journal.save()?;
@@ -306,6 +313,34 @@ impl Journal {
             }
         }
         listed
+    }
+
+    /// The setup request the journal holds, `None` when it holds none.
+    ///
+    /// # Errors
+    /// [`ErrorKind::Unreadable`] when what the file holds is not a setup request.
+    pub fn request(&self) -> Result<Option<Request>, Error> {
+        self.doc
+            .request
+            .as_ref()
+            .map(|value| {
+                serde_json::from_value(value.clone()).map_err(|e| {
+                    Error::new(
+                        ErrorKind::Unreadable,
+                        format!(
+                            "{}: the setup request in it cannot be read: {e}",
+                            Self::file(&self.instance).display()
+                        ),
+                    )
+                })
+            })
+            .transpose()
+    }
+
+    /// Remember the request of the run in the document (without its `done` list). It is written with the next step
+    /// that finishes.
+    pub fn set_request(&mut self, request: &Request) {
+        self.doc.request = serde_json::to_value(stored(request)).ok();
     }
 
     /// Remember the plan of the run in the document. It is written with the next step that finishes.
@@ -428,6 +463,18 @@ impl Journal {
     }
 }
 
+/// The request as the journal keeps it: without its list of finished steps, and without the programs the engine step
+/// runs (`cargo`, `gh`, `curl`), so a resume never runs a program a file names; it uses the default ones.
+fn stored(request: &Request) -> Request {
+    let defaults = crate::setup::EngineOptions::default();
+    let mut kept = request.clone();
+    kept.done.clear();
+    kept.engine_options.cargo = None;
+    kept.engine_options.gh = defaults.gh;
+    kept.engine_options.curl = defaults.curl;
+    kept
+}
+
 /// The version number a file names, for the name of the copy kept before a migration.
 fn migrated_from(text: &str) -> u64 {
     serde_json::from_str::<serde_json::Value>(text)
@@ -496,6 +543,7 @@ fn migrate_v0(value: &serde_json::Value) -> Result<JournalDoc, String> {
 
 /// What a takeover reads from `nvmod`'s setup state.
 struct NvmodState {
+    request: Option<serde_json::Value>,
     version: String,
     plan: Vec<String>,
     finished: Vec<String>,
@@ -515,6 +563,8 @@ fn nvmod_state(file: &Path, text: &str) -> Result<Option<NvmodState>, Error> {
         completed: Vec<Entry>,
         #[serde(default)]
         complete: bool,
+        #[serde(default)]
+        args: Vec<String>,
     }
     let refused = |why: String| {
         Error::new(
@@ -552,7 +602,13 @@ fn nvmod_state(file: &Path, text: &str) -> Result<Option<NvmodState>, Error> {
             e.step
         }
     };
+    // The command line the run was started with is read as `raul setup` reads one; a line that cannot be read leaves
+    // the journal without a request, and a resume says so.
+    let request = crate::setup::parse_words(&state.args)
+        .ok()
+        .and_then(|parsed| serde_json::to_value(stored(&parsed.request)).ok());
     Ok(Some(NvmodState {
+        request,
         version: state.nvmod_version,
         plan: state.plan.into_iter().map(id).collect(),
         finished: state.completed.into_iter().map(id).collect(),
@@ -679,6 +735,7 @@ pub fn run(
 ) -> Result<Outcome, RunError> {
     let mut journal = Journal::open(&request.instance).map_err(RunError::Journal)?;
     journal.check_plan(request).map_err(RunError::Journal)?;
+    journal.set_request(request);
     let resumed = Request {
         done: journal.resume(request),
         ..request.clone()

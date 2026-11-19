@@ -61,12 +61,18 @@ impl Reply {
     }
 }
 
+/// What a streaming job is: it runs with a sink for the lines of its stream and a cancel token, and ends with its
+/// exit code and, when it did not end well, the reason in one plain line.
+type LinesBody = Box<dyn FnOnce(&mut dyn FnMut(&str), &CancelToken) -> (u8, Option<String>) + Send>;
+
 /// One typed job of a Component, ready to run in process.
 pub struct DirectJob {
     /// The Instance whose lock is held while the job runs, and the name the lock file records; `None` for a job
     /// that does not write.
     lock: Option<(PathBuf, &'static str)>,
     body: Body,
+    /// The job as a stream of lines, when it is one (see [`DirectJob::streaming`]); `body` is not used then.
+    lines: Option<LinesBody>,
     /// Whether the job ends as a usage error (a request the command line would not take), exit class 5.
     usage: bool,
     /// Whether the job writes though it holds no lock, because the Instance it makes does not exist yet.
@@ -94,6 +100,7 @@ impl DirectJob {
         Self {
             lock: Some((instance.into(), name)),
             body: Self::boxed(run),
+            lines: None,
             usage: false,
             creating: false,
             snapshot: None,
@@ -109,6 +116,7 @@ impl DirectJob {
         Self {
             lock: None,
             body: Self::boxed(run),
+            lines: None,
             usage: false,
             creating: false,
             snapshot: None,
@@ -130,6 +138,7 @@ impl DirectJob {
         Self {
             lock: Some((instance.into(), name)),
             body: Self::boxed_as(run, render),
+            lines: None,
             usage: false,
             creating: false,
             snapshot: None,
@@ -145,6 +154,7 @@ impl DirectJob {
         Self {
             lock: None,
             body: Self::boxed_as(run, render),
+            lines: None,
             usage: false,
             creating: false,
             snapshot: None,
@@ -160,6 +170,7 @@ impl DirectJob {
         Self {
             lock: None,
             body: Self::boxed_as(run, render),
+            lines: None,
             usage: false,
             creating: true,
             snapshot: None,
@@ -190,6 +201,29 @@ impl DirectJob {
         })
     }
 
+    /// A job that reports a stream of event lines, as a command line with `--json` does: each line is read as the job
+    /// table reads a command's output (the setup stream), and the whole stream is the job's standard output. It
+    /// runs holding the Instance lock when `lock` names an Instance and a name for it.
+    pub fn streaming<F>(lock: Option<(PathBuf, &'static str)>, run: F) -> Self
+    where
+        F: FnOnce(&mut dyn FnMut(&str), &CancelToken) -> (u8, Option<String>) + Send + 'static,
+    {
+        Self {
+            lock,
+            body: Box::new(|_, _| {
+                Err(JobError::new(
+                    ErrorKind::Internal,
+                    "direct.streaming",
+                    "a streaming job was run as a typed one",
+                ))
+            }),
+            lines: Some(Box::new(run)),
+            usage: false,
+            creating: false,
+            snapshot: None,
+        }
+    }
+
     /// A job that does nothing but end as a usage error with `summary`, for a request the command line would refuse
     /// before running (an unknown severity, say).
     pub fn usage(summary: impl Into<String>) -> Self {
@@ -199,6 +233,7 @@ impl DirectJob {
             body: Box::new(move |_, _| {
                 Err(JobError::new(ErrorKind::Refused, "direct.usage", summary))
             }),
+            lines: None,
             usage: true,
             creating: false,
             snapshot: None,
@@ -553,6 +588,22 @@ pub fn rollback(instance: &Path) -> DirectJob {
     })
 }
 
+/// The setup job of `raul-core` (`raul_core::setup::execute`) as a streaming job: the first run, the dry run, the
+/// resume or the restart of the setup `mode` names, each finished step written to the Instance's journal. Its lines
+/// are the events the setup wizard reads. A resume runs holding the Instance lock; a first run has no Instance yet,
+/// and a restart removes the folder, so neither takes it.
+pub fn setup(mode: raul_core::setup::Mode) -> DirectJob {
+    let lock = match &mode {
+        raul_core::setup::Mode::Resume { instance } => Some((instance.clone(), "setup")),
+        _ => None,
+    };
+    DirectJob::streaming(lock, move |sink, cancel| {
+        let ended =
+            raul_core::setup::execute(&mode, &mut |line| sink(&line.json.to_string()), cancel);
+        (ended.code, ended.note)
+    })
+}
+
 /// `nvmod_api::target::set`: sets what the Instance at `request.instance` runs on. The command has no `--json`, so
 /// the document is the outcome only.
 pub fn target(request: &nvmod_api::target::SetRequest) -> DirectJob {
@@ -585,6 +636,8 @@ fn one_line(summary: &str) -> String {
 /// How a direct job ended, before it is told as events and an [`Output`].
 enum End {
     Done(Reply),
+    /// A streaming job: its exit code, its reason when it did not end well, and the lines it reported.
+    Streamed(u8, Option<String>, Vec<String>),
     Stopped,
     Failed(JobError),
 }
@@ -618,6 +671,52 @@ fn execute(spec: &JobSpec, body: Body, feed: &mut Feed<'_>, cancel: &CancelHandl
         Ok(Ok(Ok(Outcome::Done(value)))) => End::Done(value),
         Ok(Ok(Ok(Outcome::Cancelled))) => End::Stopped,
         Ok(Ok(Err(error))) => End::Failed(error),
+        Ok(Err(_)) | Err(_) => End::Failed(JobError::new(
+            ErrorKind::Internal,
+            spec.action.command(),
+            PANICKED,
+        )),
+    }
+}
+
+/// [`execute`] for a streaming job: its lines go to the feed as they are reported.
+fn execute_lines(
+    spec: &JobSpec,
+    body: LinesBody,
+    feed: &mut Feed<'_>,
+    cancel: &CancelHandle,
+) -> End {
+    let token = CancelToken::new();
+    let (tx, rx) = mpsc::channel::<String>();
+    let joined = std::thread::scope(|scope| {
+        let worker_token = token.clone();
+        let worker = scope.spawn(move || {
+            let mut lines = Vec::new();
+            let ended = catch_unwind(AssertUnwindSafe(|| {
+                body(
+                    &mut |line: &str| {
+                        lines.push(line.to_owned());
+                        let _ = tx.send(line.to_owned());
+                    },
+                    &worker_token,
+                )
+            }));
+            ended.map(|(code, note)| (code, note, lines))
+        });
+        loop {
+            if cancel.is_requested() {
+                token.cancel();
+            }
+            match rx.recv_timeout(TICK) {
+                Ok(line) => feed.stream_line(&line),
+                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+            }
+        }
+        worker.join()
+    });
+    match joined {
+        Ok(Ok((code, note, lines))) => End::Streamed(code, note, lines),
         Ok(Err(_)) | Err(_) => End::Failed(JobError::new(
             ErrorKind::Internal,
             spec.action.command(),
@@ -721,7 +820,10 @@ pub fn run_direct(
         .zip(job.instance())
         .and_then(|(profile, root)| AutoSnapshot::take(root, profile.profile.as_deref()));
     feed.start();
-    let end = execute(spec, job.body, &mut feed, cancel);
+    let end = match job.lines {
+        Some(lines) => execute_lines(spec, lines, &mut feed, cancel),
+        None => execute(spec, job.body, &mut feed, cancel),
+    };
     if let Some(snapshot) = snapshot
         && !matches!(&end, End::Done(reply) if reply.exit == 0)
     {
@@ -748,6 +850,31 @@ fn finish(
     let label = spec.action.command();
     feed.start();
     let (line, outcome, class, output) = match end {
+        End::Streamed(code, note, lines) => {
+            let class = ExitClass::from_code(i64::from(*code));
+            let output = Output {
+                code: Some(i64::from(*code)),
+                stdout: lines.iter().fold(String::new(), |mut all, l| {
+                    all.push_str(l);
+                    all.push('\n');
+                    all
+                }),
+                stderr: note
+                    .as_deref()
+                    .map_or_default(|n| format!("{}\n", one_line(n))),
+            };
+            // The stream told its own end (its `finished` event): the job table has it already.
+            if feed.finished {
+                return output;
+            }
+            (
+                note.as_deref()
+                    .map_or_else(|| format!("{label} finished"), one_line),
+                outcome_of(class),
+                class,
+                output,
+            )
+        }
         End::Done(reply) => {
             let class = ExitClass::from_code(i64::from(reply.exit));
             (

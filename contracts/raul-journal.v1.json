@@ -51,6 +51,10 @@
       "description": "The version of `raul` that last wrote the file.",
       "type": "string"
     },
+    "request": {
+      "default": null,
+      "description": "The setup request the run was started with, as `raul-core` writes it (its `done` list left out), so a\nresume needs the Instance and nothing else. `null` until a run has started, and when an `nvmod setup` state\nwas taken over whose command line could not be read."
+    },
     "schema_version": {
       "const": 1,
       "description": "The document version; 1.",
@@ -77,6 +81,7 @@
     "finished",
     "plan",
     "raul_version",
+    "request",
     "schema_version",
     "taken_over"
   ],

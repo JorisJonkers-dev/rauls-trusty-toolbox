@@ -3,7 +3,9 @@
 //! `nvmod` command line (in process, or as a script standing in for it). No game data is used.
 #![cfg(unix)]
 
-use nvmod_testkit::{BaseBuilder, TempDir, ZipBuilder, write_file, write_script};
+use nvmod_testkit::{
+    BaseBuilder, PeBuilder, PluginBuilder, TempDir, ZipBuilder, write_file, write_script,
+};
 use raul_ui_model::error::ExitClass;
 use raul_ui_model::job::{JobId, JobState, JobTable, Outcome};
 use raul_ui_model::mods::{ModRow, ModStep, ModsScreen};
@@ -240,9 +242,53 @@ fn a_typed_setup_request_runs_as_a_dry_run_and_a_resume_is_refused_without_a_sta
         .view_error();
     assert_eq!(e.exit, ExitClass::Refused);
     assert!(e.what.contains("no unfinished setup"), "{}", e.what);
+    assert!(
+        e.repro.is_none(),
+        "the setup runs in process: there is no command line to repeat"
+    );
+}
+
+/// An executor that counts the commands it is asked to run (and runs none).
+struct CountingExec(std::sync::Arc<std::sync::atomic::AtomicUsize>);
+
+impl Exec for CountingExec {
+    fn run(&self, _args: &[String]) -> Result<Output, String> {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Err("no command may be run".to_owned())
+    }
+}
+
+/// The setup wizard's request runs the setup job in process: nothing is started and no command is run.
+#[test]
+fn a_typed_setup_request_starts_no_process_and_runs_no_command() {
+    let rig = Rig::new();
+    let masterlist = rig.work.path().join("masterlist.yaml");
+    std::fs::write(&masterlist, "globals: []\nplugins: []\n").unwrap();
+    let target = rig.work.path().join("new-instance");
+    write_file(rig.base.path(), "nvse_1_4.dll", &PeBuilder::dll().build());
+    write_file(
+        rig.base.path(),
+        "Data/FalloutNV.esm",
+        &PluginBuilder::master().build(),
+    );
+    let ran = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let svc = CliService::new(CountingExec(std::sync::Arc::clone(&ran)));
+    let mut request = SetupRequest::fresh(&s(&target), &s(rig.base.path()), &s(&masterlist));
+    request.skip_nv_rs = true;
+    let report = svc.setup(&request).unwrap();
+    assert!(!report.dry_run && report.steps.iter().any(|st| st.name == "verify"));
+    assert!(
+        target.join("nvmod-instance.json").is_file(),
+        "the Instance was made"
+    );
+    assert!(
+        target.join(".raul/setup-journal.json").is_file(),
+        "each step is in the journal"
+    );
     assert_eq!(
-        e.repro.unwrap(),
-        format!("raul setup --resume --instance {} --json", s(&target))
+        ran.load(std::sync::atomic::Ordering::SeqCst),
+        0,
+        "no command was run"
     );
 }
 
