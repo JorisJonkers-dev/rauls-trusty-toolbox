@@ -456,10 +456,10 @@ mod tests {
     #[test]
     fn a_repeated_name_even_in_another_case_is_refused() {
         let t = TempDir::new("extract-dup");
-        for (a, b) in [("raul", "raul"), ("raul", "RAUL")] {
+        for (i, (a, b)) in [("raul", "raul"), ("raul", "RAUL")].into_iter().enumerate() {
             let tar = gz(&TarBuilder::new().file(a, b"1").file(b, b"2").bytes());
             let p = write(&t, "a.tar.gz", &tar);
-            let r = extract_tar_gz(&p, &t.path().join(format!("n{b}")), 0, Limits::default());
+            let r = extract_tar_gz(&p, &t.path().join(format!("n{i}")), 0, Limits::default());
             assert!(matches!(r, Err(Error::Unsafe(_))), "{a} {b}: {r:?}");
         }
     }
