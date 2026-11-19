@@ -4,7 +4,7 @@
 # umbrella's, plus the egui shell when it is started with no arguments (ADR-0004, ADR-0012).
 [workspace]
 resolver = "3"
-members = [".", "crates/raul-ui-model", "crates/raul-ui-service"]
+members = [".", "crates/raul-engine", "crates/raul-ui-model", "crates/raul-ui-service"]
 
 [package]
 name = "raul-gui"
@@ -31,6 +31,12 @@ raul-ui-model = { workspace = true }
 raul-ui-service = { workspace = true }
 eframe = { workspace = true }
 serde_json = { workspace = true }
+raul-engine = { workspace = true, optional = true }
+
+[features]
+default = []
+# The engine's crates linked in process (ADR-0016): on in release builds, off in the fast loops and workspace-wide CI.
+engine = ["dep:raul-engine", "raul-engine/engine"]
 
 [dev-dependencies]
 nvmod-api = { workspace = true }
@@ -61,6 +67,10 @@ pedantic = { level = "warn", priority = -1 }
 [workspace.dependencies]
 raul-ui-model = { path = "crates/raul-ui-model" }
 raul-ui-service = { path = "crates/raul-ui-service" }
+raul-engine = { path = "crates/raul-engine" }
+# The engine's crates, by path through the submodule (ADR-0017): the pin is the submodule pointer and the lock file.
+fork-api = { path = "../../components/nv-rs/crates/fork-api" }
+fork-play = { path = "../../components/nv-rs/crates/fork-play" }
 raul-cli = { path = "../raul-cli" }
 raul-runner = { path = "../raul-runner" }
 nvmod-api = { path = "../../components/nvmod-rs/crates/nvmod-api" }
@@ -76,3 +86,16 @@ serde_json = "=1.0.154"
 eframe = { version = "=0.37.0", default-features = false, features = ["accesskit", "default_fonts", "glow", "wayland", "x11"] }
 # Headless page tests; snapshots render through wgpu, on a software adapter in CI.
 egui_kittest = { version = "=0.37.0", features = ["eframe", "snapshot", "wgpu"] }
+
+# Cargo reads [patch] and [profile] from the root of the build only, so the settings of nv-rs's root Cargo.toml that
+# the engine needs are repeated here; scripts/check-component-locks keeps them equal. wgpu-hal is nv-rs's vendored
+# 30.0.1 (Vulkan pipeline-library work); without it the engine would run on the published crate.
+[patch.crates-io]
+wgpu-hal = { path = "../../components/nv-rs/vendor/wgpu-hal" }
+
+# The translated core as one code-generation unit, as nv-rs builds its release.
+[profile.release.package.engine-core]
+codegen-units = 1
+
+[profile.release.package.engine-platform]
+codegen-units = 1

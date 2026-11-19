@@ -1,0 +1,21 @@
+[package]
+name = "raul-engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+description = "The Toolbox adapter of the engine's crates (nv-rs), linked in process behind the feature `engine`: typed jobs for the Installation check and, later, the play mode."
+
+[features]
+default = []
+# The engine's crates: fork-api (the typed facade) and fork-play (the play entry). Off in the fast loops, on in release builds.
+engine = ["dep:fork-api", "dep:fork-play"]
+
+[dependencies]
+fork-api = { workspace = true, optional = true }
+fork-play = { workspace = true, optional = true }
+
+[lints]
+workspace = true
