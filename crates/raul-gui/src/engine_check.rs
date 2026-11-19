@@ -56,8 +56,7 @@ mod tests {
     use super::*;
 
     /// What the engine says on a refusal: its program, its flag, an environment variable and a user path.
-    const RAW: &str =
-        "nv-viewer --check: no FalloutNV.exe in /home/someone/Games/NV (set NV_CODE_PAGE)";
+    const RAW: &str = "nv-viewer --check: no FalloutNV.exe in /games/nv (set NV_CODE_PAGE)";
 
     fn shown(o: &CheckOutcome) -> String {
         match o {
