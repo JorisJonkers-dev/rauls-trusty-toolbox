@@ -172,10 +172,51 @@ fn a_missing_masterlist_is_a_refusal_and_a_held_lock_refuses_an_apply() {
 
 #[test]
 fn a_sort_without_an_instance_or_a_masterlist_source_is_a_usage_error() {
-    assert_eq!(direct_output("sort-preview", &[]).code, Some(5));
+    let none = direct_output("sort-preview", &[]);
+    assert_eq!(none.code, Some(5), "{none:?}");
+    assert!(
+        none.stderr.contains("sort: give --instance"),
+        "{}",
+        none.stderr
+    );
     let (inst, _) = staged();
     let out = direct_output("sort-preview", &["--instance", &s(&inst.root())]);
     assert_eq!(out.code, Some(5), "{out:?}");
+    assert!(
+        out.stderr.contains("sort: give --instance"),
+        "{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn an_apply_takes_an_automatic_snapshot_and_a_preview_does_not() {
+    let (inst, masterlist) = staged();
+    let mut request = SortRequest {
+        instance: s(&inst.root()),
+        masterlist,
+        ..SortRequest::default()
+    };
+    service().sort(&request).unwrap();
+    assert!(
+        !inst.root().join(".nvmod/backups").exists(),
+        "a preview takes no snapshot"
+    );
+    request.apply = true;
+    service().sort(&request).unwrap();
+    assert!(
+        inst.root().join(".nvmod/backups").is_dir(),
+        "an apply keeps the snapshot taken before it"
+    );
+}
+
+#[test]
+fn a_keep_order_sort_is_not_converted_and_stays_a_command_line() {
+    let rest: Vec<String> = ["--instance", "/i", "--masterlist", "/m", "--keep-order"]
+        .iter()
+        .map(|w| (*w).to_owned())
+        .collect();
+    assert!(direct::for_command("sort-apply", &rest).is_none());
 }
 
 #[test]

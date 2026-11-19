@@ -290,6 +290,9 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
         "verify" => Some(verify_request(rest).map_or_else(DirectJob::usage, |r| verify(&r))),
         "plugins-list" => Some(plugins_list(&plugins_list_request(rest))),
+        // `--keep-order` is nvmod's other sort job (`sort_apply::keep_order`), which no page starts: it stays a
+        // command line.
+        "sort-preview" | "sort-apply" if has_flag(rest, "--keep-order") => None,
         "sort-preview" | "sort-apply" => {
             Some(sort_request(rest).map_or_else(DirectJob::usage, |(r, source)| sort(&r, &source)))
         }
