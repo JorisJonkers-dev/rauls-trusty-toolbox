@@ -82,6 +82,26 @@ fn s(p: &Path) -> &str {
     p.to_str().unwrap()
 }
 
+/// `value` with the Instance folder written as `<instance>` and the separators after it as `/`, so a fixture is the
+/// same on every system.
+fn portable(value: Value, instance: &str) -> Value {
+    match value {
+        Value::String(s) => match s.strip_prefix(instance) {
+            Some(rest) => Value::String(format!("<instance>{}", rest.replace('\\', "/"))),
+            None => Value::String(s),
+        },
+        Value::Array(items) => {
+            Value::Array(items.into_iter().map(|v| portable(v, instance)).collect())
+        }
+        Value::Object(map) => Value::Object(
+            map.into_iter()
+                .map(|(k, v)| (k, portable(v, instance)))
+                .collect(),
+        ),
+        other => other,
+    }
+}
+
 fn digest(request: &Value) -> String {
     raul_drivers::lod::digest(request).unwrap()
 }
@@ -237,12 +257,7 @@ fn the_fixtures_are_what_the_command_prints() {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../contracts/fixtures/raul-lod-settings");
     let inst = f.instance().display().to_string();
-    let portable = |doc: &SettingsDoc| -> Value {
-        let text = serde_json::to_string_pretty(doc)
-            .unwrap()
-            .replace(&inst, "<instance>");
-        serde_json::from_str(&text).unwrap()
-    };
+    let as_fixture = |doc: &SettingsDoc| portable(serde_json::to_value(doc).unwrap(), &inst);
     std::fs::write(
         f.file(),
         "allow_in_repo = true\n\n[output]\ntrees = false\n",
@@ -258,7 +273,7 @@ fn the_fixtures_are_what_the_command_prints() {
     cases.push(("refused.json", f.settings(&["set", "threads", "0"]).1));
     for (name, doc) in cases {
         let path = dir.join(name);
-        let got = portable(&doc);
+        let got = as_fixture(&doc);
         if std::env::var_os("RAUL_BLESS_CONTRACTS").is_some() {
             std::fs::create_dir_all(&dir).unwrap();
             std::fs::write(
