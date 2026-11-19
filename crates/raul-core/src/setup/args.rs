@@ -237,6 +237,11 @@ mod tests {
         line.split_whitespace().map(str::to_owned).collect()
     }
 
+    /// The absolute form of `path` on this platform (`/i` is `D:\i` on Windows).
+    fn abs(path: &str) -> PathBuf {
+        std::path::absolute(path).unwrap()
+    }
+
     #[test]
     fn the_options_of_a_setup_make_a_typed_request() {
         let p = parse(&words(
@@ -245,16 +250,16 @@ mod tests {
         ))
         .unwrap();
         let r = &p.request;
-        assert_eq!(r.base, Path::new("/b"));
-        assert_eq!(r.instance, Path::new("/i"));
+        assert_eq!(r.base, abs("/b"));
+        assert_eq!(r.instance, abs("/i"));
         assert_eq!(r.profile.as_deref(), Some("P"));
         assert_eq!(r.mods.len(), 2);
         let ttw = r.ttw.as_ref().unwrap();
-        assert_eq!(ttw.fallout3, Path::new("/f3"));
-        assert_eq!(ttw.package.as_deref(), Some(Path::new("/p.mpi")));
+        assert_eq!(ttw.fallout3, abs("/f3"));
+        assert_eq!(ttw.package, Some(abs("/p.mpi")));
         assert_eq!(ttw.timeout, Some(Duration::from_secs(60)));
         assert!(!r.engine && r.sort && r.copy && r.engine_options.release);
-        assert_eq!(r.engine_options.source.as_deref(), Some(Path::new("/nv")));
+        assert_eq!(r.engine_options.source, Some(abs("/nv")));
         assert!(p.json && p.dry_run && !p.keep_partial && p.has_run_options);
     }
 
@@ -277,7 +282,7 @@ mod tests {
             "--instance /i --extract-tool /x --installer /y --lock /l --store /s",
         ))
         .unwrap();
-        assert_eq!(p.request.instance, Path::new("/i"));
+        assert_eq!(p.request.instance, abs("/i"));
     }
 
     #[test]

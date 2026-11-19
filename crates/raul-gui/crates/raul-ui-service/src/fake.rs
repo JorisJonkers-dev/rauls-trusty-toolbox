@@ -631,8 +631,8 @@ mod tests {
             panic!("a first run");
         };
         assert!(dry_run && keep_partial && !request.engine);
-        assert_eq!(request.instance, std::path::Path::new("/i"));
-        assert_eq!(request.base, std::path::Path::new("/b"));
+        assert_eq!(request.instance, std::path::absolute("/i").unwrap());
+        assert_eq!(request.base, std::path::absolute("/b").unwrap());
         assert_eq!(request.mods.len(), 2);
         let spec = setup.job_spec(raul_ui_model::job::JobId(1));
         assert!(
@@ -646,7 +646,7 @@ mod tests {
         assert_eq!(
             resume.mode(),
             Mode::Resume {
-                instance: "/i".into()
+                instance: std::path::absolute("/i").unwrap()
             }
         );
         let spec = resume.job_spec(raul_ui_model::job::JobId(1));
@@ -654,14 +654,14 @@ mod tests {
         assert_eq!(
             SetupRequest::restart("/i", false).mode(),
             Mode::Restart {
-                instance: "/i".into(),
+                instance: std::path::absolute("/i").unwrap(),
                 confirmed: false
             }
         );
         assert_eq!(
             SetupRequest::restart("/i", true).mode(),
             Mode::Restart {
-                instance: "/i".into(),
+                instance: std::path::absolute("/i").unwrap(),
                 confirmed: true
             }
         );
