@@ -1,0 +1,120 @@
+# The engine's crates (nv-rs) are linked into the GUI workspace behind the feature `engine` (ADR-0016, ADR-0017).
+# This workflow runs only when that link can change: the nv-rs pin, the GUI manifest and lock, the adapter crate or
+# the checks below. It does two things.
+#   engine      the lock and manifest agree with nv-rs (scripts/check-component-locks), and the adapter crate is
+#               linted and tested with the feature on (the other workflows leave it off).
+#   build-time  a clean release build of `raul` without and with the engine, with wall-clock time and peak memory in
+#               the job summary. The Rust cache is keyed on the lock files, so the first run after a change is cold
+#               and a re-run is warm; the table says which it was.
+name: Engine
+
+on:
+  pull_request:
+    paths:
+      - "components/nv-rs/**"
+      - "crates/raul-gui/Cargo.toml"
+      - "crates/raul-gui/Cargo.lock"
+      - "crates/raul-gui/crates/raul-engine/**"
+      - "scripts/check-component-locks"
+      - "scripts/component-locks.allow"
+      - "scripts/measure-build"
+      - "rust-toolchain.toml"
+      - ".github/workflows/engine.yml"
+  push:
+    branches: [main]
+    paths:
+      - "components/nv-rs/**"
+      - "crates/raul-gui/Cargo.toml"
+      - "crates/raul-gui/Cargo.lock"
+      - "crates/raul-gui/crates/raul-engine/**"
+      - "scripts/check-component-locks"
+      - "scripts/component-locks.allow"
+      - "scripts/measure-build"
+      - "rust-toolchain.toml"
+      - ".github/workflows/engine.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: engine-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  engine:
+    name: Engine link
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: crates/raul-gui
+          prefix-key: engine-check
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
+
+      - name: The lock and manifest agree with nv-rs
+        run: |
+          scripts/check-component-locks --self-test
+          scripts/check-component-locks
+
+      - name: Lint with the engine
+        working-directory: crates/raul-gui
+        run: cargo clippy --locked -p raul-engine --features engine --all-targets -- -D warnings
+
+      - name: Tests with the engine
+        working-directory: crates/raul-gui
+        run: mise exec -- cargo nextest run --locked -p raul-engine --features engine
+
+  build-time:
+    name: Release build time
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: crates/raul-gui
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      # Two target folders so both builds are cached and both are clean on a cold run.
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        id: cache
+        with:
+          workspaces: |
+            crates/raul-gui -> target-base
+            crates/raul-gui -> target-engine
+          prefix-key: engine-time
+
+      - name: Release build without the engine, then with it
+        env:
+          WARM: ${{ steps.cache.outputs.cache-hit == 'true' && 'warm (cache restored)' || 'cold (no cache)' }}
+        run: |
+          set -euo pipefail
+          table="$RUNNER_TEMP/build-time.md"
+          trap 'cat "$table" >>"$GITHUB_STEP_SUMMARY"' EXIT
+          {
+            echo "### Release build of raul, $WARM"
+            echo
+            echo "| Build | Wall clock | Peak memory of the machine | Exit |"
+            echo "|---|---|---|---|"
+          } >"$table"
+          ../../scripts/measure-build "without the engine" "$table" -- \
+            env CARGO_TARGET_DIR=target-base cargo build --release --locked -p raul-gui
+          ../../scripts/measure-build "with the engine" "$table" -- \
+            env CARGO_TARGET_DIR=target-engine cargo build --release --locked -p raul-gui --features engine
+          {
+            echo
+            echo "Size of the binary: $(stat -c %s target-base/release/raul) bytes without, $(stat -c %s target-engine/release/raul) bytes with."
+          } >>"$table"
+          target-engine/release/raul --version

@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-only
+# Runs a command and appends one row to a Markdown table: wall-clock time and the peak memory used by the whole
+# machine while it ran (sampled every 2 s from /proc/meminfo, Linux only; the baseline of the idle machine is part of it).
+# Usage: scripts/measure-build <label> <table-file> -- <command> [args...]
+# The command's exit status is returned, and the row is written either way.
+set -uo pipefail
+label="$1"; table="$2"; shift 2
+[ "${1:-}" = "--" ] && shift
+[ "$#" -gt 0 ] || { echo "usage: $0 <label> <table-file> -- <command>..." >&2; exit 2; }
+peak="$(mktemp "${TMPDIR:-/tmp}/measure-build.XXXXXX")"
+trap 'rm -f "$peak"' EXIT
+
+sample() {
+  local max=0 total avail used
+  while :; do
+    total="$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)"; avail="$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo)"
+    used=$(( total - avail )); [ "$used" -gt "$max" ] && { max="$used"; echo "$max" >"$peak"; }
+    sleep 2
+  done
+}
+sample & sampler=$!
+
+start="$(date +%s)"
+"$@"; status=$?
+elapsed=$(( $(date +%s) - start ))
+kill "$sampler" 2>/dev/null; wait "$sampler" 2>/dev/null
+
+mib() { echo $(( ${1:-0} / 1024 )); }
+row="| $label | $(( elapsed / 60 )) min $(( elapsed % 60 )) s | $(mib "$(cat "$peak")") MiB | $status |"
+echo "$row"
+echo "$row" >>"$table"
+exit "$status"

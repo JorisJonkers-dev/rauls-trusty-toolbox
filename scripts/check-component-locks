@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-only
+"""Keep the GUI workspace's lock and manifest consistent with nv-rs, whose crates it links in process (ADR-0017).
+
+Checks, all against components/nv-rs at the pinned commit:
+  1. Families: the versions of windows, winit, ash, wgpu*, naga and raw-window-handle in the GUI lock are exactly
+     the versions nv-rs locks (no extra duplicate version of a big family).
+  2. Closure: every registry crate that fork-api or fork-play reaches in both locks is at a version both have, or
+     the difference is listed, with the reason, in scripts/component-locks.allow (and a listed one that has gone
+     is an error). Each lock resolves on its own (the 7-day cooldown, other consumers), so some drift is normal;
+     the file is where it is reviewed.
+  3. Settings that do not travel with a dependency: the [patch.crates-io] wgpu-hal path and the release profile
+     entries for engine-core and engine-platform equal those of nv-rs's root Cargo.toml.
+  4. The Rust toolchain channel equals nv-rs's.
+
+Usage: scripts/check-component-locks              check the repository
+       scripts/check-component-locks --self-test  check the checks on synthetic data
+"""
+import os
+import re
+import sys
+import tomllib
+
+FAMILY = re.compile(r"^(windows|winit|ash|wgpu(-.*)?|naga|raw-window-handle)$")
+ROOTS = ("fork-api", "fork-play")
+
+
+def versions(lock):
+    """name -> set of versions of the registry packages of a parsed Cargo.lock."""
+    out = {}
+    for pkg in lock["package"]:
+        if pkg.get("source", "").startswith("registry"):
+            out.setdefault(pkg["name"], set()).add(pkg["version"])
+    return out
+
+
+def closure(lock, roots=ROOTS):
+    """(name, version) of every registry package reachable from the root packages."""
+    by_name = {}
+    for pkg in lock["package"]:
+        by_name.setdefault(pkg["name"], []).append(pkg)
+    seen, todo = set(), [p for r in roots for p in by_name.get(r, [])]
+    while todo:
+        pkg = todo.pop()
+        key = (pkg["name"], pkg["version"])
+        if key in seen:
+            continue
+        seen.add(key)
+        for dep in pkg.get("dependencies", []):
+            parts = dep.split(" ")
+            cands = by_name.get(parts[0], [])
+            if len(parts) > 1:
+                cands = [c for c in cands if c["version"] == parts[1]]
+            todo.extend(cands)
+    names = {(p["name"], p["version"]) for p in lock["package"] if p.get("source", "").startswith("registry")}
+    return seen & names
+
+
+def check_families(gui, nv):
+    problems = []
+    for name in sorted(set(gui) & set(nv)):
+        if FAMILY.match(name) and gui[name] != nv[name]:
+            problems.append(f"family {name}: GUI lock {sorted(gui[name])}, nv-rs lock {sorted(nv[name])}")
+    return problems
+
+
+def by_name(pairs):
+    out = {}
+    for name, version in pairs:
+        out.setdefault(name, set()).add(version)
+    return out
+
+
+def drifts(gui_lock, nv_lock):
+    """The registry crates both closures reach at no common version, as "name gui-versions nv-versions"."""
+    gui, nv = by_name(closure(gui_lock)), by_name(closure(nv_lock))
+    return {f"{n} {','.join(sorted(gui[n]))} {','.join(sorted(nv[n]))}"
+            for n in gui if n in nv and not gui[n] & nv[n]}
+
+
+def check_closure(gui_lock, nv_lock, accepted):
+    """Drift must be listed in scripts/component-locks.allow, and a listed drift must still exist."""
+    found = drifts(gui_lock, nv_lock)
+    problems = [f"drift not accepted in scripts/component-locks.allow: {d}" for d in sorted(found - accepted)]
+    problems += [f"accepted drift no longer exists, remove it: {d}" for d in sorted(accepted - found)]
+    return problems
+
+
+def check_settings(gui_manifest, nv_manifest):
+    problems = []
+    nv_hal = nv_manifest.get("patch", {}).get("crates-io", {}).get("wgpu-hal", {}).get("path")
+    gui_hal = gui_manifest.get("patch", {}).get("crates-io", {}).get("wgpu-hal", {}).get("path")
+    if nv_hal is None:
+        problems.append("nv-rs has no [patch.crates-io] wgpu-hal: remove ours or update this check")
+    else:
+        want = os.path.normpath(os.path.join("../../components/nv-rs", nv_hal))
+        if gui_hal is None or os.path.normpath(gui_hal) != want:
+            problems.append(f"[patch.crates-io] wgpu-hal is {gui_hal!r} in crates/raul-gui, expected {want!r}")
+    for crate in ("engine-core", "engine-platform"):
+        nv = nv_manifest.get("profile", {}).get("release", {}).get("package", {}).get(crate)
+        gui = gui_manifest.get("profile", {}).get("release", {}).get("package", {}).get(crate)
+        if nv != gui:
+            problems.append(f"[profile.release.package.{crate}] is {gui!r} in crates/raul-gui, nv-rs has {nv!r}")
+    return problems
+
+
+def check_toolchain(ours, theirs):
+    a, b = ours["toolchain"]["channel"], theirs["toolchain"]["channel"]
+    return [] if a == b else [f"toolchain channel {a} here, {b} in nv-rs"]
+
+
+def load(path):
+    with open(path, "rb") as handle:
+        return tomllib.load(handle)
+
+
+def accepted(path):
+    """Lines "name gui-versions nv-versions  # why"."""
+    out = set()
+    with open(path, encoding="utf-8") as handle:
+        for line in handle:
+            line = line.split("#", 1)[0].strip()
+            if line:
+                out.add(" ".join(line.split()))
+    return out
+
+
+def run(root):
+    nv_dir = os.path.join(root, "components", "nv-rs")
+    gui_lock = load(os.path.join(root, "crates", "raul-gui", "Cargo.lock"))
+    nv_lock = load(os.path.join(nv_dir, "Cargo.lock"))
+    gui_v, nv_v = versions(gui_lock), versions(nv_lock)
+    problems = check_families(gui_v, nv_v)
+    problems += check_closure(gui_lock, nv_lock, accepted(os.path.join(root, "scripts", "component-locks.allow")))
+    problems += check_settings(load(os.path.join(root, "crates", "raul-gui", "Cargo.toml")),
+                               load(os.path.join(nv_dir, "Cargo.toml")))
+    problems += check_toolchain(load(os.path.join(root, "rust-toolchain.toml")),
+                                load(os.path.join(nv_dir, "rust-toolchain.toml")))
+    for problem in problems:
+        print(f"FAIL {problem}", file=sys.stderr)
+    if not problems:
+        print("ok   the GUI lock and manifest agree with nv-rs")
+    return 1 if problems else 0
+
+
+def self_test():
+    def pkg(name, version, deps=(), registry=True):
+        out = {"name": name, "version": version, "dependencies": list(deps)}
+        if registry:
+            out["source"] = "registry+https://github.com/rust-lang/crates.io-index"
+        return out
+
+    gui = {"package": [pkg("fork-play", "0.1.0", ["tokio", "wgpu"], False), pkg("tokio", "1.54.1"),
+                       pkg("wgpu", "30.0.1"), pkg("windows", "0.58.0"), pkg("windows", "0.62.2")]}
+    nv = {"package": [pkg("fork-play", "0.1.0", ["tokio", "wgpu"], False), pkg("tokio", "1.53.1"),
+                      pkg("wgpu", "30.0.1"), pkg("windows", "0.58.0"), pkg("windows", "0.62.2")]}
+    gv, nvv = versions(gui), versions(nv)
+    assert check_families(gv, nvv) == []
+    assert drifts(gui, nv) == {"tokio 1.54.1 1.53.1"}
+    assert check_closure(gui, nv, {"tokio 1.54.1 1.53.1"}) == []
+    assert len(check_closure(gui, nv, set())) == 1, "an unlisted drift must fail"
+    assert len(check_closure(gui, nv, {"tokio 1.54.1 1.53.1", "gone 1 2"})) == 1, "a stale entry must fail"
+    gui["package"].append(pkg("windows", "0.61.0"))
+    assert len(check_families(versions(gui), nvv)) == 1, "an extra windows version must fail"
+    patch = {"patch": {"crates-io": {"wgpu-hal": {"path": "vendor/wgpu-hal"}}},
+             "profile": {"release": {"package": {"engine-core": {"codegen-units": 1},
+                                                 "engine-platform": {"codegen-units": 1}}}}}
+    ours = {"patch": {"crates-io": {"wgpu-hal": {"path": "../../components/nv-rs/vendor/wgpu-hal"}}},
+            "profile": patch["profile"]}
+    assert check_settings(ours, patch) == []
+    ours["profile"] = {"release": {"package": {"engine-core": {"codegen-units": 16}}}}
+    assert len(check_settings(ours, patch)) == 2, "changed profile lines must fail"
+    assert check_toolchain({"toolchain": {"channel": "1"}}, {"toolchain": {"channel": "2"}})
+    print("self-test ok")
+    return 0
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] == ["--self-test"]:
+        sys.exit(self_test())
+    top = os.popen("git rev-parse --show-toplevel").read().strip()
+    sys.exit(run(top))
