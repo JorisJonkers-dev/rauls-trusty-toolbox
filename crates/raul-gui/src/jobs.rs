@@ -112,9 +112,11 @@ impl Jobs {
         raul_ui_service::direct::for_command(id, rest)
     }
 
-    /// Jobs that run the executable of this process, the release `raul`.
+    /// Jobs that run inside this process (ADR-0016): the actions with an nvmod job call it directly, and every other
+    /// command line is run by `raul`'s own entry point. No `raul` or nvmod process is started; the game, which the
+    /// launcher starts, is the only program a job leaves running.
     pub fn real() -> Jobs {
-        Jobs::new(Arc::new(raul_ui_service::ProcessExec::current()))
+        Jobs::new(Arc::new(raul_ui_service::InProcessExec::new()))
     }
 
     /// Asks `ctx` to repaint whenever a job reports.
