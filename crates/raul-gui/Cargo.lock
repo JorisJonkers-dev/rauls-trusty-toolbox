@@ -4579,6 +4579,8 @@ dependencies = [
  "nvmod-modinstall",
  "nvmod-testkit",
  "raul-cli",
+ "raul-core",
+ "raul-drivers",
  "raul-engine",
  "raul-ui-model",
  "raul-ui-service",

@@ -46,6 +46,10 @@ pub struct Settings {
     /// Check for a newer release when the GUI starts. Off unless the person turns it on.
     #[serde(default)]
     pub check_for_updates: bool,
+    /// The person said once, in the LOD settings view, that they understand the advanced LOD settings, which
+    /// unlocks them from then on. It is the app's own preference, not a LOD setting: Restore defaults keeps it.
+    #[serde(default)]
+    pub lod_advanced_understood: bool,
 }
 
 impl Settings {
@@ -81,6 +85,10 @@ impl Settings {
         table.insert(
             "check_for_updates".into(),
             toml::Value::Boolean(self.check_for_updates),
+        );
+        table.insert(
+            "lod_advanced_understood".into(),
+            toml::Value::Boolean(self.lod_advanced_understood),
         );
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir)?;
