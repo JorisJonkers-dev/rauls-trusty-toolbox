@@ -166,19 +166,63 @@ fn a_profile_that_cannot_give_a_request_is_refused() {
     assert_eq!(out.status.code(), Some(2), "no Instance named anywhere");
     assert_eq!(f.raul(&["lod", "plan", "--bogus"]).status.code(), Some(5));
     assert_eq!(f.raul(&["lod"]).status.code(), Some(5));
-    // lodwright refuses an output folder inside a git working tree, so the plan does too.
+}
+
+/// A Fixture whose Instance lies inside a git working tree (a `.git` folder above it).
+fn in_a_git_folder(label: &str) -> Fixture {
+    let f = Fixture::new(label);
     std::fs::create_dir_all(f.path(".git")).unwrap();
-    assert!(
-        f.raul(&["stage", "--instance", s(&f.instance()), "--copy"])
-            .status
-            .success()
-    );
+    f
+}
+
+fn allow_in_the_settings(f: &Fixture) {
+    std::fs::write(
+        f.instance().join("profiles/Default/raul-lod.toml"),
+        "allow_in_repo = true\n",
+    )
+    .unwrap();
+}
+
+#[test]
+fn an_output_folder_in_a_git_folder_is_refused_and_the_refusal_names_both_ways_to_allow_it() {
+    let f = in_a_git_folder("raul-lod-git-neither");
     let out = f.raul(&["lod", "plan", "--instance", s(&f.instance())]);
     assert_eq!(out.status.code(), Some(2));
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(err.contains("git working tree"), "{err}");
     assert!(
-        String::from_utf8_lossy(&out.stderr).contains("git working tree"),
-        "{out:?}"
+        err.contains("allow_in_repo = true") && err.contains("--allow-in-repo"),
+        "{err}"
     );
+}
+
+#[test]
+fn the_settings_key_allows_an_output_folder_in_a_git_folder() {
+    let f = in_a_git_folder("raul-lod-git-key");
+    allow_in_the_settings(&f);
+    let (code, request) = f.plan(&[]);
+    assert_eq!(code, Some(0));
+    raul_drivers::lod::check_request(&request).unwrap();
+    assert!(
+        request.get("allow_in_repo").is_none(),
+        "the switch is not part of lodwright's request: {request}"
+    );
+}
+
+#[test]
+fn the_flag_allows_an_output_folder_in_a_git_folder_for_that_run_and_writes_no_settings() {
+    let f = in_a_git_folder("raul-lod-git-flag");
+    let settings = f.instance().join("profiles/Default/raul-lod.toml");
+    assert_eq!(f.plan(&["--allow-in-repo"]).0, Some(0));
+    assert!(!settings.exists(), "the flag wrote the settings");
+    assert_eq!(f.plan(&[]).0, Some(2), "the flag lasted past its run");
+}
+
+#[test]
+fn the_settings_key_and_the_flag_together_allow_an_output_folder_in_a_git_folder() {
+    let f = in_a_git_folder("raul-lod-git-both");
+    allow_in_the_settings(&f);
+    assert_eq!(f.plan(&["--allow-in-repo"]).0, Some(0));
 }
 
 /// nvmod has its own `lod`, and writes a run log for every command it runs: `raul lod` leaves none.

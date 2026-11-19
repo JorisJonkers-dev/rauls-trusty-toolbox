@@ -132,6 +132,7 @@ impl Fixture {
             profile: None,
             worlds: Vec::new(),
             dry_run: false,
+            allow_in_repo: false,
             timeout: Duration::from_secs(600),
         };
         lod::generate_with_cancel(&req, cancel, emit)
@@ -425,6 +426,38 @@ fn a_stop_during_the_generation_adds_nothing_and_the_next_run_resumes() {
         "{lodwright}"
     );
     assert_eq!(mod_names(&f), [MOD]);
+}
+
+/// lodwright checks the git working tree itself too: these runs only succeed when `raul` passes the allowance on.
+#[test]
+fn a_profile_that_allows_a_git_folder_generates_its_lod_inside_one() {
+    let f = Fixture::new("raul-lodgen-git-key");
+    std::fs::create_dir_all(f.path(".git")).unwrap();
+    f.settings("allow_in_repo = true\n");
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["lodwright"]["code"], "generated", "{result}");
+}
+
+#[test]
+fn the_flag_lets_one_generation_write_inside_a_git_folder() {
+    let f = Fixture::new("raul-lodgen-git-flag");
+    std::fs::create_dir_all(f.path(".git")).unwrap();
+    let (code, result, _) = f.generate(&["--allow-in-repo"]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["lodwright"]["code"], "generated", "{result}");
+}
+
+#[test]
+fn a_generation_inside_a_git_folder_is_refused_before_anything_starts() {
+    let f = Fixture::new("raul-lodgen-git-neither");
+    std::fs::create_dir_all(f.path(".git")).unwrap();
+    let before = f.state();
+    let (code, result, finished) = f.generate(&[]);
+    assert_eq!(code, Some(2), "{result}");
+    assert_eq!(finished["code"], "plan_refused");
+    assert!(result["tool"].is_null(), "{result}");
+    assert_eq!(f.state(), before);
 }
 
 #[test]

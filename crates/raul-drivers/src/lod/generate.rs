@@ -37,6 +37,9 @@ pub struct LodRequest {
     pub worlds: Vec<String>,
     /// Build and check the request, run nothing, write nothing.
     pub dry_run: bool,
+    /// Let the output folder lie inside a git working tree for this run, whatever the Profile's settings say; it
+    /// writes nothing to them.
+    pub allow_in_repo: bool,
     /// How long the generation may run. It is checked between terrain blocks, worlds and steps: a step that is already
     /// running when the time is up finishes first.
     pub timeout: Duration,
@@ -281,7 +284,7 @@ pub fn generate_with_cancel(
         }
     };
     r.profile.clone_from(&profile);
-    let plan = match plan(&instance, &profile, &req.worlds) {
+    let plan = match plan(&instance, &profile, &req.worlds, req.allow_in_repo) {
         Ok(p) => p,
         Err(why) => return fail(r, Status::Refused, LodErrorCode::PlanRefused, None, why),
     };
@@ -305,7 +308,10 @@ pub fn generate_with_cancel(
         return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
     }
     let job = match typed(&plan.request) {
-        Ok(request) => GenerateRequest::new(request),
+        Ok(request) => GenerateRequest {
+            allow_in_repo: plan.allow_in_repo,
+            ..GenerateRequest::new(request)
+        },
         Err(why) => {
             let why = format!("the request does not read as a lodwright request: {why}");
             return fail(r, Status::Refused, LodErrorCode::PlanRefused, None, why);
