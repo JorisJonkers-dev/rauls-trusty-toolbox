@@ -22,7 +22,7 @@ fn forbidden() -> [String; 3] {
     [
         format!("{}Exec", "Process"),
         format!("{}::new", "Command"),
-        format!("process::{}", "Command"),
+        format!("{}{}", "process::", "Command"),
     ]
 }
 
