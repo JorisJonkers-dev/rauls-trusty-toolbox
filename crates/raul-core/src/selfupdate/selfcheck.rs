@@ -30,9 +30,15 @@ pub struct Report {
 }
 
 /// Run the checks for the install in `root`, as the program that runs there (`running` is its version).
-/// `expect` is the version the update was meant to bring, when the caller knows it.
+/// `expect` is the version the update was meant to bring, when the caller knows it. `require_list` is whether this
+/// install has a list of its files at all (a folder install does; an `AppImage` is one file and has none).
 #[must_use]
-pub fn run_in_process(root: &Path, running: &str, expect: Option<&str>) -> Report {
+pub fn run_in_process(
+    root: &Path,
+    running: &str,
+    expect: Option<&str>,
+    require_list: bool,
+) -> Report {
     let mut problems = Vec::new();
     if let Some(expected) = expect.filter(|e| *e != running) {
         problems.push(format!(
@@ -41,7 +47,10 @@ pub fn run_in_process(root: &Path, running: &str, expect: Option<&str>) -> Repor
     }
     match std::fs::read_to_string(root.join(INVENTORY)) {
         Ok(list) => listed_files_match(root, &list, &mut problems),
-        Err(_) => problems.push("The list of installed files is missing.".to_owned()),
+        Err(_) if require_list => {
+            problems.push("The list of installed files is missing.".to_owned());
+        }
+        Err(_) => {}
     }
     let engine = root.join("components").join("nv-rs");
     if engine
@@ -147,7 +156,7 @@ mod tests {
     #[test]
     fn a_sound_install_of_the_expected_version_passes() {
         let t = install();
-        let r = run_in_process(t.path(), "2.0.0", Some("2.0.0"));
+        let r = run_in_process(t.path(), "2.0.0", Some("2.0.0"), true);
         assert!(r.ok, "{r:?}");
         assert_eq!(r.version, "2.0.0");
     }
@@ -155,22 +164,22 @@ mod tests {
     #[test]
     fn the_wrong_version_a_changed_file_a_missing_file_and_a_missing_list_each_fail() {
         let t = install();
-        let r = run_in_process(t.path(), "1.0.0", Some("2.0.0"));
+        let r = run_in_process(t.path(), "1.0.0", Some("2.0.0"), true);
         assert!(
             !r.ok && r.problems[0].contains("not the version 2.0.0"),
             "{r:?}"
         );
         write_file(t.path(), "raul", b"tampered");
-        let r = run_in_process(t.path(), "2.0.0", None);
+        let r = run_in_process(t.path(), "2.0.0", None, true);
         assert!(
             !r.ok && r.problems[0].contains("1 installed file is"),
             "{r:?}"
         );
         std::fs::remove_file(t.path().join("NOTICES")).unwrap();
-        let r = run_in_process(t.path(), "2.0.0", None);
+        let r = run_in_process(t.path(), "2.0.0", None, true);
         assert!(r.problems[0].contains("2 installed files are"), "{r:?}");
         std::fs::remove_file(t.path().join(INVENTORY)).unwrap();
-        let r = run_in_process(t.path(), "2.0.0", None);
+        let r = run_in_process(t.path(), "2.0.0", None, true);
         assert!(
             r.problems
                 .iter()
@@ -179,11 +188,18 @@ mod tests {
     }
 
     #[test]
+    fn an_install_without_a_list_passes_only_when_it_has_none_by_design() {
+        let t = TempDir::new("selfcheck-nolist");
+        assert!(run_in_process(t.path(), "2.0.0", None, false).ok);
+        assert!(!run_in_process(t.path(), "2.0.0", None, true).ok);
+    }
+
+    #[test]
     fn files_the_list_does_not_name_are_left_alone() {
         let t = install();
         write_file(t.path(), "mine.txt", b"the person's own file");
         write_file(t.path(), ".raul-update/journal.json", b"{}");
-        assert!(run_in_process(t.path(), "2.0.0", None).ok);
+        assert!(run_in_process(t.path(), "2.0.0", None, true).ok);
     }
 
     #[test]
@@ -192,9 +208,9 @@ mod tests {
         write_file(t.path(), "components/nv-rs/bin/nv-viewer", b"viewer");
         let line = format!("{}  bin/nv-viewer\n", hash(b"viewer"));
         write_file(t.path(), "components/nv-rs/FILES.sha256", line.as_bytes());
-        assert!(run_in_process(t.path(), "2.0.0", None).ok);
+        assert!(run_in_process(t.path(), "2.0.0", None, true).ok);
         write_file(t.path(), "components/nv-rs/bin/nv-viewer", b"tampered");
-        let r = run_in_process(t.path(), "2.0.0", None);
+        let r = run_in_process(t.path(), "2.0.0", None, true);
         assert!(
             !r.ok && r.problems.iter().any(|p| p.contains("engine")),
             "{r:?}"
@@ -209,7 +225,7 @@ mod tests {
             std::fs::remove_file(t.path().join("raul")).unwrap();
             write_file(t.path(), "elsewhere", b"binary");
             std::os::unix::fs::symlink(t.path().join("elsewhere"), t.path().join("raul")).unwrap();
-            assert!(!run_in_process(t.path(), "2.0.0", None).ok);
+            assert!(!run_in_process(t.path(), "2.0.0", None, true).ok);
         }
     }
 
@@ -284,7 +300,7 @@ mod tests {
     fn the_messages_hold_no_command_and_no_path() {
         let t = install();
         write_file(t.path(), "raul", b"tampered");
-        let r = run_in_process(t.path(), "9.9.9", Some("2.0.0"));
+        let r = run_in_process(t.path(), "9.9.9", Some("2.0.0"), true);
         for p in &r.problems {
             for word in ["raul update", "self-check", "/", "sha256"] {
                 assert!(!p.contains(word), "{word}: {p}");
