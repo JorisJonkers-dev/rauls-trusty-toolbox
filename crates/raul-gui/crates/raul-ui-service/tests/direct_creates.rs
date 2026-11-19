@@ -98,7 +98,8 @@ fn init_refuses_a_missing_base_with_one_line_and_no_command_line() {
     assert!(!out.stderr.contains("raul "), "{:?}", out.stderr);
 }
 
-/// A release address nothing listens on, so a job that reached the fetch would fail at once and offline.
+/// A release address nothing listens on. The options that fetched a release are read and ignored now, so a job that
+/// reached a fetch would fail at once and offline; the refusal below is that there is no packaged engine.
 const OFFLINE: &str = "http://127.0.0.1:9/none";
 
 #[test]
@@ -140,7 +141,8 @@ fn install_nv_rs_refuses_an_instance_with_no_source_and_no_release() {
     let lines: Vec<&str> = out.stderr.lines().collect();
     assert_eq!(lines.len(), 1, "one line of refusal: {:?}", out.stderr);
     assert!(!lines[0].is_empty(), "{:?}", out.stderr);
-    assert!(!out.stderr.contains("raul "), "{:?}", out.stderr);
+    assert!(!out.stderr.contains("install-nv-rs"), "{:?}", out.stderr);
+    assert!(!out.stderr.contains("--"), "{:?}", out.stderr);
 }
 
 #[test]

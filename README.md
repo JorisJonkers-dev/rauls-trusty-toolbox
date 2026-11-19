@@ -45,7 +45,7 @@ raul init --base "<game folder>" --instance ~/raul/fnv
 raul profile create --instance ~/raul/fnv
 raul install <mod archive> --instance ~/raul/fnv
 raul sort --instance ~/raul/fnv --fetch-masterlist --apply
-raul install-nv-rs --instance ~/raul/fnv --release
+raul install-nv-rs --instance ~/raul/fnv      # the engine that ships with raul; nothing is downloaded
 raul lod generate --instance ~/raul/fnv
 raul run nv-rs --instance ~/raul/fnv
 ```

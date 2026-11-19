@@ -16,8 +16,8 @@ use raul_ui_model::pages::settings::{Answer, Command, Config, Fetch, Field, Key,
 use raul_ui_model::pages::setup::install_command;
 use raul_ui_model::pages::setup::{
     Checks, EngineStep, Finding, Missing, State, Step, detect_command, doctor_command,
-    init_and_profile_command, init_and_profile_commands, parse_detect, parse_doctor,
-    suggest_storage,
+    engine_failure, init_and_profile_command, init_and_profile_commands, parse_detect,
+    parse_doctor, suggest_storage,
 };
 use raul_ui_model::pages::{Flow, PageId, View};
 
@@ -74,7 +74,7 @@ crate::texts!(TEXTS {
     INSTALL = "Install";
     INSTALL_AGAIN = "Try again";
     INITIALISING = "Making the Instance in the storage folder";
-    INSTALLING = "Downloading and checking the engine. This can take a few minutes.";
+    INSTALLING = "Checking the engine and putting it in place. This can take a few minutes.";
     INSTALLED = "Installed and checked.";
     ENGINE_NOTE = "Run the setup again if the engine ever needs a look.";
     MARK_INSTALLED = "Installed";
@@ -321,7 +321,7 @@ impl Setup {
                             }
                             EngineStep::Installed
                         }
-                        Ok(out) => EngineStep::Failed(failure_of(out)),
+                        Ok(out) => EngineStep::Failed(engine_failure(&failure_of(out))),
                         Err(why) => EngineStep::Failed(why.clone()),
                     };
                 }
@@ -990,7 +990,7 @@ pub fn fixtures() -> Vec<Fixture> {
                 Step::Engine,
                 State {
                     engine: EngineStep::Failed(
-                        "nvmod install-nv-rs: failed and was rolled back: the download stopped halfway".into(),
+                        "This copy of raul does not come with the game engine. Download raul from its release page and install raul again; the engine is part of the same download.".into(),
                     ),
                     ..base.clone()
                 },
@@ -1198,15 +1198,7 @@ mod tests {
                 instance.as_str()
             ]
         );
-        assert_eq!(
-            calls[2],
-            [
-                "install-nv-rs",
-                "--instance",
-                instance.as_str(),
-                "--release"
-            ]
-        );
+        assert_eq!(calls[2], ["install-nv-rs", "--instance", instance.as_str()]);
         assert!(
             !calls.iter().any(|c| c[0] == "doctor"),
             "the Doctor is not a command line: {calls:?}"

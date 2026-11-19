@@ -283,7 +283,7 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
             },
         ),
         "install-nv-rs" => {
-            Some(install_nvrs_request(rest).map_or_else(DirectJob::usage, |r| install_nvrs(&r)))
+            Some(install_nvrs_request(rest).map_or_else(DirectJob::usage, install_nvrs))
         }
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
@@ -465,38 +465,42 @@ pub fn init(request: &nvmod_api::init::CreateRequest) -> DirectJob {
     )
 }
 
-/// The request of `raul install-nv-rs` from the words after it, with the defaults the command line has.
-fn install_nvrs_request(
-    rest: &[String],
-) -> Result<nvmod_api::install_nvrs::InstallRequest, String> {
+/// What `raul install-nv-rs` takes from the words after it: the Instance, and for a developer a source workspace and
+/// the `cargo` to build it with. The options that used to fetch a release are read and change nothing (#179).
+struct InstallNvRs {
+    instance: PathBuf,
+    source: Option<PathBuf>,
+    cargo: Option<PathBuf>,
+}
+
+fn install_nvrs_request(rest: &[String]) -> Result<InstallNvRs, String> {
     if value_of(rest, "--instance").is_empty() {
         return Err("install-nv-rs: give --instance".to_owned());
     }
-    let path = |flag: &str| option_of(rest, flag).map(PathBuf::from);
-    let mut request: nvmod_api::install_nvrs::InstallRequest =
-        serde_json::from_value(serde_json::json!({ "instance": value_of(rest, "--instance") }))
-            .expect("an install request needs only its Instance");
-    request.source = path("--source");
-    request.release = has_flag(rest, "--release");
-    request.cargo = path("--cargo").or_else(|| std::env::var_os("NVMOD_CARGO").map(PathBuf::from));
-    if let Some(url) = option_of(rest, "--release-url") {
-        request.release_url = url;
-    }
-    if let Some(ms) = option_of(rest, "--retry-delay-ms") {
-        request.retry_delay_ms = ms
-            .parse()
-            .map_err(|_| "install-nv-rs: --retry-delay-ms needs a number".to_owned())?;
-    }
-    Ok(request)
+    Ok(InstallNvRs {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        source: option_of(rest, "--source").map(PathBuf::from),
+        cargo: option_of(rest, "--cargo").map(PathBuf::from),
+    })
 }
 
-/// `nvmod_api::install_nvrs::install`: builds or fetches nv-rs into the Instance, under the Instance lock.
-pub fn install_nvrs(request: &nvmod_api::install_nvrs::InstallRequest) -> DirectJob {
-    let request = request.clone();
+/// `raul_core::setup::packaged::job`: puts the engine that ships with raul in the Instance (or builds a developer's
+/// source), under the Instance lock. It fetches nothing.
+fn install_nvrs(request: InstallNvRs) -> DirectJob {
+    let instance = request.instance.clone();
     DirectJob::writing(
-        request.instance.clone(),
+        request.instance,
         "install-nv-rs",
-        move |progress, cancel| nvmod_api::install_nvrs::install(&request, progress, cancel),
+        move |progress, cancel| {
+            raul_core::setup::packaged::job(
+                &instance,
+                request.source.as_deref(),
+                request.cargo.as_deref(),
+                None,
+                progress,
+                cancel,
+            )
+        },
     )
 }
 

@@ -172,6 +172,10 @@ jobs:
             Linux) tar -xzf "$dir/$asset" -C target/bundle/components/nv-rs ;;
             Windows) unzip -q "$dir/$asset" -d target/bundle/components/nv-rs ;;
           esac
+          # The checksum list raul checks the engine against before it puts it in an Instance (#179). The archive was
+          # verified against nv-rs's own SHA256SUMS above; this lists the files it unpacked to.
+          (cd target/bundle/components/nv-rs && find . -type f ! -name FILES.sha256 -printf '%P\n' | LC_ALL=C sort | xargs -d '\n' sha256sum > FILES.sha256)
+          grep -q 'nv-viewer' target/bundle/components/nv-rs/FILES.sha256
 
       - name: Third-party notices
         run: |
@@ -283,6 +287,12 @@ jobs:
             local found; found="$(find "$@" -type f \( -iname 'lodwright*' -o -iname 'ttwright*' \))"
             if [ -n "$found" ]; then echo "::error::Component programs in the package:"; echo "$found"; return 1; fi
           }
+          # The packaged engine and its checksum list must be in every Linux and Windows package; raul reads them from
+          # beside itself and never fetches an engine (#179).
+          engine_shipped() {
+            local found; found="$(find "$@" -type f -path '*components/nv-rs/FILES.sha256')"
+            if [ -z "$found" ]; then echo "::error::no packaged engine checksum list in the package"; return 1; fi
+          }
           case "$RUNNER_OS" in
             Linux)
               app="$(realpath target/packages/*.AppImage)"; chmod +x "$app"
@@ -294,15 +304,16 @@ jobs:
               tar -xzf target/packages/*.tar.gz -C "$RUNNER_TEMP" && check "$RUNNER_TEMP/raul-$VERSION-linux-x64/raul"
               window "$RUNNER_TEMP/raul-$VERSION-linux-x64/raul"
               grep -q "SIL Open Font License" "$RUNNER_TEMP/raul-$VERSION-linux-x64/THIRD-PARTY-NOTICES.md"
-              no_component_programs "$RUNNER_TEMP/squashfs-root" "$RUNNER_TEMP/deb" "$RUNNER_TEMP/raul-$VERSION-linux-x64" ;;
+              no_component_programs "$RUNNER_TEMP/squashfs-root" "$RUNNER_TEMP/deb" "$RUNNER_TEMP/raul-$VERSION-linux-x64"
+              engine_shipped "$RUNNER_TEMP/squashfs-root"; engine_shipped "$RUNNER_TEMP/deb"; engine_shipped "$RUNNER_TEMP/raul-$VERSION-linux-x64" ;;
             Windows)
               7z x -bso0 -o"$RUNNER_TEMP/zip" target/packages/*-portable.zip
               check "$RUNNER_TEMP/zip/raul-$VERSION-windows-x64/raul.exe"
-              no_component_programs "$RUNNER_TEMP/zip"
+              no_component_programs "$RUNNER_TEMP/zip"; engine_shipped "$RUNNER_TEMP/zip"
               setup="$(ls target/packages/*.setup.exe)"
               # The installer must hold the same raul.exe: 7z unpacks an NSIS installer without running it.
               7z x -bso0 -o"$RUNNER_TEMP/nsis" "$setup"; check "$(find "$RUNNER_TEMP/nsis" -iname raul.exe -print -quit)"
-              no_component_programs "$RUNNER_TEMP/nsis"
+              no_component_programs "$RUNNER_TEMP/nsis"; engine_shipped "$RUNNER_TEMP/nsis"
               # A silent install is tried under a time limit; it hung in CI before, so a hang is a warning, not a stuck job.
               if timeout 180 "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"; then
                 sleep 5; check "$RUNNER_TEMP/installed/raul.exe"

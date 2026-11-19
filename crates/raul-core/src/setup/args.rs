@@ -22,25 +22,32 @@ const OPTIONS: &[&str] = &[
     "timeout-secs",
     "source",
     "cargo",
+    "catalog",
+];
+
+/// Options a setup recorded by `nvmod setup` may carry that no longer mean anything: they are read and ignored
+/// (the extraction tool is gone, TTW runs in process with no installer, lock or store).
+const IGNORED: &[&str] = &[
+    "extract-tool",
+    "installer",
+    "lock",
+    "store",
+    // The options that fetched an engine release. The engine ships with raul and is never fetched (#179); a recorded
+    // command line that names them still reads, and they change nothing.
     "release-url",
     "asset",
     "repo",
     "gh",
     "curl",
     "retry-delay-ms",
-    "catalog",
 ];
-
-/// Options a setup recorded by `nvmod setup` may carry that no longer mean anything: they are read and ignored
-/// (the extraction tool is gone, TTW runs in process with no installer, lock or store).
-const IGNORED: &[&str] = &["extract-tool", "installer", "lock", "store"];
 
 /// The switches.
 const FLAGS: &[&str] = &[
     "json",
     "dry-run",
-    "release",
     "skip-nv-rs",
+    "release",
     "sort",
     "copy",
     "keep-partial",
@@ -140,8 +147,8 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
                 "resume" => parsed.resume = true,
                 "restart" => parsed.restart = true,
                 "yes" => parsed.yes = true,
-                "release" => request.engine_options.release = true,
                 "skip-nv-rs" => request.engine = false,
+                // `release` is read and ignored (the wildcard below): the engine is never fetched.
                 "sort" => request.sort = true,
                 "copy" => request.copy = true,
                 _ => {}
@@ -197,16 +204,6 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
             }
             "source" => request.engine_options.source = Some(absolute(&value)),
             "cargo" => request.engine_options.cargo = Some(absolute(&value)),
-            "release-url" => request.engine_options.release_url = value,
-            "asset" => request.engine_options.asset = value,
-            "repo" => request.engine_options.repo = value,
-            "gh" => request.engine_options.gh = PathBuf::from(value),
-            "curl" => request.engine_options.curl = PathBuf::from(value),
-            "retry-delay-ms" => {
-                request.engine_options.retry_delay_ms = value
-                    .parse()
-                    .map_err(|_| "--retry-delay-ms needs a number of milliseconds".to_owned())?;
-            }
             "catalog" => request.catalog = Some(absolute(&value)),
             // An option an old setup recorded: read, and nothing is done with it.
             _ => {}
@@ -246,7 +243,7 @@ mod tests {
     fn the_options_of_a_setup_make_a_typed_request() {
         let p = parse(&words(
             "--base /b --instance /i --masterlist /m.yaml --profile P --mod /a/One.zip --mod /a/Two.zip \
-             --fallout3 /f3 --package /p.mpi --timeout-secs 60 --source /nv --release --skip-nv-rs --sort --copy --dry-run --json",
+             --fallout3 /f3 --package /p.mpi --timeout-secs 60 --source /nv --skip-nv-rs --sort --copy --dry-run --json",
         ))
         .unwrap();
         let r = &p.request;
@@ -258,9 +255,29 @@ mod tests {
         assert_eq!(ttw.fallout3, abs("/f3"));
         assert_eq!(ttw.package, Some(abs("/p.mpi")));
         assert_eq!(ttw.timeout, Some(Duration::from_secs(60)));
-        assert!(!r.engine && r.sort && r.copy && r.engine_options.release);
+        assert!(!r.engine && r.sort && r.copy);
         assert_eq!(r.engine_options.source, Some(abs("/nv")));
         assert!(p.json && p.dry_run && !p.keep_partial && p.has_run_options);
+    }
+
+    #[test]
+    fn the_options_that_fetched_an_engine_release_are_read_and_change_nothing() {
+        let plain = parse(&words("--instance /i")).unwrap().request;
+        for option in [
+            "--release",
+            "--release-url x",
+            "--asset x",
+            "--repo x",
+            "--gh x",
+            "--curl x",
+            "--retry-delay-ms 1",
+        ] {
+            let r = parse(&words(&format!("--instance /i {option}")))
+                .unwrap_or_else(|e| panic!("{option}: {e}"))
+                .request;
+            assert_eq!(r.engine_options, plain.engine_options, "{option}");
+            assert!(r.engine, "{option}");
+        }
     }
 
     #[test]
@@ -293,7 +310,6 @@ mod tests {
             ("stray", "unexpected word stray"),
             ("--timeout-secs x --fallout3 /f", "--timeout-secs needs"),
             ("--package /p", "need --fallout3"),
-            ("--retry-delay-ms x", "--retry-delay-ms needs"),
         ] {
             let e = parse(&words(line)).unwrap_err();
             assert!(e.contains(why), "{line}: {e}");

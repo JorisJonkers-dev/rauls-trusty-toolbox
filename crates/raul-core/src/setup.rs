@@ -12,6 +12,7 @@
 mod args;
 mod command;
 mod engine;
+pub mod packaged;
 mod plan;
 mod run;
 
@@ -56,7 +57,7 @@ pub struct Request {
     /// #260), and the target step then sets the nv-rs target.
     #[serde(default)]
     pub engine: bool,
-    /// How the engine step gets nv-rs (a source build or the release); read only when `engine` is set.
+    /// How the engine step gets nv-rs: the packaged engine, or a source build; read only when `engine` is set.
     #[serde(default)]
     pub engine_options: EngineOptions,
     /// Install Tale of Two Wastelands; `None` skips the step.

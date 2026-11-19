@@ -5,6 +5,7 @@
 mod bench;
 mod config;
 mod detect;
+mod install_nv_rs;
 mod lod;
 mod printer;
 mod setup;
@@ -28,7 +29,16 @@ pub const USAGE: u8 = nvmod_cli::USAGE;
 /// The commands `raul` owns; anything else goes to nvmod. The GUI build exposes the same list (ADR-0004). An own
 /// command takes precedence over an nvmod command of the same name, which `raul` then never reaches.
 pub const OWN_COMMANDS: &[&str] = &[
-    "version", "detect", "bench", "update", "config", "setup", "ttw", "lod", "help",
+    "version",
+    "detect",
+    "bench",
+    "update",
+    "config",
+    "setup",
+    "ttw",
+    "lod",
+    "install-nv-rs",
+    "help",
 ];
 
 /// Who runs a command line.
@@ -89,6 +99,9 @@ usage:
                               as the Mod `LOD (lodwright)`; --json streams raul-events lines. --timeout-secs is
                               checked between terrain blocks, worlds and steps, so a step already running finishes
                               first
+  raul install-nv-rs --instance <dir> [--source <dir>] [--cargo <path>]
+                              put the engine that ships with raul in an Instance and check it; nothing is
+                              downloaded. --source builds an nv-rs workspace instead (for developers)
   raul <nvmod command> ...    every nvmod command (install, sort, run, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";
@@ -106,6 +119,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("setup") => setup::run(&args[1..], out, err),
         Some("ttw") => ttw::run(&args[1..], out, err),
         Some("lod") => lod::run(&args[1..], out, err),
+        Some("install-nv-rs") => install_nv_rs::run(&args[1..], out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
         Some(_) if route(args) == Route::Own => {
             let _ = writeln!(err, "raul: {} has no handler", args[0]);

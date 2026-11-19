@@ -15,7 +15,8 @@ scanline, Pip-Boy look was tried and rejected because it read like a 1990s websi
   (Versions, Doctor, Settings). Home is the start page. Keys 1 to 7 open them in this order. Below 860 px the
   sidebar becomes a wrapping top bar. *Check: navigation test over the page registry.*
 - **P2 MUST:** first run is a wizard on the same shell as the app (top bar, step rail, page header, footer with Back
-  and Next): New Vegas folder, TTW (optional, asks for the Fallout 3 folder), Engine, Quick check, Ready. It can be
+  and Next): New Vegas folder, TTW (optional, asks for the Fallout 3 folder), Engine (the engine that ships with raul is put in
+  place and checked; nothing is downloaded), Quick check, Ready. It can be
   skipped and run again from Settings, and writes nothing to a game folder. *Check: wizard state-machine tests.*
 - **P3 MUST:** each kind of data has one home page; other pages may show it read-only with a link to that home.
 
