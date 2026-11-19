@@ -115,9 +115,10 @@ jobs:
           test "$out" = "raul: the window opened and closed"
           target/debug/raul --version
 
+      # --all-features: the engine's closure sits behind the feature `engine` and must be checked as well.
       - name: Licences, bans, sources and advisories
         if: ${{ !cancelled() }}
-        run: mise exec -- cargo deny --locked check
+        run: mise exec -- cargo deny --locked --all-features check
 
       - name: GPL-3.0-or-later only under components/nv-rs
         if: ${{ !cancelled() }}
