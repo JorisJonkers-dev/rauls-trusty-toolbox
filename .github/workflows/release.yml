@@ -5,12 +5,20 @@
 # the Component programs the submodules pin (ADR-0005), smoke-test them, and the publish job attaches
 # them with SHA256SUMS, a CycloneDX SBOM and build provenance. Run it by hand (workflow_dispatch) to build and
 # smoke-test every package without publishing: the packages are then only workflow artifacts.
+# To complete a release whose build failed, run it by hand with the input `tag` (for example v0.5.0) from main: the
+# packages are built from that tag's source with this workflow, and the publish job attaches them to that release.
 name: Release
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to build from and publish to (for example v0.5.0); empty builds without publishing"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -74,13 +82,23 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     env:
-      TAG: ${{ needs.release-please.outputs.tag_name }}
+      TAG: ${{ needs.release-please.outputs.tag_name || inputs.tag }}
     defaults:
       run:
         shell: bash
     steps:
+      - name: Check the tag input
+        if: ${{ inputs.tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::tag must look like v1.2.3"; exit 1; }
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.tag || github.sha }}
           submodules: recursive
 
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
@@ -140,10 +158,13 @@ jobs:
           OUT=target/release; mkdir -p "$OUT"
           # The release raul is the GUI workspace's (ADR-0004): the same command line as raul-cli's, plus the window
           # it opens when started with no arguments. cargo-packager takes it from target/release.
-          # The engine's crates are linked into raul (feature `engine`, ADR-0016). nv-rs builds its own Windows release with a
-          # static C runtime and the engine is built the same way here, so it runs on the linkage it was tested with.
+          # The engine's crates are linked into raul (feature `engine`, ADR-0016) on Linux and Windows. nv-rs has no macOS
+          # build (ADR-0006) and its d3d9-wgpu crate does not compile there, so the macOS raul is built without it.
+          # nv-rs builds its own Windows release with a static C runtime and the engine is built the same way here,
+          # so it runs on the linkage it was tested with.
           if [ "$RUNNER_OS" = Windows ]; then export CARGO_ENCODED_RUSTFLAGS='-Ctarget-feature=+crt-static'; fi
-          RAUL_BUILD_FEATURES=engine build crates/raul-gui/Cargo.toml raul-gui "raul$exe" "${targets[@]}"
+          if [ "$RUNNER_OS" = macOS ]; then features=""; else features="engine"; fi
+          RAUL_BUILD_FEATURES="$features" build crates/raul-gui/Cargo.toml raul-gui "raul$exe" "${targets[@]}"
           unset CARGO_ENCODED_RUSTFLAGS
           # lodwright-rs and ttwright-rs are linked into raul (ADR-0016): no program of theirs is built or bundled.
           ls -l target/release/raul*
@@ -356,11 +377,12 @@ jobs:
       id-token: write
       attestations: write
     env:
-      TAG: ${{ needs.release-please.outputs.tag_name }}
+      TAG: ${{ needs.release-please.outputs.tag_name || inputs.tag }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.tag || github.sha }}
           submodules: recursive
 
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
