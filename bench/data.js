@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795048549015,
+  "lastUpdate": 1795054889208,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5144,6 +5144,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.171859,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a4e477f001369ed2ba43abc75e01b106f67615a8",
+          "message": "feat(gui): link the engine's crates behind the feature engine (#308)\n\n* feat(gui): link the engine's crates behind the feature engine\n\n* fix(gui): allow the engine's licences in the GUI deny file and re-export the linked crates",
+          "timestamp": "2026-11-19T03:19:51+01:00",
+          "tree_id": "61951cb9f511c9c35e28644162c1c7857191c0c4",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a4e477f001369ed2ba43abc75e01b106f67615a8"
+        },
+        "date": 1795054888352,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.411386,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.132518,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.083530999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.1386209999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.806505999999999,
             "unit": "ms"
           }
         ]
