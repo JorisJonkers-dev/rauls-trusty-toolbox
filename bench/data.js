@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795091619735,
+  "lastUpdate": 1795093450140,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5781,6 +5781,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 12.256576,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a88904f2fe6d6d05c724ab5b682bdb16b0940d80",
+          "message": "feat(lod): LOD settings per option, per-level terrain overrides and raul lod settings (#358)\n\n* feat(lod): allow the output folder inside a git working tree on request\n\nThe LOD output folder is refused when it lies inside a git working tree, by\nraul's plan and again by lodwright. Either `allow_in_repo = true` in the\nProfile's raul-lod.toml or `--allow-in-repo` on `raul lod plan` or\n`raul lod generate` now allows it: raul skips its own check and tells\nlodwright through GenerateRequest::allow_in_repo. The flag applies to that\nrun only and writes nothing to the settings. The refusal names both ways in\nplain words. An output folder inside the data folder stays refused.\n\nRefs #344, part of #38\n\n* feat(lod): LOD settings per option, per-level terrain overrides and raul lod settings\n\nA Profile's raul-lod.toml becomes a list of options (key, tier, kind,\nrange, default and catalogue text) in raul_drivers::lod::settings, the\nfunctions the LOD settings view will call:\n\n- show, set, unset: one option at a time. Each change is checked against\n  the option's range and then by lodwright's own Request::validate on the\n  request the settings give; a refused change writes nothing and says\n  what went wrong and \"Nothing changed.\" from the catalogue.\n- reset (Restore defaults): removes every LOD generation key, also ones\n  set to their default value, keeps allow_in_repo, never writes default\n  values, prunes the file and deletes it when nothing is left. The file\n  as it was is kept as raul-lod.toml.previous.\n- undo: puts the .previous copy back (one level); the next set or unset\n  ends it.\n\n[levels.4] to [levels.32] set quality, vertex cap and texture sizes per\nterrain level. Without them the request keeps an empty levels list, so\nthe digest of an unchanged Profile stays the same; with any of them it\nlists all four levels, the rest at their defaults. The defaults come\nfrom one function, the Toolbox's copy of lodwright's today.\n\nraul lod settings show|set|unset|reset|undo prints the new\nraul-lod-settings v1 document with --json; the schema, fixtures and the\ncommand-parity registry entries are added. raul lod plan refuses an\nunknown key with the same plain words.\n\nRefs #337, part of #38\n\n* fix(lod): portable settings fixtures and the registry test's settings arguments\n\nThe fixture test wrote the Instance as <instance> by text replacement,\nwhich missed the escaped backslashes of Windows paths; it now rewrites the\nJSON values and turns the separators after the Instance into slashes. The\nGUI registry test passes an option to lod settings set and unset.",
+          "timestamp": "2026-11-19T12:59:37Z",
+          "tree_id": "057a97f3d9cc9af9e88fc967f5a518ecd6dbbb5c",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a88904f2fe6d6d05c724ab5b682bdb16b0940d80"
+        },
+        "date": 1795093449533,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.4021050000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.1346609999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.256726,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.079039,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.980772,
             "unit": "ms"
           }
         ]
