@@ -137,7 +137,9 @@ pub fn run_child(program: &Path, expect: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nvmod_testkit::{TempDir, write_file, write_script};
+    use nvmod_testkit::{TempDir, write_file};
+    #[cfg(unix)]
+    use nvmod_testkit::write_script;
 
     fn hash(b: &[u8]) -> String {
         raul_runner::sha256_hex(b)
@@ -238,6 +240,7 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
     fn child(t: &TempDir, body: &str) -> std::path::PathBuf {
         write_script(t.path(), "new-raul", body)
     }
