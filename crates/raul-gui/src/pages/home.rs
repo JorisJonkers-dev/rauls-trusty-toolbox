@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! Home: what is ready, what needs a look, and the launch panel (UI-RULES G2, G3, G5).
 //!
-//! The readiness rows show the paths of Settings, the engine of Versions, TTW and the two pages of the Play group,
+//! The readiness rows show the paths of Settings, the engine, TTW and the two pages of the Play group,
 //! each one click from the page that fixes it. The chips above them list what needs attention. Play runs
 //! `raul run nv-rs`; when the setup misses a step, Play says which and its Fix opens the page that sets it up
 //! (UI-RULES G3). The panel and the header say "Ready to play" and "All set" only when readiness holds.
@@ -19,11 +19,11 @@ use crate::dialog::{Answer, Dialog};
 use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText, Stroke};
+use raul_ui_model::pages::home::{self as engine_model, Engine, EngineStatus};
 use raul_ui_model::pages::home::{
     Block, Launch, Level, Readiness, Row, RowId, State, Step, Why, load_order_command,
 };
 use raul_ui_model::pages::settings::{Command, Config, Fetch, Key};
-use raul_ui_model::pages::versions::{self as engine_model, Engine, EngineStatus};
 use raul_ui_model::pages::{Attention, PageId, Severity, View};
 
 crate::texts!(TEXTS {
@@ -92,11 +92,11 @@ crate::errors!(ERRORS {
     );
     PLAY_NO_ENGINE = (
         "The engine is not installed",
-        "Install it on Versions, then press Play again."
+        "Run the setup, then press Play again."
     );
     PLAY_ENGINE_CHANGED = (
         "The engine differs from its install record",
-        "Nothing was started. Install it again on Versions."
+        "Nothing was started. Run the setup again."
     );
     RUN_FAILED = (
         "The game did not start",
@@ -1029,7 +1029,10 @@ mod tests {
         assert!(h.query_all_by_label(msg::COPY_DETAILS).next().is_some());
         h.get_all_by_label(FIX).last().unwrap().click();
         h.run_steps(4);
-        assert_eq!(h.state().view(), View::Page(PageId::Versions));
+        assert_eq!(
+            h.state().view(),
+            View::Flow(raul_ui_model::pages::Flow::Setup)
+        );
         assert!(
             exec.calls.lock().unwrap().iter().all(|c| c[0] != "run"),
             "the game was not started"

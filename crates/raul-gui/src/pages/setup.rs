@@ -13,12 +13,12 @@ use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText, Stroke};
 use raul_ui_model::pages::settings::{Answer, Command, Config, Fetch, Field, Key, Save};
+use raul_ui_model::pages::setup::install_command;
 use raul_ui_model::pages::setup::{
     Checks, EngineStep, Finding, Missing, State, Step, detect_command, doctor_command,
     init_and_profile_command, init_and_profile_commands, parse_detect, parse_doctor,
     suggest_storage,
 };
-use raul_ui_model::pages::versions::install_command;
 use raul_ui_model::pages::{Flow, PageId, View};
 
 crate::texts!(TEXTS {
@@ -76,7 +76,7 @@ crate::texts!(TEXTS {
     INITIALISING = "Making the Instance in the storage folder";
     INSTALLING = "Downloading and checking the engine. This can take a few minutes.";
     INSTALLED = "Installed and checked.";
-    ENGINE_NOTE = "You can install it again later on Versions.";
+    ENGINE_NOTE = "Run the setup again if the engine ever needs a look.";
     MARK_INSTALLED = "Installed";
     MARK_WORKING = "Working";
     CHECKING = "Running the checks";
@@ -307,6 +307,18 @@ impl Setup {
                     self.state.engine = match &result {
                         Ok(out) if out.code == Some(0) => {
                             cx.shell.engine = Some(super::home::FACT_ENGINE_ACTIVE.to_owned());
+                            // Play was blocked for want of the engine: it is there now.
+                            let lifted = [
+                                super::home::PLAY_NO_ENGINE.id,
+                                super::home::PLAY_ENGINE_CHANGED.id,
+                            ];
+                            if cx
+                                .shell
+                                .play_blocked
+                                .is_some_and(|b| lifted.contains(&b.id))
+                            {
+                                cx.shell.play_blocked = None;
+                            }
                             EngineStep::Installed
                         }
                         Ok(out) => EngineStep::Failed(failure_of(out)),
@@ -1114,6 +1126,8 @@ mod tests {
                 app
             });
         h.run();
+        // Play was blocked for want of the engine, as Home leaves it; installing the engine lifts that block.
+        h.state_mut().shell_mut().play_blocked = Some(super::super::home::PLAY_NO_ENGINE);
         h.get_by_label(NEXT).click();
         wait_for(&mut h, |_| true);
         h.get_by_label(NEXT).click();
@@ -1148,6 +1162,10 @@ mod tests {
             h.state().view(),
             h.query_by_label(MISSING_CHECKS)
                 .map_or("nothing about running", |_| MISSING_CHECKS)
+        );
+        assert!(
+            h.state_mut().shell_mut().play_blocked.is_none(),
+            "a finished install lifts the block that said the engine was missing"
         );
         h.get_by_label(FINISH).click();
         h.run_steps(2);

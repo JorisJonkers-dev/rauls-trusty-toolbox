@@ -49,6 +49,15 @@ impl Step {
     }
 }
 
+/// `raul install-nv-rs --instance <dir> --release`: fetches the fork's release, verifies it and runs its check.
+pub fn install_command(instance: &str) -> Command {
+    Command::write(
+        "install-nv-rs",
+        1,
+        &["install-nv-rs", "--instance", instance, "--release"],
+    )
+}
+
 /// Where the engine install of the wizard is.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum EngineStep {
@@ -393,6 +402,22 @@ mod tests {
         if let Some(f) = state.field_mut(key) {
             f.saved_as(&Answer::Entries(Config::with("", &[(key, value)])));
         }
+    }
+
+    #[test]
+    fn the_engine_install_command_names_the_instance_and_the_release() {
+        let c = install_command("/storage/instance");
+        assert_eq!(c.id, "install-nv-rs");
+        assert!(c.writes);
+        assert_eq!(
+            c.words,
+            [
+                "install-nv-rs",
+                "--instance",
+                "/storage/instance",
+                "--release"
+            ]
+        );
     }
 
     #[test]

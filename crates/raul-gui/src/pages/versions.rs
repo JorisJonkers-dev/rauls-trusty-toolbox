@@ -1,61 +1,36 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! Versions: raul's own version with the update check, and the engine build (UI-RULES P3, P5, T4).
+//! About and Update (the Versions page): raul's own version, the update check and a block of details to copy
+//! (UI-RULES P3, P5, T4).
 //!
-//! The Toolbox section shows the one version a person sees, the Toolbox's own, as plain text, with the one update
-//! action beside it as a real button: Check for updates, or Update once a newer release is known. It runs `raul
-//! update check`, which reads the release list and downloads nothing. The engine section shows the active build, as
-//! `raul verify` sees it against its install record, and installs the nv-rs release with `raul install-nv-rs
-//! --release` after one confirm that states the cost. No Component version is shown, and the release check's set is
-//! a build-time idea that no screen names. Nothing reaches the network before that click. Versions holds no path;
-//! without a storage folder it points to Settings.
+//! It shows the one version a person sees, the Toolbox's own, as plain text, with the one update action beside it as
+//! a real button: Check for updates, or Update once a newer release is known. It runs `raul update check`, which
+//! reads the release list and downloads nothing. Every packaged Component comes with raul and changes only when raul
+//! does, so no Component version and no per-Component action is shown. Nothing reaches the network before that
+//! click.
 
-use super::home::{Mark, mark};
-use super::settings::{
-    Pending, Visits, WAITING, available, error_block, failure_of, read_config, settle,
-    share_config, start, waiting,
-};
+use super::home::Mark;
+use super::settings::{Pending, WAITING, error_block, failure_of, start, waiting};
 use super::{Fixture, Page, PageCx};
 use crate::catalogue::{self as msg, ErrorText};
-use crate::dialog::{Answer, Dialog};
+use crate::dialog::Dialog;
 use crate::shell;
 use crate::theme::Tokens;
 use eframe::egui::{self, RichText};
-use raul_ui_model::pages::settings::{Command, Config, Fetch, Key};
+use raul_ui_model::pages::settings::Fetch;
 use raul_ui_model::pages::versions::{
-    Engine, EngineStatus, Install, Release, Shipped, State, Update, UpdateAction, parse_update,
-    parse_verify, parse_version, update_command, verify_command, version_command,
+    Release, Shipped, State, Update, UpdateAction, parse_update, parse_version, update_command,
+    version_command,
 };
-use raul_ui_model::pages::{Attention, PageId, Severity, View};
+use raul_ui_model::pages::{Attention, PageId, View};
 use raul_ui_service::Output;
 
 crate::texts!(TEXTS {
-    STATE_CHECKING = "Checking";
-    STATE_ACTIVE = "nv-rs is installed";
-    STATE_MISSING = "No engine installed";
-    STATE_DIFFERS = "The engine needs a look";
-    STATE_INSTALLING = "Installing nv-rs";
-    STATE_UNKNOWN = "Engine state not known";
-    CHECK_AGAIN = "Check again";
-    SECTION_TOOLBOX = "Toolbox";
-    SECTION_ENGINE = "Engine";
-    ACTIVE_BUILD = "Active build";
-    MARK_ACTIVE = "Active";
-    MARK_MISSING = "Not set";
-    MARK_DIFFERS = "Problem";
-    MARK_INSTALLING = "Installing";
-    MARK_UNKNOWN = "Warning";
-    DETAIL_ACTIVE = "nv-rs, checked against its install record.";
-    DETAIL_MISSING = "No engine in the Instance yet. Install puts the nv-rs release there.";
-    INSTALL = "Install…";
-    REINSTALL = "Install again…";
-    INSTALLING = "Downloading and checking the release. This can take a few minutes.";
-    INSTALLED_STATUS = "nv-rs installed and checked.";
-    NO_STORAGE = "Set the storage folder in Settings first; the engine goes into the Instance there.";
-    OPEN_SETTINGS = "Settings";
-    INSTALL_TITLE = "Install the nv-rs release?";
-    INSTALL_COST = "Downloads the latest nv-rs release, checks its checksum and runs its check. Your game folder is not changed; if anything fails, it is rolled back.";
-    REINSTALL_COST = "Downloads the latest nv-rs release and puts it in place of the installed one after it passes its check. Your game folder is not changed; if anything fails, it is rolled back.";
-    INSTALL_ACTION = "Install";
+    STATE_CHECKING = "Checking for updates";
+    STATE_NEWER = "A newer release is out";
+    STATE_NEWEST = "This is the newest release";
+    STATE_IDLE = "Update check not run";
+    SECTION_ABOUT = "About";
+    SECTION_DETAILS = "Details";
     TOOLBOX_LABEL = "Toolbox";
     CHECK_UPDATES = "Check for updates";
     UPDATE = "Update";
@@ -64,19 +39,12 @@ crate::texts!(TEXTS {
     UPDATE_NEWEST = "This is the newest release.";
     UPDATE_FOUND = "Version {version} is out; you run {current}.";
     UPDATE_OPEN = "Release page";
-    READING = "Reading";
+    UPDATE_NOTE = "The check is yours to run: nothing looks for updates until you press the button. An update replaces the Toolbox and everything that comes with it.";
+    COPY_DETAILS = "Copy details";
     WAITING_NOTE = "This build cannot read it from the window yet.";
 });
 
 crate::errors!(ERRORS {
-    INSTALL_FAILED = (
-        "nv-rs was not installed",
-        "What it changed was rolled back. The line below says why."
-    );
-    ENGINE_UNREADABLE = (
-        "The engine could not be checked",
-        "Nothing changed. The line below says why."
-    );
     UPDATE_FAILED = (
         "The update check could not finish",
         "Nothing changed. The line below says why."
@@ -87,51 +55,29 @@ crate::errors!(ERRORS {
     );
 });
 
-const INSTALL_DIALOG: &str = "versions-install";
 const UPDATE_DIALOG: &str = "versions-update";
 
-/// The Versions page.
+/// The About and Update page.
 #[derive(Debug, Default)]
 pub struct Versions {
     /// Its toolkit-free state.
     pub state: State,
     pending: Pending<Job>,
-    visits: Visits,
+    loaded: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Job {
-    Config,
-    Verify,
     Version,
-    Install,
     Update,
 }
 
 impl Versions {
-    /// Versions in `state`, as a fixture shows it.
+    /// The page in `state`, as a fixture shows it.
     pub fn with(state: State) -> Versions {
         Versions {
             state,
             ..Versions::default()
-        }
-    }
-
-    fn load(&mut self, cx: &mut PageCx<'_>, first: bool) {
-        self.state.engine = Fetch::Idle;
-        match start(cx, &Command::config_list()) {
-            Ok(id) => {
-                self.pending.add(Job::Config, id);
-                self.state.config = Fetch::Loading;
-            }
-            Err(e) => self.state.config = Fetch::Failed(e.what.to_owned()),
-        }
-        // The version never changes while the window is open: read it once, or again after a failure.
-        if matches!(self.state.shipped, Fetch::Idle | Fetch::Failed(_)) {
-            self.read_version(cx);
-        }
-        if first {
-            settle(cx.jobs);
         }
     }
 
@@ -145,7 +91,7 @@ impl Versions {
         }
     }
 
-    /// Check for updates: `raul update check` reads the release list and downloads nothing (ADR-0005).
+    /// Check for updates: `raul update check` reads the release list and downloads nothing.
     fn check_updates(&mut self, cx: &mut PageCx<'_>) {
         match start(cx, &update_command()) {
             Ok(id) => {
@@ -169,55 +115,9 @@ impl Versions {
         };
     }
 
-    fn load_engine(&mut self, cx: &mut PageCx<'_>, config: &Config) {
-        let Some(instance) = config.get(Key::Instance) else {
-            self.state.engine = Fetch::Ready(Engine::missing());
-            return;
-        };
-        if !std::path::Path::new(instance).exists() {
-            self.state.engine = Fetch::Ready(Engine::missing());
-            return;
-        }
-        match start(cx, &verify_command(instance)) {
-            Ok(id) => {
-                self.pending.add(Job::Verify, id);
-                self.state.engine = Fetch::Loading;
-            }
-            Err(e) => self.state.engine = Fetch::Failed(e.what.to_owned()),
-        }
-    }
-
-    fn install(&mut self, cx: &mut PageCx<'_>) {
-        let Some(command) = self.state.install_command() else {
-            return;
-        };
-        match start(cx, &command) {
-            Ok(id) => {
-                self.pending.add(Job::Install, id);
-                self.state.install = Install::Running;
-            }
-            Err(e) => self.state.install = Install::Failed(e.what.to_owned()),
-        }
-    }
-
     fn take_answers(&mut self, cx: &mut PageCx<'_>) {
         for (job, result) in self.pending.finished(cx.jobs) {
             match job {
-                Job::Config => match read_config(&result) {
-                    Ok(config) => {
-                        self.load_engine(cx, &config);
-                        share_config(cx, &config);
-                        self.state.config = Fetch::Ready(config);
-                    }
-                    Err(why) => self.state.config = Fetch::Failed(why),
-                },
-                Job::Verify => {
-                    self.state.engine = match &result {
-                        Ok(out) => parse_verify(&out.stdout)
-                            .map_or_else(|_| Fetch::Failed(failure_of(out)), Fetch::Ready),
-                        Err(why) => Fetch::Failed(why.clone()),
-                    };
-                }
                 Job::Version => {
                     self.state.shipped = match &result {
                         Ok(out) => parse_version(&out.stdout)
@@ -226,36 +126,7 @@ impl Versions {
                     };
                 }
                 Job::Update => self.take_update(&result),
-                Job::Install => {
-                    self.state.install = match &result {
-                        Ok(out) if out.code == Some(0) => {
-                            cx.shell.status = Some(INSTALLED_STATUS.to_owned());
-                            let lifted = [
-                                super::home::PLAY_NO_ENGINE.id,
-                                super::home::PLAY_ENGINE_CHANGED.id,
-                            ];
-                            if cx
-                                .shell
-                                .play_blocked
-                                .is_some_and(|b| lifted.contains(&b.id))
-                            {
-                                cx.shell.play_blocked = None;
-                            }
-                            Install::Done
-                        }
-                        Ok(out) => Install::Failed(failure_of(out)),
-                        Err(why) => Install::Failed(why.clone()),
-                    };
-                    // Read the engine again, whatever the outcome.
-                    if let Some(config) = self.state.config.ready().cloned() {
-                        self.load_engine(cx, &config);
-                    }
-                }
             }
-        }
-        if let Some(engine) = self.state.engine.ready() {
-            cx.shell.engine = (engine.status() == EngineStatus::Active)
-                .then(|| super::home::FACT_ENGINE_ACTIVE.to_owned());
         }
     }
 }
@@ -270,79 +141,39 @@ impl Page for Versions {
     }
 
     fn state_line(&self) -> String {
-        if self.state.install == Install::Running {
-            return STATE_INSTALLING.to_owned();
-        }
-        match &self.state.engine {
-            Fetch::Idle | Fetch::Loading => STATE_CHECKING,
-            Fetch::Failed(_) => STATE_UNKNOWN,
-            Fetch::Ready(e) => match e.status() {
-                EngineStatus::Active => STATE_ACTIVE,
-                EngineStatus::Missing => STATE_MISSING,
-                EngineStatus::Differs => STATE_DIFFERS,
-            },
+        match &self.state.update {
+            Update::Checking => STATE_CHECKING,
+            Update::Checked { newer: Some(_), .. } => STATE_NEWER,
+            Update::Checked { newer: None, .. } => STATE_NEWEST,
+            Update::Idle | Update::Failed(_) => STATE_IDLE,
         }
         .to_owned()
     }
 
     fn attention(&self) -> Option<Attention> {
-        self.state.needs_attention().then_some(Attention {
-            severity: Severity::Problem,
-            count: 1,
-        })
-    }
-
-    fn tools(&mut self, ui: &mut egui::Ui, _cx: &mut PageCx<'_>) {
-        let busy = self.state.config.is_pending()
-            || self.state.engine.is_pending()
-            || self.state.install == Install::Running
-            || self.state.update == Update::Checking;
-        if ui
-            .add_enabled(!busy, egui::Button::new(CHECK_AGAIN))
-            .clicked()
-        {
-            self.state.config = Fetch::Idle;
-        }
+        None
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
-        if self.visits.returned(ui.ctx())
-            && self.state.install != Install::Running
-            && !self.state.config.is_pending()
-            && !self.state.engine.is_pending()
-        {
-            self.state.config = Fetch::Idle;
-        }
-        if self.state.config == Fetch::Idle {
-            let first = !self.visits.loaded;
-            self.visits.loaded = true;
-            self.load(cx, first);
+        // The version never changes while the window is open: it is read when the page first opens.
+        if !self.loaded {
+            self.loaded = true;
+            if matches!(self.state.shipped, Fetch::Idle) {
+                self.read_version(cx);
+            }
         }
         self.take_answers(cx);
-        if let Some(config) = self.state.config.ready().cloned() {
-            share_config(cx, &config);
-        }
-        match cx.dialogs.take_answer(INSTALL_DIALOG) {
-            Some(Answer::Confirmed) => self.install(cx),
-            Some(Answer::Closed) => self.state.install = Install::Idle,
-            None => {}
-        }
         let _ = cx.dialogs.take_answer(UPDATE_DIALOG);
-        let t = *cx.tokens;
-        // The version is the only one a person sees. It is read when the page opens; a read that failed is tried again
-        // when the page is shown again, not on every frame.
-        if self.state.raul().is_none() && matches!(self.state.shipped, Fetch::Idle) {
-            self.read_version(cx);
-        }
         if self.state.update == Update::Failed(WAITING.what.to_owned()) {
             // The check cannot run from this window yet; it is not tried again on every frame.
             self.state.update = Update::Idle;
         }
-        shell::section_label(ui, &t, SECTION_TOOLBOX, true);
-        self.toolbox_section(ui, cx);
+        let t = *cx.tokens;
+        shell::section_label(ui, &t, SECTION_ABOUT, true);
+        self.about_section(ui, cx);
         ui.add_space(16.0);
-        shell::section_label(ui, &t, SECTION_ENGINE, true);
-        self.engine_section(ui, cx);
+        shell::section_label(ui, &t, SECTION_DETAILS, true);
+        self.details_section(ui, cx);
     }
 
     fn texts(&self) -> &'static [(&'static str, &'static str)] {
@@ -356,7 +187,7 @@ impl Page for Versions {
 
 impl Versions {
     /// The one version a person sees, as plain text, with the one update action beside it as a real button.
-    fn toolbox_section(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
+    fn about_section(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
         let version = self.state.raul().map(str::to_owned);
         let action = self.state.update_action();
@@ -429,87 +260,19 @@ impl Versions {
         }
     }
 
-    fn engine_section(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
+    /// The details block, with one button that copies it.
+    fn details_section(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
-        let running = self.state.install == Install::Running;
-        ui.horizontal(|ui| {
-            ui.label(RichText::new(ACTIVE_BUILD).color(t.muted.color()));
-            match (&self.state.engine, running) {
-                (_, true) => mark(ui, &t, Mark::Info, MARK_INSTALLING),
-                (Fetch::Idle | Fetch::Loading, _) => mark(ui, &t, Mark::Info, READING),
-                (Fetch::Failed(_), _) => mark(ui, &t, Mark::Warning, MARK_UNKNOWN),
-                (Fetch::Ready(e), _) => match e.status() {
-                    EngineStatus::Active => mark(ui, &t, Mark::Ok, MARK_ACTIVE),
-                    EngineStatus::Missing => mark(ui, &t, Mark::Unset, MARK_MISSING),
-                    EngineStatus::Differs => mark(ui, &t, Mark::Problem, MARK_DIFFERS),
-                },
-            }
-        });
-        match &self.state.engine {
-            Fetch::Ready(e) => {
-                let detail = match e.status() {
-                    EngineStatus::Active => DETAIL_ACTIVE.to_owned(),
-                    EngineStatus::Missing => DETAIL_MISSING.to_owned(),
-                    EngineStatus::Differs => e.message.clone(),
-                };
-                note(ui, &t, &detail);
-            }
-            Fetch::Failed(why) if why == WAITING.what => {
-                note(ui, &t, WAITING_NOTE);
-            }
-            Fetch::Failed(why) => error_block(ui, &t, &ENGINE_UNREADABLE, Some(why)),
-            Fetch::Idle | Fetch::Loading => {}
+        let text = self
+            .state
+            .details(std::env::consts::OS, std::env::consts::ARCH);
+        ui.add(egui::Label::new(RichText::new(&text).monospace().color(t.text.color())).wrap());
+        ui.add_space(4.0);
+        if ui.button(COPY_DETAILS).clicked() {
+            ui.ctx().copy_text(text);
         }
         ui.add_space(8.0);
-        if self.state.config.ready().is_some() && self.state.instance().is_none() {
-            note(ui, &t, NO_STORAGE);
-            if ui.button(OPEN_SETTINGS).clicked() {
-                cx.shell.go_to = Some(View::Page(PageId::Settings));
-            }
-            return;
-        }
-        if running {
-            ui.horizontal_wrapped(|ui| {
-                super::home::icon(ui, &t, super::home::Mark::Info);
-                let line = RichText::new(INSTALLING).color(t.muted.color());
-                ui.add(egui::Label::new(line).wrap());
-            });
-        }
-        if let Install::Failed(why) = &self.state.install {
-            error_block(ui, &t, &INSTALL_FAILED, Some(why));
-        }
-        let installed = self
-            .state
-            .engine
-            .ready()
-            .is_some_and(|e| e.status() != EngineStatus::Missing);
-        let label = if installed { REINSTALL } else { INSTALL };
-        // One primary button per page: Check for updates is it while a release is out.
-        let button = if installed || self.state.newer().is_some() {
-            egui::Button::new(label)
-        } else {
-            shell::primary_button(&t, label)
-        };
-        let command = self.state.install_command();
-        let can = self.state.can_install() && command.as_ref().is_some_and(available);
-        if ui.add_enabled(can, button).clicked()
-            && let Some(command) = &command
-        {
-            self.state.install = Install::Asking;
-            cx.dialogs.open(
-                Dialog::confirm(
-                    INSTALL_DIALOG,
-                    INSTALL_TITLE,
-                    if installed {
-                        REINSTALL_COST
-                    } else {
-                        INSTALL_COST
-                    },
-                    INSTALL_ACTION,
-                )
-                .with_command(command.shown()),
-            );
-        }
+        note(ui, &t, UPDATE_NOTE);
     }
 }
 
@@ -518,9 +281,6 @@ fn note(ui: &mut egui::Ui, t: &Tokens, text: &str) {
     ui.add(egui::Label::new(RichText::new(text).color(t.muted.color())).wrap());
 }
 
-/// A status mark whose word may wrap: the icon and the sentence, so a line that is too wide for the page wraps
-/// instead of reaching past its right edge (UI-RULES A5, A6). It is the shared `mark` with the word allowed to
-/// wrap, so on one line it draws the same.
 fn wrapped_mark(ui: &mut egui::Ui, t: &Tokens, m: Mark, word: &str) {
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = 6.0;
@@ -540,16 +300,7 @@ fn update_answer(out: &Output) -> Result<(Shipped, Option<Release>), String> {
 }
 
 /// The states the snapshot tests render.
-#[allow(clippy::too_many_lines)]
 pub fn fixtures() -> Vec<Fixture> {
-    let config = Config::with(
-        "/users/player/.config/raul/config.toml",
-        &[
-            (Key::NewVegas, "/games/steamapps/common/Fallout New Vegas"),
-            (Key::StorageRoot, "/users/player/raul-storage"),
-            (Key::Instance, "/users/player/raul-storage/instance"),
-        ],
-    );
     let shipped = Shipped {
         raul: "0.2.0".into(),
     };
@@ -557,21 +308,9 @@ pub fn fixtures() -> Vec<Fixture> {
         version: "0.3.0".into(),
         url: "https://example.invalid/rauls-trusty-toolbox/releases/tag/v0.3.0".into(),
     };
-    let ready = |engine: Engine, install: Install| {
-        Versions::with(State {
-            config: Fetch::Ready(config.clone()),
-            engine: Fetch::Ready(engine),
-            shipped: Fetch::Ready(shipped.clone()),
-            install,
-            ..State::default()
-        })
-    };
     let checked = |newer: Option<Release>| {
         Versions::with(State {
-            config: Fetch::Ready(config.clone()),
-            engine: Fetch::Ready(Engine::active()),
             shipped: Fetch::Ready(shipped.clone()),
-            install: Install::Idle,
             update: Update::Checked {
                 raul: "0.2.0".into(),
                 newer,
@@ -582,69 +321,28 @@ pub fn fixtures() -> Vec<Fixture> {
         Fixture::new(
             "checking",
             Versions::with(State {
-                config: Fetch::Loading,
-                engine: Fetch::Loading,
                 shipped: Fetch::Loading,
-                install: Install::Idle,
                 ..State::default()
             }),
         ),
-        Fixture::new("not-installed", ready(Engine::missing(), Install::Idle)),
-        Fixture::new("active", ready(Engine::active(), Install::Idle)),
         Fixture::new(
-            "differs",
-            ready(
-                Engine {
-                    installed: true,
-                    verified: false,
-                    message: "nv-rs differs from the checksum recorded when it was installed".into(),
-                },
-                Install::Idle,
-            ),
-        ),
-        Fixture::new("installing", ready(Engine::missing(), Install::Running)),
-        Fixture::new(
-            "install-failed",
-            ready(
-                Engine::missing(),
-                Install::Failed(
-                    "nvmod install-nv-rs: verification failed: the asset's SHA-256 does not match its release manifest"
-                        .into(),
-                ),
-            ),
-        ),
-        Fixture::new(
-            "no-storage",
+            "active",
             Versions::with(State {
-                config: Fetch::Ready(Config::with(
-                    "/users/player/.config/raul/config.toml",
-                    &[(Key::NewVegas, "/games/steamapps/common/Fallout New Vegas")],
-                )),
-                engine: Fetch::Ready(Engine::missing()),
                 shipped: Fetch::Ready(shipped.clone()),
-                install: Install::Idle,
                 ..State::default()
             }),
         ),
         Fixture::new(
             "waiting",
             Versions::with(State {
-                config: Fetch::Ready(config.clone()),
-                engine: Fetch::Failed(WAITING.what.to_owned()),
                 shipped: Fetch::Failed(WAITING.what.to_owned()),
-                install: Install::Idle,
                 ..State::default()
             }),
         ),
         Fixture::new(
             "error",
             Versions::with(State {
-                config: Fetch::Ready(config.clone()),
-                engine: Fetch::Failed(
-                    "the engine could not be checked: there is no mod list yet".into(),
-                ),
-                shipped: Fetch::Ready(shipped.clone()),
-                install: Install::Idle,
+                shipped: Fetch::Failed("raul version: the version could not be read".into()),
                 ..State::default()
             }),
         ),
@@ -658,10 +356,7 @@ pub fn fixtures() -> Vec<Fixture> {
         Fixture::new(
             "update-failed",
             Versions::with(State {
-                config: Fetch::Ready(config.clone()),
-                engine: Fetch::Ready(Engine::active()),
                 shipped: Fetch::Ready(shipped.clone()),
-                install: Install::Idle,
                 update: Update::Failed(
                     "raul update check: the release list could not be read".into(),
                 ),
@@ -799,7 +494,7 @@ mod tests {
             "a newer release turns the action into Update"
         );
         assert!(
-            h.query_by_label_contains("0.3.0").is_some(),
+            h.query_all_by_label_contains("0.3.0").next().is_some(),
             "the release that is out is named"
         );
     }
@@ -816,7 +511,8 @@ mod tests {
             );
         }
         assert!(
-            h.query_by_label_contains("known").is_none(),
+            h.query_by_label_contains(&["known", "-good"].concat())
+                .is_none(),
             "the release check's set is a build-time idea"
         );
     }
@@ -898,39 +594,39 @@ mod tests {
     }
 
     #[test]
-    fn install_asks_once_then_runs_the_release_install() {
+    fn nothing_on_the_page_installs_or_changes_a_component() {
         let exec = Arc::new(Recording::default());
-        let mut h = harness("not-installed", exec.clone());
-        h.run();
-        h.get_by_label(INSTALL).click();
-        h.run();
-        assert_eq!(
-            h.state()
-                .dialogs()
-                .current()
-                .map(|d| d.title.clone())
-                .as_deref(),
-            Some(INSTALL_TITLE),
-            "nothing reaches the network before the confirm"
+        let mut h = harness("active", exec.clone());
+        h.run_steps(4);
+        h.get_by_label(CHECK_UPDATES).click();
+        wait_for_label(&mut h, UPDATE);
+        // Press every action the page offers, then see what ran.
+        h.get_by_label(UPDATE).click();
+        h.run_steps(8);
+        let calls = exec.calls.lock().unwrap();
+        assert!(
+            calls.iter().all(|c| c[0] == "version" || c[0] == "update"),
+            "the page runs only the version read and the update check, not {calls:?}"
+        );
+    }
+
+    #[test]
+    fn the_details_block_names_the_version() {
+        let exec = Arc::new(Recording::default());
+        let mut h = harness("active", exec);
+        h.run_steps(4);
+        assert!(
+            h.query_by_label(COPY_DETAILS).is_some(),
+            "the details can be copied"
         );
         assert!(
-            exec.calls
-                .lock()
-                .unwrap()
-                .iter()
-                .all(|c| c[0] != "install-nv-rs"),
-            "the install waits for the confirm"
+            h.query_by_label_contains("Update check: not checked")
+                .is_some()
         );
-        h.get_by_label(INSTALL_ACTION).click();
-        let call = wait_for_call(&mut h, &exec, "install-nv-rs");
-        assert_eq!(
-            call,
-            [
-                "install-nv-rs",
-                "--instance",
-                "/users/player/raul-storage/instance",
-                "--release"
-            ]
+        assert!(
+            h.query_by_label_contains("Toolbox version: 0.2.0")
+                .is_some(),
+            "the details carry the version the page reads"
         );
     }
 }

@@ -23,9 +23,9 @@ scanline, Pip-Boy look was tried and rejected because it read like a 1990s websi
   | --- | --- | --- |
   | Game installations (New Vegas, Fallout 3, TTW output) | Settings, Game installations | top bar (New Vegas), Home |
   | Toolbox storage (mods, downloads, engine builds, LOD output, logs) | Settings, Toolbox storage | LOD (output path) |
-  | Engine builds, channel, active build | Versions, Engine | top bar, Home |
-  | Component versions and the masterlist | Versions, Components | Load order (masterlist), LOD (generator) |
-  | Mods, mod updates, conflicts, profiles | Mods | Home chips, Versions (count and link) |
+  | The Toolbox version and the update check | About and updates (the Versions page) | top bar |
+  | The masterlist | Load order | LOD (generator) |
+  | Mods, mod updates, conflicts, profiles | Mods | Home chips |
   | TTW bundle: status, enable, set up, reinstall, remove | Mods, TTW band and pinned row | Home, Doctor |
   | Plugin order | Load order | Doctor |
   | Health checks | Doctor | Home chips |
