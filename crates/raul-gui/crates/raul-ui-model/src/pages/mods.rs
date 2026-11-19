@@ -91,6 +91,7 @@ pub struct Generated {
 }
 
 /// One entry of the Profile's mod list.
+#[allow(clippy::struct_excessive_bools)] // each is a fact `raul mods list` reports about the entry
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModEntry {
     /// The folder name, or a separator's label.

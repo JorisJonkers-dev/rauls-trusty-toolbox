@@ -636,7 +636,7 @@ pub fn fixtures() -> Vec<Fixture> {
     generated.select("Generated LOD (Default)");
     let mut filtered = listed();
     filtered.filter = Filter::Enabled;
-    filtered.query = "sample".to_owned();
+    "sample".clone_into(&mut filtered.query);
     let mut changing = selected.clone();
     changing.changing();
     let mut failed = selected.clone();

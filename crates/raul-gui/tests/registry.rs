@@ -43,6 +43,9 @@ impl Fixture {
         }
         let staged = f.raul(&["stage", "--instance", &f.path("instance")]);
         assert_eq!(staged.0, 0, "stage: {}", staged.2);
+        // One Mod for the Mods page's commands to enable, disable, move and remove.
+        let created = f.raul(&["mods", "create", "Alpha", "--instance", &f.path("instance")]);
+        assert_eq!(created.0, 0, "mods create: {}", created.2);
         f
     }
 
@@ -73,6 +76,13 @@ impl Fixture {
         let words: Vec<&str> = match (command.action, command.words) {
             (Action::Config, ["get" | "unset"]) => vec!["game.newvegas"],
             (Action::Config, ["set"]) => vec!["game.newvegas", "BASE"],
+            // In the registry's order: the Mods page turns the fixture's Mod off and on, moves it and removes it.
+            (Action::Mods, ["enable" | "disable" | "remove"]) => {
+                vec!["Alpha", "--instance", &instance]
+            }
+            (Action::Mods, ["reorder"]) => {
+                vec!["Alpha", "--position", "1", "--instance", &instance]
+            }
             (Action::InstallNvRs, _) => {
                 vec!["--instance", &instance]
             }
