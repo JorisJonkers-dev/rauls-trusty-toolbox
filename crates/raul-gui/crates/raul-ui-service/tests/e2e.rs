@@ -474,7 +474,7 @@ fn a_real_run_streams_its_events_into_the_job_table_as_they_are_printed() {
     .iter()
     .map(|a| (*a).to_owned())
     .collect();
-    let spec = JobSpec::new(JobId(1), Action::Setup, args);
+    let spec = JobSpec::new(JobId(1), Action::Setup, args).writing();
     let mut table = JobTable::default();
     let mut running_events = 0;
     let out = service()
@@ -489,10 +489,13 @@ fn a_real_run_streams_its_events_into_the_job_table_as_they_are_printed() {
         })
         .unwrap();
     assert_eq!(out.code, Some(0), "{}", out.stderr);
+    // `Started` comes before the command prints anything, so more than one event with the job still running means
+    // the command's own lines (the plan, the steps) arrived before it ended.
     assert!(
-        running_events >= 1,
-        "the plan arrived while the command was still running"
+        running_events >= 2,
+        "the command's lines arrived while it was still running: {running_events} event(s)"
     );
+    assert!(table.writing().is_none(), "the Instance is free again");
     assert_eq!(
         table.get(JobId(1)).unwrap().state,
         JobState::Finished(Outcome::DryRun)
