@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795100469617,
+  "lastUpdate": 1795101057378,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6075,6 +6075,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.936405,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d9ec0cfa7cf08c476e5de2bf24bec510c5e43205",
+          "message": "test(gui): finish moving the GUI fixtures to the ProcessExec seam (#368)\n\n* test(gui): point the program at a config and state folder and a masterlist file through ProcessExec, not wrapper scripts\n\nPart of #267\n\n* test(gui): the three other GUI fixtures use the ProcessExec seam, and a given environment value is pinned to win\n\nPart of #267\n\n* chore: align the lodwright-rs pin and lock files with main",
+          "timestamp": "2026-11-19T15:09:23Z",
+          "tree_id": "89e6da2e8e6a742d334f4d200aa7a69b19f17ac9",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d9ec0cfa7cf08c476e5de2bf24bec510c5e43205"
+        },
+        "date": 1795101056558,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.8933769999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.681343,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.430557,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.977543,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.702065000000001,
             "unit": "ms"
           }
         ]
