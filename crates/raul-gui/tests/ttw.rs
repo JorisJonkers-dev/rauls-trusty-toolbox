@@ -10,7 +10,7 @@
 use eframe::egui::accesskit::Role;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use nvmod_testkit::{BaseBuilder, TempDir, write_script};
+use nvmod_testkit::{BaseBuilder, TempDir};
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::ttw::{
     CANCEL, INSTALL, INSTALL_CANCELLED, INSTALL_FAILED, INSTALL_UNKNOWN, INSTALLED_STATUS, NEXT,
@@ -98,17 +98,6 @@ impl Fixture {
         BaseBuilder::steam()
             .exe_version([1, 4, 0, 525])
             .write(&f.path("FalloutNV"));
-        // `raul` with this fixture's own configuration and state, so nothing reaches the real home.
-        write_script(
-            f.root.path(),
-            "raul",
-            &format!(
-                "export RAUL_CONFIG_DIR='{c}' NVMOD_STATE_DIR='{s}'\nexec '{raul}' \"$@\"",
-                c = f.path("config").display(),
-                s = f.path("state").display(),
-                raul = env!("CARGO_BIN_EXE_raul"),
-            ),
-        );
         f.raul_ok(&[
             "init",
             "--base",
@@ -118,6 +107,13 @@ impl Fixture {
         ]);
         f.raul_ok(&["profile", "create", "--instance", &f.s("instance")]);
         f
+    }
+
+    /// `raul` with this fixture's own configuration and state, so nothing reaches the real home.
+    fn exec(&self) -> ProcessExec {
+        ProcessExec::new(env!("CARGO_BIN_EXE_raul"))
+            .with_env("RAUL_CONFIG_DIR", &self.s("config"))
+            .with_env("NVMOD_STATE_DIR", &self.s("state"))
     }
 
     fn path(&self, p: &str) -> PathBuf {
@@ -131,12 +127,12 @@ impl Fixture {
     fn raul_ok(&self, args: &[&str]) {
         use raul_ui_service::Exec;
         let args: Vec<String> = args.iter().map(|a| (*a).to_owned()).collect();
-        let out = ProcessExec::new(self.path("raul")).run(&args).unwrap();
+        let out = self.exec().run(&args).unwrap();
         assert_eq!(out.code, Some(0), "{args:?}: {}", out.stderr);
     }
 
     fn service(&self) -> CliService<ProcessExec> {
-        CliService::new(ProcessExec::new(self.path("raul")).with_grace(Duration::from_secs(5)))
+        CliService::new(self.exec().with_grace(Duration::from_secs(5)))
     }
 
     /// A request with every input given.
@@ -317,7 +313,7 @@ fn a_cancelled_ttw_job_stops_the_install() {
 
 impl Fixture {
     /// The fixture as the window sees it: the storage folder holds the Instance, the sources are set with
-    /// `raul config`, and a wrapper hands the window its `raul`.
+    /// `raul config`, and the window gets the same program with the same folders.
     fn for_window(label: &str, manifest: &Manifest) -> Fixture {
         let f = Fixture::with_manifest(label, manifest);
         let storage = f.root.path().to_string_lossy().into_owned();
@@ -329,16 +325,11 @@ impl Fixture {
             &f.ttw.fallout3.to_string_lossy(),
         ]);
         f.raul_ok(&["config", "set", "ttw.package", &f.ttw.mpi.to_string_lossy()]);
-        write_script(
-            f.root.path(),
-            "raul-window",
-            &format!("exec '{raul}' \"$@\"", raul = f.s("raul")),
-        );
         f
     }
 
     fn window(&self) -> Harness<'static, App> {
-        let exec = ProcessExec::new(self.path("raul-window")).with_grace(Duration::from_secs(5));
+        let exec = self.exec().with_grace(Duration::from_secs(5));
         let app = App::new(Jobs::new(Arc::new(exec)));
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])

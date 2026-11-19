@@ -267,6 +267,25 @@ mod tests {
     }
 
     #[test]
+    fn an_environment_value_given_beats_the_one_the_person_has() {
+        // The program inherits the person's environment, so a value given must win over one already set: HOME is set
+        // wherever the tests run, and the program must see the given one.
+        let dir = nvmod_testkit::TempDir::new("exec-env-wins");
+        let p = nvmod_testkit::write_script(dir.path(), "raul", "echo \"$HOME\"");
+        let inherited = ProcessExec::new(&p).run(&[]).unwrap();
+        assert_ne!(
+            inherited.stdout.trim(),
+            "/given/home",
+            "the test needs a different inherited value"
+        );
+        let given = ProcessExec::new(&p)
+            .with_env("HOME", "/given/home")
+            .run(&[])
+            .unwrap();
+        assert_eq!(given.stdout.trim(), "/given/home");
+    }
+
+    #[test]
     fn a_replaced_argument_is_passed_as_its_replacement_everywhere_it_stands() {
         let dir = nvmod_testkit::TempDir::new("exec-replace");
         let p = nvmod_testkit::write_script(dir.path(), "raul", "for a do echo \"[$a]\"; done");
@@ -280,10 +299,12 @@ mod tests {
                 "--fetch-masterlist",
             ]))
             .unwrap();
+        // The original word is gone, not kept beside its replacement: a sort takes one masterlist option, not two.
         assert_eq!(
             out.stdout,
             "[sort]\n[--masterlist]\n[/the/file]\n[--apply]\n[--masterlist]\n[/the/file]\n"
         );
+        assert!(!out.stdout.contains("--fetch-masterlist"));
         let plain = ProcessExec::new(dir.path().join("raul"))
             .run(&args(&["a", "--fetch-masterlist"]))
             .unwrap();
