@@ -6,7 +6,7 @@
 use std::collections::HashSet;
 use std::fmt;
 use std::io::Read;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use super::verify::hash_file;
 
@@ -67,7 +67,7 @@ impl fmt::Display for Error {
             Self::Missing(_) | Self::Unlisted(_) | Self::Mismatch(_) => {
                 f.write_str("The update does not match its list of files, so it was not installed.")
             }
-            Self::Io(why) => write!(f, "The update could not be unpacked: {why}"),
+            Self::Io(_) => f.write_str("The update could not be unpacked."),
         }
     }
 }
@@ -76,6 +76,39 @@ impl std::error::Error for Error {}
 
 fn io(path: &Path, e: &std::io::Error) -> Error {
     Error::Io(format!("{}: {e}", path.display()))
+}
+
+impl Error {
+    /// The technical text, with paths, for the details a person can copy. [`fmt::Display`] holds none.
+    #[must_use]
+    pub fn detail(&self) -> String {
+        match self {
+            Self::Unsafe(name)
+            | Self::Missing(name)
+            | Self::Unlisted(name)
+            | Self::Mismatch(name) => name.clone(),
+            Self::Io(why) => why.clone(),
+            Self::TooBig | Self::NoInventory | Self::BadInventory => String::new(),
+        }
+    }
+}
+
+/// The parts of an archive or inventory name, or `None` when the name is not allowed. One rule for both, so the list
+/// and the unpacker agree (the unpacker alone first drops the `./` some archive tools put in front of every name, which
+/// is how the archive writes it and not part of the name; the inventory is ours and never has one): only `/` separates, no empty, `.` or `..` part, no backslash, colon or NUL (a drive or a
+/// stream on Windows; refused everywhere so one archive means one thing), and nothing absolute.
+fn clean_parts(name: &str) -> Option<Vec<String>> {
+    if name.is_empty() || name.contains(['\\', '\0', ':']) || name.starts_with('/') {
+        return None;
+    }
+    let parts: Vec<&str> = name.split('/').collect();
+    if parts
+        .iter()
+        .any(|p| p.is_empty() || *p == "." || *p == "..")
+    {
+        return None;
+    }
+    Some(parts.into_iter().map(str::to_owned).collect())
 }
 
 /// What an archive entry is, as far as extraction cares.
@@ -96,23 +129,16 @@ struct Sink<'a> {
 }
 
 impl Sink<'_> {
-    /// The path inside the destination for the archive's `name`, or why it is refused.
+    /// The path inside the destination for the archive's `name`, or why it is refused. A folder entry's own name may
+    /// be empty after stripping (the archive's top folder), which is `None`.
     fn target(&self, name: &str) -> Result<Option<(String, PathBuf)>, Error> {
         let unsafe_name = || Error::Unsafe(name.to_owned());
-        if name.contains('\\') || name.contains('\0') {
-            return Err(unsafe_name());
+        // A leading `./` is how some tools write the top of an archive.
+        let trimmed = name.strip_prefix("./").unwrap_or(name);
+        if trimmed.is_empty() || trimmed == "." {
+            return Ok(None);
         }
-        let mut parts = Vec::new();
-        for component in Path::new(name).components() {
-            match component {
-                // A colon is a drive or a stream name on Windows: refused on every system, so one archive means one thing.
-                Component::Normal(p) if !p.to_string_lossy().contains(':') => {
-                    parts.push(p.to_string_lossy().into_owned());
-                }
-                Component::CurDir => {}
-                _ => return Err(unsafe_name()),
-            }
-        }
+        let parts = clean_parts(trimmed).ok_or_else(unsafe_name)?;
         if parts.len() < self.strip {
             return Err(unsafe_name());
         }
@@ -147,7 +173,7 @@ impl Sink<'_> {
                     .create_new(true)
                     .open(&path)
                     .map_err(|e| io(&path, &e))?;
-                let room = self.limits.max_bytes - self.bytes;
+                let room = self.limits.max_bytes.saturating_sub(self.bytes);
                 let written = std::io::copy(&mut data.take(room + 1), &mut file)
                     .map_err(|e| io(&path, &e))?;
                 if written > room {
@@ -176,7 +202,7 @@ fn set_mode(_path: &Path, _executable: bool) -> Result<(), Error> {
 }
 
 /// Unpack a `.tar.gz` into `dest`, dropping the first `strip` components of every name (the archive's top folder).
-/// Returns the files written, relative to `dest`. On an error `dest` holds what was written so far; the caller removes it.
+/// Returns the files written, relative to `dest`. On an error `dest` is removed.
 ///
 /// # Errors
 /// [`Error::Unsafe`] for a path that is absolute, has `..`, a backslash or a drive, a link, a device or a repeated
@@ -187,6 +213,22 @@ pub fn extract_tar_gz(
     strip: usize,
     limits: Limits,
 ) -> Result<Vec<String>, Error> {
+    cleaned(dest, || tar_gz(archive, dest, strip, limits))
+}
+
+/// Run `unpack`; when it fails, remove `dest`: what it wrote is not an update, and a partial file must not be left.
+fn cleaned(
+    dest: &Path,
+    unpack: impl FnOnce() -> Result<Vec<String>, Error>,
+) -> Result<Vec<String>, Error> {
+    let result = unpack();
+    if result.is_err() {
+        let _ = std::fs::remove_dir_all(dest);
+    }
+    result
+}
+
+fn tar_gz(archive: &Path, dest: &Path, strip: usize, limits: Limits) -> Result<Vec<String>, Error> {
     let file = std::fs::File::open(archive).map_err(|e| io(archive, &e))?;
     let mut tar = tar::Archive::new(flate2::read::GzDecoder::new(file));
     let mut sink = Sink {
@@ -200,11 +242,9 @@ pub fn extract_tar_gz(
     std::fs::create_dir_all(dest).map_err(|e| io(dest, &e))?;
     for entry in tar.entries().map_err(|e| io(archive, &e))? {
         let mut entry = entry.map_err(|e| io(archive, &e))?;
-        let name = entry
-            .path()
-            .map_err(|e| io(archive, &e))?
-            .to_string_lossy()
-            .into_owned();
+        let name = std::str::from_utf8(&entry.path_bytes())
+            .map_err(|_| Error::Unsafe("a name that is not text".to_owned()))?
+            .to_owned();
         let kind = match entry.header().entry_type() {
             tar::EntryType::Regular => Kind::File {
                 executable: entry.header().mode().is_ok_and(|m| m & 0o111 != 0),
@@ -222,6 +262,15 @@ pub fn extract_tar_gz(
 /// # Errors
 /// As [`extract_tar_gz`].
 pub fn extract_zip(
+    archive: &Path,
+    dest: &Path,
+    strip: usize,
+    limits: Limits,
+) -> Result<Vec<String>, Error> {
+    cleaned(dest, || zip_file(archive, dest, strip, limits))
+}
+
+fn zip_file(
     archive: &Path,
     dest: &Path,
     strip: usize,
@@ -269,15 +318,13 @@ fn parse_inventory(text: &str) -> Result<Vec<(String, String)>, Error> {
             .split_once(char::is_whitespace)
             .ok_or(Error::BadInventory)?;
         let name = rest.trim_start().trim_start_matches('*');
-        let inside = !name.is_empty()
-            && Path::new(name)
-                .components()
-                .all(|c| matches!(c, Component::Normal(_)))
-            && !name.contains('\\');
         if hash.len() != 64
             || !hash.bytes().all(|b| b.is_ascii_hexdigit())
-            || !inside
+            || clean_parts(name).is_none()
             || name == INVENTORY
+            || out
+                .iter()
+                .any(|(n, _): &(String, String)| n.eq_ignore_ascii_case(name))
         {
             return Err(Error::BadInventory);
         }
@@ -327,6 +374,8 @@ pub fn check_unit(dir: &Path) -> Result<Vec<String>, Error> {
     walk(dir, dir, &mut present)?;
     for name in &present {
         if name != INVENTORY && !listed.iter().any(|(n, _)| n == name) {
+            // A file whose name differs from a listed one only in letter case is not that file (it is a different file
+            // on a case-sensitive system and the same one on a case-insensitive one): refused either way.
             return Err(Error::Unlisted(name.clone()));
         }
     }
@@ -533,25 +582,152 @@ mod tests {
         }
     }
 
+    /// A tar.gz written with the `tar` crate so each file has the mode the test wants.
+    #[cfg(unix)]
+    fn tar_with_modes(files: &[(&str, &[u8], u32)]) -> Vec<u8> {
+        let mut b = tar::Builder::new(Vec::new());
+        for (name, data, mode) in files {
+            let mut h = tar::Header::new_gnu();
+            h.set_size(data.len() as u64);
+            h.set_mode(*mode);
+            h.set_cksum();
+            b.append_data(&mut h, name, *data).unwrap();
+        }
+        gz(&b.into_inner().unwrap())
+    }
+
     #[cfg(unix)]
     #[test]
-    fn the_executable_bit_survives_and_a_link_in_the_folder_is_refused() {
+    fn the_executable_bit_survives_and_a_plain_file_does_not_become_executable() {
         use std::os::unix::fs::PermissionsExt;
         let t = TempDir::new("extract-mode");
-        let a = write(&t, "a.tar.gz", &release_tar("r", FILES));
+        let a = write(
+            &t,
+            "a.tar.gz",
+            &tar_with_modes(&[
+                ("raul", b"x", 0o755),
+                ("NOTICES", b"y", 0o644),
+                ("odd", b"z", 0o600),
+            ]),
+        );
         let dest = t.path().join("new");
-        extract_tar_gz(&a, &dest, 1, Limits::default()).unwrap();
-        // The test archive builder writes mode 0644 for everything, so nothing is executable here.
-        assert_eq!(
-            std::fs::metadata(dest.join("raul"))
+        extract_tar_gz(&a, &dest, 0, Limits::default()).unwrap();
+        let mode = |n: &str| {
+            std::fs::metadata(dest.join(n))
                 .unwrap()
                 .permissions()
                 .mode()
-                & 0o111,
-            0
+                & 0o777
+        };
+        assert_eq!(
+            (mode("raul"), mode("NOTICES"), mode("odd")),
+            (0o755, 0o644, 0o644)
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_link_in_the_unpacked_folder_is_refused_by_the_check() {
+        let t = TempDir::new("extract-link-check");
+        let a = write(&t, "a.tar.gz", &release_tar("r", FILES));
+        let dest = t.path().join("new");
+        extract_tar_gz(&a, &dest, 1, Limits::default()).unwrap();
         std::os::unix::fs::symlink("/etc/passwd", dest.join("link")).unwrap();
         assert!(matches!(check_unit(&dest), Err(Error::Unsafe(_))));
+    }
+
+    #[test]
+    fn one_file_over_the_byte_limit_is_refused_and_leaves_no_partial_file_or_folder() {
+        let t = TempDir::new("extract-one-big");
+        let a = write(
+            &t,
+            "a.tar.gz",
+            &gz(&TarBuilder::new().file("big", &[b'a'; 10]).bytes()),
+        );
+        let dest = t.path().join("new");
+        let small = Limits {
+            max_files: 10,
+            max_bytes: 3,
+        };
+        assert_eq!(extract_tar_gz(&a, &dest, 0, small), Err(Error::TooBig));
+        assert!(!dest.exists(), "what was written is removed");
+        let z = write(
+            &t,
+            "a.zip",
+            &ZipBuilder::new().file("big", &[b'a'; 10]).bytes(),
+        );
+        assert_eq!(
+            extract_zip(&z, &t.path().join("new2"), 0, small),
+            Err(Error::TooBig)
+        );
+        assert!(!t.path().join("new2").exists());
+        // Exactly at the limit is allowed.
+        let exact = Limits {
+            max_files: 10,
+            max_bytes: 10,
+        };
+        assert!(extract_tar_gz(&a, &t.path().join("new3"), 0, exact).is_ok());
+    }
+
+    #[test]
+    fn an_archive_that_fails_part_way_leaves_nothing_behind() {
+        let t = TempDir::new("extract-partial");
+        let tar = gz(&TarBuilder::new()
+            .file("ok", b"1")
+            .file("../bad", b"2")
+            .bytes());
+        let a = write(&t, "a.tar.gz", &tar);
+        let dest = t.path().join("new");
+        assert!(extract_tar_gz(&a, &dest, 0, Limits::default()).is_err());
+        assert!(!dest.exists());
+    }
+
+    #[test]
+    fn a_name_that_is_not_text_is_refused() {
+        let t = TempDir::new("extract-utf8");
+        let mut tar = TarBuilder::new().file("xx", b"1").bytes();
+        // Make the name `\xff\xfe`, which is not UTF-8, and fix the header checksum.
+        tar[0] = 0xff;
+        tar[1] = 0xfe;
+        tar[148..156].fill(b' ');
+        let sum: u32 = tar[..512].iter().map(|&b| u32::from(b)).sum();
+        tar[148..155].copy_from_slice(format!("{sum:06o}\0").as_bytes());
+        let a = write(&t, "a.tar.gz", &gz(&tar));
+        assert!(matches!(
+            extract_tar_gz(&a, &t.path().join("new"), 0, Limits::default()),
+            Err(Error::Unsafe(_))
+        ));
+    }
+
+    #[test]
+    fn the_list_and_the_unpacker_agree_on_which_names_are_allowed() {
+        for bad in [
+            "a:b", "C:/x", "a\\b", "../x", "a//b", "./x", "/x", "a/./b", "",
+        ] {
+            assert!(clean_parts(bad).is_none(), "{bad:?}");
+        }
+        assert_eq!(clean_parts("a/b c/d").unwrap(), ["a", "b c", "d"]);
+        let t = TempDir::new("check-grammar");
+        let dir = t.path().join("u");
+        std::fs::create_dir_all(&dir).unwrap();
+        for bad in ["a:b", "a//b", "A\\b"] {
+            std::fs::write(dir.join(INVENTORY), format!("{}  {bad}\n", hash(b"x"))).unwrap();
+            assert_eq!(check_unit(&dir), Err(Error::BadInventory), "{bad}");
+        }
+        // Two names that differ only in case are one file on some systems: refused as a duplicate.
+        let dup = format!("{0}  Raul\n{0}  raul\n", hash(b"x"));
+        std::fs::write(dir.join(INVENTORY), dup).unwrap();
+        assert_eq!(check_unit(&dir), Err(Error::BadInventory));
+    }
+
+    #[test]
+    fn a_listed_name_in_another_case_than_the_file_is_refused() {
+        let t = TempDir::new("check-case");
+        let dir = t.path().join("u");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("raul"), b"b").unwrap();
+        std::fs::write(dir.join(INVENTORY), inventory(&[("RAUL", b"b")])).unwrap();
+        assert!(check_unit(&dir).is_err(), "RAUL is not raul");
     }
 
     #[test]

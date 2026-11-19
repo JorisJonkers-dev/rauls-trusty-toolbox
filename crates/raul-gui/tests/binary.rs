@@ -80,3 +80,39 @@ fn the_update_check_is_a_command_of_the_release_build() {
         "{stderr}"
     );
 }
+
+/// A copy of the built program in a folder of its own, with the files of a portable install around it.
+fn portable_copy(dir: &std::path::Path) -> std::path::PathBuf {
+    let exe = dir.join(format!("raul{}", std::env::consts::EXE_SUFFIX));
+    std::fs::copy(env!("CARGO_BIN_EXE_raul"), &exe).expect("copy raul");
+    exe
+}
+
+#[test]
+fn a_new_version_that_fails_its_check_at_start_goes_back_to_the_old_one() {
+    // The folder holds a finished, unconfirmed update whose list names a file that is not there: the new version's own
+    // check fails at start, so the old files are put back and the program says so and stops (ADR-0020).
+    let dir = std::env::temp_dir().join(format!("raul-settle-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    let work = dir.join(".raul-update");
+    std::fs::create_dir_all(work.join("previous")).unwrap();
+    let exe = portable_copy(&dir);
+    std::fs::write(dir.join("NOTICES"), "new").unwrap();
+    std::fs::write(work.join("previous").join("NOTICES"), "old").unwrap();
+    let missing = format!("{}  missing-file\n", "0".repeat(64));
+    std::fs::write(dir.join("INSTALLED-FILES.sha256"), missing).unwrap();
+    let journal = r#"{"state":"swapped","from":"0.0.1","to":"9.9.9","files":[{"path":"NOTICES","had_old":true}]}"#;
+    std::fs::write(work.join("journal.json"), journal).unwrap();
+    let out = Command::new(&exe).arg("--version").output().expect("run");
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(out.status.code(), Some(4), "{err}");
+    assert!(err.contains("went back to the old version"), "{err}");
+    assert_eq!(std::fs::read_to_string(dir.join("NOTICES")).unwrap(), "old");
+    // The next start finds nothing to settle and runs.
+    let again = Command::new(&exe)
+        .arg("--version")
+        .output()
+        .expect("run again");
+    assert_eq!(again.status.code(), Some(0));
+    let _ = std::fs::remove_dir_all(&dir);
+}
