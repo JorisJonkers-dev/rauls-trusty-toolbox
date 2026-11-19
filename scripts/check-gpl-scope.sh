@@ -13,7 +13,7 @@ root="$PWD"
 stray() { # metadata JSON on stdin: prints "name manifest" for each stray package
   jq -r --arg ok "$root/components/nv-rs/" '
     .packages[]
-    | select((.license // "") | test("(^|[^L])GPL-3\\.0-or-later"))
+    | select((.license // "") | test("(^|[^L])GPL-3\\.0(-or-later|\\+)"))
     | select(.manifest_path | startswith($ok) | not)
     | "\(.name) \(.manifest_path)"'
 }
@@ -43,7 +43,7 @@ check() { # label, metadata JSON file
 if [ "$#" -gt 0 ]; then
   for f in "$@"; do check "$f" "$f"; done
 else
-  tmp="$(mktemp)"
+  tmp="$(mktemp "${TMPDIR:-/tmp}/gpl-scope.XXXXXX")"
   trap 'rm -f "$tmp"' EXIT
   for manifest in Cargo.toml crates/raul-gui/Cargo.toml; do
     cargo metadata --locked --format-version 1 --manifest-path "$manifest" >"$tmp"
