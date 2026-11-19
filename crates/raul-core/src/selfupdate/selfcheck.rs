@@ -51,10 +51,10 @@ pub fn run_in_process(root: &Path, running: &str, expect: Option<&str>) -> Repor
     {
         problems.push("The game engine that came with this version is damaged.".to_owned());
     }
-    if let Some(file) = crate::config::default_file().filter(|f| f.exists()) {
-        if crate::config::Config::load(&file).is_err() {
-            problems.push("The settings could not be read by this version.".to_owned());
-        }
+    if let Some(file) = crate::config::default_file().filter(|f| f.exists())
+        && crate::config::Config::load(&file).is_err()
+    {
+        problems.push("The settings could not be read by this version.".to_owned());
     }
     Report {
         version: running.to_owned(),

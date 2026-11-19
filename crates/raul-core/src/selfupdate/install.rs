@@ -225,13 +225,8 @@ mod tests {
     fn starts_that_never_confirm_are_counted_and_the_next_one_rolls_back() {
         let (t, files) = install_dir();
         install(t.path(), &files, "1.0.0", "2.0.0", &|| Ok(())).unwrap();
-        // Two starts that crash before they confirm: the check never returns, simulated by leaving the counter behind.
-        for crashed in 1..=2 {
-            std::fs::write(starts_file(t.path()), crashed.to_string()).unwrap();
-            if crashed <= UNCONFIRMED_STARTS {
-                continue;
-            }
-        }
+        // Two starts that crashed before they confirmed leave their count behind; the next start rolls back.
+        std::fs::write(starts_file(t.path()), (UNCONFIRMED_STARTS + 1).to_string()).unwrap();
         let r = settle_at_start(t.path(), &|| panic!("the check is not even asked")).unwrap();
         assert!(matches!(r, Startup::RolledBack(_)), "{r:?}");
         assert_eq!(read(&t), "raul 1");
