@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The Load order page end to end: it lists the plugins, sorts with a preview, applies and undoes through the
 //! release `raul` on a synthetic Instance, and Undo restores the plugin lists byte for byte. The masterlist is a
-//! file written here: a wrapper passes it where the page asks for the pinned one, so nothing is fetched.
+//! file written here: the fixture's command passes it where the page asks for the pinned one, so nothing is fetched.
 #![cfg(unix)]
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, write_file, write_script};
+use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, write_file};
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::load_order::{APPLIED_STATUS, SORT, UNDO, UNDONE_STATUS};
@@ -36,18 +36,6 @@ impl Fixture {
             &PluginBuilder::master().build(),
         );
         std::fs::write(f.path("masterlist.yaml"), MASTERLIST).unwrap();
-        // `raul` with this fixture's configuration and state, and the masterlist file instead of the pinned one.
-        write_script(
-            f.root.path(),
-            "raul",
-            &format!(
-                "export RAUL_CONFIG_DIR='{c}' NVMOD_STATE_DIR='{s}'\nfor a do shift; if [ \"$a\" = --fetch-masterlist ]; then set -- \"$@\" --masterlist '{m}'; else set -- \"$@\" \"$a\"; fi; done\nexec '{raul}' \"$@\"",
-                c = f.path("config").display(),
-                s = f.path("state").display(),
-                m = f.path("masterlist.yaml").display(),
-                raul = env!("CARGO_BIN_EXE_raul"),
-            ),
-        );
         let storage = f.s("storage");
         f.raul(&["config", "set", "storage.root", &storage]);
         let instance = f.path("storage/instance");
@@ -99,6 +87,17 @@ impl Fixture {
         f
     }
 
+    /// `raul` with this fixture's configuration and state, and the masterlist file where the pages ask for the pinned one.
+    fn exec(&self) -> ProcessExec {
+        ProcessExec::new(env!("CARGO_BIN_EXE_raul"))
+            .with_env("RAUL_CONFIG_DIR", &self.s("config"))
+            .with_env("NVMOD_STATE_DIR", &self.s("state"))
+            .with_argument_replaced(
+                "--fetch-masterlist",
+                &["--masterlist", &self.s("masterlist.yaml")],
+            )
+    }
+
     fn path(&self, p: &str) -> PathBuf {
         self.root.path().join(p)
     }
@@ -109,7 +108,7 @@ impl Fixture {
 
     fn raul(&self, args: &[&str]) {
         let args: Vec<String> = args.iter().map(|a| (*a).to_owned()).collect();
-        let out = ProcessExec::new(self.path("raul")).run(&args).unwrap();
+        let out = self.exec().run(&args).unwrap();
         assert_eq!(out.code, Some(0), "{args:?}: {}", out.stderr);
     }
 
@@ -178,10 +177,10 @@ fn sort_preview_apply_then_undo_restores_the_lists_byte_for_byte() {
     let before = f.lists();
     let words = Arc::new(Mutex::new(Vec::new()));
     let exec = Recording {
-        inner: ProcessExec::new(f.path("raul")).with_grace(Duration::from_secs(5)),
+        inner: f.exec().with_grace(Duration::from_secs(5)),
         words: Arc::clone(&words),
     };
-    // The sort stays a command line here: the wrapper swaps the pinned masterlist for a file, which a direct sort
+    // The sort stays a command line here: the fixture's command swaps the pinned masterlist for a file, which a direct sort
     // (it fetches the pinned one itself) would not go through.
     let jobs = Jobs::new(Arc::new(exec)).scripted(&["sort-preview", "sort-apply"]);
     let app = App::new(jobs);
