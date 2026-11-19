@@ -73,6 +73,12 @@ impl Fixture {
         let words: Vec<&str> = match (command.action, command.words) {
             (Action::Config, ["get" | "unset"]) => vec!["game.newvegas"],
             (Action::Config, ["set"]) => vec!["game.newvegas", "BASE"],
+            // In the registry's order: set one LOD option, unset another one (nothing to change), Restore defaults
+            // removes the first and keeps a restore point, and Undo puts it back; each succeeds.
+            (Action::Lod, ["settings", "set"]) => {
+                vec!["output.trees", "false", "--instance", &instance]
+            }
+            (Action::Lod, ["settings", "unset"]) => vec!["output.water", "--instance", &instance],
             (Action::InstallNvRs, _) => {
                 vec!["--instance", &instance]
             }

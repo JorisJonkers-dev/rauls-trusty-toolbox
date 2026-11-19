@@ -7,6 +7,7 @@ mod config;
 mod detect;
 mod install_nv_rs;
 mod lod;
+mod lod_settings;
 mod printer;
 mod setup;
 mod ttw;
@@ -102,6 +103,19 @@ usage:
                               first
   raul lod mods [--instance <dir>] [--profile <name>] [--json]
                               the generated LOD Mods the profile lists, highest priority first; nothing is written
+  raul lod settings show [--instance <dir>] [--profile <name>] [--json]
+                              every LOD option of the Profile with its value and default; * marks one its
+                              raul-lod.toml sets
+  raul lod settings set <key> <value>... [--instance <dir>] [--profile <name>] [--json]
+                              set one option (true/false, a number, or the names of a list); checked first, and a
+                              refused value changes nothing
+  raul lod settings unset <key> [--instance <dir>] [--profile <name>] [--json]
+                              remove one key from raul-lod.toml, so the option takes its default
+  raul lod settings reset [--dry-run] [--instance <dir>] [--profile <name>] [--json]
+                              Restore defaults: remove every LOD generation setting (allow_in_repo stays), keeping
+                              the file as it was in raul-lod.toml.previous; --dry-run names what it would remove
+  raul lod settings undo [--instance <dir>] [--profile <name>] [--json]
+                              put back the file the last reset kept (one level; a later set or unset ends it)
   raul install-nv-rs --instance <dir> [--source <dir> [--cargo <path>]]
                               put the engine that ships with raul in an Instance and check it; nothing is
                               downloaded. --source builds an nv-rs workspace instead (for developers)
