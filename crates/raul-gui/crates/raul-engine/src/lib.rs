@@ -28,7 +28,7 @@ mod tests {
     #[cfg(feature = "engine")]
     #[test]
     fn facade_version_is_set() {
-        assert!(FACADE_API_VERSION >= 1);
+        assert!(std::hint::black_box(FACADE_API_VERSION) >= 1);
         assert!(fork_api::CAPABILITIES.trim_start().starts_with('{'));
     }
 }
