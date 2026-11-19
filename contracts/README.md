@@ -15,6 +15,7 @@ removing, renaming or retyping one is.
 | `raul-events` | 1 | the JSON lines of a driver command: `raul ttw --json` |
 | `raul-ttw-result` | 1 | the `result` event of `raul ttw --json` |
 | `raul-lod-result` | 1 | the `result` event of `raul lod generate --json` |
+| `raul-lod-mods` | 1 | `raul lod mods --json` |
 | `raul-journal` | 1 | the file `.raul/setup-journal.json` in an Instance (on disk) |
 
 `snapshots/` holds the schemas of the Component Contracts the Toolbox reads, as their releases published them:
@@ -172,9 +173,15 @@ test, with the two folders written as `<data>` and `<output>`.
 
 `raul lod generate` builds the request (above) and calls lodwright's library API (`lodwright-api`) in process with it,
 mapping lodwright's progress to `raul-events` lines; it reads the manifest in lodwright's output folder and keeps the
-output as the Mod `LOD (lodwright)`, enabled in the Profile, so the next run loads it. A second run over an
-unchanged Load order: lodwright answers `up_to_date`, the Mod is already there, and nothing is written
-(`up_to_date: true`, `changed: false`). lodwright's block progress becomes `progress` events of the phase `terrain`.
+output as the Profile's LOD Mod, `Generated LOD (<Profile>)`: one Mod for every world of that Profile. Its `meta.ini`
+carries the marker section `[raulGeneratedLod]` (`generated=true`, `profile`, `requestDigest`, `lodwrightVersion`);
+every other key of the file is kept, so a category the user gave the Mod survives the next run. A new Mod goes on top
+of the Profile, enabled; a run that replaces the Mod keeps its place and its enabled state, so a disabled LOD Mod stays
+disabled. A Mod named `LOD (lodwright)`, the name every Profile shared before, is generated LOD too: the next run of a
+Profile that lists it gives the Profile's own Mod its place and state, then removes it, or only disables it in that
+Profile while another Profile lists it. A Mod of the new name that is not generated LOD is refused (`plan_refused`)
+and nothing changes. A second run over an unchanged Load order: lodwright answers `up_to_date`, the Mod is already
+there, and nothing is written (`up_to_date: true`, `changed: false`); a removed Mod is made again. lodwright's block progress becomes `progress` events of the phase `terrain`.
 
 | `status` | Exit code | `error.code` | lodwright |
 | --- | --- | --- | --- |
@@ -191,3 +198,12 @@ between runs (that is how it knows a later run is `up_to_date`); the Mod is a co
 
 The tests run `raul lod generate` with the linked lodwright on a synthetic world (`crates/raul-cli/tests/lod_generate.rs`),
 and the cancel and resume cases call the same generation in process with a cancel token.
+
+## `raul-lod-mods`
+
+`raul lod mods --json` lists the generated LOD Mods a Profile has in its mod list, highest priority first, and writes
+nothing. A Mod is generated LOD when its `meta.ini` carries the `[raulGeneratedLod]` marker, or when it has the name
+every Profile shared before, `LOD (lodwright)` (`legacy: true`, and `profile`, `request_digest` and
+`lodwright_version` are `null`). `own` marks the Profile's own Mod, `own_name`, which `raul lod generate` replaces; a
+Profile may also list another Profile's LOD Mod. `position` counts separators, as `raul mods list` does. An Instance or
+Profile that cannot be read is refused (exit code 2) with one line on standard error and no document.

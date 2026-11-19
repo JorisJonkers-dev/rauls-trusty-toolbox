@@ -1996,6 +1996,7 @@ dependencies = [
  "lodwright-contract",
  "lodwright-testkit",
  "nvmod-core",
+ "nvmod-formats",
  "nvmod-instance",
  "nvmod-loadorder",
  "nvmod-modinstall",

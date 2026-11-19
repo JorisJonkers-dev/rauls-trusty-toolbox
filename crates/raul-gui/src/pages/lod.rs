@@ -18,7 +18,7 @@ use eframe::egui::{self, RichText};
 use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobId, JobState};
 use raul_ui_model::pages::lod::{
-    BlockStatus, MOD_NAME, Outcome, Phase, Plan, Problem, Progress, State, Written,
+    BlockStatus, Outcome, Phase, Plan, Problem, Progress, State, Written,
     generate_command, parse_plan, plan_command, read_result,
 };
 use raul_ui_model::pages::settings::Command;
@@ -54,7 +54,7 @@ crate::texts!(TEXTS {
     KIND_TREES = "Trees";
     KIND_NONE = "Nothing: every kind is switched off in the LOD settings";
     KEEPS = "Keeps it as";
-    KEEPS_VALUE = "One Mod, enabled in your mod list. A new run replaces it.";
+    KEEPS_VALUE = "One Mod for this Profile in your mod list. A new run replaces it and keeps its place and whether it is on.";
     WORK_FOLDER = "Work folder";
     COL_BLOCK = "Block";
     COL_STATUS = "Status";
@@ -304,7 +304,7 @@ impl Lod {
         }
     }
 
-    fn plan_section(ui: &mut egui::Ui, t: &Tokens, plan: &Plan) {
+    fn plan_section(ui: &mut egui::Ui, t: &Tokens, plan: &Plan, mod_name: Option<&str>) {
         shell::section_label(ui, t, SECTION_PLAN, true);
         let kinds: Vec<&str> = [
             (plan.terrain, KIND_TERRAIN),
@@ -342,7 +342,9 @@ impl Lod {
                 ui.end_row();
                 label(ui, KEEPS);
                 ui.vertical(|ui| {
-                    ui.label(RichText::new(MOD_NAME).strong());
+                    if let Some(name) = mod_name {
+                        ui.label(RichText::new(name).strong());
+                    }
                     ui.label(RichText::new(KEEPS_VALUE).color(t.muted.color()));
                 });
                 ui.end_row();
@@ -571,7 +573,8 @@ impl Page for Lod {
         }
         ui.add_space(12.0);
         if let Some(plan) = self.state.plan.clone() {
-            Self::plan_section(ui, &t, &plan);
+            let mod_name = self.state.outcome.as_ref().and_then(|o| o.mod_name.clone());
+            Self::plan_section(ui, &t, &plan, mod_name.as_deref());
             ui.add_space(16.0);
             self.blocks(ui, &t);
             ui.add_space(14.0);
@@ -655,12 +658,15 @@ fn planned(worlds: &[&str]) -> State {
     s
 }
 
+/// The LOD Mod of the fixture Profile, as `raul lod generate` names it.
+const FIXTURE_MOD: &str = "Generated LOD (Default)";
+
 fn outcome(status: Status, up_to_date: bool, worlds: &[&str]) -> Outcome {
     Outcome {
         status,
         up_to_date,
         dry_run: false,
-        mod_name: (status == Status::Success).then(|| MOD_NAME.to_owned()),
+        mod_name: (status == Status::Success).then(|| FIXTURE_MOD.to_owned()),
         files: (status == Status::Success).then_some(26),
         worlds: worlds.iter().map(|w| (*w).to_owned()).collect(),
         written: if up_to_date || status != Status::Success {
