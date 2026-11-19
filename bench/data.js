@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795086876687,
+  "lastUpdate": 1795087389295,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5585,6 +5585,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.426268,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "08b8387a6af7e99b8e3532fa543dd9e75460a0d2",
+          "message": "feat(update): journalled swap and rollback of an install unit (#325)\n\n* feat(update): journalled swap and rollback of an install unit\n\nThe portable core of the update flow (ADR-0020): stage the new files beside the install, swap them in with a journal\nwritten first, keep the previous version, undo an interrupted swap at start, and roll back a finished one. Synthetic\nfolders only; nothing is downloaded and no program is started.\n\nPart of #179\n\n* fix(update): lock, link refusal, durable renames and a kept rollback target in the swap\n\nPart of #179",
+          "timestamp": "2026-11-19T12:21:55+01:00",
+          "tree_id": "e8e273c8cbbbf555c589d6420bb3ce4cde74a581",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/08b8387a6af7e99b8e3532fa543dd9e75460a0d2"
+        },
+        "date": 1795087388806,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.558371,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.223475,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 29.963658000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 3.972512,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.560992,
             "unit": "ms"
           }
         ]
