@@ -1,0 +1,343 @@
+{
+  "change": {
+    "action": "reset",
+    "changed": false,
+    "dry_run": true,
+    "file_removed": false,
+    "keys": [
+      "output.trees",
+      "levels.8.max_vertices"
+    ],
+    "restore_point": null
+  },
+  "contract": "raul-lod-settings",
+  "error": null,
+  "exists": true,
+  "file": "<instance>/profiles/Default/raul-lod.toml",
+  "instance": "<instance>",
+  "options": [
+    {
+      "default": [],
+      "key": "worlds",
+      "kind": "names",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 1,
+      "value": []
+    },
+    {
+      "default": true,
+      "key": "output.terrain",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 1,
+      "value": true
+    },
+    {
+      "default": true,
+      "key": "output.land_textures",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 1,
+      "value": true
+    },
+    {
+      "default": true,
+      "key": "output.water",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 1,
+      "value": true
+    },
+    {
+      "default": true,
+      "key": "output.objects",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 1,
+      "value": true
+    },
+    {
+      "default": true,
+      "key": "output.trees",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": true,
+      "restores": true,
+      "tier": 1,
+      "value": false
+    },
+    {
+      "default": [],
+      "key": "inclusion.exclude_plugins",
+      "kind": "names",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 1,
+      "value": []
+    },
+    {
+      "default": [],
+      "key": "inclusion.only_plugins",
+      "kind": "names",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 1,
+      "value": []
+    },
+    {
+      "default": [],
+      "key": "inclusion.exclude_records",
+      "kind": "records",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 1,
+      "value": []
+    },
+    {
+      "default": [],
+      "key": "inclusion.exclude_models",
+      "kind": "names",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 1,
+      "value": []
+    },
+    {
+      "default": null,
+      "key": "threads",
+      "kind": "count",
+      "max": 4294967295.0,
+      "min": 1.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 1,
+      "value": null
+    },
+    {
+      "default": null,
+      "key": "memory_mib",
+      "kind": "count",
+      "max": null,
+      "min": 1.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 1,
+      "value": null
+    },
+    {
+      "default": false,
+      "key": "allow_in_repo",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": true,
+      "restores": false,
+      "tier": 2,
+      "value": true
+    },
+    {
+      "default": 10.0,
+      "key": "levels.4.quality",
+      "kind": "number",
+      "max": null,
+      "min": 0.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 10.0
+    },
+    {
+      "default": 2000,
+      "key": "levels.4.max_vertices",
+      "kind": "count",
+      "max": 32767.0,
+      "min": 3.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 2000
+    },
+    {
+      "default": 256,
+      "key": "levels.4.diffuse_size",
+      "kind": "texture_size",
+      "max": 4096.0,
+      "min": 4.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 256
+    },
+    {
+      "default": 256,
+      "key": "levels.4.normal_size",
+      "kind": "texture_size",
+      "max": 4096.0,
+      "min": 4.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 256
+    },
+    {
+      "default": 15.0,
+      "key": "levels.8.quality",
+      "kind": "number",
+      "max": null,
+      "min": 0.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 15.0
+    },
+    {
+      "default": 2000,
+      "key": "levels.8.max_vertices",
+      "kind": "count",
+      "max": 32767.0,
+      "min": 3.0,
+      "overridden": true,
+      "restores": true,
+      "tier": 2,
+      "value": 3000
+    },
+    {
+      "default": 256,
+      "key": "levels.8.diffuse_size",
+      "kind": "texture_size",
+      "max": 4096.0,
+      "min": 4.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 256
+    },
+    {
+      "default": 256,
+      "key": "levels.8.normal_size",
+      "kind": "texture_size",
+      "max": 4096.0,
+      "min": 4.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 256
+    },
+    {
+      "default": 20.0,
+      "key": "levels.16.quality",
+      "kind": "number",
+      "max": null,
+      "min": 0.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 20.0
+    },
+    {
+      "default": 2000,
+      "key": "levels.16.max_vertices",
+      "kind": "count",
+      "max": 32767.0,
+      "min": 3.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 2000
+    },
+    {
+      "default": 256,
+      "key": "levels.16.diffuse_size",
+      "kind": "texture_size",
+      "max": 4096.0,
+      "min": 4.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 256
+    },
+    {
+      "default": 256,
+      "key": "levels.16.normal_size",
+      "kind": "texture_size",
+      "max": 4096.0,
+      "min": 4.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 256
+    },
+    {
+      "default": 25.0,
+      "key": "levels.32.quality",
+      "kind": "number",
+      "max": null,
+      "min": 0.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 25.0
+    },
+    {
+      "default": 2000,
+      "key": "levels.32.max_vertices",
+      "kind": "count",
+      "max": 32767.0,
+      "min": 3.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 2000
+    },
+    {
+      "default": 256,
+      "key": "levels.32.diffuse_size",
+      "kind": "texture_size",
+      "max": 4096.0,
+      "min": 4.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 256
+    },
+    {
+      "default": 256,
+      "key": "levels.32.normal_size",
+      "kind": "texture_size",
+      "max": 4096.0,
+      "min": 4.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 2,
+      "value": 256
+    }
+  ],
+  "profile": "Default",
+  "restore_point": null,
+  "schema_version": 1,
+  "warnings": []
+}
