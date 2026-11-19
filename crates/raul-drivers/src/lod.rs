@@ -231,7 +231,7 @@ pub fn check_request(request: &Value) -> Result<(), String> {
     let errors: Vec<String> = validator
         .iter_errors(request)
         .take(5)
-        .map(|e| format!("{}: {e}", e.instance_path))
+        .map(|e| format!("{}: {e}", e.instance_path()))
         .collect();
     if errors.is_empty() {
         Ok(())
