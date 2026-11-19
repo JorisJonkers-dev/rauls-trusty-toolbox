@@ -66,8 +66,15 @@ pub enum Error {
     Unsettled,
     /// There is no previous version to go back to.
     NothingToRollBack,
+    /// A path of the unit is a link or a folder where a file is expected; nothing was touched.
+    NotPlain(String),
+    /// Another update, rollback or recovery holds the lock of this install; nothing was touched.
+    Locked,
     /// A file operation failed; the message names the path and the reason.
     Io(String),
+    /// The test hook that stands in for a crash stopped the swap here.
+    #[cfg(test)]
+    Interrupted,
 }
 
 impl fmt::Display for Error {
@@ -81,7 +88,11 @@ impl fmt::Display for Error {
                 f.write_str("an earlier update has not finished; it is settled first")
             }
             Self::NothingToRollBack => f.write_str("there is no earlier version to go back to"),
+            Self::NotPlain(p) => write!(f, "{p} is not a plain file"),
+            Self::Locked => f.write_str("another update of this install is running"),
             Self::Io(why) => f.write_str(why),
+            #[cfg(test)]
+            Self::Interrupted => f.write_str("interrupted"),
         }
     }
 }
@@ -113,7 +124,12 @@ fn checked(path: &str) -> Result<PathBuf, Error> {
         && relative
             .components()
             .all(|c| matches!(c, Component::Normal(_)));
-    if inside {
+    // The work folder is ours: a unit may not name it, in any letter case (Windows and macOS ignore case).
+    let reserved = relative
+        .components()
+        .next()
+        .is_some_and(|c| c.as_os_str().to_string_lossy().eq_ignore_ascii_case(WORK));
+    if inside && !reserved {
         Ok(relative.to_path_buf())
     } else {
         Err(Error::BadPath(path.to_owned()))
@@ -143,9 +159,92 @@ fn write_journal(root: &Path, journal: &Journal) -> Result<(), Error> {
         let mut f = std::fs::File::create(&temporary)?;
         std::io::Write::write_all(&mut f, text.as_bytes())?;
         f.sync_all()?;
-        std::fs::rename(&temporary, &file)
+        std::fs::rename(&temporary, &file)?;
+        file.parent().map(sync_dir);
+        Ok::<(), std::io::Error>(())
     })();
     written.map_err(|e| io(&file, &e))
+}
+
+/// Whether `path` is a regular file. A link, even to a file, and a folder are not.
+fn plain_file(path: &Path) -> bool {
+    std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_file())
+}
+
+/// Whether anything stands at `path`, a dangling link included.
+fn present(path: &Path) -> bool {
+    std::fs::symlink_metadata(path).is_ok()
+}
+
+/// Flush a folder's entries to disk so a rename in it survives a power cut. A no-op where a folder cannot be opened
+/// for it (Windows); the journal is what repairs a swap there.
+fn sync_dir(dir: &Path) {
+    #[cfg(unix)]
+    if let Ok(f) = std::fs::File::open(dir) {
+        let _ = f.sync_all();
+    }
+    #[cfg(not(unix))]
+    let _ = dir;
+}
+
+/// The lock of an install while an update, rollback or recovery changes it. It is a file holding the process id,
+/// removed on drop; one left by a process that no longer exists (checked where `/proc` shows it) is taken over.
+struct Lock(PathBuf);
+
+impl Lock {
+    fn take(root: &Path) -> Result<Self, Error> {
+        let dir = root.join(WORK);
+        std::fs::create_dir_all(&dir).map_err(|e| io(&dir, &e))?;
+        let file = dir.join("lock");
+        for _ in 0..2 {
+            match std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&file)
+            {
+                Ok(mut f) => {
+                    let _ = std::io::Write::write_all(
+                        &mut f,
+                        std::process::id().to_string().as_bytes(),
+                    );
+                    return Ok(Self(file));
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+                    if Self::stale(&file) {
+                        let _ = std::fs::remove_file(&file);
+                    } else {
+                        return Err(Error::Locked);
+                    }
+                }
+                Err(e) => return Err(io(&file, &e)),
+            }
+        }
+        Err(Error::Locked)
+    }
+
+    fn stale(file: &Path) -> bool {
+        let Some(pid) = std::fs::read_to_string(file)
+            .ok()
+            .and_then(|t| t.trim().parse::<u32>().ok())
+        else {
+            return false;
+        };
+        if Path::new("/proc/self").exists() {
+            return pid != std::process::id() && !Path::new("/proc").join(pid.to_string()).exists();
+        }
+        // Where a process cannot be looked up, a lock that nothing has touched for ten minutes is a dead one's.
+        std::fs::metadata(file)
+            .and_then(|m| m.modified())
+            .ok()
+            .and_then(|t| t.elapsed().ok())
+            .is_some_and(|age| age > std::time::Duration::from_mins(10))
+    }
+}
+
+impl Drop for Lock {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
 }
 
 fn make_parent(path: &Path) -> Result<(), Error> {
@@ -157,7 +256,11 @@ fn make_parent(path: &Path) -> Result<(), Error> {
 
 fn mv(from: &Path, to: &Path) -> Result<(), Error> {
     make_parent(to)?;
-    std::fs::rename(from, to).map_err(|e| io(from, &e))
+    std::fs::rename(from, to).map_err(|e| io(from, &e))?;
+    for dir in [from.parent(), to.parent()].into_iter().flatten() {
+        sync_dir(dir);
+    }
+    Ok(())
 }
 
 /// Replace the unit: `files` (relative paths) staged under [`staging_dir`] become the installed files, and what was
@@ -178,6 +281,7 @@ fn apply_until(
     to: &str,
     renames: usize,
 ) -> Result<(), Error> {
+    let _lock = Lock::take(root)?;
     if journal(root)?.is_some_and(|j| j.state == State::Swapping) {
         return Err(Error::Unsettled);
     }
@@ -185,18 +289,21 @@ fn apply_until(
     let mut entries = Vec::new();
     for file in files {
         let relative = checked(file)?;
-        if !new.join(&relative).is_file() {
-            return Err(Error::NotStaged(file.clone()));
+        if !plain_file(&new.join(&relative)) {
+            return Err(if present(&new.join(&relative)) {
+                Error::NotPlain(file.clone())
+            } else {
+                Error::NotStaged(file.clone())
+            });
+        }
+        let installed = root.join(&relative);
+        if present(&installed) && !plain_file(&installed) {
+            return Err(Error::NotPlain(file.clone()));
         }
         entries.push(Entry {
             path: file.clone(),
-            had_old: root.join(&relative).is_file(),
+            had_old: present(&installed),
         });
-    }
-    // The version kept from an earlier update is replaced by this one's previous version.
-    let previous = previous_dir(root);
-    if previous.exists() {
-        std::fs::remove_dir_all(&previous).map_err(|e| io(&previous, &e))?;
     }
     let mut journal = Journal {
         state: State::Swapping,
@@ -204,23 +311,27 @@ fn apply_until(
         to: to.to_owned(),
         files: entries,
     };
+    // The journal comes first. The version kept from an earlier update is set aside, not deleted, until this swap has
+    // finished, so an interrupted swap leaves that rollback target in place.
     write_journal(root, &journal)?;
+    let previous = previous_dir(root);
+    let aside = aside_dir(root);
+    if present(&aside) {
+        std::fs::remove_dir_all(&aside).map_err(|e| io(&aside, &e))?;
+    }
+    if present(&previous) {
+        std::fs::rename(&previous, &aside).map_err(|e| io(&previous, &e))?;
+    }
     let mut done = 0usize;
     let result = (|| {
         for entry in &journal.files {
             let relative = checked(&entry.path)?;
             if entry.had_old {
-                if done >= renames {
-                    return Err(Error::Io("stopped".to_owned()));
-                }
+                stop_after(&mut done, renames)?;
                 mv(&root.join(&relative), &previous.join(&relative))?;
-                done += 1;
             }
-            if done >= renames {
-                return Err(Error::Io("stopped".to_owned()));
-            }
+            stop_after(&mut done, renames)?;
             mv(&new.join(&relative), &root.join(&relative))?;
-            done += 1;
         }
         Ok(())
     })();
@@ -234,7 +345,26 @@ fn apply_until(
         return Err(e);
     }
     journal.state = State::Swapped;
-    write_journal(root, &journal)
+    write_journal(root, &journal)?;
+    let _ = std::fs::remove_dir_all(&aside);
+    Ok(())
+}
+
+fn aside_dir(root: &Path) -> PathBuf {
+    root.join(WORK).join("previous.old")
+}
+
+/// Count one rename; in a test, stop dead when `limit` renames are done.
+#[cfg_attr(not(test), allow(clippy::unnecessary_wraps))] // fallible only as the test crash hook
+fn stop_after(done: &mut usize, limit: usize) -> Result<(), Error> {
+    #[cfg(test)]
+    if *done >= limit {
+        return Err(Error::Interrupted);
+    }
+    #[cfg(not(test))]
+    let _ = limit;
+    *done += 1;
+    Ok(())
 }
 
 /// Put every file of `journal` back to the version it had before the swap.
@@ -245,16 +375,24 @@ fn restore(root: &Path, journal: &Journal) -> Result<(), Error> {
         let relative = checked(&entry.path)?;
         let installed = root.join(&relative);
         let kept = previous.join(&relative);
-        if kept.is_file() {
+        if plain_file(&kept) {
             // The old file was moved away: whatever stands in its place is the new one.
-            if installed.is_file() {
+            if plain_file(&installed) {
                 mv(&installed, &new.join(&relative))?;
             }
             mv(&kept, &installed)?;
-        } else if !entry.had_old && installed.is_file() {
+        } else if !entry.had_old && plain_file(&installed) {
             // A file the new version added.
             mv(&installed, &new.join(&relative))?;
         }
+    }
+    // What this swap set aside is the rollback target of the update before it: give it back.
+    let aside = aside_dir(root);
+    if present(&aside) {
+        if present(&previous) {
+            std::fs::remove_dir_all(&previous).map_err(|e| io(&previous, &e))?;
+        }
+        std::fs::rename(&aside, &previous).map_err(|e| io(&aside, &e))?;
     }
     Ok(())
 }
@@ -265,6 +403,10 @@ fn restore(root: &Path, journal: &Journal) -> Result<(), Error> {
 /// # Errors
 /// [`Error::Io`] when a file cannot be moved back or the journal cannot be written.
 pub fn recover(root: &Path) -> Result<Option<Journal>, Error> {
+    if !present(&journal_file(root)) {
+        return Ok(None);
+    }
+    let _lock = Lock::take(root)?;
     let Some(mut j) = journal(root)? else {
         return Ok(None);
     };
@@ -281,6 +423,7 @@ pub fn recover(root: &Path) -> Result<Option<Journal>, Error> {
 /// # Errors
 /// [`Error::NothingToRollBack`] when no finished swap is recorded; [`Error::Io`] when the journal cannot be written.
 pub fn confirm(root: &Path) -> Result<(), Error> {
+    let _lock = Lock::take(root)?;
     match journal(root)? {
         Some(mut j) if matches!(j.state, State::Swapped | State::Confirmed) => {
             j.state = State::Confirmed;
@@ -290,12 +433,13 @@ pub fn confirm(root: &Path) -> Result<(), Error> {
     }
 }
 
-/// Go back to the previous version after a finished swap, confirmed or not. The replaced version is kept under the
-/// previous folder as well, so the way back can itself be undone once by another update.
+/// Go back to the previous version after a finished swap, confirmed or not. The replaced version is left in the
+/// staging folder, where a new update replaces it.
 ///
 /// # Errors
 /// [`Error::NothingToRollBack`] when no finished swap is recorded; [`Error::Io`] when a file cannot be moved.
 pub fn rollback(root: &Path) -> Result<Journal, Error> {
+    let _lock = Lock::take(root)?;
     let Some(mut j) = journal(root)? else {
         return Err(Error::NothingToRollBack);
     };
@@ -506,18 +650,93 @@ mod tests {
     #[test]
     fn a_failing_rename_puts_the_files_back() {
         let t = install();
-        // A directory where the new file must go makes its rename fail after the old file was moved away.
-        std::fs::create_dir_all(t.path().join("NEW-IN-2")).unwrap();
-        std::fs::remove_file(staging_dir(t.path()).join("components/nv-rs/bin/nv-viewer")).unwrap();
-        write_file(
-            &staging_dir(t.path()),
-            "components/nv-rs/bin/nv-viewer",
-            b"viewer 2",
-        );
-        let files = vec!["raul".to_owned(), "NEW-IN-2".to_owned()];
-        // `NEW-IN-2` exists as a folder, so it is not a file: not staged over it, the rename onto a folder fails.
+        // `components` is a file, so the viewer cannot be moved under it: the second file's rename fails after the
+        // first was already swapped.
+        std::fs::remove_dir_all(t.path().join("components")).unwrap();
+        write_file(t.path(), "components", b"in the way");
+        let files = vec![
+            "raul".to_owned(),
+            "components/nv-rs/bin/nv-viewer".to_owned(),
+        ];
         let r = apply(t.path(), &files, "1.0.0", "2.0.0");
-        assert!(r.is_err());
+        assert!(matches!(r, Err(Error::Io(_))), "{r:?}");
         assert_eq!(read(&t, "raul").as_deref(), Some("raul 1"));
+        assert_eq!(read(&t, "components").as_deref(), Some("in the way"));
+        assert_eq!(journal(t.path()).unwrap().unwrap().state, State::RolledBack);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_link_or_a_folder_in_the_unit_is_refused_before_anything_moves() {
+        let t = install();
+        std::os::unix::fs::symlink("/etc/passwd", staging_dir(t.path()).join("LINK")).unwrap();
+        assert_eq!(
+            apply(t.path(), &["LINK".to_owned()], "1.0.0", "2.0.0"),
+            Err(Error::NotPlain("LINK".to_owned()))
+        );
+        std::fs::remove_file(t.path().join("raul")).unwrap();
+        std::os::unix::fs::symlink("/etc/passwd", t.path().join("raul")).unwrap();
+        assert_eq!(
+            apply(t.path(), &["raul".to_owned()], "1.0.0", "2.0.0"),
+            Err(Error::NotPlain("raul".to_owned()))
+        );
+        std::fs::create_dir_all(staging_dir(t.path()).join("DIR")).unwrap();
+        assert_eq!(
+            apply(t.path(), &["DIR".to_owned()], "1.0.0", "2.0.0"),
+            Err(Error::NotPlain("DIR".to_owned()))
+        );
+        assert_eq!(journal(t.path()).unwrap(), None);
+    }
+
+    #[test]
+    fn the_work_folder_cannot_be_part_of_a_unit_in_any_letter_case() {
+        let t = install();
+        for bad in [".raul-update/journal.json", ".RAUL-Update/x"] {
+            assert_eq!(
+                apply(t.path(), &[bad.to_owned()], "1.0.0", "2.0.0"),
+                Err(Error::BadPath(bad.to_owned()))
+            );
+        }
+    }
+
+    #[test]
+    fn a_held_lock_refuses_a_second_swap_and_a_dead_holders_is_taken_over() {
+        let t = install();
+        let held = Lock::take(t.path()).unwrap();
+        assert_eq!(
+            apply(t.path(), &names(), "1.0.0", "2.0.0"),
+            Err(Error::Locked)
+        );
+        assert_eq!(rollback(t.path()), Err(Error::Locked));
+        drop(held);
+        apply(t.path(), &names(), "1.0.0", "2.0.0").unwrap();
+        assert!(
+            !t.path().join(WORK).join("lock").exists(),
+            "the lock is released"
+        );
+        if Path::new("/proc/self").exists() {
+            // A process id that cannot exist (above the kernel's limit) is a dead holder.
+            write_file(&t.path().join(WORK), "lock", b"4294967295");
+            rollback(t.path()).expect("the stale lock is taken over");
+        }
+    }
+
+    #[test]
+    fn an_interrupted_second_update_keeps_the_rollback_target_of_the_first() {
+        let t = install();
+        apply(t.path(), &names(), "1.0.0", "2.0.0").unwrap();
+        let new = staging_dir(t.path());
+        write_file(&new, "raul", b"raul 3");
+        write_file(&new, "components/nv-rs/bin/nv-viewer", b"viewer 3");
+        write_file(&new, "NEW-IN-2", b"added 3");
+        let _ = apply_until(t.path(), &names(), "2.0.0", "3.0.0", 2);
+        recover(t.path()).unwrap();
+        assert_eq!(read(&t, "raul").as_deref(), Some("raul 2"));
+        // The first update's previous version is still there to go back to.
+        let kept = t.path().join(WORK).join("previous");
+        assert_eq!(
+            std::fs::read_to_string(kept.join("raul")).unwrap(),
+            "raul 1"
+        );
     }
 }
