@@ -137,6 +137,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: scripts/release-contents.sh --self-test
 
+      - name: Installed files list
+        if: ${{ !cancelled() }}
+        run: scripts/installed-files.sh --self-test
+
       - name: Advisories (cargo audit)
         if: ${{ !cancelled() }}
         run: mise exec -- cargo audit
