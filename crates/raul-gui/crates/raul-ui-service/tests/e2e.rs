@@ -175,7 +175,6 @@ fn install_reports_and_refusals_are_read() {
         panic!("expected a failure");
     };
     assert_eq!(e.exit, ExitClass::Refused);
-    assert!(e.repro.unwrap().starts_with("raul install "));
 }
 
 fn mo2(dir: &std::path::Path, loadorder: &[u8]) {

@@ -64,6 +64,8 @@ pub struct Jobs {
     /// The writing job started but not ended yet; the table learns of it only when its first event arrives.
     writer: Option<JobId>,
     repaint: Option<egui::Context>,
+    /// Registry ids that a test scripts as command lines through the runner instead of running them in process.
+    scripted: Vec<&'static str>,
 }
 
 impl std::fmt::Debug for Jobs {
@@ -89,7 +91,25 @@ impl Jobs {
             failures: HashMap::new(),
             writer: None,
             repaint: None,
+            scripted: Vec::new(),
         }
+    }
+
+    /// Lets a test script the registry commands `ids` as command lines through the runner, where they would run in
+    /// process: an action that creates or installs things on a real filesystem has nothing to run against in a
+    /// page test.
+    #[must_use]
+    pub fn scripted(mut self, ids: &[&'static str]) -> Jobs {
+        self.scripted.extend_from_slice(ids);
+        self
+    }
+
+    /// The in-process job that does what the registry command `id` does, if it is converted and not scripted.
+    pub fn direct_job(&self, id: &str, rest: &[String]) -> Option<raul_ui_service::DirectJob> {
+        if self.scripted.contains(&id) {
+            return None;
+        }
+        raul_ui_service::direct::for_command(id, rest)
     }
 
     /// Jobs that run the executable of this process, the release `raul`.

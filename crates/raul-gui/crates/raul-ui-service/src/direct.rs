@@ -75,6 +75,11 @@ pub struct DirectJob {
     lines: Option<LinesBody>,
     /// Whether the job ends as a usage error (a request the command line would not take), exit class 5.
     usage: bool,
+    /// Whether the job writes though it holds no lock, because the Instance it makes does not exist yet.
+    creating: bool,
+    /// The profile of the Instance that gets an automatic snapshot before the job, as the command line takes one
+    /// before a change of the lists: `Some(None)` is the profile the Instance has.
+    snapshot: Option<SnapshotPlan>,
 }
 
 impl std::fmt::Debug for DirectJob {
@@ -97,6 +102,8 @@ impl DirectJob {
             body: Self::boxed(run),
             lines: None,
             usage: false,
+            creating: false,
+            snapshot: None,
         }
     }
 
@@ -111,6 +118,8 @@ impl DirectJob {
             body: Self::boxed(run),
             lines: None,
             usage: false,
+            creating: false,
+            snapshot: None,
         }
     }
 
@@ -131,6 +140,8 @@ impl DirectJob {
             body: Self::boxed_as(run, render),
             lines: None,
             usage: false,
+            creating: false,
+            snapshot: None,
         }
     }
 
@@ -145,6 +156,24 @@ impl DirectJob {
             body: Self::boxed_as(run, render),
             lines: None,
             usage: false,
+            creating: false,
+            snapshot: None,
+        }
+    }
+
+    /// [`DirectJob::writing_as`] for a job that makes an Instance: it writes, but there is no Instance to lock yet.
+    pub fn creating_as<T, F>(run: F, render: fn(&T) -> Result<Reply, serde_json::Error>) -> Self
+    where
+        F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
+        T: 'static,
+    {
+        Self {
+            lock: None,
+            body: Self::boxed_as(run, render),
+            lines: None,
+            usage: false,
+            creating: true,
+            snapshot: None,
         }
     }
 
@@ -190,6 +219,8 @@ impl DirectJob {
             }),
             lines: Some(Box::new(run)),
             usage: false,
+            creating: false,
+            snapshot: None,
         }
     }
 
@@ -204,7 +235,17 @@ impl DirectJob {
             }),
             lines: None,
             usage: true,
+            creating: false,
+            snapshot: None,
         }
+    }
+
+    /// Takes an automatic snapshot of `profile` (`None` for the Instance's own) before the job and puts it away again
+    /// when the job did not go through, as `nvmod` does around a change of the lists.
+    #[must_use]
+    pub fn snapshotting(mut self, profile: Option<String>) -> Self {
+        self.snapshot = Some(SnapshotPlan { profile });
+        self
     }
 
     /// The Instance the job writes to, if it does.
@@ -231,6 +272,19 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
             instance: PathBuf::from(value_of(rest, "--instance")),
             name: option_of(rest, "--name"),
         })),
+        "init" => Some(
+            if value_of(rest, "--instance").is_empty() || value_of(rest, "--base").is_empty() {
+                DirectJob::usage("init: give --base and --instance")
+            } else {
+                init(&nvmod_api::init::CreateRequest {
+                    instance: PathBuf::from(value_of(rest, "--instance")),
+                    base: PathBuf::from(value_of(rest, "--base")),
+                })
+            },
+        ),
+        "install-nv-rs" => {
+            Some(install_nvrs_request(rest).map_or_else(DirectJob::usage, |r| install_nvrs(&r)))
+        }
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
@@ -389,6 +443,7 @@ fn value_of<'a>(rest: &'a [String], flag: &str) -> &'a str {
 pub fn mods_change(request: &nvmod_api::mods::ChangeRequest) -> DirectJob {
     let instance = request.instance.clone();
     let dry_run = request.dry_run;
+    let profile = request.profile.clone();
     let request = request.clone();
     let run = move |progress: &mut dyn Progress, cancel: &CancelToken| {
         nvmod_api::mods::change(&request, progress, cancel)
@@ -396,8 +451,120 @@ pub fn mods_change(request: &nvmod_api::mods::ChangeRequest) -> DirectJob {
     if dry_run {
         DirectJob::reading(run)
     } else {
-        DirectJob::writing(instance, "mods", run)
+        DirectJob::writing(instance, "mods", run).snapshotting(profile)
     }
+}
+
+/// `nvmod_api::init::create`: makes an Instance. It writes, and holds no lock because the Instance is not there yet.
+/// The command prints a line of text, so the document here is the Instance that was made.
+pub fn init(request: &nvmod_api::init::CreateRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::creating_as(
+        move |progress, cancel| nvmod_api::init::create(&request, progress, cancel),
+        |made: &nvmod_api::init::CreateOutput| serde_json::to_value(made).map(Reply::ok),
+    )
+}
+
+/// The request of `raul install-nv-rs` from the words after it, with the defaults the command line has.
+fn install_nvrs_request(
+    rest: &[String],
+) -> Result<nvmod_api::install_nvrs::InstallRequest, String> {
+    if value_of(rest, "--instance").is_empty() {
+        return Err("install-nv-rs: give --instance".to_owned());
+    }
+    let path = |flag: &str| option_of(rest, flag).map(PathBuf::from);
+    let mut request: nvmod_api::install_nvrs::InstallRequest =
+        serde_json::from_value(serde_json::json!({ "instance": value_of(rest, "--instance") }))
+            .expect("an install request needs only its Instance");
+    request.source = path("--source");
+    request.release = has_flag(rest, "--release");
+    request.cargo = path("--cargo").or_else(|| std::env::var_os("NVMOD_CARGO").map(PathBuf::from));
+    if let Some(url) = option_of(rest, "--release-url") {
+        request.release_url = url;
+    }
+    if let Some(ms) = option_of(rest, "--retry-delay-ms") {
+        request.retry_delay_ms = ms
+            .parse()
+            .map_err(|_| "install-nv-rs: --retry-delay-ms needs a number".to_owned())?;
+    }
+    Ok(request)
+}
+
+/// `nvmod_api::install_nvrs::install`: builds or fetches nv-rs into the Instance, under the Instance lock.
+pub fn install_nvrs(request: &nvmod_api::install_nvrs::InstallRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::writing(
+        request.instance.clone(),
+        "install-nv-rs",
+        move |progress, cancel| nvmod_api::install_nvrs::install(&request, progress, cancel),
+    )
+}
+
+/// The one place an install request is made, from what the page has: the day the request grows a field, it is
+/// added here.
+pub fn install_request(
+    instance: &Path,
+    profile: Option<&str>,
+    archive: &Path,
+    name: Option<&str>,
+    dry_run: bool,
+    answers: Option<&Path>,
+) -> nvmod_api::install::InstallRequest {
+    nvmod_api::install::InstallRequest {
+        instance: instance.to_path_buf(),
+        profile: profile.map(str::to_owned),
+        archive: archive.to_path_buf(),
+        name: name.map(str::to_owned),
+        dry_run,
+        answers: answers.map(Path::to_path_buf),
+        max_extract_bytes: None,
+    }
+}
+
+/// `nvmod_api::install::install`: installs a Mod, or plans to. Its document is the report, as `raul install --json`
+/// prints it; a FOMOD that needs answers is a result with exit 1 and the questions, as the command ends. A plan
+/// takes no lock; an install holds the Instance lock.
+pub fn install_mod(request: &nvmod_api::install::InstallRequest) -> DirectJob {
+    let instance = request.instance.clone();
+    let dry_run = request.dry_run;
+    let profile = request.profile.clone();
+    let request = request.clone();
+    let run = move |progress: &mut dyn Progress, cancel: &CancelToken| {
+        nvmod_api::install::install(&request, progress, cancel)
+    };
+    let render: fn(&nvmod_api::install::InstallOutput) -> Result<Reply, serde_json::Error> =
+        |done| match done {
+            nvmod_api::install::InstallOutput::Installed(report) => {
+                serde_json::to_value(report).map(Reply::ok)
+            }
+            nvmod_api::install::InstallOutput::Questions(questions) => Ok(Reply {
+                json: serde_json::json!({ "status": "questions", "questions": questions }),
+                exit: 1,
+            }),
+        };
+    if dry_run {
+        DirectJob::reading_as(run, render)
+    } else {
+        DirectJob::writing_as(instance, "install", run, render).snapshotting(profile)
+    }
+}
+
+/// `nvmod_api::import_mo2::import`: builds a new Instance from an MO2 profile. It writes and holds no lock, because
+/// the Instance is not there yet. Profile files that disagree are a result with exit 1, as the command ends.
+pub fn import_mo2(request: &nvmod_api::import_mo2::ImportRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::creating_as(
+        move |progress, cancel| nvmod_api::import_mo2::import(&request, progress, cancel),
+        |done: &nvmod_api::import_mo2::ImportOutput| match done {
+            nvmod_api::import_mo2::ImportOutput::Imported(report) => {
+                serde_json::to_value(report).map(Reply::ok)
+            }
+            nvmod_api::import_mo2::ImportOutput::Disagreements(findings) => Ok(Reply {
+                json: serde_json::json!({ "disagreements": findings }),
+                exit: 1,
+            }),
+        },
+    )
 }
 
 /// `nvmod_api::profile::create`: makes a profile of the Instance, under the Instance lock.
@@ -571,6 +738,42 @@ fn progress_event(spec: &JobSpec, feed: &mut Feed<'_>, event: &Event) {
     });
 }
 
+/// The profile whose automatic snapshot a job takes first.
+struct SnapshotPlan {
+    profile: Option<String>,
+}
+
+/// The automatic snapshot taken before a change of the lists, kept only when the change went through.
+struct AutoSnapshot {
+    instance: nvmod_instance::NvmodInstance,
+    profile: String,
+    id: String,
+    before: nvmod_backup::Presence,
+}
+
+impl AutoSnapshot {
+    /// Takes the snapshot when the newest one is older than the configured interval; a snapshot that cannot be taken
+    /// is no reason to refuse the change.
+    fn take(root: &Path, profile: Option<&str>) -> Option<Self> {
+        let instance = nvmod_instance::NvmodInstance::open_read_only(root).ok()?;
+        let profile = instance.resolve_profile(profile).ok()?;
+        let config = nvmod_backup::load_config(&instance);
+        let before = nvmod_backup::presence(&instance);
+        let taken =
+            nvmod_backup::auto(&instance, &profile, nvmod_backup::clock::now(), &config).ok()??;
+        Some(Self {
+            instance,
+            profile,
+            id: taken.id,
+            before,
+        })
+    }
+
+    fn discard(self) {
+        nvmod_backup::discard(&self.instance, &self.profile, &self.id, self.before);
+    }
+}
+
 /// Runs `job` as the job `spec` describes, handing each [`JobEvent`] to `sink` as it happens, and answers with what
 /// a command line would have left: the JSON of the result on standard output with exit 0, or the one-line summary
 /// of the error on standard error with the exit code of its class. `spec.args` is not used; `spec.writes` and
@@ -586,7 +789,7 @@ pub fn run_direct(
 ) -> Output {
     let label = spec.action.command();
     let usage = job.usage;
-    let reads = job.lock.is_none();
+    let reads = job.lock.is_none() && !job.creating;
     let mut feed = Feed::new(spec, sink);
     if cancel.is_requested() {
         return finish(
@@ -611,11 +814,21 @@ pub fn run_direct(
         Some(Ok(guard)) => Some(guard),
         None => None,
     };
+    let snapshot = job
+        .snapshot
+        .as_ref()
+        .zip(job.instance())
+        .and_then(|(profile, root)| AutoSnapshot::take(root, profile.profile.as_deref()));
     feed.start();
     let end = match job.lines {
         Some(lines) => execute_lines(spec, lines, &mut feed, cancel),
         None => execute(spec, job.body, &mut feed, cancel),
     };
+    if let Some(snapshot) = snapshot
+        && !matches!(&end, End::Done(reply) if reply.exit == 0)
+    {
+        snapshot.discard();
+    }
     // Released before the end is told: the next writing job may start the moment this one is seen to be over.
     drop(guard);
     let stopped = format!(
