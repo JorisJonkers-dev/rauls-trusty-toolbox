@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795073532606,
+  "lastUpdate": 1795080400992,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5291,6 +5291,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.594256000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d39c3415a23f1398c21a488747f0f214e947f4ff",
+          "message": "feat(release): installers carry no lodwright or ttwright program; release notes list contents with checksums (#313)\n\nThe installers no longer build, bundle or smoke-test the lodwright and ttwright programs, which are linked into raul. The\nsmoke tests now fail if a package holds one. The release notes get a Contents section listing each part with its version\nand every installer file with its SHA-256, read from SHA256SUMS.",
+          "timestamp": "2026-11-19T10:24:59+01:00",
+          "tree_id": "cf39307c42fe2658c398f25a2b4bdd7ff67c592f",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d39c3415a23f1398c21a488747f0f214e947f4ff"
+        },
+        "date": 1795080400377,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.451759,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 11.207937,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 47.045556000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 6.516231,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.387013999999999,
             "unit": "ms"
           }
         ]
