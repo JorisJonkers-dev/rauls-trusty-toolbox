@@ -170,6 +170,7 @@ fn set_mode(path: &Path, executable: bool) -> Result<(), Error> {
 }
 
 #[cfg(not(unix))]
+#[allow(clippy::unnecessary_wraps)] // the Unix version can fail
 fn set_mode(_path: &Path, _executable: bool) -> Result<(), Error> {
     Ok(())
 }
