@@ -121,9 +121,10 @@ flowchart LR
 
 The Components are submodules under `components/`, each pinned to a release version; the submodule pins and the
 lock files are the set of Component versions (ADR-0018). CI checks that every pointer is a release tag or on its
-repository's default branch. The `Components` workflow (`components.yml`) runs a self-hosted Renovate every 15 minutes
-(`.github/renovate-components.json`). It finds a new release of a Component's repository itself, with no message from
-that repository, and opens a pull request that moves only that Component: the submodule pointer, with both lock files
+repository's default branch. The `Components` workflow (`components.yml`) runs a self-hosted Renovate when a Component's release
+workflow sends a `component-release` dispatch, and on a 15-minute schedule as a safety net, because GitHub delays and
+drops scheduled runs (`.github/renovate-components.json`). It finds a new release of a Component's repository itself (the
+dispatch carries no data) and opens a pull request that moves only that Component: the submodule pointer, with both lock files
 refreshed. Renovate lists files with git and never sees inside a submodule, so the release a pointer is at is also
 written in `components/<repo>.version`; `scripts/bump-component.sh` keeps it equal and CI fails when it drifts. nvmod moves with the loot-rs it links (ADR-0015). Pipeline Complete decides whether the pull request merges,
 and auto-merge lands it. The release (`release.yml`) packages `raul` with the Component programs at those pins.
