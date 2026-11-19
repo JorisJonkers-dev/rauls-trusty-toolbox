@@ -94,7 +94,8 @@ impl Error {
 }
 
 /// The parts of an archive or inventory name, or `None` when the name is not allowed. One rule for both, so the list
-/// and the unpacker agree: only `/` separates, no empty, `.` or `..` part, no backslash, colon or NUL (a drive or a
+/// and the unpacker agree (the unpacker alone first drops the `./` some archive tools put in front of every name, which
+/// is how the archive writes it and not part of the name; the inventory is ours and never has one): only `/` separates, no empty, `.` or `..` part, no backslash, colon or NUL (a drive or a
 /// stream on Windows; refused everywhere so one archive means one thing), and nothing absolute.
 fn clean_parts(name: &str) -> Option<Vec<String>> {
     if name.is_empty() || name.contains(['\\', '\0', ':']) || name.starts_with('/') {

@@ -176,6 +176,10 @@ fn download(rest: &[&str], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
             }
             Err(e) => {
                 let _ = writeln!(err, "raul update download: {e}");
+                if json {
+                    let doc = serde_json::json!({ "ok": false, "error": e, "detail": e });
+                    let _ = writeln!(out, "{doc}");
+                }
                 return crate::FOUND;
             }
         },
@@ -318,25 +322,87 @@ pub(crate) fn settle_at_start(args: &[String], err: &mut dyn Write) -> Option<u8
             Some(first) => Err(first),
         }
     };
-    match raul_core::selfupdate::install::settle_at_start(root, &check) {
-        Ok(raul_core::selfupdate::install::Startup::RolledBack(why)) => {
+    settle_outcome(
+        raul_core::selfupdate::install::settle_at_start(root, &check),
+        err,
+    )
+}
+
+/// What the start does with the result of settling an update: stop when the old version was put back or when the
+/// install could not be put in order (a half-swapped install is not run), carry on when there was nothing to settle,
+/// the update is confirmed, or another program holds the lock because it is settling the same update.
+fn settle_outcome(
+    result: Result<raul_core::selfupdate::install::Startup, raul_core::selfupdate::swap::Error>,
+    err: &mut dyn Write,
+) -> Option<u8> {
+    use raul_core::selfupdate::install::Startup;
+    use raul_core::selfupdate::swap::Error as SwapError;
+    match result {
+        Ok(Startup::RolledBack(why)) => {
             let _ = writeln!(
                 err,
                 "The update did not work, so raul went back to the old version. {why} Start raul again."
             );
             Some(crate::FAILED)
         }
-        Ok(raul_core::selfupdate::install::Startup::Recovered) => {
+        Ok(Startup::Recovered) => {
             let _ = writeln!(
                 err,
                 "An update that was interrupted was undone. Start raul again."
             );
             Some(crate::FAILED)
         }
-        Ok(_) => None,
+        Ok(Startup::Nothing | Startup::Confirmed) | Err(SwapError::Locked) => None,
         Err(e) => {
-            let _ = writeln!(err, "raul could not settle its last update: {e}");
-            None
+            let _ = writeln!(
+                err,
+                "raul could not put its last update in order, so it did not start: {e}"
+            );
+            Some(crate::FAILED)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use raul_core::selfupdate::install::Startup;
+    use raul_core::selfupdate::swap::Error as SwapError;
+
+    fn outcome(result: Result<Startup, SwapError>) -> (Option<u8>, String) {
+        let mut err = Vec::new();
+        let code = settle_outcome(result, &mut err);
+        (code, String::from_utf8(err).unwrap())
+    }
+
+    #[test]
+    fn nothing_to_settle_a_confirmed_update_and_a_lock_held_by_another_let_the_program_run() {
+        for result in [
+            Ok(Startup::Nothing),
+            Ok(Startup::Confirmed),
+            Err(SwapError::Locked),
+        ] {
+            assert_eq!(outcome(result), (None, String::new()));
+        }
+    }
+
+    #[test]
+    fn a_rollback_a_recovery_and_an_install_that_could_not_be_put_in_order_stop_the_program() {
+        let (code, said) = outcome(Ok(Startup::RolledBack("A file is changed.".into())));
+        assert_eq!(code, Some(crate::FAILED));
+        assert!(
+            said.contains("went back to the old version") && said.contains("A file is changed."),
+            "{said}"
+        );
+        let (code, said) = outcome(Ok(Startup::Recovered));
+        assert_eq!(code, Some(crate::FAILED));
+        assert!(said.contains("undone"), "{said}");
+        let (code, said) = outcome(Err(SwapError::Io("a file could not be moved".into())));
+        assert_eq!(
+            code,
+            Some(crate::FAILED),
+            "a half-swapped install is not run"
+        );
+        assert!(said.contains("did not start"), "{said}");
     }
 }

@@ -91,8 +91,8 @@ use cannot be deleted; it is retried at the next start and never blocks an updat
   executable, killed at once), the running `raul` rolls back immediately and says so; this is the case that protects
   against a new binary that cannot run at all, and it is why the check runs before the old process exits.
 - **At the first start after the restart**: the journal says `swapped`, not `confirmed`, so the new `raul` runs the same
-  check on itself and confirms. A start that never reaches that point (crash on start) is counted; at the second
-  unconfirmed start the next start rolls back by itself, before opening a window. If the new `raul` cannot run at all
+  check on itself and confirms. A start that never reaches that point (crash on start) is counted; the next start
+  finds the count and rolls back by itself, before opening a window. If the new `raul` cannot run at all
   and the old one has already exited, nothing can run the recovery: the previous version sits in
   `.raul-update/previous/` (an AppImage's in `<name>.AppImage.previous`) and the release notes say how to put it back by
   hand or to install again. This is the accepted residue of replacing a program with itself.

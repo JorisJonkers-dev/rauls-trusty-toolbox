@@ -26,6 +26,10 @@ pub struct Staged {
     pub to: String,
     /// The files of the unit, relative to the install folder.
     pub files: Vec<String>,
+    /// The SHA-256 of the one staged file of a single-file install (an `AppImage`); `None` for a folder, whose
+    /// files are checked against the inventory that came with them.
+    #[serde(default)]
+    pub sha256: Option<String>,
 }
 
 /// Why a step did not happen. Each message is plain.
@@ -138,6 +142,7 @@ pub fn download(
             .map_err(Error::Verify)?;
         let new = swap::staging_dir(root);
         let _ = std::fs::remove_dir_all(&new);
+        let mut sha256 = None;
         let files = match layout {
             Layout::Folder { os, .. } => {
                 let limits = Limits::default();
@@ -158,6 +163,7 @@ pub fn download(
                     ))?;
                 std::fs::create_dir_all(&new).map_err(|e| io(&new, &e))?;
                 std::fs::copy(&got.file, new.join(&name)).map_err(|e| io(&new, &e))?;
+                sha256 = Some(got.sha256.clone());
                 vec![name]
             }
             Layout::NotHere(_) => {
@@ -170,6 +176,7 @@ pub fn download(
             from: running.to_owned(),
             to: version.to_string(),
             files,
+            sha256,
         };
         let text = serde_json::to_string_pretty(&staged).map_err(|e| Error::Io(e.to_string()))?;
         let record = staged_file(root);
@@ -195,24 +202,75 @@ pub fn install(
 ) -> Result<Staged, Error> {
     let root = updatable(layout)?;
     let staged = staged(root)?.ok_or(Error::NothingStaged)?;
+    // The record is only a note of what was staged: what is there now must still be what was checked, whatever the
+    // record says (it may be stale or edited).
+    if let Err(e) = recheck(layout, root, &staged) {
+        forget(root);
+        return Err(e);
+    }
     let program = layout.program().ok_or(Error::NotHere(
         "This copy of raul cannot be updated from here.",
     ))?;
-    install::install(root, &staged.files, &staged.from, &staged.to, &|| {
+    let done = install::install(root, &staged.files, &staged.from, &staged.to, &|| {
         check(&program, &staged.to)
-    })
-    .map_err(Error::Install)?;
-    let _ = std::fs::remove_file(staged_file(root));
+    });
+    // Whatever happened, the staged update is spent: installed, or taken out again.
+    forget(root);
+    done.map_err(Error::Install)?;
     Ok(staged)
 }
 
-/// Go back to the version before the last update.
+/// Go back to the version before the last update. A download that was waiting is dropped with it: it was an update
+/// to the version that is now being left.
 ///
 /// # Errors
 /// [`Error::NotHere`] or [`Error::Swap`] (including "there is no earlier version to go back to").
 pub fn rollback(layout: &Layout) -> Result<swap::Journal, Error> {
     let root = updatable(layout)?;
-    swap::rollback(root).map_err(Error::Swap)
+    let journal = swap::rollback(root).map_err(Error::Swap)?;
+    forget(root);
+    Ok(journal)
+}
+
+/// Drop the record of a download and what it staged.
+fn forget(root: &Path) {
+    let _ = std::fs::remove_file(staged_file(root));
+    let _ = std::fs::remove_dir_all(swap::staging_dir(root));
+}
+
+/// Check that what is staged is what the record says and what was verified: a folder's files against the inventory
+/// they came with (and the record's list must be exactly that list), an `AppImage` against the hash taken when it was
+/// downloaded.
+fn recheck(layout: &Layout, root: &Path, staged: &Staged) -> Result<(), Error> {
+    let new = swap::staging_dir(root);
+    match layout {
+        Layout::Folder { .. } => {
+            let mut recorded = staged.files.clone();
+            recorded.sort();
+            let actual = extract::check_unit(&new).map_err(Error::Unpack)?;
+            if actual == recorded {
+                Ok(())
+            } else {
+                Err(Error::Unpack(extract::Error::Unlisted(String::new())))
+            }
+        }
+        Layout::AppImage { .. } => {
+            let (Some(name), Some(want)) = (staged.files.first(), staged.sha256.as_deref()) else {
+                return Err(Error::NothingStaged);
+            };
+            let ok = staged.files.len() == 1
+                && !name.contains(['/', '\\'])
+                && verify::hash_file(&new.join(name)).is_ok_and(|h| h == want);
+            if ok {
+                Ok(())
+            } else {
+                Err(Error::Unpack(extract::Error::Mismatch(name.clone())))
+            }
+        }
+        Layout::NotHere(_) => Err(Error::NotHere(
+            "This copy of raul cannot be updated from here.",
+        )),
+    }
 }
 
 /// What the person may be told about the update state of this install.
@@ -475,5 +533,88 @@ mod tests {
         assert!(download(&s, &l, "v2.0.0", "1.0.0", false).is_err());
         let work = t.path().join(swap::WORK);
         assert!(!work.join(STAGED).exists() && !work.join(DOWNLOAD).exists());
+    }
+
+    #[test]
+    fn a_failed_install_and_a_rollback_leave_no_record_of_a_download() {
+        let (t, l) = folder();
+        let s = server(ASSET, &tarball(b"raul 2", b"raul 2"));
+        download(&s, &l, "v2.0.0", "1.0.0", false).unwrap();
+        install(&l, &|_, _| Err("The new version did not start.".to_owned())).unwrap_err();
+        assert_eq!(
+            status(&l).unwrap().staged,
+            None,
+            "a rolled back install is not advertised as staged"
+        );
+        assert!(!swap::staging_dir(t.path()).exists());
+        assert_eq!(
+            install(&l, &|_, _| Ok(())).unwrap_err(),
+            Error::NothingStaged
+        );
+        // A download waiting when the person goes back is dropped with it.
+        download(&s, &l, "v2.0.0", "1.0.0", false).unwrap();
+        install(&l, &|_, _| Ok(())).unwrap();
+        download(&s, &l, "v2.0.0", "1.0.0", true).unwrap();
+        rollback(&l).unwrap();
+        assert_eq!(status(&l).unwrap().staged, None);
+    }
+
+    #[test]
+    fn what_is_staged_is_checked_again_before_it_is_swapped_in() {
+        let (t, l) = folder();
+        let s = server(ASSET, &tarball(b"raul 2", b"raul 2"));
+        download(&s, &l, "v2.0.0", "1.0.0", false).unwrap();
+        // A staged file changed after the download.
+        write_file(&swap::staging_dir(t.path()), "raul", b"tampered");
+        let e = install(&l, &|_, _| Ok(())).unwrap_err();
+        assert!(matches!(e, Error::Unpack(_)), "{e:?}");
+        assert_eq!(read(&t, "raul"), "raul 1", "nothing was swapped");
+        assert_eq!(
+            status(&l).unwrap().staged,
+            None,
+            "the spoiled download is dropped"
+        );
+        // A record that names files the staging does not hold, or fewer than it holds.
+        download(&s, &l, "v2.0.0", "1.0.0", false).unwrap();
+        let mut record = staged(t.path()).unwrap().unwrap();
+        record.files = vec!["raul".to_owned()];
+        std::fs::write(
+            staged_file(t.path()),
+            serde_json::to_string(&record).unwrap(),
+        )
+        .unwrap();
+        assert!(
+            install(&l, &|_, _| Ok(())).is_err(),
+            "an edited list is not trusted"
+        );
+        assert_eq!(read(&t, "raul"), "raul 1");
+    }
+
+    #[test]
+    fn a_staged_appimage_is_checked_against_the_hash_taken_at_download() {
+        let t = TempDir::new("flow-appimage-recheck");
+        write_file(t.path(), "raul.AppImage", b"image 1");
+        let l = Layout::AppImage {
+            file: t.path().join("raul.AppImage"),
+        };
+        let s = server("raul-2.0.0-linux-x64.AppImage", b"image 2");
+        download(&s, &l, "v2.0.0", "1.0.0", false).unwrap();
+        write_file(
+            &swap::staging_dir(t.path()),
+            "raul.AppImage",
+            b"swapped for something else",
+        );
+        assert!(install(&l, &|_, _| Ok(())).is_err());
+        assert_eq!(read(&t, "raul.AppImage"), "image 1");
+        // A record without the hash (written by hand) is refused too.
+        download(&s, &l, "v2.0.0", "1.0.0", false).unwrap();
+        let mut record = staged(t.path()).unwrap().unwrap();
+        record.sha256 = None;
+        std::fs::write(
+            staged_file(t.path()),
+            serde_json::to_string(&record).unwrap(),
+        )
+        .unwrap();
+        assert!(install(&l, &|_, _| Ok(())).is_err());
     }
 }

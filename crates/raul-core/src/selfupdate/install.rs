@@ -6,8 +6,8 @@ use std::path::Path;
 
 use super::swap::{self, State};
 
-/// How many starts of an unconfirmed new version are allowed to end without a confirmation before the next one rolls
-/// back: the first start gets to confirm; a second start that finds it still unconfirmed means the first did not finish.
+/// How many starts of an unconfirmed new version may end without a confirmation. The first start gets to confirm; a
+/// start that finds that an earlier one never did (it crashed or was killed first) rolls back instead of trying again.
 pub const UNCONFIRMED_STARTS: u32 = 1;
 
 /// Why an install did not stay.
@@ -108,7 +108,7 @@ pub fn settle_at_start(
                 .ok()
                 .and_then(|t| t.trim().parse().ok())
                 .unwrap_or(0);
-            if before > UNCONFIRMED_STARTS {
+            if before >= UNCONFIRMED_STARTS {
                 swap::rollback(root)?;
                 let _ = std::fs::remove_file(&file);
                 return Ok(Startup::RolledBack(
@@ -225,11 +225,27 @@ mod tests {
     fn starts_that_never_confirm_are_counted_and_the_next_one_rolls_back() {
         let (t, files) = install_dir();
         install(t.path(), &files, "1.0.0", "2.0.0", &|| Ok(())).unwrap();
-        // Two starts that crashed before they confirmed leave their count behind; the next start rolls back.
-        std::fs::write(starts_file(t.path()), (UNCONFIRMED_STARTS + 1).to_string()).unwrap();
+        // A start that crashed before it confirmed leaves its count behind; the next start rolls back.
+        std::fs::write(starts_file(t.path()), UNCONFIRMED_STARTS.to_string()).unwrap();
         let r = settle_at_start(t.path(), &|| panic!("the check is not even asked")).unwrap();
         assert!(matches!(r, Startup::RolledBack(_)), "{r:?}");
         assert_eq!(read(&t), "raul 1");
+    }
+
+    #[test]
+    fn a_first_start_that_confirms_leaves_no_count_and_the_second_start_is_not_rolled_back() {
+        let (t, files) = install_dir();
+        install(t.path(), &files, "1.0.0", "2.0.0", &|| Ok(())).unwrap();
+        assert_eq!(
+            settle_at_start(t.path(), &|| Ok(())).unwrap(),
+            Startup::Confirmed
+        );
+        assert!(!starts_file(t.path()).exists());
+        assert_eq!(
+            settle_at_start(t.path(), &|| Ok(())).unwrap(),
+            Startup::Nothing
+        );
+        assert_eq!(read(&t), "raul 2");
     }
 
     #[test]

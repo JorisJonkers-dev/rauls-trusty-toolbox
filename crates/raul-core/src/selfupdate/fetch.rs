@@ -70,9 +70,27 @@ impl Fetch for CurlFetch {
         }
         .inherit(NETWORK_ENV);
         let args = curl_args(url, to, limit);
-        // `curl` stops at the size limit by itself (exit 63) and the file is checked once more here.
+        // `curl` stops at the size limit by itself (exit 63) and the file is checked once more here. Whatever fails,
+        // no partial file stays behind.
+        let result = self.run(&runner, &args, url, to, limit);
+        if result.is_err() {
+            let _ = std::fs::remove_file(to);
+        }
+        result
+    }
+}
+
+impl CurlFetch {
+    fn run(
+        &self,
+        runner: &Runner,
+        args: &[String],
+        url: &str,
+        to: &Path,
+        limit: u64,
+    ) -> Result<(), Error> {
         runner
-            .run_any(&Call::new("curl", &self.curl, &args))
+            .run_any(&Call::new("curl", &self.curl, args))
             .map_err(|_| Error::Fetch("the connection failed".to_owned()))
             .and_then(|out| {
                 if out.exit_code == 63 {
@@ -85,10 +103,7 @@ impl Fetch for CurlFetch {
             })?;
         match std::fs::metadata(to) {
             Ok(m) if m.len() <= limit => Ok(()),
-            Ok(_) => {
-                let _ = std::fs::remove_file(to);
-                Err(Error::TooBig(url.to_owned()))
-            }
+            Ok(_) => Err(Error::TooBig(url.to_owned())),
             Err(e) => Err(Error::Fetch(e.to_string())),
         }
     }
@@ -132,6 +147,34 @@ mod tests {
         assert!(!args.iter().any(
             |a| a.to_lowercase().contains("cookie") || a.to_lowercase().contains("user-agent")
         ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_failed_download_leaves_no_partial_file() {
+        let t = nvmod_testkit::TempDir::new("fetch-partial");
+        let out = t.path().join("asset");
+        // A stand-in `curl` that writes part of the file and then fails, as a dropped connection does.
+        let curl = nvmod_testkit::write_script(
+            t.path(),
+            "curl",
+            &format!("echo partial > '{}'\nexit 18", out.display()),
+        );
+        let got = CurlFetch { curl }.get("https://github.com/x", &out, 1024);
+        assert!(got.is_err());
+        assert!(!out.exists(), "the partial file is removed");
+        // And one that succeeds keeps its file.
+        let ok = nvmod_testkit::write_script(
+            t.path(),
+            "curl-ok",
+            &format!("echo fine > '{}'", out.display()),
+        );
+        assert!(
+            CurlFetch { curl: ok }
+                .get("https://github.com/x", &out, 1024)
+                .is_ok()
+        );
+        assert!(out.is_file());
     }
 
     #[test]
