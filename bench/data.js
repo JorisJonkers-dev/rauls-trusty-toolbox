@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795099207969,
+  "lastUpdate": 1795100469617,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6026,6 +6026,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 12.989712,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "13b23e5e74e1b3f5e700303af4c1d7065390158a",
+          "message": "feat(gui): the LOD settings view with its warning, advanced settings and Restore defaults (#369)\n\nA LOD settings view reached from the LOD page (own route, no sidebar\nentry): an amber warning at the top, the settings that choose what is\nbuilt, saved when a field is left through raul lod settings set or unset,\nthe per-level terrain settings and Allow output in a git folder behind a\ndisclosure closed on every visit and a one-time I understand kept in the\napp's own preferences, and Restore defaults that asks once and keeps a\nrestore point that Undo restore puts back.\n\nraul update auto now keeps the other keys of settings.toml.\n\nRefs #338, #339, #340, part of #38",
+          "timestamp": "2026-11-19T15:59:09+01:00",
+          "tree_id": "2ce168e51715c30c80da2c10362c324079cafdc8",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/13b23e5e74e1b3f5e700303af4c1d7065390158a"
+        },
+        "date": 1795100468663,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.378669,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.792821,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 47.555582,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.108983,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.936405,
             "unit": "ms"
           }
         ]
