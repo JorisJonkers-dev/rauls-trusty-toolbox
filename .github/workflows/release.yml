@@ -118,7 +118,7 @@ jobs:
         if: ${{ steps.packager-cache.outputs.cache-hit != 'true' }}
         run: cargo install --locked cargo-packager --version "$CARGO_PACKAGER_VERSION"
 
-      - name: Build raul and the bundled Components
+      - name: Build raul
         run: |
           set -euo pipefail
           mkdir -p target/bundle/components
@@ -145,11 +145,8 @@ jobs:
           if [ "$RUNNER_OS" = Windows ]; then export CARGO_ENCODED_RUSTFLAGS='-Ctarget-feature=+crt-static'; fi
           RAUL_BUILD_FEATURES=engine build crates/raul-gui/Cargo.toml raul-gui "raul$exe" "${targets[@]}"
           unset CARGO_ENCODED_RUSTFLAGS
-          OUT=target/bundle/components
-          build components/lodwright-rs/Cargo.toml lodwright-cli "lodwright$exe" "${targets[@]}"
-          # From ttwright-rs v0.3.0 the TTW installer is the package ttwright-cli and the program ttwright.
-          build components/ttwright-rs/Cargo.toml ttwright-cli "ttwright$exe" "${targets[@]}"
-          ls -l target/release/raul* target/bundle/components
+          # lodwright-rs and ttwright-rs are linked into raul (ADR-0016): no program of theirs is built or bundled.
+          ls -l target/release/raul*
 
       # nv-rs is not built here: its own release assets for the shipped version are verified against its
       # SHA256SUMS and added. It publishes Linux and Windows builds; macOS has none yet, so Launch is disabled
@@ -182,9 +179,9 @@ jobs:
           {
             echo "# Third-party notices"
             echo
-            echo "Raul's tRusty Toolbox is GPL-3.0-only. It includes the Components below as separate programs, each under"
-            echo "its own licence (see their repositories at the versions pinned as submodules), and the Rust crates listed"
-            echo "after them. No game files are included."
+            echo "Raul's tRusty Toolbox is GPL-3.0-only. It includes the Components below, each under its own licence"
+            echo "(see their repositories at the versions pinned as submodules): all but nv-rs are linked into raul, and nv-rs"
+            echo "is its packaged engine build. The Rust crates are listed after them. No game files are included."
             echo
             echo "| Component | Licence |"
             echo "| --- | --- |"
@@ -281,19 +278,10 @@ jobs:
             local out; out="$(RAUL_GUI_SMOKE=1 LIBGL_ALWAYS_SOFTWARE=1 timeout 120 xvfb-run -a "$@")"; echo "$out"
             [ "$out" = "raul: the window opened and closed" ]
           }
-          # The bundled ttwright must start, report the version of the shipped set, and speak the ttwright-result
-          # and ttwright-events v1 Contracts raul ttw reads.
-          raul_bin="target/release/raul"; [ "$RUNNER_OS" = Windows ] && raul_bin="$raul_bin.exe"
-          ttwright_version="$(scripts/component-version.sh ttwright-rs | sed 's/^v//')"
-          echo "ttwright-rs of the shipped set: $ttwright_version"
-          check_ttwright() {
-            if [ -z "$1" ] || [ ! -f "$1" ]; then echo "::error::no bundled ttwright at '$1'"; return 1; fi
-            local out; out="$("$1" --version)"; echo "$out"
-            [ "$(head -1 <<<"$out" | tr -d '\r')" = "ttwright $ttwright_version" ]
-            out="$("$1" contracts --json)"; echo "$out"
-            jq -e '.schema_version == 1 and .contract == "ttwright-contracts" and .tool.name == "ttwright"
-              and ([.contracts[] | select(.name == "ttwright-result" or .name == "ttwright-events")] as $c
-                   | ($c | length) == 2 and ($c | all(.versions | index(1) != null)))' <<<"$out" >/dev/null
+          # lodwright-rs and ttwright-rs are linked into raul (ADR-0016): no package may hold a program of theirs.
+          no_component_programs() {
+            local found; found="$(find "$@" -type f \( -iname 'lodwright*' -o -iname 'ttwright*' \))"
+            if [ -n "$found" ]; then echo "::error::Component programs in the package:"; echo "$found"; return 1; fi
           }
           case "$RUNNER_OS" in
             Linux)
@@ -301,24 +289,20 @@ jobs:
               check "$app" --appimage-extract-and-run
               window "$app" --appimage-extract-and-run
               (cd "$RUNNER_TEMP" && "$app" --appimage-extract >/dev/null)
-              check_ttwright "$(find "$RUNNER_TEMP/squashfs-root" -path '*/components/ttwright' -print -quit)"
               dpkg-deb -x target/packages/*.deb "$RUNNER_TEMP/deb" && check "$RUNNER_TEMP/deb/usr/bin/raul"
               window "$RUNNER_TEMP/deb/usr/bin/raul"
               tar -xzf target/packages/*.tar.gz -C "$RUNNER_TEMP" && check "$RUNNER_TEMP/raul-$VERSION-linux-x64/raul"
               window "$RUNNER_TEMP/raul-$VERSION-linux-x64/raul"
               grep -q "SIL Open Font License" "$RUNNER_TEMP/raul-$VERSION-linux-x64/THIRD-PARTY-NOTICES.md"
-              check_ttwright "$RUNNER_TEMP/raul-$VERSION-linux-x64/components/ttwright"
-              # The Linux packages carry it too; raul looks for it in ../lib/<package>/components next to raul.
-              deb_ttwright="$(find "$RUNNER_TEMP/deb/usr/lib" -path '*/components/ttwright' -print -quit)"
-              echo "deb: $deb_ttwright"; check_ttwright "$deb_ttwright" ;;
+              no_component_programs "$RUNNER_TEMP/squashfs-root" "$RUNNER_TEMP/deb" "$RUNNER_TEMP/raul-$VERSION-linux-x64" ;;
             Windows)
               7z x -bso0 -o"$RUNNER_TEMP/zip" target/packages/*-portable.zip
               check "$RUNNER_TEMP/zip/raul-$VERSION-windows-x64/raul.exe"
-              check_ttwright "$RUNNER_TEMP/zip/raul-$VERSION-windows-x64/components/ttwright.exe"
+              no_component_programs "$RUNNER_TEMP/zip"
               setup="$(ls target/packages/*.setup.exe)"
               # The installer must hold the same raul.exe: 7z unpacks an NSIS installer without running it.
               7z x -bso0 -o"$RUNNER_TEMP/nsis" "$setup"; check "$(find "$RUNNER_TEMP/nsis" -iname raul.exe -print -quit)"
-              check_ttwright "$(find "$RUNNER_TEMP/nsis" -iname ttwright.exe -print -quit)"
+              no_component_programs "$RUNNER_TEMP/nsis"
               # A silent install is tried under a time limit; it hung in CI before, so a hang is a warning, not a stuck job.
               if timeout 180 "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"; then
                 sleep 5; check "$RUNNER_TEMP/installed/raul.exe"
@@ -334,7 +318,7 @@ jobs:
               check "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul"
               archs="$(lipo -archs "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul")"; echo "$archs"
               grep -qw arm64 <<<"$archs"; grep -qw x86_64 <<<"$archs"
-              check_ttwright "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/Resources/components/ttwright"
+              no_component_programs "$RUNNER_TEMP/dmg"
               hdiutil detach "$RUNNER_TEMP/dmg" ;;
           esac
 
@@ -413,16 +397,11 @@ jobs:
         run: |
           set -euo pipefail
           gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
-          components="$(for c in nv-rs nvmod-rs lodwright-rs ttwright-rs loot-rs; do printf '  %-13s %s\n' "$c" "$(scripts/component-version.sh "$c")"; done)"
           if [ -n "$APPLE_CERTIFICATE" ]; then mac="signed and notarised"; else mac="**unsigned**: macOS will ask you to allow it in System Settings, Privacy & Security"; fi
           notes="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)"
           {
             printf '%s\n\n' "$notes"
-            echo "## Included Components"
-            echo
-            echo '```text'
-            echo "$components"
-            echo '```'
+            scripts/release-contents.sh dist/SHA256SUMS
             echo
             echo "## Signing"
             echo
