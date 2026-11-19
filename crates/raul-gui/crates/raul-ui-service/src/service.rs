@@ -165,7 +165,7 @@ pub enum SetupMode {
     },
 }
 
-/// What `raul setup` needs. A resume or a restart takes the Instance and nothing else, so [`SetupRequest::args`]
+/// What the setup job needs. A resume or a restart takes the Instance and nothing else, so [`SetupRequest::mode`]
 /// leaves every other field out for them.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 #[allow(clippy::struct_excessive_bools)] // One bool per flag of the command line.
@@ -188,8 +188,6 @@ pub struct SetupRequest {
     pub fallout3: Option<String>,
     /// The TTW package file.
     pub package: Option<String>,
-    /// The TTW installer to run instead of the fetched one.
-    pub installer: Option<String>,
     /// Fetch the nv-rs release (`--release`).
     pub release: bool,
     /// Build nv-rs from this source folder (`--source`).
@@ -235,55 +233,64 @@ impl SetupRequest {
         }
     }
 
-    /// The words after `raul setup`, before `--json`.
-    pub fn args(&self) -> Vec<String> {
-        let mut rest = Vec::new();
+    /// What the setup job is asked to do: the typed mode of `raul-core`, with no command line in between.
+    pub fn mode(&self) -> raul_core::setup::Mode {
+        use raul_core::setup::{EngineOptions, Mode, Request, Ttw};
+        // Every path of the request is absolute, as the journal keeps it for a resume from anywhere.
+        let path = |s: &String| std::path::absolute(s).unwrap_or_else(|_| PathBuf::from(s));
+        let instance = path(&self.instance);
         match self.mode {
-            SetupMode::Resume => rest.push("--resume".to_owned()),
+            SetupMode::Resume => return Mode::Resume { instance },
             SetupMode::Restart { confirmed } => {
-                rest.push("--restart".to_owned());
-                push(&mut rest, "instance", &self.instance);
-                if confirmed {
-                    rest.push("--yes".to_owned());
-                }
-                return rest;
+                return Mode::Restart {
+                    instance,
+                    confirmed,
+                };
             }
             SetupMode::Fresh => {}
         }
-        push(&mut rest, "instance", &self.instance);
-        if self.mode == SetupMode::Resume {
-            return rest;
+        let request = Request {
+            base: self.base.as_ref().map_or_default(path),
+            instance,
+            masterlist: self.masterlist.as_ref().map_or_default(path),
+            profile: self.profile.clone(),
+            import_mo2: self.import_mo2.as_ref().map(path),
+            copy: self.copy_only,
+            engine: !self.skip_nv_rs,
+            engine_options: EngineOptions {
+                source: self.source.as_ref().map(path),
+                release: self.release,
+                ..EngineOptions::default()
+            },
+            ttw: self.fallout3.as_ref().map(|fallout3| Ttw {
+                fallout3: path(fallout3),
+                newvegas: None,
+                package: self.package.as_ref().map(path),
+                resume: false,
+                timeout: None,
+            }),
+            mods: self.mods.iter().map(path).collect(),
+            answers: None,
+            sort: self.sort,
+            catalog: None,
+            done: Vec::new(),
+        };
+        Mode::Fresh {
+            request,
+            dry_run: self.dry_run,
+            keep_partial: self.keep_partial,
         }
-        push_opt(&mut rest, "base", self.base.as_ref());
-        push_opt(&mut rest, "masterlist", self.masterlist.as_ref());
-        push_opt(&mut rest, "profile", self.profile.as_ref());
-        push_opt(&mut rest, "import-mo2", self.import_mo2.as_ref());
-        for archive in &self.mods {
-            push(&mut rest, "mod", archive);
-        }
-        push_opt(&mut rest, "fallout3", self.fallout3.as_ref());
-        push_opt(&mut rest, "package", self.package.as_ref());
-        push_opt(&mut rest, "installer", self.installer.as_ref());
-        push_opt(&mut rest, "source", self.source.as_ref());
-        for (on, flag) in [
-            (self.release, "--release"),
-            (self.skip_nv_rs, "--skip-nv-rs"),
-            (self.sort, "--sort"),
-            (self.copy_only, "--copy"),
-            (self.keep_partial, "--keep-partial"),
-            (self.dry_run, "--dry-run"),
-        ] {
-            if on {
-                rest.push(flag.to_owned());
-            }
-        }
-        rest
     }
 
-    /// The job that runs this request: it writes unless it only plans, and Cancel is offered for a first run or a
-    /// resume (a restart is a removal that is not stopped half way).
+    /// The job that runs this request, in process.
+    pub fn direct_job(&self) -> crate::direct::DirectJob {
+        crate::direct::setup(self.mode())
+    }
+
+    /// The job table's record of this request: it writes unless it only plans, and Cancel is offered for a first run
+    /// or a resume (a restart is a removal that is not stopped half way).
     pub fn job_spec(&self, id: raul_ui_model::job::JobId) -> crate::jobs::JobSpec {
-        let mut spec = crate::jobs::JobSpec::new(id, Action::Setup, self.args());
+        let mut spec = crate::jobs::JobSpec::new(id, Action::Setup, Vec::new());
         spec.writes = !(self.dry_run && self.mode == SetupMode::Fresh);
         spec.dry_run = self.dry_run && self.mode == SetupMode::Fresh;
         spec.cancellable = spec.writes && !matches!(self.mode, SetupMode::Restart { .. });
@@ -1087,7 +1094,7 @@ impl<E: Exec> Service for CliService<E> {
     }
 
     fn setup(&self, r: &SetupRequest) -> Result<SetupReport, ServiceError> {
-        self.setup_report(r)
+        Self::setup_report(r)
     }
 
     fn update_check(&self) -> Result<UpdateReport, ServiceError> {
@@ -1182,17 +1189,18 @@ impl<E: Exec> CliService<E> {
         ))))
     }
 
-    fn setup_report(&self, r: &SetupRequest) -> Result<SetupReport, ServiceError> {
-        let (out, args) = self.invoke(Action::Setup, r.args())?;
+    fn setup_report(r: &SetupRequest) -> Result<SetupReport, ServiceError> {
+        // Run to its end, in process: no command line, no process; the lines it reports are the setup stream.
+        let spec = r.job_spec(JobId(0));
+        let out = run_direct(&spec, r.direct_job(), &mut |_| {}, &CancelHandle::new());
         let mut wizard = SetupWizard::new();
         for line in out.stdout.lines() {
             let _ = wizard.feed_line(line);
         }
         let Phase::Finished(finish) = wizard.phase().clone() else {
-            return Err(failure(&out, "setup", &args));
+            return Err(ServiceError::Failed(failure_error(&out, "setup")));
         };
-        if let Some(mut card) = wizard.error() {
-            card.repro = Some(repro(&args));
+        if let Some(card) = wizard.error() {
             return Err(ServiceError::Failed(card));
         }
         debug_assert!(matches!(

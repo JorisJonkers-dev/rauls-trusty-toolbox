@@ -615,29 +615,25 @@ mod tests {
 
     #[test]
     fn setup_requests_are_the_words_after_the_command() {
+        use raul_core::setup::Mode;
         let mut setup = SetupRequest::fresh("/i", "/b", "m.yaml");
         setup.mods = vec!["a.zip".into(), "b.zip".into()];
         setup.skip_nv_rs = true;
         setup.keep_partial = true;
         setup.dry_run = true;
-        assert_eq!(
-            setup.args(),
-            [
-                "--instance",
-                "/i",
-                "--base",
-                "/b",
-                "--masterlist",
-                "m.yaml",
-                "--mod",
-                "a.zip",
-                "--mod",
-                "b.zip",
-                "--skip-nv-rs",
-                "--keep-partial",
-                "--dry-run"
-            ]
-        );
+        // The setup request is the job's typed request: no command line in between.
+        let Mode::Fresh {
+            request,
+            dry_run,
+            keep_partial,
+        } = setup.mode()
+        else {
+            panic!("a first run");
+        };
+        assert!(dry_run && keep_partial && !request.engine);
+        assert_eq!(request.instance, std::path::absolute("/i").unwrap());
+        assert_eq!(request.base, std::path::absolute("/b").unwrap());
+        assert_eq!(request.mods.len(), 2);
         let spec = setup.job_spec(raul_ui_model::job::JobId(1));
         assert!(
             !spec.writes && spec.dry_run && !spec.cancellable,
@@ -647,16 +643,27 @@ mod tests {
         let mut resume = SetupRequest::resume("/i");
         resume.keep_partial = true;
         resume.dry_run = true;
-        assert_eq!(resume.args(), ["--resume", "--instance", "/i"]);
+        assert_eq!(
+            resume.mode(),
+            Mode::Resume {
+                instance: std::path::absolute("/i").unwrap()
+            }
+        );
         let spec = resume.job_spec(raul_ui_model::job::JobId(1));
         assert!(spec.writes && spec.cancellable && !spec.dry_run);
         assert_eq!(
-            SetupRequest::restart("/i", false).args(),
-            ["--restart", "--instance", "/i"]
+            SetupRequest::restart("/i", false).mode(),
+            Mode::Restart {
+                instance: std::path::absolute("/i").unwrap(),
+                confirmed: false
+            }
         );
         assert_eq!(
-            SetupRequest::restart("/i", true).args(),
-            ["--restart", "--instance", "/i", "--yes"]
+            SetupRequest::restart("/i", true).mode(),
+            Mode::Restart {
+                instance: std::path::absolute("/i").unwrap(),
+                confirmed: true
+            }
         );
         let restart = SetupRequest::restart("/i", true).job_spec(raul_ui_model::job::JobId(1));
         assert!(restart.writes && !restart.cancellable);

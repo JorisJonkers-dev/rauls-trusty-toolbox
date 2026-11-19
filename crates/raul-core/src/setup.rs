@@ -9,6 +9,8 @@
 //! Error>`. A cancel that arrives while the last step runs is not seen; the run ends as done. A cancelled run is an [`Outcome::Cancelled`], a result and not an error; the first failing step stops
 //! the run with its typed [`Error`]. The resume journal is in [`crate::journal`] (`journal::run` is this job with it); the wizard is not part of this module.
 
+mod args;
+mod command;
 mod engine;
 mod plan;
 mod run;
@@ -19,6 +21,12 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
+pub use args::{Parsed, parse as parse_words};
+pub use command::{Ended, Line, Mode, describe, execute, stream_name};
+pub use command::{
+    FAILED as EXIT_FAILED, OK as EXIT_OK, REFUSED as EXIT_REFUSED,
+    VERIFICATION as EXIT_VERIFICATION,
+};
 pub use engine::EngineOptions;
 pub use nvmod_api::CancelToken;
 pub use plan::plan;
@@ -42,8 +50,8 @@ pub struct Request {
     /// Copy files into the Staging tree and the import instead of linking them.
     #[serde(default)]
     pub copy: bool,
-    /// Put the nv-rs engine in the Instance and make it the target (nvmod's `setup` does this unless told
-    /// `--skip-nv-rs`; here it is opt-in, so a request that leaves it out keeps the vanilla target). The engine step installs and
+    /// Put the nv-rs engine in the Instance and make it the target. The request leaves it off unless it is set;
+    /// `raul setup` and the wizard set it unless told to skip it, as nvmod's `setup` did. The engine step installs and
     /// checks nv-rs in process through the engine install library (see `engine.rs`; it goes with the play mode,
     /// #260), and the target step then sets the nv-rs target.
     #[serde(default)]

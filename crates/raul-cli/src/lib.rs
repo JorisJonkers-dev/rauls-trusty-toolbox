@@ -7,6 +7,7 @@ mod config;
 mod detect;
 mod lod;
 mod printer;
+mod setup;
 mod ttw;
 mod update;
 mod version;
@@ -27,7 +28,7 @@ pub const USAGE: u8 = nvmod_cli::USAGE;
 /// The commands `raul` owns; anything else goes to nvmod. The GUI build exposes the same list (ADR-0004). An own
 /// command takes precedence over an nvmod command of the same name, which `raul` then never reaches.
 pub const OWN_COMMANDS: &[&str] = &[
-    "version", "detect", "bench", "update", "config", "ttw", "lod", "help",
+    "version", "detect", "bench", "update", "config", "setup", "ttw", "lod", "help",
 ];
 
 /// Who runs a command line.
@@ -67,6 +68,14 @@ usage:
   raul config list|get <key>|set <key> <path>|unset <key> [--json]
                               the game folders, the TTW package and the storage folder (game.newvegas,
                               game.fallout3, ttw.package, storage.root; instance is derived)
+  raul setup --base <dir> --instance <dir> --masterlist <file> [--import-mo2 <dir>] [--mod <archive>]...
+             [--fallout3 <dir> [--package <file>]] [--profile <name>] [--source <dir> | --release] [--skip-nv-rs]
+             [--sort] [--copy] [--keep-partial] [--dry-run] [--json]
+  raul setup --resume --instance <dir> [--json]
+  raul setup --restart --instance <dir> --yes [--json]
+                              a base copy to a modded, checked Instance in one run, resumable: each finished step is
+                              kept in the Instance's journal, so --resume continues at the first unfinished step and
+                              --restart removes an unfinished Instance; --json streams the events the setup wizard reads
   raul ttw [--instance <dir>] [--profile <name>] [--fallout3 <dir>] [--newvegas <dir>] [--package <file>]
            [--dry-run] [--resume] [--json]
                               install TTW with ttwright, which runs inside raul, and add it to the Instance as one Mod; what
@@ -94,6 +103,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("bench") => bench::run(&args[1..], out, err),
         Some("update") => update::run(&args[1..], out, err),
         Some("config") => config::run(&args[1..], out, err),
+        Some("setup") => setup::run(&args[1..], out, err),
         Some("ttw") => ttw::run(&args[1..], out, err),
         Some("lod") => lod::run(&args[1..], out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
@@ -142,7 +152,7 @@ mod tests {
 
     #[test]
     fn the_commands_that_moved_from_nvmod_are_own_commands() {
-        for command in ["config", "ttw", "lod"] {
+        for command in ["config", "setup", "ttw", "lod"] {
             assert!(OWN_COMMANDS.contains(&command), "{command}");
         }
     }
