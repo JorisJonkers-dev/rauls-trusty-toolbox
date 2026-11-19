@@ -188,8 +188,6 @@ pub struct SetupRequest {
     pub fallout3: Option<String>,
     /// The TTW package file.
     pub package: Option<String>,
-    /// Fetch the nv-rs release (`--release`).
-    pub release: bool,
     /// Build nv-rs from this source folder (`--source`).
     pub source: Option<String>,
     /// Leave out the nv-rs step.
@@ -259,7 +257,6 @@ impl SetupRequest {
             engine: !self.skip_nv_rs,
             engine_options: EngineOptions {
                 source: self.source.as_ref().map(path),
-                release: self.release,
                 ..EngineOptions::default()
             },
             ttw: self.fallout3.as_ref().map(|fallout3| Ttw {

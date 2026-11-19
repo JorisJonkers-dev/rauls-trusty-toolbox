@@ -464,14 +464,13 @@ impl Journal {
 }
 
 /// The request as the journal keeps it: without its list of finished steps, and without the programs the engine step
-/// runs (`cargo`, `gh`, `curl`), so a resume never runs a program a file names; it uses the default ones.
+/// runs (`cargo` and the engine folder whose viewer it starts), so a resume never runs a program a file names; it uses
+/// the default ones.
 fn stored(request: &Request) -> Request {
-    let defaults = crate::setup::EngineOptions::default();
     let mut kept = request.clone();
     kept.done.clear();
     kept.engine_options.cargo = None;
-    kept.engine_options.gh = defaults.gh;
-    kept.engine_options.curl = defaults.curl;
+    kept.engine_options.packaged = None;
     kept
 }
 

@@ -138,14 +138,21 @@ fn a_fresh_setup_runs_every_planned_step_in_order_and_reports_each() {
     )));
 }
 
-/// The engine step on synthetic fixtures: a tiny nv-rs workspace, a fake local release and a `gh` stand-in.
+/// The engine step on synthetic fixtures: a tiny nv-rs workspace and a packaged engine folder. Nothing is fetched.
 mod engine {
     use super::*;
     use nvmod_testkit::{
-        FAKE_ASSET, FAKE_BUILT_BANNER, FAKE_CHECK_REFUSED, FakeNvRs, FakeRelease, Standin,
-        fake_release_binary, nv_viewer_name,
+        FAKE_BUILT_BANNER, FAKE_CHECK_REFUSED, FakeNvRs, fake_failing_release_binary,
+        fake_release_binary, nv_viewer_name, write_executable,
     };
     use raul_core::setup::EngineOptions;
+
+    /// One build of the fake engine program for the whole test run: on Windows each call compiles a new stand-in, whose
+    /// bytes differ from the last, so a test that packages one and compares with another would never match.
+    fn viewer_bytes() -> Vec<u8> {
+        static BYTES: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
+        BYTES.get_or_init(fake_release_binary).clone()
+    }
 
     const CARGO: &str = env!("CARGO");
 
@@ -177,32 +184,25 @@ mod engine {
             request
         }
 
-        /// A request for the fake local `release`; `gh` exits with `gh_code` and logs its calls.
-        fn release(&self, release: &FakeRelease, gh_code: i32) -> Request {
-            let dir = self.tools.path().join("release");
-            fs::create_dir_all(&dir).expect("release dir");
-            release.write(&dir, nvmod_install::sha256_hex);
-            let gh = Standin::new()
-                .logging()
-                .exits(gh_code)
-                .write(self.tools.path(), "gh");
+        /// A request for the packaged engine folder at the returned path, whose viewer is `binary`.
+        fn packaged(&self, binary: &[u8]) -> Request {
+            let dir = self.tools.path().join("packaged");
+            let bin = dir.join("bin");
+            fs::create_dir_all(&bin).expect("packaged dir");
+            write_executable(&bin, &nv_viewer_name(), binary);
+            let line = format!(
+                "{}  bin/{}\n",
+                nvmod_install::sha256_hex(binary),
+                nv_viewer_name()
+            );
+            fs::write(dir.join("FILES.sha256"), line).expect("checksum list");
             let mut request = self.s.request();
             request.engine = true;
             request.engine_options = EngineOptions {
-                release: true,
-                release_url: format!("file://{}", dir.display()),
-                gh,
-                retry_delay_ms: 0,
+                packaged: Some(dir),
                 ..EngineOptions::default()
             };
             request
-        }
-
-        fn gh_calls(&self) -> usize {
-            fs::read_to_string(self.tools.path().join("gh.log"))
-                .unwrap_or_default()
-                .lines()
-                .count()
         }
 
         fn nv_rs(&self) -> PathBuf {
@@ -265,67 +265,67 @@ mod engine {
     }
 
     #[test]
-    fn a_verified_release_installs_and_the_attestation_is_asked_for() {
+    fn the_packaged_engine_installs_checks_and_the_target_is_set() {
         let rig = Rig::new();
-        let request = rig.release(&FakeRelease::new(), 0);
+        let request = rig.packaged(&viewer_bytes());
         let (result, events) = record(&request, &CancelToken::new());
         let out = done(result);
         assert!(ids(&out.completed).contains(&"engine".to_owned()));
+        assert!(ids(&out.completed).contains(&"target".to_owned()));
         assert_eq!(
             labels(&events),
-            ["setup.engine.fetching", "setup.engine.checked"]
+            ["setup.engine.installing", "setup.engine.checked"]
         );
         let binary = rig.nv_rs().join("bin").join(nv_viewer_name());
-        assert_eq!(fs::read(binary).expect("binary"), fake_release_binary());
-        assert_eq!(rig.gh_calls(), 1);
+        assert_eq!(fs::read(binary).expect("binary"), viewer_bytes());
+        let record = fs::read_to_string(rig.nv_rs().join("install.json")).expect("record");
+        assert!(record.contains("\"method\": \"packaged\""), "{record}");
     }
 
     #[test]
-    fn no_toolchain_fetches_the_release_without_being_asked() {
+    fn no_toolchain_still_uses_the_packaged_engine_and_never_a_release() {
         let rig = Rig::new();
-        let mut request = rig.release(&FakeRelease::new(), 0);
-        request.engine_options.release = false;
+        let mut request = rig.packaged(&viewer_bytes());
         request.engine_options.cargo = Some(rig.tools.path().join("no-such-cargo"));
         let (result, events) = record(&request, &CancelToken::new());
         done(result);
         assert_eq!(
             labels(&events),
-            ["setup.engine.fetching", "setup.engine.checked"]
+            ["setup.engine.installing", "setup.engine.checked"]
         );
     }
 
     #[test]
-    fn a_wrong_checksum_is_unverified_and_nothing_is_installed() {
+    fn a_damaged_packaged_engine_is_unverified_and_nothing_is_installed() {
         let rig = Rig::new();
-        let request = rig.release(&FakeRelease::new().wrong_checksum(), 0);
+        let request = rig.packaged(&viewer_bytes());
+        let viewer = rig.tools.path().join("packaged/bin").join(nv_viewer_name());
+        fs::write(viewer, b"tampered").expect("tamper");
         let (result, events) = record(&request, &CancelToken::new());
         let error = failure(result);
         assert_eq!(error.kind, ErrorKind::Unverified);
         assert_eq!(error.step, Step::Engine);
         assert_eq!(error.job, "engine.install");
-        assert!(error.summary.contains("checksum"), "{}", error.summary);
         rig.nothing_installed();
-        assert_eq!(rig.gh_calls(), 0, "no attestation for a failed checksum");
         assert!(!started(&events).contains(&"target".to_owned()));
     }
 
     #[test]
-    fn a_failed_attestation_is_unverified_and_nothing_is_installed() {
+    fn a_missing_packaged_engine_is_refused_with_plain_instructions_and_nothing_is_fetched() {
         let rig = Rig::new();
-        let request = rig.release(&FakeRelease::new(), 1);
+        let mut request = rig.s.request();
+        request.engine = true;
+        request.engine_options.packaged = Some(rig.tools.path().join("not-there"));
         let error = failure(record(&request, &CancelToken::new()).0);
-        assert_eq!(error.kind, ErrorKind::Unverified);
-        assert!(error.summary.contains("attestation"), "{}", error.summary);
-        rig.nothing_installed();
-    }
-
-    #[test]
-    fn an_asset_missing_from_the_checksum_list_is_unverified() {
-        let rig = Rig::new();
-        let request = rig.release(&FakeRelease::new().asset_not_listed(), 0);
-        let error = failure(record(&request, &CancelToken::new()).0);
-        assert_eq!(error.kind, ErrorKind::Unverified);
-        assert!(error.summary.contains(FAKE_ASSET), "{}", error.summary);
+        assert_eq!(error.kind, ErrorKind::Refused);
+        assert!(
+            error.summary.contains("install raul again"),
+            "{}",
+            error.summary
+        );
+        for word in ["curl", "gh", "--release", "cargo", "install-nv-rs"] {
+            assert!(!error.summary.contains(word), "{word}: {}", error.summary);
+        }
         rig.nothing_installed();
     }
 
@@ -346,12 +346,16 @@ mod engine {
     }
 
     #[test]
-    fn a_failing_release_check_fails_the_step_and_is_rolled_back() {
+    fn a_failing_packaged_check_fails_the_step_and_is_rolled_back() {
         let rig = Rig::new();
-        let request = rig.release(&FakeRelease::new().failing_check(), 0);
+        let request = rig.packaged(&fake_failing_release_binary());
         let error = failure(record(&request, &CancelToken::new()).0);
         assert_eq!(error.kind, ErrorKind::Failed);
-        assert!(error.summary.contains(FAKE_CHECK_REFUSED));
+        assert!(
+            error.summary.contains(FAKE_CHECK_REFUSED),
+            "{}",
+            error.summary
+        );
         rig.nothing_installed();
     }
 

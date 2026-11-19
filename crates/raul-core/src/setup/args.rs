@@ -22,24 +22,33 @@ const OPTIONS: &[&str] = &[
     "timeout-secs",
     "source",
     "cargo",
+    "catalog",
+];
+
+/// Options that fetched an engine release. They are gone: the engine ships with raul and is never downloaded (#179).
+const FETCH_OPTIONS: &[&str] = &[
+    "release",
     "release-url",
     "asset",
     "repo",
     "gh",
     "curl",
     "retry-delay-ms",
-    "catalog",
 ];
 
-/// Options a setup recorded by `nvmod setup` may carry that no longer mean anything: they are read and ignored
-/// (the extraction tool is gone, TTW runs in process with no installer, lock or store).
-const IGNORED: &[&str] = &["extract-tool", "installer", "lock", "store"];
+/// The message for an option that does not exist (any more): a plain usage error.
+fn unknown(name: &str) -> String {
+    if FETCH_OPTIONS.contains(&name) {
+        format!("--{name} is gone: the engine comes with raul and is never downloaded")
+    } else {
+        format!("unknown option --{name}")
+    }
+}
 
 /// The switches.
 const FLAGS: &[&str] = &[
     "json",
     "dry-run",
-    "release",
     "skip-nv-rs",
     "sort",
     "copy",
@@ -132,6 +141,9 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
             Some((n, v)) => (n, Some(v.to_owned())),
             None => (name, None),
         };
+        if FETCH_OPTIONS.contains(&name) {
+            return Err(unknown(name));
+        }
         if FLAGS.contains(&name) && inline.is_none() {
             match name {
                 "json" => parsed.json = true,
@@ -140,7 +152,6 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
                 "resume" => parsed.resume = true,
                 "restart" => parsed.restart = true,
                 "yes" => parsed.yes = true,
-                "release" => request.engine_options.release = true,
                 "skip-nv-rs" => request.engine = false,
                 "sort" => request.sort = true,
                 "copy" => request.copy = true,
@@ -151,8 +162,8 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
             }
             continue;
         }
-        if !OPTIONS.contains(&name) && !IGNORED.contains(&name) {
-            return Err(format!("unknown option --{name}"));
+        if !OPTIONS.contains(&name) {
+            return Err(unknown(name));
         }
         let value = match inline {
             Some(v) => v,
@@ -197,20 +208,15 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
             }
             "source" => request.engine_options.source = Some(absolute(&value)),
             "cargo" => request.engine_options.cargo = Some(absolute(&value)),
-            "release-url" => request.engine_options.release_url = value,
-            "asset" => request.engine_options.asset = value,
-            "repo" => request.engine_options.repo = value,
-            "gh" => request.engine_options.gh = PathBuf::from(value),
-            "curl" => request.engine_options.curl = PathBuf::from(value),
-            "retry-delay-ms" => {
-                request.engine_options.retry_delay_ms = value
-                    .parse()
-                    .map_err(|_| "--retry-delay-ms needs a number of milliseconds".to_owned())?;
-            }
             "catalog" => request.catalog = Some(absolute(&value)),
             // An option an old setup recorded: read, and nothing is done with it.
             _ => {}
         }
+    }
+    if request.engine_options.cargo.is_some() && request.engine_options.source.is_none() {
+        return Err(
+            "--cargo only goes with --source (it builds the engine from source)".to_owned(),
+        );
     }
     if let Some(fallout3) = fallout3 {
         request.ttw = Some(Ttw {
@@ -246,7 +252,7 @@ mod tests {
     fn the_options_of_a_setup_make_a_typed_request() {
         let p = parse(&words(
             "--base /b --instance /i --masterlist /m.yaml --profile P --mod /a/One.zip --mod /a/Two.zip \
-             --fallout3 /f3 --package /p.mpi --timeout-secs 60 --source /nv --release --skip-nv-rs --sort --copy --dry-run --json",
+             --fallout3 /f3 --package /p.mpi --timeout-secs 60 --source /nv --skip-nv-rs --sort --copy --dry-run --json",
         ))
         .unwrap();
         let r = &p.request;
@@ -258,9 +264,36 @@ mod tests {
         assert_eq!(ttw.fallout3, abs("/f3"));
         assert_eq!(ttw.package, Some(abs("/p.mpi")));
         assert_eq!(ttw.timeout, Some(Duration::from_secs(60)));
-        assert!(!r.engine && r.sort && r.copy && r.engine_options.release);
+        assert!(!r.engine && r.sort && r.copy);
         assert_eq!(r.engine_options.source, Some(abs("/nv")));
         assert!(p.json && p.dry_run && !p.keep_partial && p.has_run_options);
+    }
+
+    #[test]
+    fn the_options_that_fetched_an_engine_release_are_a_usage_error_with_a_reason() {
+        for option in [
+            "--release",
+            "--release-url x",
+            "--asset x",
+            "--repo x",
+            "--gh x",
+            "--curl x",
+            "--retry-delay-ms 1",
+            "--release-url=x",
+        ] {
+            let e = parse(&words(&format!("--instance /i {option}"))).unwrap_err();
+            assert!(
+                e.contains("is gone") && e.contains("never downloaded"),
+                "{option}: {e}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_cargo_without_a_source_is_refused_instead_of_doing_nothing() {
+        let e = parse(&words("--instance /i --cargo /c")).unwrap_err();
+        assert!(e.contains("--cargo") && e.contains("--source"), "{e}");
+        assert!(parse(&words("--instance /i --cargo /c --source /s")).is_ok());
     }
 
     #[test]
@@ -277,12 +310,16 @@ mod tests {
     }
 
     #[test]
-    fn options_an_old_setup_recorded_are_read_and_ignored() {
-        let p = parse(&words(
-            "--instance /i --extract-tool /x --installer /y --lock /l --store /s",
-        ))
-        .unwrap();
-        assert_eq!(p.request.instance, abs("/i"));
+    fn options_that_do_nothing_are_not_accepted() {
+        for option in [
+            "--extract-tool /x",
+            "--installer /y",
+            "--lock /l",
+            "--store /s",
+        ] {
+            let e = parse(&words(&format!("--instance /i {option}"))).unwrap_err();
+            assert!(e.contains("unknown option"), "{option}: {e}");
+        }
     }
 
     #[test]
@@ -293,7 +330,6 @@ mod tests {
             ("stray", "unexpected word stray"),
             ("--timeout-secs x --fallout3 /f", "--timeout-secs needs"),
             ("--package /p", "need --fallout3"),
-            ("--retry-delay-ms x", "--retry-delay-ms needs"),
         ] {
             let e = parse(&words(line)).unwrap_err();
             assert!(e.contains(why), "{line}: {e}");

@@ -16,6 +16,23 @@ packaged nv-rs build under `components/` where one exists for that platform (unt
 smoke tests fail if one is. The release notes list the parts with their versions and every file with its SHA-256
 (`scripts/release-contents.sh`). No game file is ever included.
 
+## The packaged engine
+
+On Linux and Windows the engine's nv-rs build ships under `components/nv-rs/` with `FILES.sha256`, the checksum list of
+its files, which `release.yml` writes after checking the archive against nv-rs's own `SHA256SUMS`. The setup wizard's
+Engine step and `raul install-nv-rs` look for that folder next to the running `raul` (beside it for the tarball, the
+portable zip and the NSIS install, under `lib/` for the deb and the AppImage, under `Resources/` in the macOS bundle), check
+every file against the list, copy the viewer into the Instance and run its check. **Nothing is downloaded**: a copy
+without the folder (macOS, which has no engine build yet, or a development build) stops with an instruction to
+install raul again. `--source <dir>` still builds an nv-rs workspace, for developers.
+
+What stays until the play mode lands (#260, nv-rs#353, engine link T2 #315): the engine is still a separate program in
+the package and in the Instance (`nv-rs/bin/nv-viewer`), because the game is still started as that program. When raul
+starts the game from its own binary in a play mode, the packaged folder, `FILES.sha256`, the Engine step and
+`raul install-nv-rs` are deleted (see the note at the top of `crates/raul-core/src/setup/engine.rs`).
+The follow-up to check once a release is built: that each package lays `components/nv-rs/` where the search above
+looks (the release smoke test fails when `FILES.sha256` is missing from a package, not when it is in an unexpected place).
+
 `icons/raul.png` is a placeholder gear until a designed icon exists.
 
 ## Signing

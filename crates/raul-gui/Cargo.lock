@@ -4506,6 +4506,7 @@ name = "raul-cli"
 version = "0.0.0"
 dependencies = [
  "ctrlc",
+ "nvmod-api",
  "nvmod-cli",
  "nvmod-core",
  "nvmod-instance",

@@ -2,8 +2,8 @@
 //! The toolkit-free state of the setup wizard (UI-RULES P2): New Vegas folder, TTW, Engine, Quick check, Ready.
 //!
 //! The wizard writes nothing to a game folder. It saves the paths with `raul config set`, makes the Instance with
-//! `raul init` in the storage folder when there is none, installs the engine there with `raul install-nv-rs
-//! --release`, and runs the read-only `raul doctor`. It can be skipped, and run again from Settings. TTW itself is
+//! `raul init` in the storage folder when there is none, puts the engine that ships with raul there with `raul install-nv-rs`
+//! (nothing is downloaded) and runs the read-only `raul doctor`. It can be skipped, and run again from Settings. TTW itself is
 //! set up in its own flow; the wizard only asks whether it is wanted and for the Fallout 3 folder.
 
 use super::settings::{Command, Config, Fetch, Field, Key, Save};
@@ -49,13 +49,34 @@ impl Step {
     }
 }
 
-/// `raul install-nv-rs --instance <dir> --release`: fetches the fork's release, verifies it and runs its check.
+/// `raul install-nv-rs --instance <dir>`: puts the engine that ships with raul in the Instance, checked against its
+/// checksums, and runs its check. It fetches nothing (#179): there is no release and no address in it.
 pub fn install_command(instance: &str) -> Command {
     Command::write(
         "install-nv-rs",
         1,
-        &["install-nv-rs", "--instance", instance, "--release"],
+        &["install-nv-rs", "--instance", instance],
     )
+}
+
+/// What the person reads when the engine step failed, from the last line the command wrote: the command's own prefix
+/// (its name and the kind of failure) is dropped, so the words are plain (UI-RULES: no commands, no tool names).
+pub fn engine_failure(line: &str) -> String {
+    let mut rest = line.trim();
+    if let Some(after) = rest.strip_prefix("raul install-nv-rs:") {
+        rest = after.trim_start();
+        for kind in [
+            "refused:",
+            "verification failed:",
+            "failed and was rolled back:",
+        ] {
+            if let Some(after) = rest.strip_prefix(kind) {
+                rest = after.trim_start();
+                break;
+            }
+        }
+    }
+    rest.to_owned()
 }
 
 /// Where the engine install of the wizard is.
@@ -396,6 +417,37 @@ impl State {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_engine_install_names_no_release_and_no_address() {
+        let c = install_command("/i");
+        let shown = c.shown();
+        assert_eq!(shown, "raul install-nv-rs --instance /i");
+        for word in ["--release", "http", "download", "fetch"] {
+            assert!(!shown.contains(word), "{word}: {shown}");
+        }
+    }
+
+    #[test]
+    fn a_failed_engine_step_reads_without_the_commands_prefix() {
+        for (line, plain) in [
+            (
+                "raul install-nv-rs: refused: This copy of raul does not come with the game engine.",
+                "This copy of raul does not come with the game engine.",
+            ),
+            (
+                "raul install-nv-rs: failed and was rolled back: the check did not pass",
+                "the check did not pass",
+            ),
+            (
+                "raul install-nv-rs: verification failed: it is damaged",
+                "it is damaged",
+            ),
+            ("something else", "something else"),
+        ] {
+            assert_eq!(engine_failure(line), plain);
+        }
+    }
     use crate::pages::settings::Answer;
 
     fn saved(state: &mut State, key: Key, value: &str) {
@@ -405,18 +457,13 @@ mod tests {
     }
 
     #[test]
-    fn the_engine_install_command_names_the_instance_and_the_release() {
+    fn the_engine_install_command_names_the_instance_and_no_release() {
         let c = install_command("/storage/instance");
         assert_eq!(c.id, "install-nv-rs");
         assert!(c.writes);
         assert_eq!(
             c.words,
-            [
-                "install-nv-rs",
-                "--instance",
-                "/storage/instance",
-                "--release"
-            ]
+            ["install-nv-rs", "--instance", "/storage/instance"]
         );
     }
 

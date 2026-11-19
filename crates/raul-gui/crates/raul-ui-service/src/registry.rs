@@ -44,7 +44,7 @@ pub enum Action {
     Plugins,
     /// `raul config`: the game folders, the TTW package and the storage folder.
     Config,
-    /// `raul install-nv-rs`: fetch the verified engine release, or build it from source.
+    /// `raul install-nv-rs`: put the engine that ships with raul in an Instance (nothing is downloaded).
     InstallNvRs,
     /// `raul init`: an Instance skeleton for a base copy of the game.
     Init,
@@ -336,7 +336,7 @@ pub const COMMANDS: &[Command] = &[
         id: "install-nv-rs",
         action: Action::InstallNvRs,
         words: &[],
-        flags: &["--instance", "--release", "--release-url"],
+        flags: &["--instance"],
         writes: true,
         awaits: None,
     },

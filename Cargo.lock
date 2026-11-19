@@ -1952,6 +1952,7 @@ dependencies = [
  "jsonschema 0.61.2",
  "lodwright-api",
  "lodwright-testkit",
+ "nvmod-api",
  "nvmod-cli",
  "nvmod-core",
  "nvmod-instance",
