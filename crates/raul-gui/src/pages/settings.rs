@@ -460,7 +460,7 @@ pub(crate) fn start_then(
     });
     // An action that is converted runs as a typed job in process (`raul_ui_service::direct`); the page reads its
     // answer the same way, so nothing above this call knows the difference.
-    let started = match raul_ui_service::direct::for_command(command.id, &command.rest()) {
+    let started = match cx.jobs.direct_job(command.id, &command.rest()) {
         Some(job) if then.is_none() => cx.jobs.start_direct(entry.action, job, entry.writes),
         _ => cx
             .jobs

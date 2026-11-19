@@ -828,51 +828,53 @@ pub(crate) fn push_opt(args: &mut Vec<String>, name: &str, value: Option<&String
 
 impl<E: Exec> Service for CliService<E> {
     fn import_mo2(&self, r: &ImportRequest) -> Result<ImportReport, ServiceError> {
-        let mut rest = Vec::new();
-        push(&mut rest, "mo2", &r.mo2);
-        push(&mut rest, "instance", &r.instance);
-        push(&mut rest, "base", &r.base);
-        push_opt(&mut rest, "profile", r.profile.as_ref());
-        if r.copy_only {
-            rest.push("--copy".to_owned());
-        }
-        let (out, args) = self.invoke(Action::ImportMo2, rest)?;
+        let request = nvmod_api::import_mo2::ImportRequest {
+            mo2: PathBuf::from(&r.mo2),
+            instance: PathBuf::from(&r.instance),
+            base: PathBuf::from(&r.base),
+            profile: r.profile.clone(),
+            copy_only: r.copy_only,
+        };
+        let spec = JobSpec::new(JobId(0), Action::ImportMo2, Vec::new()).writing();
+        let out = run_direct(
+            &spec,
+            crate::direct::import_mo2(&request),
+            &mut |_| {},
+            &CancelHandle::new(),
+        );
         match out.code {
-            Some(0) => Self::parse(Action::ImportMo2, &out, &args),
             Some(1) => match serde_json::from_str::<DisagreeDoc>(&out.stdout) {
                 Ok(doc) => Err(ServiceError::Disagree(doc.disagreements)),
-                Err(_) => Err(failure(&out, "import-mo2", &args)),
+                Err(_) => Err(ServiceError::Failed(failure_error(&out, "import-mo2"))),
             },
-            _ => Err(failure(&out, "import-mo2", &args)),
+            _ => Self::direct_answer(&out, "import-mo2"),
         }
     }
 
     fn install_mod(&self, r: &InstallRequest) -> Result<InstallResult, ServiceError> {
         let answers = r.answers.as_ref().map(AnswersFile::write).transpose()?;
-        let rest = || {
-            let mut rest = vec![r.archive.clone()];
-            push(&mut rest, "instance", &r.instance);
-            push_opt(&mut rest, "profile", r.profile.as_ref());
-            push_opt(&mut rest, "name", r.name.as_ref());
-            if r.dry_run {
-                rest.push("--dry-run".to_owned());
-            }
-            if let Some(file) = &answers {
-                push(&mut rest, "answers", &file.0.display().to_string());
-            }
-            rest
-        };
-        let (out, args) = self.with_profile(Action::InstallMod, &r.instance, rest)?;
+        let request = crate::direct::install_request(
+            Path::new(&r.instance),
+            r.profile.as_deref(),
+            Path::new(&r.archive),
+            r.name.as_deref(),
+            r.dry_run,
+            answers.as_ref().map(|file| file.0.as_path()),
+        );
+        let out = self.direct_with_profile(Action::InstallMod, &r.instance, || {
+            crate::direct::install_mod(&request)
+        })?;
         match out.code {
-            Some(0) => Self::parse::<InstallReport>(Action::InstallMod, &out, &args)
-                .map(InstallResult::Report),
+            Some(0) => {
+                Self::direct_answer::<InstallReport>(&out, "install").map(InstallResult::Report)
+            }
             Some(1) => match serde_json::from_str::<QuestionsDoc>(&out.stdout) {
                 Ok(doc) => Ok(InstallResult::Questions(
                     doc.questions.into_iter().map(Into::into).collect(),
                 )),
-                Err(_) => Err(failure(&out, "install", &args)),
+                Err(_) => Err(ServiceError::Failed(failure_error(&out, "install"))),
             },
-            _ => Err(failure(&out, "install", &args)),
+            _ => Err(ServiceError::Failed(failure_error(&out, "install"))),
         }
     }
 

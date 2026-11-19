@@ -69,6 +69,8 @@ pub struct DirectJob {
     body: Body,
     /// Whether the job ends as a usage error (a request the command line would not take), exit class 5.
     usage: bool,
+    /// Whether the job writes though it holds no lock, because the Instance it makes does not exist yet.
+    creating: bool,
 }
 
 impl std::fmt::Debug for DirectJob {
@@ -90,6 +92,7 @@ impl DirectJob {
             lock: Some((instance.into(), name)),
             body: Self::boxed(run),
             usage: false,
+            creating: false,
         }
     }
 
@@ -103,6 +106,7 @@ impl DirectJob {
             lock: None,
             body: Self::boxed(run),
             usage: false,
+            creating: false,
         }
     }
 
@@ -122,6 +126,7 @@ impl DirectJob {
             lock: Some((instance.into(), name)),
             body: Self::boxed_as(run, render),
             usage: false,
+            creating: false,
         }
     }
 
@@ -135,6 +140,21 @@ impl DirectJob {
             lock: None,
             body: Self::boxed_as(run, render),
             usage: false,
+            creating: false,
+        }
+    }
+
+    /// [`DirectJob::writing_as`] for a job that makes an Instance: it writes, but there is no Instance to lock yet.
+    pub fn creating_as<T, F>(run: F, render: fn(&T) -> Result<Reply, serde_json::Error>) -> Self
+    where
+        F: FnOnce(&mut dyn Progress, &CancelToken) -> Result<Outcome<T>, JobError> + Send + 'static,
+        T: 'static,
+    {
+        Self {
+            lock: None,
+            body: Self::boxed_as(run, render),
+            usage: false,
+            creating: true,
         }
     }
 
@@ -172,6 +192,7 @@ impl DirectJob {
                 Err(JobError::new(ErrorKind::Refused, "direct.usage", summary))
             }),
             usage: true,
+            creating: false,
         }
     }
 
@@ -199,6 +220,11 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
             instance: PathBuf::from(value_of(rest, "--instance")),
             name: option_of(rest, "--name"),
         })),
+        "init" => Some(init(&nvmod_api::init::CreateRequest {
+            instance: PathBuf::from(value_of(rest, "--instance")),
+            base: PathBuf::from(value_of(rest, "--base")),
+        })),
+        "install-nv-rs" => Some(install_nvrs(&install_nvrs_request(rest))),
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
@@ -368,6 +394,110 @@ pub fn mods_change(request: &nvmod_api::mods::ChangeRequest) -> DirectJob {
     }
 }
 
+/// `nvmod_api::init::create`: makes an Instance. It writes, and holds no lock because the Instance is not there yet.
+/// The command prints a line of text, so the document here is the Instance that was made.
+pub fn init(request: &nvmod_api::init::CreateRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::creating_as(
+        move |progress, cancel| nvmod_api::init::create(&request, progress, cancel),
+        |made: &nvmod_api::init::CreateOutput| serde_json::to_value(made).map(Reply::ok),
+    )
+}
+
+/// The request of `raul install-nv-rs` from the words after it, with the defaults the command line has.
+fn install_nvrs_request(rest: &[String]) -> nvmod_api::install_nvrs::InstallRequest {
+    let path = |flag: &str| option_of(rest, flag).map(PathBuf::from);
+    let mut request: nvmod_api::install_nvrs::InstallRequest =
+        serde_json::from_value(serde_json::json!({ "instance": value_of(rest, "--instance") }))
+            .expect("an install request needs only its Instance");
+    request.source = path("--source");
+    request.release = has_flag(rest, "--release");
+    request.cargo = path("--cargo").or_else(|| std::env::var_os("NVMOD_CARGO").map(PathBuf::from));
+    if let Some(url) = option_of(rest, "--release-url") {
+        request.release_url = url;
+    }
+    if let Some(ms) = option_of(rest, "--retry-delay-ms").and_then(|v| v.parse().ok()) {
+        request.retry_delay_ms = ms;
+    }
+    request
+}
+
+/// `nvmod_api::install_nvrs::install`: builds or fetches nv-rs into the Instance, under the Instance lock.
+pub fn install_nvrs(request: &nvmod_api::install_nvrs::InstallRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::writing(
+        request.instance.clone(),
+        "install-nv-rs",
+        move |progress, cancel| nvmod_api::install_nvrs::install(&request, progress, cancel),
+    )
+}
+
+/// The one place an install request is made, from what the page has: the day the request grows a field, it is
+/// added here.
+pub fn install_request(
+    instance: &Path,
+    profile: Option<&str>,
+    archive: &Path,
+    name: Option<&str>,
+    dry_run: bool,
+    answers: Option<&Path>,
+) -> nvmod_api::install::InstallRequest {
+    nvmod_api::install::InstallRequest {
+        instance: instance.to_path_buf(),
+        profile: profile.map(str::to_owned),
+        archive: archive.to_path_buf(),
+        name: name.map(str::to_owned),
+        dry_run,
+        answers: answers.map(Path::to_path_buf),
+        max_extract_bytes: None,
+    }
+}
+
+/// `nvmod_api::install::install`: installs a Mod, or plans to. Its document is the report, as `raul install --json`
+/// prints it; a FOMOD that needs answers is a result with exit 1 and the questions, as the command ends. A plan
+/// takes no lock; an install holds the Instance lock.
+pub fn install_mod(request: &nvmod_api::install::InstallRequest) -> DirectJob {
+    let instance = request.instance.clone();
+    let dry_run = request.dry_run;
+    let request = request.clone();
+    let run = move |progress: &mut dyn Progress, cancel: &CancelToken| {
+        nvmod_api::install::install(&request, progress, cancel)
+    };
+    let render: fn(&nvmod_api::install::InstallOutput) -> Result<Reply, serde_json::Error> =
+        |done| match done {
+            nvmod_api::install::InstallOutput::Installed(report) => {
+                serde_json::to_value(report).map(Reply::ok)
+            }
+            nvmod_api::install::InstallOutput::Questions(questions) => Ok(Reply {
+                json: serde_json::json!({ "status": "questions", "questions": questions }),
+                exit: 1,
+            }),
+        };
+    if dry_run {
+        DirectJob::reading_as(run, render)
+    } else {
+        DirectJob::writing_as(instance, "install", run, render)
+    }
+}
+
+/// `nvmod_api::import_mo2::import`: builds a new Instance from an MO2 profile. It writes and holds no lock, because
+/// the Instance is not there yet. Profile files that disagree are a result with exit 1, as the command ends.
+pub fn import_mo2(request: &nvmod_api::import_mo2::ImportRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::creating_as(
+        move |progress, cancel| nvmod_api::import_mo2::import(&request, progress, cancel),
+        |done: &nvmod_api::import_mo2::ImportOutput| match done {
+            nvmod_api::import_mo2::ImportOutput::Imported(report) => {
+                serde_json::to_value(report).map(Reply::ok)
+            }
+            nvmod_api::import_mo2::ImportOutput::Disagreements(findings) => Ok(Reply {
+                json: serde_json::json!({ "disagreements": findings }),
+                exit: 1,
+            }),
+        },
+    )
+}
+
 /// `nvmod_api::profile::create`: makes a profile of the Instance, under the Instance lock.
 pub fn profile_create(request: &nvmod_api::profile::CreateRequest) -> DirectJob {
     let request = request.clone();
@@ -490,7 +620,7 @@ pub fn run_direct(
 ) -> Output {
     let label = spec.action.command();
     let usage = job.usage;
-    let reads = job.lock.is_none();
+    let reads = job.lock.is_none() && !job.creating;
     let mut feed = Feed::new(spec, sink);
     if cancel.is_requested() {
         return finish(
