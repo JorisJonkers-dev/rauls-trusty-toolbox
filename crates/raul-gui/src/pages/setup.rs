@@ -76,7 +76,7 @@ crate::texts!(TEXTS {
     INITIALISING = "Making the Instance in the storage folder";
     INSTALLING = "Downloading and checking the engine. This can take a few minutes.";
     INSTALLED = "Installed and checked.";
-    ENGINE_NOTE = "You can install it again later on Versions.";
+    ENGINE_NOTE = "Run the setup again if the engine ever needs a look.";
     MARK_INSTALLED = "Installed";
     MARK_WORKING = "Working";
     CHECKING = "Running the checks";

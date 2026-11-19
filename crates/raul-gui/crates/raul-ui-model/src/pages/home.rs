@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The toolkit-free state of Home: readiness, what needs attention, and the launch panel (UI-RULES G2, G3).
 //!
-//! Home owns no data (UI-RULES P3): it reads the paths of Settings and the engine of Versions and shows them, each
+//! Home owns no data (UI-RULES P3): it reads the paths of Settings and the engine and shows them, each
 //! row one click from the page that fixes it. Play is blocked only for a blocking problem, and the reason says
 //! which. Play runs `raul run nv-rs`.
 //!
@@ -47,7 +47,7 @@ impl RowId {
     pub fn home(self) -> View {
         match self {
             RowId::NewVegas | RowId::Storage => View::Page(PageId::Settings),
-            RowId::Engine => View::Page(PageId::Versions),
+            RowId::Engine => View::Flow(super::Flow::Setup),
             RowId::Ttw => View::Flow(super::Flow::Ttw),
             RowId::LoadOrder => View::Page(PageId::LoadOrder),
             RowId::Lod => View::Page(PageId::Lod),
@@ -128,7 +128,7 @@ impl Block {
     pub fn fix(self) -> View {
         match self {
             Block::Unreadable | Block::NoGame | Block::NoStorage => View::Page(PageId::Settings),
-            Block::NoEngine | Block::EngineDiffers => View::Page(PageId::Versions),
+            Block::NoEngine | Block::EngineDiffers => View::Flow(super::Flow::Setup),
         }
     }
 }
@@ -154,7 +154,7 @@ impl Step {
         match self {
             Step::Game | Step::Storage => View::Page(PageId::Settings),
             Step::Instance => View::Flow(super::Flow::Setup),
-            Step::Engine => View::Page(PageId::Versions),
+            Step::Engine => View::Flow(super::Flow::Setup),
             Step::LoadOrder => View::Page(PageId::LoadOrder),
         }
     }
@@ -472,7 +472,7 @@ mod tests {
         assert_eq!(no_storage.block(), Some(Block::NoStorage));
         let no_engine = State::ready(all_set(), Engine::missing());
         assert_eq!(no_engine.block(), Some(Block::NoEngine));
-        assert_eq!(Block::NoEngine.fix(), View::Page(PageId::Versions));
+        assert_eq!(Block::NoEngine.fix(), View::Flow(super::super::Flow::Setup));
         let differs = State::ready(
             all_set(),
             Engine {

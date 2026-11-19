@@ -63,7 +63,7 @@ texts!(SHELL {
     PAGE_HOME = "Home";
     PAGE_LOAD_ORDER = "Load order";
     PAGE_LOD = "LOD";
-    PAGE_VERSIONS = "Versions";
+    PAGE_VERSIONS = "About and updates";
     PAGE_SETTINGS = "Settings";
     FLOW_SETUP = "Setup";
     FLOW_TTW = "Tale of Two Wastelands";
