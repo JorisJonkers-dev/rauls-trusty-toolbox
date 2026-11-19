@@ -455,6 +455,51 @@ pub const COMMANDS: &[Command] = &[
         awaits: None,
     },
     Command {
+        // The LOD settings view: the options of a Profile's raul-lod.toml (planned ticket C2).
+        id: "lod-settings-show",
+        action: Action::Lod,
+        words: &["settings", "show"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
+        // The LOD settings view: the options of a Profile's raul-lod.toml (planned ticket C2).
+        id: "lod-settings-set",
+        action: Action::Lod,
+        words: &["settings", "set"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        // The LOD settings view: the options of a Profile's raul-lod.toml (planned ticket C2).
+        id: "lod-settings-unset",
+        action: Action::Lod,
+        words: &["settings", "unset"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        // The LOD settings view: the options of a Profile's raul-lod.toml (planned ticket C2).
+        id: "lod-settings-reset",
+        action: Action::Lod,
+        words: &["settings", "reset"],
+        flags: &["--instance", "--profile", "--dry-run", "--json"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        // The LOD settings view: the options of a Profile's raul-lod.toml (planned ticket C2).
+        id: "lod-settings-undo",
+        action: Action::Lod,
+        words: &["settings", "undo"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
         id: "run",
         action: Action::Run,
         // nvmod's `run <title|path|game|nv-rs>`: the target is the first value a page passes; Play passes `nv-rs`.
