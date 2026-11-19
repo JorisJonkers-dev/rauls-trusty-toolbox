@@ -1,13 +1,21 @@
 # Follows the Components' releases (nv-rs, nvmod, lodwright-rs, ttwright-rs; loot-rs moves with nvmod, ADR-0015) and
 # opens one pull request per release that moves the submodule and refreshes both lock files.
-# Pipeline Complete decides whether it merges; auto-merge lands it. A Component's repository sends nothing: this run
-# finds the release itself, with the self-hosted Renovate configured in .github/renovate-components.json (the hosted
-# Renovate app reads renovate.json only and cannot run the post-upgrade steps). Replaces component-bump.yml.
+# Pipeline Complete decides whether it merges; auto-merge lands it. The run finds the release itself, with the
+# self-hosted Renovate configured in .github/renovate-components.json (the hosted Renovate app reads renovate.json
+# only and cannot run the post-upgrade steps). Replaces component-bump.yml.
+#
+# A Component's release workflow starts the run at once with
+#   gh api repos/JorisJonkers-dev/rauls-trusty-toolbox/dispatches -f event_type=component-release
+# (the payload is not read: Renovate looks at every Component). GitHub delays and drops scheduled runs of busy
+# repositories (this one ran every 6 to 9 hours, not every 15 minutes), so the schedule is only the safety net for a
+# release whose dispatch was lost.
 name: Components
 
 on:
   schedule:
     - cron: "*/15 * * * *"
+  repository_dispatch:
+    types: [component-release]
   workflow_dispatch:
 
 concurrency:
