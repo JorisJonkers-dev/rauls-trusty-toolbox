@@ -61,6 +61,7 @@ texts!(SHELL {
     GROUP_PLAY = "Play";
     GROUP_SYSTEM = "System";
     PAGE_HOME = "Home";
+    PAGE_MODS = "Mods";
     PAGE_LOAD_ORDER = "Load order";
     PAGE_LOD = "LOD";
     PAGE_VERSIONS = "About and updates";
