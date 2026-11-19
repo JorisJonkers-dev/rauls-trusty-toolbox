@@ -22,10 +22,11 @@ use raul_ui_model::pages::lod::{
     parse_plan, plan_command, read_result,
 };
 use raul_ui_model::pages::settings::Command;
-use raul_ui_model::pages::{Attention, PageId, Severity, View};
+use raul_ui_model::pages::{Attention, Flow, PageId, Severity, View};
 use raul_ui_service::Output;
 
 crate::texts!(TEXTS {
+    OPEN_LOD_SETTINGS = "LOD settings";
     STATE_NO_INSTANCE = "No Instance yet";
     STATE_PLANNING = "Reading the plan";
     STATE_NOT_GENERATED = "{n} of {m} blocks not generated this session";
@@ -481,6 +482,9 @@ impl Page for Lod {
         let Some(instance) = self.state.instance.clone() else {
             return;
         };
+        if self.state.phase != Phase::Generating && ui.button(OPEN_LOD_SETTINGS).clicked() {
+            cx.shell.go_to = Some(View::Flow(Flow::LodSettings));
+        }
         match self.state.phase {
             Phase::Generating => {
                 if ui.button(STOP).on_hover_text(STOP_HOVER).clicked() {

@@ -59,8 +59,10 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
             )
         }
         ["auto", value @ ("on" | "off")] => {
+            // The file holds the app's other preferences too; they stay as they are.
             let settings = Settings {
                 check_for_updates: *value == "on",
+                ..Settings::load(&path)
             };
             match settings.save(&path) {
                 Ok(()) => {
