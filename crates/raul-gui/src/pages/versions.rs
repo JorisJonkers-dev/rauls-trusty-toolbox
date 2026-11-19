@@ -494,7 +494,7 @@ mod tests {
             "a newer release turns the action into Update"
         );
         assert!(
-            h.query_by_label_contains("0.3.0").is_some(),
+            h.query_all_by_label_contains("0.3.0").next().is_some(),
             "the release that is out is named"
         );
     }
@@ -624,7 +624,7 @@ mod tests {
             "the details can be copied"
         );
         assert!(
-            h.query_by_label_contains("update check: not checked")
+            h.query_by_label_contains("Update check: not checked")
                 .is_some()
         );
     }
