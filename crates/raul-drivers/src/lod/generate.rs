@@ -205,13 +205,15 @@ struct Replaced {
     legacy: bool,
 }
 
-/// The `meta.ini` of the Mod the next run of `profile` replaces, when it has one: the Profile's own LOD Mod, or the
-/// old shared one when the Profile lists that instead.
+/// The `meta.ini` of the Mod the next run of `profile` replaces, when it has one: the Profile's own LOD Mod (or the
+/// copy an interrupted run renamed aside), or the old shared one when the Profile lists that instead.
 fn replaced_meta(instance: &NvmodInstance, profile: &str, name: &str) -> Option<Vec<u8>> {
     let mods = instance.root.join("mods");
-    let dir = find_ci(&mods, name).or_else(|| {
-        listed(instance, profile, LEGACY_MOD_NAME).and(find_ci(&mods, LEGACY_MOD_NAME))
-    })?;
+    let dir = find_ci(&mods, name)
+        .or_else(|| find_ci(&mods, &format!("{name} previous")))
+        .or_else(|| {
+            listed(instance, profile, LEGACY_MOD_NAME).and(find_ci(&mods, LEGACY_MOD_NAME))
+        })?;
     std::fs::read(find_ci(&dir, META_FILE)?).ok()
 }
 
@@ -314,8 +316,23 @@ fn replace_mod(
             return Err(undo(why));
         }
     }
+    Ok((
+        files,
+        drop_replaced(instance, profile, replaced.as_ref(), &previous),
+    ))
+}
+
+/// Takes the replaced Mod out once the new one is in place: the Profile's renamed-aside copy is removed; the old
+/// shared Mod is removed, or only disabled in this Profile while another Profile lists it. Returns a warning for each
+/// step that did not work (the new Mod is in either way).
+fn drop_replaced(
+    instance: &NvmodInstance,
+    profile: &str,
+    replaced: Option<&Replaced>,
+    previous: &str,
+) -> Vec<String> {
     let mut warnings = Vec::new();
-    match &replaced {
+    match replaced {
         Some(r) if r.legacy => {
             let elsewhere = instance
                 .profiles()
@@ -337,7 +354,7 @@ fn replace_mod(
             }
         }
         Some(_) => {
-            if let Err(e) = remove(instance, profile, &previous) {
+            if let Err(e) = remove(instance, profile, previous) {
                 warnings.push(format!(
                     "the new LOD Mod is in, but the old one, `{previous}`, could not be removed: {e}; remove it with `raul mods remove`"
                 ));
@@ -345,7 +362,7 @@ fn replace_mod(
         }
         None => {}
     }
-    Ok((files, warnings))
+    warnings
 }
 
 /// Clears the output folder after a run that failed while writing it and left no manifest. Without a manifest the next

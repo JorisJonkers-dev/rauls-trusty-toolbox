@@ -5,6 +5,7 @@
 //! `Generated LOD (<Profile>)`; `--json` streams `raul-events` lines. `raul lod mods`: the generated LOD Mods the
 //! Profile lists (`raul-lod-mods`); nothing is written.
 
+use std::fmt::Write as _;
 use std::io::Write;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -141,10 +142,7 @@ fn mods(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
                 (Some(v), false) => format!(" (lodwright {v})"),
                 (None, false) => String::new(),
             };
-            text.push_str(&format!(
-                "  {:>3}  {}  {state}{built}\n",
-                m.position, m.name
-            ));
+            let _ = writeln!(text, "  {:>3}  {}  {state}{built}", m.position, m.name);
         }
         text
     };

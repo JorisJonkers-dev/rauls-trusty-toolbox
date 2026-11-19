@@ -45,7 +45,7 @@ impl Marker {
     /// The marker in `meta`, or `None` when it has none.
     #[must_use]
     pub fn read(meta: &MetaIni) -> Option<Marker> {
-        if meta.get(SECTION, GENERATED)?.to_ascii_lowercase() != "true" {
+        if !meta.get(SECTION, GENERATED)?.eq_ignore_ascii_case("true") {
             return None;
         }
         let field = |key| meta.get_string(SECTION, key).unwrap_or_default();

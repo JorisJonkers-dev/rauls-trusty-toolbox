@@ -18,8 +18,8 @@ use eframe::egui::{self, RichText};
 use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobId, JobState};
 use raul_ui_model::pages::lod::{
-    BlockStatus, Outcome, Phase, Plan, Problem, Progress, State, Written,
-    generate_command, parse_plan, plan_command, read_result,
+    BlockStatus, Outcome, Phase, Plan, Problem, Progress, State, Written, generate_command,
+    parse_plan, plan_command, read_result,
 };
 use raul_ui_model::pages::settings::Command;
 use raul_ui_model::pages::{Attention, PageId, Severity, View};
@@ -54,7 +54,7 @@ crate::texts!(TEXTS {
     KIND_TREES = "Trees";
     KIND_NONE = "Nothing: every kind is switched off in the LOD settings";
     KEEPS = "Keeps it as";
-    KEEPS_VALUE = "One Mod for this Profile in your mod list. A new run replaces it and keeps its place and whether it is on.";
+    KEEPS_VALUE = "One Mod in your mod list. A new run replaces it and keeps its place and whether it is on.";
     WORK_FOLDER = "Work folder";
     COL_BLOCK = "Block";
     COL_STATUS = "Status";
