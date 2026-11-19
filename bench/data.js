@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795083176942,
+  "lastUpdate": 1795083850472,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5389,6 +5389,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.651845,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "108aabfdce0c646974305862647bb8f39fa69a87",
+          "message": "ci: let Renovate clone the Component submodules so Cargo.lock can be refreshed (#322)",
+          "timestamp": "2026-11-19T11:19:21+01:00",
+          "tree_id": "a9d8681bb09d9015634da077f963dfb6d6897cc3",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/108aabfdce0c646974305862647bb8f39fa69a87"
+        },
+        "date": 1795083849716,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.276612,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.387894,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.388444,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.126179,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.361222999999999,
             "unit": "ms"
           }
         ]
