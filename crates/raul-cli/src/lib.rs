@@ -101,10 +101,12 @@ usage:
            [--dry-run] [--resume] [--json]
                               install TTW with ttwright, which runs inside raul, and add it to the Instance as one Mod; what
                               the flags leave open comes from `raul config`; --json streams raul-events lines
-  raul lod plan [--instance <dir>] [--profile <name>] [--world <name>]... [--json]
+  raul lod plan [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] [--json]
                               the lodwright request a LOD run would send for the Profile (its active plugins,
-                              its Staging tree and its raul-lod.toml); nothing is run
-  raul lod generate [--instance <dir>] [--profile <name>] [--world <name>]... [--dry-run]
+                              its Staging tree and its raul-lod.toml); nothing is run. An output folder inside a
+                              git working tree is refused unless --allow-in-repo (this run only) or the Profile's
+                              allow_in_repo key allows it
+  raul lod generate [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] [--dry-run]
                     [--timeout-secs <n>] [--json]
                               generate LOD with lodwright, linked into raul, from that request and keep the output
                               as the Mod `LOD (lodwright)`; --json streams raul-events lines. --timeout-secs is

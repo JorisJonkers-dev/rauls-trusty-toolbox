@@ -86,6 +86,7 @@ impl Fixture {
             profile: None,
             worlds: Vec::new(),
             dry_run: false,
+            allow_in_repo: false,
             timeout: Duration::from_secs(600),
         }
     }
