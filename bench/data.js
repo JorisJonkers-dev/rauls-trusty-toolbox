@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795089747081,
+  "lastUpdate": 1795091619735,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5732,6 +5732,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 14.267464,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bcb4485fd2044e87704dc492ddf2dbc03043afff",
+          "message": "feat(lod): one marked LOD Mod per Profile that keeps its place and state (#357)\n\n* feat(lod): one marked LOD Mod per Profile that keeps its place and state\n\nThe Mod raul lod generate keeps is now Generated LOD (<Profile>), with a\n[raulGeneratedLod] marker in its meta.ini (Profile, request digest and\nlodwright version; every other key kept). A new run keeps the Mod's\nplace and enabled state, so a disabled LOD Mod stays disabled; a new or\nremoved Mod goes on top, enabled. The old shared LOD (lodwright) Mod is\nrecognised and hands its place and state to the Profile's own Mod. A\nMod of the new name without the marker is refused. raul lod mods lists\nthe generated LOD Mods of a Profile (Contract raul-lod-mods v1).\n\n* fix(lod): clippy, the LOD page wording and snapshots, meta.ini from an interrupted copy",
+          "timestamp": "2026-11-19T12:28:13Z",
+          "tree_id": "3dfbc75e7ac0f195e3feaa64d330f8d0fb0d023e",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/bcb4485fd2044e87704dc492ddf2dbc03043afff"
+        },
+        "date": 1795091618826,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.2947699999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.486304,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.728958,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.140084,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.256576,
             "unit": "ms"
           }
         ]
