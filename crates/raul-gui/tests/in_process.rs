@@ -165,7 +165,7 @@ fn a_sort_through_the_real_jobs_runs_in_process() {
 }
 
 #[test]
-fn a_chained_job_and_a_write_also_run_in_process() {
+fn a_write_through_the_real_jobs_also_runs_in_process() {
     let f = Fixture::new();
     let mut jobs = Jobs::real();
     let id = jobs
