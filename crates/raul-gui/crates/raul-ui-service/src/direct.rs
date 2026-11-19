@@ -237,11 +237,19 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
             instance: PathBuf::from(value_of(rest, "--instance")),
             name: option_of(rest, "--name"),
         })),
-        "init" => Some(init(&nvmod_api::init::CreateRequest {
-            instance: PathBuf::from(value_of(rest, "--instance")),
-            base: PathBuf::from(value_of(rest, "--base")),
-        })),
-        "install-nv-rs" => Some(install_nvrs(&install_nvrs_request(rest))),
+        "init" => Some(
+            if value_of(rest, "--instance").is_empty() || value_of(rest, "--base").is_empty() {
+                DirectJob::usage("init: give --base and --instance")
+            } else {
+                init(&nvmod_api::init::CreateRequest {
+                    instance: PathBuf::from(value_of(rest, "--instance")),
+                    base: PathBuf::from(value_of(rest, "--base")),
+                })
+            },
+        ),
+        "install-nv-rs" => {
+            Some(install_nvrs_request(rest).map_or_else(DirectJob::usage, |r| install_nvrs(&r)))
+        }
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
@@ -423,7 +431,12 @@ pub fn init(request: &nvmod_api::init::CreateRequest) -> DirectJob {
 }
 
 /// The request of `raul install-nv-rs` from the words after it, with the defaults the command line has.
-fn install_nvrs_request(rest: &[String]) -> nvmod_api::install_nvrs::InstallRequest {
+fn install_nvrs_request(
+    rest: &[String],
+) -> Result<nvmod_api::install_nvrs::InstallRequest, String> {
+    if value_of(rest, "--instance").is_empty() {
+        return Err("install-nv-rs: give --instance".to_owned());
+    }
     let path = |flag: &str| option_of(rest, flag).map(PathBuf::from);
     let mut request: nvmod_api::install_nvrs::InstallRequest =
         serde_json::from_value(serde_json::json!({ "instance": value_of(rest, "--instance") }))
@@ -434,10 +447,12 @@ fn install_nvrs_request(rest: &[String]) -> nvmod_api::install_nvrs::InstallRequ
     if let Some(url) = option_of(rest, "--release-url") {
         request.release_url = url;
     }
-    if let Some(ms) = option_of(rest, "--retry-delay-ms").and_then(|v| v.parse().ok()) {
-        request.retry_delay_ms = ms;
+    if let Some(ms) = option_of(rest, "--retry-delay-ms") {
+        request.retry_delay_ms = ms
+            .parse()
+            .map_err(|_| "install-nv-rs: --retry-delay-ms needs a number".to_owned())?;
     }
-    request
+    Ok(request)
 }
 
 /// `nvmod_api::install_nvrs::install`: builds or fetches nv-rs into the Instance, under the Instance lock.
