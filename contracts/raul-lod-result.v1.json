@@ -41,7 +41,7 @@
         },
         {
           "const": "plan_refused",
-          "description": "No request can be built from the Profile: no Load order, no Staging tree, settings that cannot be read, or\nan output folder lodwright refuses (exit code 2).",
+          "description": "No request can be built from the Profile: no Load order, no Staging tree, settings that cannot be read, an\noutput folder lodwright refuses, or a Mod that is not generated LOD has the LOD Mod's name (exit code 2).",
           "type": "string"
         },
         {
@@ -193,7 +193,7 @@
       "description": "The `lodwright-result` document of the run, as lodwright returned it, or `null` when it returned none."
     },
     "mod": {
-      "description": "The LOD Mod (`LOD (lodwright)`), or `null` when the run did not get that far.",
+      "description": "The Profile's LOD Mod (`Generated LOD (<Profile>)`), or `null` when the run did not get that far.",
       "type": [
         "string",
         "null"

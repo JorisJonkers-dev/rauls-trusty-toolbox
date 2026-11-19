@@ -4,14 +4,11 @@
 //!
 //! A block is one world of the request: the request names its worlds, or none for every world with terrain. While
 //! Generate runs every block is building and the job's progress is shown; once it ends, each block shows what the
-//! run did. The output is kept as one Mod of the Instance, [`MOD_NAME`].
+//! run did. The output is kept as one Mod of the Profile, which the result names.
 
 use super::settings::Command;
 use crate::events::{Event, LineError, Status, parse_line};
 use serde::Deserialize;
-
-/// The Mod the LOD output becomes.
-pub const MOD_NAME: &str = "LOD (lodwright)";
 
 /// `raul lod plan --instance <dir>`: the request a run would send to lodwright; nothing is run.
 pub fn plan_command(instance: &str) -> Command {
@@ -451,7 +448,7 @@ mod tests {
         let ok = read_result(&fixture("lod-success.ndjson")).unwrap();
         assert_eq!(ok.status, Status::Success);
         assert!(!ok.up_to_date);
-        assert_eq!(ok.mod_name.as_deref(), Some(MOD_NAME));
+        assert_eq!(ok.mod_name.as_deref(), Some("Generated LOD (Default)"));
         assert_eq!(ok.written[0].files, 12);
         let same = read_result(&fixture("lod-up-to-date.ndjson")).unwrap();
         assert!(same.up_to_date && same.written.is_empty());
