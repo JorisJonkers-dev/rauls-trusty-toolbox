@@ -1,0 +1,431 @@
+{
+  "$defs": {
+    "Change": {
+      "description": "What a change did.",
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/ChangeAction",
+          "description": "The verb: `set`, `unset`, `reset` or `undo`."
+        },
+        "changed": {
+          "description": "Whether the file changed. `false` for a dry run and for a change that changes nothing.",
+          "type": "boolean"
+        },
+        "dry_run": {
+          "description": "A dry run: what `reset` would remove; nothing was written.",
+          "type": "boolean"
+        },
+        "file_removed": {
+          "description": "The settings file no longer exists after the change (nothing was left in it).",
+          "type": "boolean"
+        },
+        "keys": {
+          "description": "The keys whose value changed (for `reset`, the keys it removes), in the order of [`OPTIONS`].",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "restore_point": {
+          "description": "The restore point after the change: the `.previous` copy, or `null` when there is none.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "action",
+        "changed",
+        "dry_run",
+        "file_removed",
+        "keys",
+        "restore_point"
+      ],
+      "type": "object"
+    },
+    "ChangeAction": {
+      "description": "The verbs that change the settings.",
+      "oneOf": [
+        {
+          "const": "set",
+          "description": "One option set.",
+          "type": "string"
+        },
+        {
+          "const": "unset",
+          "description": "One key removed.",
+          "type": "string"
+        },
+        {
+          "const": "reset",
+          "description": "Restore defaults.",
+          "type": "string"
+        },
+        {
+          "const": "undo",
+          "description": "Back to the restore point.",
+          "type": "string"
+        }
+      ]
+    },
+    "Kind": {
+      "description": "What kind of value an option holds.",
+      "oneOf": [
+        {
+          "const": "switch",
+          "description": "On or off.",
+          "type": "string"
+        },
+        {
+          "const": "count",
+          "description": "A whole number.",
+          "type": "string"
+        },
+        {
+          "const": "number",
+          "description": "A number that may have a fraction.",
+          "type": "string"
+        },
+        {
+          "const": "texture_size",
+          "description": "A texture edge in pixels: a power of two.",
+          "type": "string"
+        },
+        {
+          "const": "names",
+          "description": "A list of names or patterns.",
+          "type": "string"
+        },
+        {
+          "const": "records",
+          "description": "A list of record ids, eight hex digits each.",
+          "type": "string"
+        }
+      ]
+    },
+    "OptionState": {
+      "description": "One option with the value a Profile gives it.",
+      "properties": {
+        "default": {
+          "description": "The value it takes when the file does not set it; `null` when the generator decides."
+        },
+        "key": {
+          "description": "Its key.",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/Kind",
+          "description": "What kind of value it holds."
+        },
+        "max": {
+          "description": "The largest value it takes, for numbers.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "min": {
+          "description": "The smallest value it takes, for numbers.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "overridden": {
+          "description": "The file sets it, even to its default value.",
+          "type": "boolean"
+        },
+        "restores": {
+          "description": "Restore defaults removes it.",
+          "type": "boolean"
+        },
+        "tier": {
+          "description": "Its tier: 1 or 2.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "value": {
+          "description": "The value it takes: the file's when the file sets it, else the default."
+        }
+      },
+      "required": [
+        "default",
+        "key",
+        "kind",
+        "max",
+        "min",
+        "overridden",
+        "restores",
+        "tier",
+        "value"
+      ],
+      "type": "object"
+    },
+    "Refusal": {
+      "description": "Why a reading or a change of the settings was refused. `what` is a catalogue string and `detail` is\n[`catalogue::NOTHING_CHANGED`]; `key` and `reason` are data beside them.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/RefusalCode",
+          "description": "The stable code callers match on."
+        },
+        "detail": {
+          "description": "What was not changed, from the catalogue.",
+          "type": "string"
+        },
+        "key": {
+          "description": "The option or file key it is about, when there is one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "description": "A further reason for people (a parser's or the generator's own words), never matched on.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "what": {
+          "description": "What went wrong, from the catalogue.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "detail",
+        "key",
+        "reason",
+        "what"
+      ],
+      "type": "object"
+    },
+    "RefusalCode": {
+      "description": "The stable codes of a [`Refusal`].",
+      "oneOf": [
+        {
+          "const": "instance_invalid",
+          "description": "The Instance cannot be opened (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "profile_missing",
+          "description": "The Profile does not exist (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "unreadable",
+          "description": "The file cannot be read or is not TOML (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "unknown_key",
+          "description": "A key that is not an option (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "wrong_type",
+          "description": "A value of the wrong kind (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "out_of_range",
+          "description": "A value outside its option's range (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "not_a_power_of_two",
+          "description": "A texture size that is not a power of two (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "not_a_record",
+          "description": "A record id that is not eight hex digits (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "empty_name",
+          "description": "An empty name in a list (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "rejected",
+          "description": "The generator's own check refused the settings (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "nothing_to_undo",
+          "description": "Undo without a restore point (exit code 2).",
+          "type": "string"
+        },
+        {
+          "const": "write_failed",
+          "description": "The file could not be written (exit code 4).",
+          "type": "string"
+        }
+      ]
+    },
+    "Warning": {
+      "description": "Something the settings allow but that quietly builds less than asked: a warning, never a refusal.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/WarningCode",
+          "description": "The stable code callers match on."
+        },
+        "key": {
+          "description": "The option it is about.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "A further reason for people, never matched on.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "value": {
+          "description": "The value it is about (a world or plugin name), when there is one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "what": {
+          "description": "What it means, from the catalogue.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "key",
+        "reason",
+        "value",
+        "what"
+      ],
+      "type": "object"
+    },
+    "WarningCode": {
+      "description": "The stable codes of a [`Warning`].",
+      "oneOf": [
+        {
+          "const": "unknown_world",
+          "description": "A world in `worlds` that no active plugin defines.",
+          "type": "string"
+        },
+        {
+          "const": "worlds_unchecked",
+          "description": "The plugins could not be read to check `worlds`.",
+          "type": "string"
+        },
+        {
+          "const": "plugin_not_active",
+          "description": "A plugin in an inclusion rule that is not active in the Profile.",
+          "type": "string"
+        },
+        {
+          "const": "no_object_left",
+          "description": "Every plugin in `only_plugins` is also in `exclude_plugins`: no object is left.",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The document `raul lod settings ... --json` prints (Contract `raul-lod-settings`, version 1).",
+  "properties": {
+    "change": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Change"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "What the command changed; `null` for `show` and for a refusal."
+    },
+    "contract": {
+      "const": "raul-lod-settings",
+      "description": "Always `raul-lod-settings`.",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Refusal"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Set when the command was refused; nothing changed then."
+    },
+    "exists": {
+      "description": "Whether the file exists.",
+      "type": "boolean"
+    },
+    "file": {
+      "description": "The settings file, or `null` when the Profile could not be resolved.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "instance": {
+      "description": "The Instance.",
+      "type": "string"
+    },
+    "options": {
+      "description": "Every option with its value after the command (unchanged after a refusal); empty when the settings cannot be\nread.",
+      "items": {
+        "$ref": "#/$defs/OptionState"
+      },
+      "type": "array"
+    },
+    "profile": {
+      "description": "The Profile, or empty when it could not be resolved.",
+      "type": "string"
+    },
+    "restore_point": {
+      "description": "The restore point Undo goes back to, or `null`.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "const": 1,
+      "description": "The document version; 1.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "warnings": {
+      "description": "What the settings allow but would quietly build nothing or fail on: unknown worlds, inactive plugins in the\ninclusion rules, rules that leave no object. Never a refusal.",
+      "items": {
+        "$ref": "#/$defs/Warning"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "change",
+    "contract",
+    "error",
+    "exists",
+    "file",
+    "instance",
+    "options",
+    "profile",
+    "restore_point",
+    "schema_version",
+    "warnings"
+  ],
+  "title": "SettingsDoc",
+  "type": "object"
+}
