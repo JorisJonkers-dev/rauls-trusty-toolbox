@@ -6,7 +6,7 @@
   "dry_run": false,
   "instance": "/users/player/raul-storage/instance",
   "profile": "Default",
-  "mod": "LOD (lodwright)",
+  "mod": "Generated LOD (Default)",
   "files": 13,
   "worlds": [
     "SyntheticWorld"

@@ -4548,6 +4548,7 @@ dependencies = [
  "lodwright-api",
  "lodwright-contract",
  "nvmod-core",
+ "nvmod-formats",
  "nvmod-instance",
  "nvmod-loadorder",
  "nvmod-modinstall",

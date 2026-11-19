@@ -97,9 +97,11 @@ usage:
   raul lod generate [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] [--dry-run]
                     [--timeout-secs <n>] [--json]
                               generate LOD with lodwright, linked into raul, from that request and keep the output
-                              as the Mod `LOD (lodwright)`; --json streams raul-events lines. --timeout-secs is
+                              as the Mod `Generated LOD (<Profile>)`; --json streams raul-events lines. --timeout-secs is
                               checked between terrain blocks, worlds and steps, so a step already running finishes
                               first
+  raul lod mods [--instance <dir>] [--profile <name>] [--json]
+                              the generated LOD Mods the profile lists, highest priority first; nothing is written
   raul install-nv-rs --instance <dir> [--source <dir> [--cargo <path>]]
                               put the engine that ships with raul in an Instance and check it; nothing is
                               downloaded. --source builds an nv-rs workspace instead (for developers)
