@@ -299,7 +299,7 @@ impl App {
             }
             let engine = self.shell.engine.clone();
             if setup_entry(ui, &t, msg::ENGINE, engine.as_deref()).clicked() {
-                self.view = View::Page(PageId::Versions);
+                self.view = View::Flow(raul_ui_model::pages::Flow::Setup);
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let blocked = self.play_block();
