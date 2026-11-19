@@ -205,11 +205,20 @@ mod tests {
     #[test]
     fn a_damaged_packaged_engine_fails() {
         let t = install();
-        write_file(t.path(), "components/nv-rs/bin/nv-viewer", b"viewer");
-        let line = format!("{}  bin/nv-viewer\n", hash(b"viewer"));
+        // The engine program is `nv-viewer.exe` on Windows.
+        let viewer = format!(
+            "components/nv-rs/bin/nv-viewer{}",
+            std::env::consts::EXE_SUFFIX
+        );
+        write_file(t.path(), &viewer, b"viewer");
+        let line = format!(
+            "{}  bin/nv-viewer{}\n",
+            hash(b"viewer"),
+            std::env::consts::EXE_SUFFIX
+        );
         write_file(t.path(), "components/nv-rs/FILES.sha256", line.as_bytes());
         assert!(run_in_process(t.path(), "2.0.0", None, true).ok);
-        write_file(t.path(), "components/nv-rs/bin/nv-viewer", b"tampered");
+        write_file(t.path(), &viewer, b"tampered");
         let r = run_in_process(t.path(), "2.0.0", None, true);
         assert!(
             !r.ok && r.problems.iter().any(|p| p.contains("engine")),
