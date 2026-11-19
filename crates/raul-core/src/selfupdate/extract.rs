@@ -583,6 +583,7 @@ mod tests {
     }
 
     /// A tar.gz written with the `tar` crate so each file has the mode the test wants.
+    #[cfg(unix)]
     fn tar_with_modes(files: &[(&str, &[u8], u32)]) -> Vec<u8> {
         let mut b = tar::Builder::new(Vec::new());
         for (name, data, mode) in files {
