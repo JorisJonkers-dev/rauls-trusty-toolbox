@@ -87,6 +87,7 @@ texts!(SHELL {
     JOB_RUNNING = "running";
     JOB_DONE = "finished";
     COPY_DETAILS = "Copy details";
+    ENGINE_CHECK_ACCEPTED = "The game folder is ready for the engine";
 });
 
 errors!(SHELL_ERRORS {
@@ -109,6 +110,18 @@ errors!(SHELL_ERRORS {
     STATUS_FAILED = (
         "The last change did not finish",
         "The lines below say what it reported."
+    );
+    ENGINE_CHECK_REFUSED = (
+        "The engine cannot use this game folder",
+        "Nothing changed. Check that it is the New Vegas folder, then check again. Copy the details to see why."
+    );
+    ENGINE_CHECK_NOT_PROVIDED = (
+        "The engine does not run the game on this system yet",
+        "Nothing changed. The folder itself is fine."
+    );
+    ENGINE_CHECK_TIMED_OUT = (
+        "The check did not answer in time",
+        "Nothing changed. Check again in a moment."
     );
 });
 
