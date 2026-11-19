@@ -14,26 +14,20 @@ use raul_ui_service::exec::{Exec, Output};
 use raul_ui_service::registry::Action;
 use raul_ui_service::wiring::{ModsContext, apply_mods, preview_mods};
 use raul_ui_service::{
-    CancelHandle, CliService, InstallRequest, JobSpec, ModsRequest, ProcessExec, RollbackRequest,
-    Service, SetupRequest, cancel_job,
+    CancelHandle, CliService, InProcessExec, InstallRequest, JobSpec, ModsRequest, ProcessExec,
+    RollbackRequest, Service, SetupRequest, cancel_job,
 };
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+/// The command line run in this process. Journal ids are the millisecond and the process id; separate runs of the
+/// program differ in the second, runs in this one process need a millisecond between them.
 struct InProcess;
 
 impl Exec for InProcess {
     fn run(&self, args: &[String]) -> Result<Output, String> {
-        // Journal ids are the millisecond and the process id; separate runs of the program differ in the second,
-        // runs in this one process need a millisecond between them.
         std::thread::sleep(Duration::from_millis(3));
-        let (mut out, mut err) = (Vec::new(), Vec::new());
-        let code = raul_cli::run(args, &mut out, &mut err);
-        Ok(Output {
-            code: Some(i64::from(code)),
-            stdout: String::from_utf8_lossy(&out).into_owned(),
-            stderr: String::from_utf8_lossy(&err).into_owned(),
-        })
+        InProcessExec::new().run(args)
     }
 }
 
@@ -374,9 +368,8 @@ fn a_command_that_ignores_the_stop_is_forced_after_the_grace_period() {
 
 #[test]
 fn a_cancel_before_the_start_runs_nothing() {
-    let dir = TempDir::new("s4-script");
-    let program = write_script(dir.path(), "nvmod", "touch ran");
-    let svc = CliService::new(ProcessExec::new(program));
+    let ran = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let svc = CliService::new(CountingExec(std::sync::Arc::clone(&ran)));
     let cancel = CancelHandle::new();
     cancel.request();
     let mut table = JobTable::default();
@@ -387,7 +380,11 @@ fn a_cancel_before_the_start_runs_nothing() {
         table.get(JobId(1)).unwrap().state,
         JobState::Finished(Outcome::Cancelled)
     );
-    assert!(!Path::new("ran").exists());
+    assert_eq!(
+        ran.load(std::sync::atomic::Ordering::SeqCst),
+        0,
+        "no command was run"
+    );
 }
 
 /// The service keeps no state of its own: every answer comes from the disk as it is after the last write, whoever
