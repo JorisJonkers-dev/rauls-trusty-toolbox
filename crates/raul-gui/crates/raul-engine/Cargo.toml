@@ -11,7 +11,7 @@ description = "The Toolbox adapter of the engine's crates (nv-rs), linked in pro
 [features]
 default = []
 # The engine's crates: fork-api (the typed facade) and fork-play (the play entry). Off in the fast loops, on in release builds.
-engine = ["dep:fork-api", "dep:fork-play"]
+engine = ["dep:fork-api", "fork-api/engine", "dep:fork-play"]
 
 [dependencies]
 fork-api = { workspace = true, optional = true }
