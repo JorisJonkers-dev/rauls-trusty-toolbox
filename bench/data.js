@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795080400992,
+  "lastUpdate": 1795083176942,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5340,6 +5340,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.387013999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9f3a203e360b863ec4c242e4aa6f3edfdd2e5df5",
+          "message": "chore(deps): update minor and patch dependencies, with the lock files regenerated (#318)\n\n* chore(deps): update minor and patch dependencies\n\n* fix(deps): regenerate Cargo.lock and adapt to jsonschema 0.61\n\njsonschema 0.61 turned ValidationError::instance_path into a method.\n\n* fix(deps): refresh the GUI lock for jsonschema 0.61\n\n* chore(deps): jsonschema 0.61.2\n\n---------\n\nCo-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-19T11:09:18+01:00",
+          "tree_id": "25479a52404cf94cb94bb44cf8f4b4cd3aeed8a7",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/9f3a203e360b863ec4c242e4aa6f3edfdd2e5df5"
+        },
+        "date": 1795083176550,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.902352,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.647692000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.250087,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.1031260000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.651845,
             "unit": "ms"
           }
         ]
