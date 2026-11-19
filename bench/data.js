@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795048312906,
+  "lastUpdate": 1795048549015,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5095,6 +5095,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 11.171930999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2b39b948f45be22eb9435bd41c542ca4415e0736",
+          "message": "ci: allow the engine's licences narrowly in cargo-deny (#306)\n\n* ci: allow the engine's licences narrowly in cargo-deny\n\n* ci: widen the GPL scope check and use a portable temp file",
+          "timestamp": "2026-11-19T01:34:11+01:00",
+          "tree_id": "80f1c9fbe603cf293c3cfac9950d10bcb2914219",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/2b39b948f45be22eb9435bd41c542ca4415e0736"
+        },
+        "date": 1795048548379,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.374297,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.059314,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 27.956165000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.052508,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.171859,
             "unit": "ms"
           }
         ]
