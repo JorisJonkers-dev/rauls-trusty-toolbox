@@ -137,9 +137,9 @@ pub fn run_child(program: &Path, expect: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nvmod_testkit::{TempDir, write_file};
     #[cfg(unix)]
     use nvmod_testkit::write_script;
+    use nvmod_testkit::{TempDir, write_file};
 
     fn hash(b: &[u8]) -> String {
         raul_runner::sha256_hex(b)
