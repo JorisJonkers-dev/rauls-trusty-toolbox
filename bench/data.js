@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795083850472,
+  "lastUpdate": 1795085062836,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -5438,6 +5438,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 12.361222999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "77a3ba23bce6c4952c5077a468f01650a07722f1",
+          "message": "feat(gui): sort the Load order by calling nvmod's sort job directly (#269) (#321)\n\n* feat(gui): sort the Load order by calling nvmod's sort job directly (#269)\n\n* test(gui): the sort apply takes its snapshot, usage text is checked, keep-order stays a command line (#269)",
+          "timestamp": "2026-11-19T11:42:39+01:00",
+          "tree_id": "e703d21228794104175de76a8b3d8c1c1de0c8ff",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/77a3ba23bce6c4952c5077a468f01650a07722f1"
+        },
+        "date": 1795085062040,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.3910529999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.38502,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.053779,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.183937,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.735816,
             "unit": "ms"
           }
         ]
