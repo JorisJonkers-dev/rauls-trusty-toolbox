@@ -11,6 +11,7 @@
 pub mod home;
 pub mod load_order;
 pub mod lod;
+pub mod lod_settings;
 pub mod mods;
 pub mod settings;
 pub mod setup;
@@ -99,17 +100,20 @@ pub enum Flow {
     Setup,
     /// Setting up Tale of Two Wastelands (UI-RULES P4).
     Ttw,
+    /// The LOD settings of the Instance's Profile, reached from the LOD page.
+    LodSettings,
 }
 
 impl Flow {
     /// Every flow.
-    pub const ALL: [Flow; 2] = [Flow::Setup, Flow::Ttw];
+    pub const ALL: [Flow; 3] = [Flow::Setup, Flow::Ttw, Flow::LodSettings];
 
     /// A stable name for logs, tests and snapshot files.
     pub fn slug(self) -> &'static str {
         match self {
             Flow::Setup => "setup",
             Flow::Ttw => "ttw",
+            Flow::LodSettings => "lod-settings",
         }
     }
 }

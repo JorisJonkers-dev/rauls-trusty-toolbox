@@ -51,6 +51,7 @@ fn a_saved_setting_is_read_back() {
     let path = dir.path().join("raul/settings.toml");
     Settings {
         check_for_updates: true,
+        ..Settings::default()
     }
     .save(&path)
     .unwrap();
@@ -64,6 +65,7 @@ fn saving_the_update_setting_keeps_the_other_settings() {
     std::fs::write(&path, "theme = \"bleach\"\ncheck_for_updates = false\n").unwrap();
     Settings {
         check_for_updates: true,
+        ..Settings::default()
     }
     .save(&path)
     .unwrap();
@@ -79,7 +81,8 @@ fn a_settings_file_that_does_not_parse_is_not_overwritten() {
     std::fs::write(&path, "check_for_updates = [oops").unwrap();
     assert!(
         Settings {
-            check_for_updates: true
+            check_for_updates: true,
+            ..Settings::default()
         }
         .save(&path)
         .is_err()
@@ -266,4 +269,23 @@ mod through_the_runner {
         let e = check(&runner(), &dir.path().join("curl"), "0.1.0").unwrap_err();
         assert!(e.contains("cannot start"), "{e}");
     }
+}
+
+#[test]
+fn the_lod_acknowledgement_is_kept_beside_the_update_setting() {
+    let dir = nvmod_testkit::TempDir::new("raul-settings-lod");
+    let path = dir.path().join("settings.toml");
+    assert!(!Settings::load(&path).lod_advanced_understood);
+    Settings {
+        lod_advanced_understood: true,
+        ..Settings::default()
+    }
+    .save(&path)
+    .unwrap();
+    let mut s = Settings::load(&path);
+    assert!(s.lod_advanced_understood);
+    s.check_for_updates = true;
+    s.save(&path).unwrap();
+    let back = Settings::load(&path);
+    assert!(back.lod_advanced_understood && back.check_for_updates);
 }
