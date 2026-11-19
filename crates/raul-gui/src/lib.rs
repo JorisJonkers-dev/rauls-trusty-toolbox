@@ -13,6 +13,7 @@
 
 pub mod catalogue;
 pub mod dialog;
+pub mod engine_check;
 pub mod fonts;
 pub mod jobs;
 pub mod pages;
