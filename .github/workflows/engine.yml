@@ -117,8 +117,7 @@ jobs:
             env CARGO_TARGET_DIR=target-base cargo build --release --locked -p raul-gui
           ../../scripts/measure-build "with the engine" "$table" -- \
             env CARGO_TARGET_DIR=target-engine cargo build --release --locked -p raul-gui --features engine
-          {
-            echo
-            echo "Size of the binary: $(stat -c %s target-base/release/raul) bytes without, $(stat -c %s target-engine/release/raul) bytes with."
-          } >>"$table"
+          size="Size of the binary: $(stat -c %s target-base/release/raul) bytes without, $(stat -c %s target-engine/release/raul) bytes with."
+          echo "$size"
+          printf '\n%s\n' "$size" >>"$table"
           target-engine/release/raul --version
