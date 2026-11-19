@@ -405,6 +405,22 @@ mod tests {
     }
 
     #[test]
+    fn the_engine_install_command_names_the_instance_and_the_release() {
+        let c = install_command("/storage/instance");
+        assert_eq!(c.id, "install-nv-rs");
+        assert!(c.writes);
+        assert_eq!(
+            c.words,
+            [
+                "install-nv-rs",
+                "--instance",
+                "/storage/instance",
+                "--release"
+            ]
+        );
+    }
+
+    #[test]
     fn steps_run_in_order_and_back() {
         assert_eq!(Step::NewVegas.number(), 1);
         assert_eq!(Step::Ready.number(), 5);

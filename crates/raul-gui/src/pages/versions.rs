@@ -39,7 +39,7 @@ crate::texts!(TEXTS {
     UPDATE_NEWEST = "This is the newest release.";
     UPDATE_FOUND = "Version {version} is out; you run {current}.";
     UPDATE_OPEN = "Release page";
-    UPDATE_NOTE = "The check is yours to run: nothing looks for updates until you press the button. An update replaces raul and everything that comes with it.";
+    UPDATE_NOTE = "The check is yours to run: nothing looks for updates until you press the button. An update replaces the Toolbox and everything that comes with it.";
     COPY_DETAILS = "Copy details";
     WAITING_NOTE = "This build cannot read it from the window yet.";
 });
@@ -596,21 +596,17 @@ mod tests {
     #[test]
     fn nothing_on_the_page_installs_or_changes_a_component() {
         let exec = Arc::new(Recording::default());
-        let mut h = harness("update-available", exec.clone());
+        let mut h = harness("active", exec.clone());
         h.run_steps(4);
-        for gone in ["Install\u{2026}", "Install again\u{2026}", "Engine"] {
-            assert!(
-                h.query_by_label(gone).is_none(),
-                "{gone} is a per-Component action and is not offered"
-            );
-        }
+        h.get_by_label(CHECK_UPDATES).click();
+        wait_for_label(&mut h, UPDATE);
+        // Press every action the page offers, then see what ran.
+        h.get_by_label(UPDATE).click();
+        h.run_steps(8);
+        let calls = exec.calls.lock().unwrap();
         assert!(
-            exec.calls
-                .lock()
-                .unwrap()
-                .iter()
-                .all(|c| c[0] != "install-nv-rs"),
-            "the page never starts an install"
+            calls.iter().all(|c| c[0] == "version" || c[0] == "update"),
+            "the page runs only the version read and the update check, not {calls:?}"
         );
     }
 
@@ -626,6 +622,11 @@ mod tests {
         assert!(
             h.query_by_label_contains("Update check: not checked")
                 .is_some()
+        );
+        assert!(
+            h.query_by_label_contains("Toolbox version: 0.2.0")
+                .is_some(),
+            "the details carry the version the page reads"
         );
     }
 }

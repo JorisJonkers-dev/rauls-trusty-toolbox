@@ -307,6 +307,18 @@ impl Setup {
                     self.state.engine = match &result {
                         Ok(out) if out.code == Some(0) => {
                             cx.shell.engine = Some(super::home::FACT_ENGINE_ACTIVE.to_owned());
+                            // Play was blocked for want of the engine: it is there now.
+                            let lifted = [
+                                super::home::PLAY_NO_ENGINE.id,
+                                super::home::PLAY_ENGINE_CHANGED.id,
+                            ];
+                            if cx
+                                .shell
+                                .play_blocked
+                                .is_some_and(|b| lifted.contains(&b.id))
+                            {
+                                cx.shell.play_blocked = None;
+                            }
                             EngineStep::Installed
                         }
                         Ok(out) => EngineStep::Failed(failure_of(out)),
@@ -1114,6 +1126,8 @@ mod tests {
                 app
             });
         h.run();
+        // Play was blocked for want of the engine, as Home leaves it; installing the engine lifts that block.
+        h.state_mut().shell_mut().play_blocked = Some(super::super::home::PLAY_NO_ENGINE);
         h.get_by_label(NEXT).click();
         wait_for(&mut h, |_| true);
         h.get_by_label(NEXT).click();
@@ -1148,6 +1162,10 @@ mod tests {
             h.state().view(),
             h.query_by_label(MISSING_CHECKS)
                 .map_or("nothing about running", |_| MISSING_CHECKS)
+        );
+        assert!(
+            h.state_mut().shell_mut().play_blocked.is_none(),
+            "a finished install lifts the block that said the engine was missing"
         );
         h.get_by_label(FINISH).click();
         h.run_steps(2);
