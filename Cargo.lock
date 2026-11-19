@@ -14,7 +14,7 @@ version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "getrandom 0.3.4",
  "once_cell",
  "serde",
@@ -233,6 +233,12 @@ dependencies = [
 
 [[package]]
 name = "cfg-if"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
+
+[[package]]
+name = "cfg-if"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
@@ -291,7 +297,7 @@ version = "1.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f97d3416d5337d15c4b0d78c8c91df922ca143f57ec20e2d1c188333047ef04"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
 ]
 
 [[package]]
@@ -487,11 +493,20 @@ checksum = "34aa73646ffb006b8f5147f3dc182bd4bcb190227ce861fc4a4844bf8e3cb2c0"
 
 [[package]]
 name = "encoding_rs"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98fd0f24d1fb71a4a6b9330c8ca04cbd4e7cc5d846b54ca74ff376bc7c9f798d"
+dependencies = [
+ "cfg-if 0.1.10",
+]
+
+[[package]]
+name = "encoding_rs"
 version = "0.8.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89253175e704ab869b04f9db224d38630e0211a53841a79181deae0889e169f5"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "core_detect",
  "multiversion_no_op",
  "rustversion",
@@ -532,7 +547,7 @@ version = "6.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ea69d8e4b2b22ec62ac4a26ed8099be4eecd800e0e60b241c04a1ccaa181a287"
 dependencies = [
- "encoding_rs",
+ "encoding_rs 0.8.44",
  "memchr",
  "nom",
  "unicase",
@@ -584,7 +599,7 @@ version = "0.2.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c287a33c7f0a620c38e641e7f60827713987b3c0f26e8ddc9462cc69cf75759"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "libc",
 ]
 
@@ -700,7 +715,7 @@ version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "js-sys",
  "libc",
  "r-efi 5.3.0",
@@ -714,7 +729,7 @@ version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "js-sys",
  "libc",
  "r-efi 6.0.0",
@@ -935,7 +950,7 @@ version = "0.3.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8dc09d2154098bbf4ef54eab6b117a3c24cbbffe94046b16ee6d6d4510584d3a"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "futures-util",
  "wasm-bindgen",
 ]
@@ -1175,7 +1190,16 @@ version = "0.6.2"
 source = "git+https://github.com/JorisJonkers-dev/loot-rs?tag=v0.6.2#b2489742f2fa972464b993b91680906844b3735c"
 dependencies = [
  "regex",
- "yaml-rust2",
+ "yaml-rust2 0.10.4",
+]
+
+[[package]]
+name = "loot-rs"
+version = "0.6.3"
+source = "git+https://github.com/JorisJonkers-dev/loot-rs?tag=v0.6.3#02d2e3370f50af490d837413fc62dd7399454bdd"
+dependencies = [
+ "regex",
+ "yaml-rust2 0.13.0",
 ]
 
 [[package]]
@@ -1220,7 +1244,7 @@ version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d89e7ee0cfbedfc4da3340218492196241d89eefb6dab27de5df917a6d2e78cf"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "digest 0.10.7",
 ]
 
@@ -1297,7 +1321,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf20d2fde8ff38632c426f1165ed7436270b44f199fc55284c38276f9db47c3d"
 dependencies = [
  "bitflags 2.13.2",
- "cfg-if",
+ "cfg-if 1.0.5",
  "cfg_aliases",
  "libc",
 ]
@@ -1426,7 +1450,7 @@ dependencies = [
 name = "nvmod-api"
 version = "0.10.0"
 dependencies = [
- "loot-rs",
+ "loot-rs 0.6.2",
  "nvmod-backup",
  "nvmod-catalog",
  "nvmod-conflicts",
@@ -1480,7 +1504,7 @@ name = "nvmod-cli"
 version = "0.10.0"
 dependencies = [
  "ctrlc",
- "loot-rs",
+ "loot-rs 0.6.2",
  "nvmod-api",
  "nvmod-backup",
  "nvmod-catalog",
@@ -1587,7 +1611,7 @@ dependencies = [
 name = "nvmod-loadorder"
 version = "0.10.0"
 dependencies = [
- "loot-rs",
+ "loot-rs 0.6.2",
  "nvmod-core",
  "nvmod-formats",
  "nvmod-instance",
@@ -1842,7 +1866,7 @@ version = "0.9.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "libc",
  "redox_syscall",
  "smallvec",
@@ -1937,7 +1961,7 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 name = "raul-bench"
 version = "0.0.0"
 dependencies = [
- "loot-rs",
+ "loot-rs 0.6.3",
  "nvmod-cli",
  "nvmod-testkit",
  "serde",
@@ -2350,7 +2374,7 @@ version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a978451301f4db1d02937a4ab3ccce137717b81826e79b7d49ffe3244a13c3b8"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "cpufeatures 0.2.17",
  "digest 0.10.7",
 ]
@@ -2361,7 +2385,7 @@ version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "cpufeatures 0.2.17",
  "digest 0.10.7",
 ]
@@ -2372,7 +2396,7 @@ version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d7069beb7d6ac7b9acd1039986e73443f24234f41074da099d6f994ac9ad19"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "cpufeatures 0.3.1",
  "digest 0.11.3",
 ]
@@ -2595,7 +2619,7 @@ version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36306ff42b9ffe6e5afc99d49e121e0bd62fe79b9db7b9681d48e29fa19e6b16"
 dependencies = [
- "encoding_rs",
+ "encoding_rs 0.8.44",
  "lazy_static",
  "log",
  "symphonia-core",
@@ -2724,7 +2748,7 @@ version = "1.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ad99c4c6d32803332c548b1af0540b357b3f5fc0be8f6c6bfe8b2e6ae784070"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
 ]
 
 [[package]]
@@ -3097,7 +3121,7 @@ version = "0.2.130"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0181c14ddd6c7b8b0b0132a5f1ea2f32be0d893cd3ea97b6e3b28886b8a3d1c"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.5",
  "rustversion",
  "wasm-bindgen-macro",
  "wasm-bindgen-shared",
@@ -3338,8 +3362,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2462ea039c445496d8793d052e13787f2b90e750b833afee748e601c17621ed9"
 dependencies = [
  "arraydeque",
- "encoding_rs",
+ "encoding_rs 0.8.44",
  "hashlink 0.10.0",
+]
+
+[[package]]
+name = "yaml-rust2"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57e5b818a27a4cd30884ea380857a5e56f7ec3ba24a3990a3cc0b95af3238e18"
+dependencies = [
+ "arraydeque",
+ "encoding_rs 0.7.2",
+ "hashlink 0.12.2",
 ]
 
 [[package]]
