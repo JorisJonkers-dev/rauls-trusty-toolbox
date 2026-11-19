@@ -74,6 +74,18 @@ usage:
   raul bench compare <base.json> <head.json> [--threshold <percent>]
                               compare two reports; slower cases are warnings, never failures
   raul update check [--json]  look for a newer Toolbox release on GitHub (nothing is downloaded or sent)
+  raul update status [--json] whether this install can update itself, and what is downloaded or kept
+  raul update download [--tag <tag>] [--allow-older] [--json]
+                              download the newest release (or that tag), check it against the release's checksums
+                              and get it ready; this is the only update command that downloads. An older version
+                              is refused unless --allow-older
+  raul update install [--json]
+                              install what was downloaded, check that the new version starts and works, and go back
+                              at once if it does not
+  raul update rollback [--json]
+                              go back to the version before the last update
+  raul update self-check [--expect <version>] [--json]
+                              the check a new version runs on itself (used by install)
   raul update auto [on|off]   show or set the GUI's update check at start (off until turned on)
   raul config list|get <key>|set <key> <path>|unset <key> [--json]
                               the game folders, the TTW package and the storage folder (game.newvegas,
@@ -150,6 +162,13 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
 #[doc(hidden)]
 pub fn print_install_failure(e: &nvmod_api::JobError, err: &mut dyn Write) -> u8 {
     install_nv_rs::failure(e, err)
+}
+
+/// At start, before anything else: settle an update that is half done or not yet confirmed (ADR-0020). Returns an exit
+/// code when this program must stop because the old version was put back (the person starts raul again), else `None`.
+#[must_use]
+pub fn settle_update_at_start(args: &[String], err: &mut dyn Write) -> Option<u8> {
+    update::settle_at_start(args, err)
 }
 
 pub(crate) fn write_or_fail(out: &mut dyn Write, err: &mut dyn Write, text: &str) -> u8 {

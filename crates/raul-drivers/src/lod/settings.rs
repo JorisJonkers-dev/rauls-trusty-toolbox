@@ -80,6 +80,8 @@ pub mod catalogue {
     /// The inclusion rules leave no plugin for object LOD.
     pub const NO_OBJECT_LEFT: &str =
         "Every plugin in Only these plugins is also left out, so no object enters object LOD.";
+    /// A LOD run of the Profile is going while the settings are read or changed.
+    pub const RUN_IN_PROGRESS: &str = "A run is in progress. Changes apply to the next run.";
 
     /// Worlds.
     pub const WORLDS: &str = "Worlds";
@@ -672,6 +674,9 @@ pub struct SettingsDoc {
     /// What the settings allow but would quietly build nothing or fail on: unknown worlds, inactive plugins in the
     /// inclusion rules, rules that leave no object. Never a refusal.
     pub warnings: Vec<Warning>,
+    /// A LOD run of the Profile is going: it uses the settings it started with, and a change applies to the next run.
+    #[serde(default)]
+    pub run_in_progress: bool,
     /// What the command changed; `null` for `show` and for a refusal.
     pub change: Option<Change>,
     /// Set when the command was refused; nothing changed then.
@@ -1212,6 +1217,7 @@ pub fn document(
         options: Vec::new(),
         restore_point: at.and_then(ProfileSettings::restore_point),
         warnings: Vec::new(),
+        run_in_progress: at.is_some_and(|a| super::RunLock::in_progress(instance, &a.profile)),
         change: None,
         error: None,
     };

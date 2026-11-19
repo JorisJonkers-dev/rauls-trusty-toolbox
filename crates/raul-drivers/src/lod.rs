@@ -8,6 +8,7 @@ mod generate;
 mod inproc;
 mod marker;
 mod mods;
+mod run_lock;
 pub mod settings;
 
 pub use generate::{LODWRIGHT, LodOutcome, LodRequest, generate, generate_with_cancel};
@@ -15,6 +16,7 @@ pub use marker::{LEGACY_MOD_NAME, Marker, is_generated, meta_ini, mod_name, read
 pub use mods::{
     GeneratedMod, LodMods, MODS_CONTRACT, MODS_SCHEMA_VERSION, generated_mods, mods_schema,
 };
+pub use run_lock::RunLock;
 
 use std::path::{Path, PathBuf};
 
@@ -615,6 +617,8 @@ pub enum LodErrorCode {
     Cancelled,
     /// lodwright succeeded but putting its output into the Instance failed and was rolled back (exit code 4).
     AddModFailed,
+    /// Another run of the same Profile is going; this one did not start (exit code 2).
+    RunInProgress,
 }
 
 /// The JSON Schema of [`LodResult`], as `contracts/raul-lod-result.v1.json` holds it.

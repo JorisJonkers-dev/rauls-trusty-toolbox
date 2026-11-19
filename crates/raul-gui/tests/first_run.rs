@@ -2,14 +2,14 @@
 //! First run to a sorted load order, end to end, with no profile action anywhere: the setup wizard makes the
 //! Instance and its default profile itself, and the Load order page sorts without ever asking for one.
 //!
-//! The window runs on the release `raul` on a synthetic Instance. The masterlist is a file written here, which a
-//! wrapper passes where the pages ask for the pinned one, so nothing is fetched.
+//! The window runs on the release `raul` on a synthetic Instance. The masterlist is a file written here, which the
+//! fixture's command passes where the pages ask for the pinned one, so nothing is fetched.
 #![cfg(unix)]
 #![allow(clippy::disallowed_methods)]
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
-use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, write_file, write_script};
+use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, write_file};
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::load_order::SORT;
@@ -41,21 +41,20 @@ impl Fixture {
             &PluginBuilder::master().build(),
         );
         std::fs::write(f.path("masterlist.yaml"), MASTERLIST).unwrap();
-        // `raul` with this fixture's configuration and state, and the masterlist file instead of the pinned one.
-        write_script(
-            f.root.path(),
-            "raul",
-            &format!(
-                "export RAUL_CONFIG_DIR='{c}' NVMOD_STATE_DIR='{s}'\nfor a do shift; if [ \"$a\" = --fetch-masterlist ]; then set -- \"$@\" --masterlist '{m}'; else set -- \"$@\" \"$a\"; fi; done\nexec '{raul}' \"$@\"",
-                c = f.path("config").display(),
-                s = f.path("state").display(),
-                m = f.path("masterlist.yaml").display(),
-                raul = env!("CARGO_BIN_EXE_raul"),
-            ),
-        );
         f.raul(&["config", "set", "game.newvegas", &f.s("base")]);
         f.raul(&["config", "set", "storage.root", &f.s("storage")]);
         f
+    }
+
+    /// `raul` with this fixture's configuration and state, and the masterlist file where the pages ask for the pinned one.
+    fn exec(&self) -> ProcessExec {
+        ProcessExec::new(env!("CARGO_BIN_EXE_raul"))
+            .with_env("RAUL_CONFIG_DIR", &self.s("config"))
+            .with_env("NVMOD_STATE_DIR", &self.s("state"))
+            .with_argument_replaced(
+                "--fetch-masterlist",
+                &["--masterlist", &self.s("masterlist.yaml")],
+            )
     }
 
     fn path(&self, p: &str) -> PathBuf {
@@ -68,7 +67,7 @@ impl Fixture {
 
     fn raul(&self, args: &[&str]) {
         let args: Vec<String> = args.iter().map(|a| (*a).to_owned()).collect();
-        let out = ProcessExec::new(self.path("raul")).run(&args).unwrap();
+        let out = self.exec().run(&args).unwrap();
         assert_eq!(out.code, Some(0), "{args:?}: {}", out.stderr);
     }
 
@@ -77,8 +76,8 @@ impl Fixture {
     }
 
     fn app(&self) -> Harness<'static, App> {
-        let exec = ProcessExec::new(self.path("raul")).with_grace(Duration::from_secs(5));
-        // The sort stays a command line here: the wrapper swaps the pinned masterlist for a file, which a direct sort
+        let exec = self.exec().with_grace(Duration::from_secs(5));
+        // The sort stays a command line here: the fixture's command swaps the pinned masterlist for a file, which a direct sort
         // (it fetches the pinned one itself) would not go through.
         let jobs = Jobs::new(Arc::new(exec)).scripted(&["sort-preview", "sort-apply"]);
         let app = App::new(jobs);

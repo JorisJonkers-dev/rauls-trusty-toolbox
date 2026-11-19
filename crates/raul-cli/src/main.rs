@@ -5,6 +5,9 @@ use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(code) = raul_cli::settle_update_at_start(&args, &mut std::io::stderr()) {
+        return ExitCode::from(code);
+    }
     ExitCode::from(raul_cli::run(
         &args,
         &mut std::io::stdout(),
