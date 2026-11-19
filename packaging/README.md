@@ -11,20 +11,20 @@ Installers are built by `.github/workflows/release.yml` with
 | macOS 13+ | universal (arm64 and x86_64) `.app` in a `.dmg` |
 
 Each package holds `raul` with nvmod, loot-rs, lodwright-rs and ttwright-rs linked in (ADR-0016), the engine's
-packaged nv-rs build under `components/` where one exists for that platform (until it is linked too),
+packaged nv-rs build under `components/` (until it is linked too),
 `THIRD-PARTY-NOTICES.md` and the licence texts. No Component program other than nv-rs is in a package, and the
 smoke tests fail if one is. The release notes list the parts with their versions and every file with its SHA-256
 (`scripts/release-contents.sh`). No game file is ever included.
 
 ## The packaged engine
 
-On Linux and Windows the engine's nv-rs build ships under `components/nv-rs/` with `FILES.sha256`, the checksum list of
-its files, which `release.yml` writes after checking the archive against nv-rs's own `SHA256SUMS`. The setup wizard's
+On Linux, Windows and macOS the engine's nv-rs build ships under `components/nv-rs/` with `FILES.sha256`, the checksum
+list of its files, which `release.yml` writes after checking the archive against nv-rs's own checksum file (`SHA256SUMS`,
+`SHA256SUMS-windows`, `SHA256SUMS-macos`). On macOS it is nv-rs's universal build, as raul is universal. The setup wizard's
 Engine step and `raul install-nv-rs` look for that folder next to the running `raul` (beside it for the tarball, the
 portable zip and the NSIS install, under `lib/` for the deb and the AppImage, under `Resources/` in the macOS bundle), check
 every file against the list, copy the viewer into the Instance and run its check. **Nothing is downloaded**: a copy
-without the folder (macOS, which has no engine build yet, or a development build) stops with an instruction to
-install raul again. `--source <dir>` still builds an nv-rs workspace, for developers.
+without the folder (a development build) stops with an instruction to install raul again. `--source <dir>` still builds an nv-rs workspace, for developers.
 
 What stays until the play mode lands (#260, nv-rs#353, engine link T2 #315): the engine is still a separate program in
 the package and in the Instance (`nv-rs/bin/nv-viewer`), because the game is still started as that program. When raul

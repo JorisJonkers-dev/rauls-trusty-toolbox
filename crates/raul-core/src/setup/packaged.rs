@@ -78,7 +78,7 @@ pub fn missing() -> Problem {
     problem(
         ErrorKind::Refused,
         "This copy of raul does not come with the game engine. Download raul from its release page and install raul again; \
-         the engine is part of the same download. On a Mac there is no engine yet.",
+         the engine is part of the same download.",
     )
 }
 
