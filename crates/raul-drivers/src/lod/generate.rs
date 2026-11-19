@@ -18,8 +18,8 @@ use serde_json::Value;
 use super::inproc;
 use super::marker::{self, LEGACY_MOD_NAME, META_FILE, Marker, mod_name};
 use super::{
-    CONTRACT, LodError, LodErrorCode, LodResult, MANIFEST_FILE, SCHEMA_VERSION, WORK_DIR, plan,
-    read_manifest,
+    CONTRACT, LodError, LodErrorCode, LodResult, MANIFEST_FILE, SCHEMA_VERSION, SHARED_OUTPUT_DIR,
+    WORK_DIR, plan, read_manifest,
 };
 use crate::events::{Event, Status, ToolInfo};
 use crate::ttw::driver::{clear, count_files};
@@ -212,10 +212,13 @@ struct Replaced {
 /// copy an interrupted run renamed aside), or the old shared one when the Profile lists that instead.
 fn replaced_meta(instance: &NvmodInstance, profile: &str, name: &str) -> Option<Vec<u8>> {
     let mods = instance.root.join("mods");
+    let legacy_previous = format!("{LEGACY_MOD_NAME} previous");
     let dir = find_ci(&mods, name)
         .or_else(|| find_ci(&mods, &format!("{name} previous")))
+        .or_else(|| listed(instance, profile, LEGACY_MOD_NAME).and(find_ci(&mods, LEGACY_MOD_NAME)))
+        // An interrupted run of the old shared Mod left only its renamed-aside copy.
         .or_else(|| {
-            listed(instance, profile, LEGACY_MOD_NAME).and(find_ci(&mods, LEGACY_MOD_NAME))
+            listed(instance, profile, &legacy_previous).and(find_ci(&mods, &legacy_previous))
         })?;
     std::fs::read(find_ci(&dir, META_FILE)?).ok()
 }
@@ -414,9 +417,15 @@ pub fn generate_with_cancel(
     r.profile.clone_from(&profile);
     let name = mod_name(&profile);
     let mods = instance.root.join("mods");
-    if find_ci(&mods, &name).is_some() && !marker::is_generated(&mods, &name) {
+    // The Mod name, and the name an interrupted run renames it aside to, must be ours before anything replaces,
+    // renames or removes them. The old shared name's backup is ours by name: that Mod had no marker.
+    let previous = format!("{name} previous");
+    if let Some(taken) = [&name, &previous]
+        .into_iter()
+        .find(|n| find_ci(&mods, n).is_some() && !marker::is_generated(&mods, n))
+    {
         let why = format!(
-            "a Mod named `{name}` is in the Instance and is not generated LOD; rename or remove it, then generate again; nothing changed"
+            "a Mod named `{taken}` is in the Instance and is not generated LOD; rename or remove it, then generate again; nothing changed"
         );
         return fail(r, Status::Refused, LodErrorCode::PlanRefused, None, why);
     }
@@ -433,6 +442,20 @@ pub fn generate_with_cancel(
         });
     if req.dry_run {
         return done(r, false);
+    }
+    // The output folder every Profile shared before becomes the first generating Profile's own, so its manifest
+    // keeps the blocks that are still current.
+    let shared = instance.root.join(SHARED_OUTPUT_DIR);
+    if shared.is_dir() && !plan.output_dir.exists() {
+        let moved = plan
+            .output_dir
+            .parent()
+            .map_or(Ok(()), std::fs::create_dir_all)
+            .and_then(|()| std::fs::rename(&shared, &plan.output_dir));
+        if let Err(e) = moved {
+            let why = format!("{}: {e}", shared.display());
+            return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
+        }
     }
     // The folder above the output holds the output and, after a run, the Mod's copy; it is lodwright's work folder.
     let work = plan

@@ -142,7 +142,9 @@ checks every request against the snapshot before it prints or passes it. The req
 - `data_folder`: the Profile's Staging tree `Data` folder;
 - `plugins`: the Profile's active plugins, in Load order;
 - `worlds`: the `--world` flags, else the Profile's settings, else empty (every world with terrain);
-- `output_dir`: `<instance>/.raul/lod/out`, where lodwright keeps its manifest between runs;
+- `output_dir`: `<instance>/.raul/lod/<Profile>/out`, the Profile's own folder, where lodwright keeps its manifest
+  between runs (the folder `<instance>/.raul/lod/out` every Profile shared before becomes the first generating
+  Profile's own);
 - the switches, inclusion rules and limits of the Profile's settings.
 
 The settings are `raul-lod.toml` in the Profile's folder; every key is optional:
@@ -167,7 +169,7 @@ objects = true
 trees = true
 ```
 
-The output folder (`<instance>/.raul/lod/out`) may not lie inside a git working tree (a `.git` in it or any folder
+The output folder (`<instance>/.raul/lod/<Profile>/out`) may not lie inside a git working tree (a `.git` in it or any folder
 above it): `raul lod plan` and `raul lod generate` refuse it with `plan_refused`, and lodwright refuses it too. Either
 `allow_in_repo = true` in the Profile's `raul-lod.toml` or `--allow-in-repo` on the command allows it; `raul` then
 skips its own check and tells lodwright it is allowed. The flag applies to that run only and writes nothing to the
@@ -216,5 +218,6 @@ and the cancel and resume cases call the same generation in process with a cance
 nothing. A Mod is generated LOD when its `meta.ini` carries the `[raulGeneratedLod]` marker, or when it has the name
 every Profile shared before, `LOD (lodwright)` (`legacy: true`, and `profile`, `request_digest` and
 `lodwright_version` are `null`). `own` marks the Profile's own Mod, `own_name`, which `raul lod generate` replaces; a
-Profile may also list another Profile's LOD Mod. `position` counts separators, as `raul mods list` does. An Instance or
-Profile that cannot be read is refused (exit code 2) with one line on standard error and no document.
+Profile may also list another Profile's LOD Mod. `position` counts separators, as `raul mods list` does, and starts
+at 1. An Instance that cannot be opened, or a Profile it does not have, is refused (exit code 2) with one line on
+standard error and no document; a Profile whose mod list is empty or unreadable lists no Mods.

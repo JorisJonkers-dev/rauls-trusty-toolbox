@@ -96,7 +96,7 @@ impl Fixture {
     }
 
     fn out_dir(&self) -> PathBuf {
-        self.instance().join(".raul/lod/out")
+        self.instance().join(".raul/lod/Default/out")
     }
 
     fn lod_mod(&self) -> PathBuf {
@@ -277,6 +277,12 @@ fn a_new_output_replaces_the_lod_mod_and_leaves_one() {
     // A backup an interrupted run left behind is removed when the next run replaces the Mod.
     let out = f.raul(&["mods", "create", PREVIOUS, "--instance", s(&f.instance())]);
     assert!(out.status.success(), "{out:?}");
+    // It is a renamed-aside copy of the LOD Mod, so it carries the marker.
+    std::fs::copy(
+        f.lod_mod().join("meta.ini"),
+        f.instance().join("mods").join(PREVIOUS).join("meta.ini"),
+    )
+    .unwrap();
     f.settings("[output]\nwater = true\n");
     let (code, result, _) = f.generate(&[]);
     assert_eq!(code, Some(0), "{result}");
@@ -319,6 +325,11 @@ fn the_lod_mod_is_named_for_its_profile_and_marked_as_generated() {
         manifest["request_digest"].as_str(),
         "the marker names the request the LOD was built from"
     );
+    assert!(
+        marker.request_digest.starts_with("sha256:"),
+        "{}",
+        marker.request_digest
+    );
     assert!(lod::is_generated(&f.instance().join("mods"), MOD));
 }
 
@@ -359,6 +370,20 @@ fn a_new_run_keeps_the_place_the_state_and_the_meta_ini_keys_of_the_lod_mod() {
     assert_eq!(code, Some(0), "{result}");
     assert_eq!(result["up_to_date"], true, "{result}");
     assert_eq!(f.state(), state);
+}
+
+#[test]
+fn each_profile_has_its_own_output_folder_and_the_shared_one_becomes_the_first_profiles() {
+    let f = Fixture::new("raul-lodgen-folders");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    // The folder of a run before each Profile had its own: the next run takes it over and finds its LOD current.
+    let shared = f.instance().join(".raul/lod/out");
+    std::fs::rename(f.out_dir(), &shared).unwrap();
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["lodwright"]["code"], "up_to_date", "{result}");
+    assert!(!shared.exists(), "the shared folder was moved");
+    assert!(f.out_dir().join("manifest.json").is_file());
 }
 
 #[test]
@@ -498,6 +523,28 @@ fn a_mod_that_is_not_generated_lod_but_has_its_name_is_refused() {
     );
     assert_eq!(finished["changed"], false);
     assert_eq!(f.state(), before, "nothing changed");
+}
+
+#[test]
+fn a_mod_that_is_not_generated_lod_but_has_the_backup_name_is_refused_and_kept() {
+    let f = Fixture::new("raul-lodgen-taken-previous");
+    let previous = format!("{MOD} previous");
+    raul_ok(&f, &["mods", "create", &previous]);
+    let before = f.state();
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(2), "{result}");
+    assert!(
+        result["error"]["message"]
+            .as_str()
+            .unwrap()
+            .contains(&previous),
+        "{result}"
+    );
+    assert_eq!(
+        f.state(),
+        before,
+        "the user's folder is neither removed nor renamed"
+    );
 }
 
 /// A FOMOD that needs answers in the output makes the Mod's install fail after the old Mod has been moved aside, which
