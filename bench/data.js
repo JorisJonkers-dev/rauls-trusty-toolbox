@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795045729225,
+  "lastUpdate": 1795047581778,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -4997,6 +4997,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 11.108104,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "010a3c199d2cc53ac6628820697f074d6c0b52b7",
+          "message": "feat(setup): raul setup and the wizard run the setup job (#302)\n\n* wip: setup args and journal request\n\n* feat(cli): raul setup runs the setup job in process with a resume journal\n\n* test(cli): satisfy clippy in the setup replay\n\n* feat(gui): the setup wizard runs the setup job in process\n\n* fix(core): restart takes the lock, resume keeps the Instance, journal keeps no program paths\n\n* fix(core): name the interrupted step on a cancel and fix the engine doc\n\n* test(core): compare setup paths in their absolute form on every platform",
+          "timestamp": "2026-11-19T01:18:22+01:00",
+          "tree_id": "e9088629517b80b1496b40af1dc705107519538f",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/010a3c199d2cc53ac6628820697f074d6c0b52b7"
+        },
+        "date": 1795047581261,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.9007539999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.698020000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.482800000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.0923560000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 11.250403,
             "unit": "ms"
           }
         ]
