@@ -8,7 +8,7 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use lodwright_testkit::land::Heights;
 use lodwright_testkit::world::{SyntheticWorld, world_plugin};
-use nvmod_testkit::{BaseBuilder, TempDir, write_script};
+use nvmod_testkit::{BaseBuilder, TempDir};
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::lod::{
@@ -60,23 +60,19 @@ impl Fixture {
             world_plugin(&[], &world(side), false),
         )
         .unwrap();
-        // `raul` with this fixture's configuration and state, so nothing reaches the real home.
-        write_script(
-            f.root.path(),
-            "raul",
-            &format!(
-                "export RAUL_CONFIG_DIR='{c}' NVMOD_STATE_DIR='{s}'\nexec '{raul}' \"$@\"",
-                c = f.path("config").display(),
-                s = f.path("state").display(),
-                raul = env!("CARGO_BIN_EXE_raul"),
-            ),
-        );
         let instance = f.s("storage/instance");
         f.raul(&["config", "set", "storage.root", &f.s("storage")]);
         f.raul(&["init", "--base", &f.s("base"), "--instance", &instance]);
         f.raul(&["profile", "create", "--instance", &instance]);
         f.raul(&["stage", "--instance", &instance, "--copy"]);
         f
+    }
+
+    /// `raul` with this fixture's own configuration and state, so nothing reaches the real home.
+    fn exec(&self) -> ProcessExec {
+        ProcessExec::new(env!("CARGO_BIN_EXE_raul"))
+            .with_env("RAUL_CONFIG_DIR", &self.s("config"))
+            .with_env("NVMOD_STATE_DIR", &self.s("state"))
     }
 
     fn path(&self, p: &str) -> PathBuf {
@@ -89,7 +85,7 @@ impl Fixture {
 
     fn raul(&self, args: &[&str]) {
         let args: Vec<String> = args.iter().map(|a| (*a).to_owned()).collect();
-        let out = ProcessExec::new(self.path("raul")).run(&args).unwrap();
+        let out = self.exec().run(&args).unwrap();
         assert_eq!(out.code, Some(0), "{args:?}: {}", out.stderr);
     }
 
@@ -108,7 +104,7 @@ impl Fixture {
     }
 
     fn app(&self) -> Harness<'static, App> {
-        let exec = ProcessExec::new(self.path("raul")).with_grace(Duration::from_secs(5));
+        let exec = self.exec().with_grace(Duration::from_secs(5));
         let app = App::new(Jobs::new(Arc::new(exec)));
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
