@@ -1,5 +1,13 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>JorisJonkers-dev/renovate-config"],
-  "cloneSubmodules": true
+  "cloneSubmodules": true,
+  "packageRules": [
+    {
+      "description": "loot-rs moves with nvmod (ADR-0015): the Component follower's nvmod bump (scripts/bump-component.sh) moves the components/loot-rs submodule and this Cargo tag to the loot-rs tag nvmod links. A loot-rs release alone would build a second loot-rs beside nvmod's and leave the submodule behind, so the shared preset's first-party Cargo git rule does not apply to it here.",
+      "matchManagers": ["cargo"],
+      "matchDepNames": ["loot-rs"],
+      "enabled": false
+    }
+  ]
 }
