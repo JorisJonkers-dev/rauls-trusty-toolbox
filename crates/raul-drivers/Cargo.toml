@@ -10,6 +10,7 @@ description = "Drivers of the process Components (TTW through ttwright, LOD thro
 
 [dependencies]
 nvmod-core = { workspace = true }
+nvmod-formats = { workspace = true }
 nvmod-instance = { workspace = true }
 nvmod-loadorder = { workspace = true }
 nvmod-modinstall = { workspace = true }

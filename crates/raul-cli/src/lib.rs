@@ -98,9 +98,11 @@ usage:
   raul lod generate [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] [--dry-run]
                     [--timeout-secs <n>] [--json]
                               generate LOD with lodwright, linked into raul, from that request and keep the output
-                              as the Mod `LOD (lodwright)`; --json streams raul-events lines. --timeout-secs is
+                              as the Mod `Generated LOD (<Profile>)`; --json streams raul-events lines. --timeout-secs is
                               checked between terrain blocks, worlds and steps, so a step already running finishes
                               first
+  raul lod mods [--instance <dir>] [--profile <name>] [--json]
+                              the generated LOD Mods the profile lists, highest priority first; nothing is written
   raul lod settings show [--instance <dir>] [--profile <name>] [--json]
                               every LOD option of the Profile with its value and default; * marks one its
                               raul-lod.toml sets

@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use raul_core::config::{ConfigDoc, Key};
 use raul_core::contracts::OWN;
 use raul_drivers::events::{Event, EventLine};
-use raul_drivers::lod::LodResult;
+use raul_drivers::lod::{LodMods, LodResult};
 use raul_drivers::ttw::TtwResult;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -234,6 +234,18 @@ fn lod_result_fixtures_read_back_and_carry_valid_lodwright_results() {
                     .as_ref()
                     .is_some_and(|l| l["code"] == "up_to_date")
         );
+    }
+}
+
+#[test]
+fn lod_mods_fixtures_read_back() {
+    let docs = reads_back::<LodMods>("raul-lod-mods");
+    assert!(
+        docs.iter()
+            .any(|d| d.mods.iter().any(|m| m.legacy && m.profile.is_none()))
+    );
+    for doc in docs {
+        assert_eq!(doc.own_name, raul_drivers::lod::mod_name(&doc.profile));
     }
 }
 

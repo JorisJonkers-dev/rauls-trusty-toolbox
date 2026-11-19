@@ -2,13 +2,19 @@
 //! LOD through lodwright-rs, linked into `raul`: the request document the Toolbox builds from a Profile, checked
 //! against the `lodwright-request` v1 schema lodwright publishes (a snapshot is in `contracts/snapshots/lodwright-rs/`),
 //! and the manifest lodwright leaves in its output folder. [`generate`] calls lodwright's library API in process with
-//! that request and keeps its output as one Mod.
+//! that request and keeps its output as one Mod per Profile, marked as generated LOD in its `meta.ini`.
 
 mod generate;
 mod inproc;
+mod marker;
+mod mods;
 pub mod settings;
 
 pub use generate::{LODWRIGHT, LodOutcome, LodRequest, generate, generate_with_cancel};
+pub use marker::{LEGACY_MOD_NAME, Marker, is_generated, meta_ini, mod_name, read_marker};
+pub use mods::{
+    GeneratedMod, LodMods, MODS_CONTRACT, MODS_SCHEMA_VERSION, generated_mods, mods_schema,
+};
 
 use std::path::{Path, PathBuf};
 
@@ -520,9 +526,6 @@ pub const CONTRACT: &str = "raul-lod-result";
 /// The version of that result this build prints.
 pub const SCHEMA_VERSION: u32 = 1;
 
-/// The Mod the LOD output becomes.
-pub const MOD_NAME: &str = "LOD (lodwright)";
-
 /// The result of `raul lod generate` (Contract `raul-lod-result`, version 1), carried by the `result` event.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
 pub struct LodResult {
@@ -543,7 +546,7 @@ pub struct LodResult {
     pub instance: PathBuf,
     /// The Profile.
     pub profile: String,
-    /// The LOD Mod (`LOD (lodwright)`), or `null` when the run did not get that far.
+    /// The Profile's LOD Mod (`Generated LOD (<Profile>)`), or `null` when the run did not get that far.
     #[serde(rename = "mod")]
     pub mod_name: Option<String>,
     /// Files in the Mod, or `null` when no Mod was written.
@@ -579,8 +582,8 @@ pub enum LodErrorCode {
     InstanceInvalid,
     /// The Profile does not exist (exit code 2).
     ProfileMissing,
-    /// No request can be built from the Profile: no Load order, no Staging tree, settings that cannot be read, or
-    /// an output folder lodwright refuses (exit code 2).
+    /// No request can be built from the Profile: no Load order, no Staging tree, settings that cannot be read, an
+    /// output folder lodwright refuses, or a Mod that is not generated LOD has the LOD Mod's name (exit code 2).
     PlanRefused,
     /// Not produced: lodwright is linked into `raul`, so there is no program to find (exit code 2).
     ToolMissing,

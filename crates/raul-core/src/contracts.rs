@@ -50,6 +50,11 @@ pub const OWN: &[Own] = &[
         schema: raul_drivers::lod::schema,
     },
     Own {
+        name: raul_drivers::lod::MODS_CONTRACT,
+        version: raul_drivers::lod::MODS_SCHEMA_VERSION,
+        schema: raul_drivers::lod::mods_schema,
+    },
+    Own {
         name: raul_drivers::lod::settings::CONTRACT,
         version: raul_drivers::lod::settings::SCHEMA_VERSION,
         schema: raul_drivers::lod::settings::schema,
