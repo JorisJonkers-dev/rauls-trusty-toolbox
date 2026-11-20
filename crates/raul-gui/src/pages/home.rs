@@ -982,14 +982,21 @@ mod tests {
     use raul_ui_service::{Exec, Output, registry};
     use std::sync::{Arc, Mutex};
 
+    const RUN_FAILED_PROBE: &str = "the game is not running";
+
     #[derive(Default)]
     struct Recording {
         calls: Mutex<Vec<Vec<String>>>,
+        /// What every call answers; `None` is a success.
+        answer: Mutex<Option<Result<Output, String>>>,
     }
 
     impl Exec for Recording {
         fn run(&self, args: &[String]) -> Result<Output, String> {
             self.calls.lock().unwrap().push(args.to_vec());
+            if let Some(answer) = self.answer.lock().unwrap().clone() {
+                return answer;
+            }
             Ok(Output {
                 code: Some(0),
                 stdout: String::new(),
@@ -1042,6 +1049,58 @@ mod tests {
                 ]
             );
         }
+    }
+
+    fn click_stop(name_answer: Option<Result<Output, String>>) -> (Vec<Vec<String>>, bool, bool) {
+        let exec = Arc::new(Recording::default());
+        *exec.answer.lock().unwrap() = name_answer;
+        let mut h = harness("started", exec.clone());
+        h.run();
+        h.get_by_label(STOP_GAME).click();
+        for _ in 0..100 {
+            h.run_steps(2);
+            if !exec.calls.lock().unwrap().is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        h.run_steps(10);
+        let calls = exec.calls.lock().unwrap().clone();
+        let asked = h.query_by_label(STOP_ASKED_STATUS).is_some();
+        let failed = h.query_by_label(RUN_FAILED_PROBE).is_some();
+        (calls, asked, failed)
+    }
+
+    #[test]
+    fn stop_asks_the_running_game_to_stop_through_raul_run_stop() {
+        let (calls, asked, _) = click_stop(None);
+        let waiting = registry::command("run-stop").is_some_and(|c| c.awaits.is_some());
+        if !waiting {
+            assert_eq!(
+                calls[0],
+                [
+                    "run",
+                    "--stop",
+                    "--instance",
+                    "/users/player/raul-storage/instance",
+                    "--json"
+                ]
+            );
+            assert!(asked, "the status says the game was asked to stop");
+        }
+    }
+
+    #[test]
+    fn a_refused_or_failed_stop_is_shown_as_a_failed_launch() {
+        let refused = Output {
+            code: Some(1),
+            stdout: String::new(),
+            stderr: RUN_FAILED_PROBE.to_owned(),
+        };
+        let (_, asked, _) = click_stop(Some(Ok(refused)));
+        assert!(!asked);
+        let (_, asked, _) = click_stop(Some(Err(RUN_FAILED_PROBE.to_owned())));
+        assert!(!asked);
     }
 
     #[test]
