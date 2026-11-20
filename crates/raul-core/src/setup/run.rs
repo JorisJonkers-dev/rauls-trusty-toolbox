@@ -341,6 +341,7 @@ fn run_ttw(
         dry_run: false,
         resume: choice.resume,
         timeout: choice.timeout.unwrap_or(ttw::DEFAULT_TIMEOUT),
+        free_space: Some(crate::space::free_bytes),
     };
     // This setup's own cancel token stops the install: no process-wide request is set, so nothing else is stopped.
     let cancelled = || cancel.is_cancelled();

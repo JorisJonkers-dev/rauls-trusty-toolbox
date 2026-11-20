@@ -4307,12 +4307,15 @@ dependencies = [
  "nvmod-instance",
  "nvmod-loadorder",
  "nvmod-modinstall",
+ "nvmod-runlog",
  "schemars",
  "serde",
  "serde_json",
+ "sevenz-rust2",
  "toml",
  "ttwright-contract",
  "ttwright-core",
+ "zip",
 ]
 
 [[package]]

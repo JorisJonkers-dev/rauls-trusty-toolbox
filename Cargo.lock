@@ -1692,6 +1692,7 @@ dependencies = [
  "raul-drivers",
  "raul-runner",
  "serde_json",
+ "sevenz-rust2",
  "toml",
  "ttwright-testkit",
 ]
@@ -1735,13 +1736,16 @@ dependencies = [
  "nvmod-instance",
  "nvmod-loadorder",
  "nvmod-modinstall",
+ "nvmod-runlog",
  "nvmod-testkit",
  "schemars",
  "serde",
  "serde_json",
+ "sevenz-rust2",
  "toml",
  "ttwright-contract",
  "ttwright-core",
+ "zip",
 ]
 
 [[package]]

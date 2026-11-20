@@ -4,6 +4,7 @@
 
 pub(crate) mod driver;
 pub(crate) mod inproc;
+pub mod package;
 
 use std::path::PathBuf;
 
