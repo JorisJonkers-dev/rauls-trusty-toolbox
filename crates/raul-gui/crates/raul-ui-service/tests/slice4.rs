@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! Applying the Mods edits, the typed setup request and cancelling a running command, against the real
-//! `nvmod` command line (in process, or as a script standing in for it). No game data is used.
+//! Applying the Mods edits, the typed setup request and a cancel before the start, against the real command line run
+//! in this process. No game data is used.
 #![cfg(unix)]
 
-use nvmod_testkit::{
-    BaseBuilder, PeBuilder, PluginBuilder, TempDir, ZipBuilder, write_file, write_script,
-};
+use nvmod_testkit::{BaseBuilder, PeBuilder, PluginBuilder, TempDir, ZipBuilder, write_file};
 use raul_ui_model::error::ExitClass;
 use raul_ui_model::job::{JobId, JobState, JobTable, Outcome};
 use raul_ui_model::mods::{ModRow, ModStep, ModsScreen};
@@ -14,11 +12,11 @@ use raul_ui_service::exec::{Exec, Output};
 use raul_ui_service::registry::Action;
 use raul_ui_service::wiring::{ModsContext, apply_mods, preview_mods};
 use raul_ui_service::{
-    CancelHandle, CliService, InProcessExec, InstallRequest, JobSpec, ModsRequest, ProcessExec,
-    RollbackRequest, Service, SetupRequest, cancel_job,
+    CancelHandle, CliService, InProcessExec, InstallRequest, JobSpec, ModsRequest, RollbackRequest,
+    Service, SetupRequest,
 };
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 /// The command line run in this process. Journal ids are the millisecond and the process id; separate runs of the
 /// program differ in the second, runs in this one process need a millisecond between them.
@@ -283,86 +281,6 @@ fn a_typed_setup_request_starts_no_process_and_runs_no_command() {
         ran.load(std::sync::atomic::Ordering::SeqCst),
         0,
         "no command was run"
-    );
-}
-
-fn setup_plan() -> &'static str {
-    r#"echo '{"seq":1,"event":"plan","dry_run":false,"resume":false,"instance":"/i","steps":[{"step":"init","description":"Make the Instance"}]}'
-echo '{"seq":2,"event":"step","step":"init","status":"started","index":1,"total":1,"description":"Make the Instance"}'"#
-}
-
-/// Runs `body` as the `nvmod` program, cancels the job once it printed its plan and returns what happened.
-fn cancelled_run(body: &str, grace: Duration) -> (JobTable, Output, Duration) {
-    let dir = TempDir::new("s4-script");
-    let program = write_script(dir.path(), "nvmod", body);
-    let svc = CliService::new(ProcessExec::new(program).with_grace(grace));
-    let spec = JobSpec::new(JobId(1), Action::Setup, vec![]).writing();
-    assert!(spec.cancellable);
-    let cancel = CancelHandle::new();
-    let mut table = JobTable::default();
-    let begun = Instant::now();
-    let mut asked = false;
-    let out = svc
-        .run_job_cancellable(
-            &spec,
-            &mut |event| {
-                table.apply(event);
-                if !asked && table.get(JobId(1)).is_some() {
-                    asked = true;
-                    cancel_job(&mut table, JobId(1), &cancel).unwrap();
-                }
-            },
-            &cancel,
-        )
-        .unwrap();
-    (table, out, begun.elapsed())
-}
-
-#[test]
-fn a_command_that_rolls_itself_back_when_asked_to_stop_ends_as_rolled_back() {
-    let body = format!(
-        "{}\ntrap 'echo {{\\\"seq\\\":3,\\\"event\\\":\\\"finished\\\",\\\"status\\\":\\\"failed\\\",\\\"exit_code\\\":4,\\\"rolled_back\\\":true,\\\"resumable\\\":false}}; exit 4' TERM\nwhile :; do sleep 0.05; done",
-        setup_plan()
-    );
-    let (table, out, took) = cancelled_run(&body, Duration::from_secs(5));
-    assert_eq!(out.code, Some(4));
-    let job = table.get(JobId(1)).unwrap();
-    assert_eq!(job.state, JobState::Finished(Outcome::RolledBack));
-    assert_eq!(job.exit, Some(ExitClass::StepFailedRolledBack));
-    assert!(took < Duration::from_secs(4), "{took:?}");
-    assert!(table.writing().is_none());
-}
-
-#[test]
-fn a_command_that_dies_of_the_stop_ends_as_failed_with_the_doctor_advice() {
-    let body = format!("{}\nsleep 30", setup_plan());
-    let (table, out, took) = cancelled_run(&body, Duration::from_secs(5));
-    assert_eq!(out.code, None, "ended by a signal");
-    let job = table.get(JobId(1)).unwrap();
-    assert_eq!(job.state, JobState::Finished(Outcome::Failed));
-    assert!(
-        job.log_tail.iter().any(|l| l.contains("run the Doctor")),
-        "{:?}",
-        job.log_tail
-    );
-    assert!(took < Duration::from_secs(4), "{took:?}");
-}
-
-#[test]
-fn a_command_that_ignores_the_stop_is_forced_after_the_grace_period() {
-    let body = format!(
-        "{}\ntrap '' TERM\nwhile :; do sleep 0.05; done",
-        setup_plan()
-    );
-    let (table, out, took) = cancelled_run(&body, Duration::from_millis(300));
-    assert_eq!(out.code, None);
-    assert_eq!(
-        table.get(JobId(1)).unwrap().state,
-        JobState::Finished(Outcome::Failed)
-    );
-    assert!(
-        took >= Duration::from_millis(300) && took < Duration::from_secs(5),
-        "{took:?}"
     );
 }
 

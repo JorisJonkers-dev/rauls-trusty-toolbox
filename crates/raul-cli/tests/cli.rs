@@ -84,6 +84,28 @@ fn detect_on_a_folder_without_the_game_exits_with_found() {
 }
 
 #[test]
+fn space_reports_the_free_space_of_a_synthetic_folder_as_json() {
+    let dir = nvmod_testkit::TempDir::new("raul-cli-space");
+    let missing = dir.path().join("not/yet");
+    let out = raul(&["space", "--folder", missing.to_str().unwrap(), "--json"]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert!(v["total_bytes"].as_u64().unwrap() > 0);
+    assert!(v["free_bytes"].as_u64().unwrap() <= v["total_bytes"].as_u64().unwrap());
+    assert_eq!(v["folder"], missing.to_str().unwrap());
+}
+
+#[test]
+fn space_on_an_unreadable_folder_exits_with_found_and_without_a_folder_with_usage() {
+    assert_eq!(raul(&["space", "--folder", ""]).status.code(), Some(1));
+    assert_eq!(raul(&["space"]).status.code(), Some(5));
+}
+
+#[test]
 fn bench_writes_a_json_and_a_markdown_report() {
     let out_dir = nvmod_testkit::TempDir::new("raul-cli-bench");
     let out = raul(&[
