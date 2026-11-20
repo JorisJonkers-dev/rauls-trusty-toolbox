@@ -1692,6 +1692,7 @@ dependencies = [
  "raul-drivers",
  "raul-runner",
  "serde_json",
+ "sevenz-rust2",
  "toml",
  "ttwright-testkit",
 ]
@@ -1739,9 +1740,11 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "sevenz-rust2",
  "toml",
  "ttwright-contract",
  "ttwright-core",
+ "zip",
 ]
 
 [[package]]

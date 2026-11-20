@@ -9,6 +9,7 @@ use std::time::Duration;
 use nvmod_instance::{NvmodInstance, find_ci};
 use nvmod_modinstall::{InstallError, Limits, Request};
 
+use super::package::{self, Package};
 use super::{CONTRACT, MOD_NAME, SCHEMA_VERSION, TtwError, TtwErrorCode, TtwResult};
 use crate::events::{Event, Status, ToolInfo};
 
@@ -24,6 +25,17 @@ pub const DEFAULT_TIMEOUT: Duration = Duration::from_hours(3);
 /// The folder inside the Instance where ttwright writes, kept between a cancelled run and `--resume`.
 pub const WORK_DIR: &str = ".raul/ttw";
 
+/// The folder inside the work folder where the package is unpacked to, when it was given as a download archive.
+pub const PACKAGE_DIR: &str = "package";
+
+/// What the install itself needs on the Instance's storage besides the unpacked package: its output and the files it
+/// works with, rounded up (the same figure the TTW page's Output step checks).
+pub const INSTALL_NEED_BYTES: u64 = 40 * 1024 * 1024 * 1024;
+
+/// Reads the free bytes on the storage of a folder (one that does not exist yet counts as its nearest existing parent);
+/// `None` when they are not known.
+pub type FreeSpace = fn(&Path) -> Option<u64>;
+
 /// What `raul ttw` was asked to do. The CLI fills the paths from flags or from `raul config`.
 #[derive(Debug, Clone)]
 pub struct TtwRequest {
@@ -35,7 +47,7 @@ pub struct TtwRequest {
     pub fallout3: Option<PathBuf>,
     /// The Fallout: New Vegas folder; the Instance's base game when `None`.
     pub newvegas: Option<PathBuf>,
-    /// The TTW package (the `.mpi` file).
+    /// The TTW package: the `.mpi` file, or the archive the player downloaded, which holds it (see [`package`]).
     pub package: Option<PathBuf>,
     /// Read and check everything, write nothing.
     pub dry_run: bool,
@@ -43,6 +55,8 @@ pub struct TtwRequest {
     pub resume: bool,
     /// How long ttwright may run.
     pub timeout: Duration,
+    /// Reads the free space where the Instance is, for the check before a package is unpacked; no check when `None`.
+    pub free_space: Option<FreeSpace>,
 }
 
 /// The finished run: the result document and the exit code of `raul`.
@@ -163,7 +177,7 @@ struct Ready {
     profile: String,
     fallout3: PathBuf,
     newvegas: PathBuf,
-    package: PathBuf,
+    package: Package,
 }
 
 fn missing(what: &str, flag: &str, key: &str) -> String {
@@ -202,12 +216,9 @@ fn prepare(req: &TtwRequest, profile: &mut String) -> Result<Ready, (TtwErrorCod
             missing("TTW package", "--package <file>", "ttw.package"),
         )
     })?;
-    if !package.is_file() {
-        return Err((
-            MissingInput,
-            format!("the TTW package {} is not a file", package.display()),
-        ));
-    }
+    // By content: the `.mpi` itself, or an archive that holds exactly one; anything else is refused here, before a
+    // work folder exists.
+    let package = package::inspect(&package).map_err(|why| (MissingInput, why.to_string()))?;
     if !req.dry_run && find_ci(&instance.root.join("mods"), MOD_NAME).is_some() {
         return Err((
             ModExists,
@@ -253,10 +264,69 @@ pub(crate) fn clear(path: &Path) -> std::io::Result<()> {
     }
 }
 
+/// The `.mpi` ttwright reads: the package itself, or the one unpacked from the download archive into the work folder
+/// (a resumed run keeps the one it unpacked). An archive is unpacked in process after a check of the free space where
+/// the Instance is; the reason it cannot be is the error, in plain words.
+fn mpi_for(
+    req: &TtwRequest,
+    package: &Package,
+    work: &Path,
+    emit: &mut dyn FnMut(Event),
+) -> Result<PathBuf, String> {
+    let Package::Archive { unpacked_bytes, .. } = package else {
+        return match package {
+            Package::Mpi { path } => Ok(path.clone()),
+            Package::Archive { .. } => unreachable!("matched above"),
+        };
+    };
+    let into = work.join(PACKAGE_DIR);
+    if req.resume
+        && let Some(done) = package::unpacked_in(&into)
+    {
+        return Ok(done);
+    }
+    if let Some(free) = req.free_space.and_then(|read| read(work)) {
+        let install = if req.dry_run { 0 } else { INSTALL_NEED_BYTES };
+        let need = unpacked_bytes.saturating_add(install);
+        if free < need {
+            return Err(format!(
+                "there is not enough free space to unpack the TTW package: it needs {}{} and {} is free where the Instance is. Free {} or use an Instance on a drive with more room",
+                package::size_text(*unpacked_bytes),
+                if install == 0 {
+                    String::new()
+                } else {
+                    format!(", and the install about {} more", package::size_text(install))
+                },
+                package::size_text(free),
+                package::size_text(need - free),
+            ));
+        }
+    }
+    emit(Event::Phase {
+        phase: "unpack".to_owned(),
+    });
+    package::unpack(package, &into).map_err(|why| why.to_string())
+}
+
 /// Install TTW as `req` says, emitting [`Event`]s while it runs (not `finished`: the caller emits
-/// [`Outcome::finished`] after the `result`).
-#[allow(clippy::too_many_lines)] // one flow: check, run, read, add
+/// [`Outcome::finished`] after the `result`). A dry run leaves nothing in the Instance, not even its work folder
+/// (unless it continues a run that was stopped, whose work folder is that run's).
 pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
+    let mut outcome = run(req, emit);
+    // `tool` is set once the work folder was made.
+    if req.dry_run && !req.resume && outcome.result.tool.is_some() {
+        let work = req.instance.join(WORK_DIR);
+        if !is_link(&work) {
+            let _ = clear(&work);
+        }
+        outcome.result.staging = None;
+        outcome.result.resumable = false;
+    }
+    outcome
+}
+
+#[allow(clippy::too_many_lines)] // one flow: check, run, read, add
+fn run(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
     let mut draft = Draft::new(req);
     let ready = match prepare(req, &mut draft.result.profile) {
         Ok(r) => r,
@@ -303,8 +373,18 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         tool,
     });
 
+    let mpi = match mpi_for(req, &ready.package, &work, emit) {
+        Ok(mpi) => mpi,
+        Err(why) => {
+            if !req.resume {
+                let _ = clear(&work);
+                draft.result.staging = None;
+            }
+            return draft.fail(Status::Refused, TtwErrorCode::MissingInput, why);
+        }
+    };
     let job = ttwright_core::api::InstallJob {
-        mpi_path: ready.package.clone(),
+        mpi_path: mpi,
         fallout3_path: Some(ready.fallout3.clone()),
         falloutnv_path: Some(ready.newvegas.clone()),
         destination_path: dest.clone(),

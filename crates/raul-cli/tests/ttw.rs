@@ -134,6 +134,11 @@ impl Fixture {
 
     /// The arguments that name every input by flag.
     fn ttw_args(&self) -> Vec<String> {
+        self.ttw_args_for(&self.package())
+    }
+
+    /// The same, with `package` as the TTW package.
+    fn ttw_args_for(&self, package: &Path) -> Vec<String> {
         [
             "ttw",
             "--json",
@@ -142,10 +147,33 @@ impl Fixture {
             "--fallout3",
             self.fallout3().to_str().unwrap(),
             "--package",
-            self.package().to_str().unwrap(),
+            package.to_str().unwrap(),
         ]
         .map(str::to_owned)
         .into()
+    }
+
+    /// What the player downloads: a 7z that holds the package next to a made-up installer program and library.
+    fn download(&self) -> PathBuf {
+        let path = self.path("Downloads/Tale of Two Wastelands 3.4-133-3.4.0-[mod.pub].7z");
+        make_7z(
+            &path,
+            &[
+                (
+                    "Tale of Two Wastelands 3.4.mpi",
+                    &std::fs::read(self.package()).unwrap(),
+                ),
+                ("TTW_Installer.exe", b"MZ made-up installer program"),
+                ("Lib/made-up.dll", b"MZ made-up library"),
+            ],
+        );
+        path
+    }
+
+    /// `raul ttw --json` with the package given as `package`, plus `extra`.
+    fn ttw_for(&self, package: &Path, extra: &[&str]) -> (Option<i32>, Vec<Value>) {
+        let out = self.raul(&with_extra(&self.ttw_args_for(package), extra));
+        (out.status.code(), lines(&out))
     }
 
     /// What a failed run must leave as it was: the Mods and the Profiles.
@@ -184,6 +212,18 @@ impl Fixture {
         );
         child.wait_with_output().unwrap()
     }
+}
+
+/// Write a 7z archive of `files` at `path`, making its folder.
+fn make_7z(path: &Path, files: &[(&str, &[u8])]) {
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let mut writer = sevenz_rust2::ArchiveWriter::create(path).unwrap();
+    for (name, data) in files {
+        writer
+            .push_archive_entry(sevenz_rust2::ArchiveEntry::new_file(name), Some(*data))
+            .unwrap();
+    }
+    writer.finish().unwrap();
 }
 
 /// `base` followed by `extra`, as the `&str` slice `Command::args` takes.
@@ -307,16 +347,18 @@ fn every_failure_maps_to_its_exit_code_and_leaves_the_instance_unchanged() {
     assert_eq!(result["error"]["ttwright_code"], "check_failed");
     assert_eq!(result["mod"], Value::Null);
     assert_eq!(f.state(), before, "the failed check changed the Instance");
-    // A package that is not an archive at all: ttwright cannot read it, so the run fails the same way.
+    // A file that is neither a package nor an archive is refused before anything runs: exit 2, not a failed step.
     let f = Fixture::new("raul-ttw-badpkg");
     let before = f.state();
     std::fs::write(f.package(), b"not an archive").unwrap();
     let (got, lines) = f.ttw(&[]);
-    assert_eq!(got, Some(4), "{lines:?}");
+    assert_eq!(got, Some(2), "{lines:?}");
     let (result, finished) = check_stream(got, &lines);
-    assert_eq!(finished["code"], "ttwright_failed");
-    assert!(result["error"]["ttwright_code"].is_string(), "{result}");
+    assert_eq!(finished["status"], "refused");
+    assert_eq!(finished["code"], "missing_input");
+    assert_eq!(result["error"]["ttwright_code"], Value::Null);
     assert_eq!(f.state(), before);
+    assert!(!f.work().exists());
 }
 
 #[test]
@@ -521,4 +563,131 @@ fn ttw_is_the_toolboxs_own_command_and_never_reaches_nvmod() {
     assert_eq!(f.ttw(&[]).0, Some(0));
     assert_eq!(f.raul(&["ttw", "--fallout3"]).status.code(), Some(5));
     assert!(!logs.exists(), "nvmod ran");
+}
+
+#[test]
+fn the_download_archive_is_accepted_and_its_package_is_unpacked_into_the_work_folder_and_removed() {
+    let f = Fixture::new("raul-ttw-download");
+    let download = f.download();
+    let before = f.state();
+    // The dry run unpacks the package, reads it and leaves no folder behind.
+    let (code, lines) = f.ttw_for(&download, &["--dry-run"]);
+    assert_eq!(code, Some(0), "{lines:?}");
+    let (result, _) = check_stream(code, &lines);
+    assert_eq!(result["dry_run"], true);
+    let phases: Vec<&str> = lines
+        .iter()
+        .filter(|l| l["event"] == "phase")
+        .map(|l| l["phase"].as_str().unwrap())
+        .collect();
+    assert_eq!(phases.first(), Some(&"unpack"), "{lines:?}");
+    assert_eq!(phases.iter().filter(|p| **p == "unpack").count(), 1);
+    assert_eq!(f.state(), before);
+    assert!(!f.work().exists(), "a dry run leaves no work folder");
+    // The install runs from the download, adds the Mod and removes what it unpacked.
+    let (code, lines) = f.ttw_for(&download, &[]);
+    assert_eq!(code, Some(0), "{lines:?}");
+    let (result, finished) = check_stream(code, &lines);
+    assert_eq!(result["mod"], MOD);
+    assert_eq!(finished["changed"], true);
+    assert!(f.instance().join("mods").join(MOD).join("Example.esm").is_file());
+    assert!(!f.work().exists(), "the unpacked package is removed");
+}
+
+#[test]
+fn an_interrupted_install_from_the_download_keeps_the_unpacked_package_for_resume() {
+    let f = Fixture::with_manifest("raul-ttw-download-resume", &slow_manifest());
+    let download = f.download();
+    let child = f
+        .command(&f.ttw_args_for(&download))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let out_dir = f.work().join("out");
+    let start = Instant::now();
+    while written_assets(&out_dir) < 1 {
+        assert!(start.elapsed() < Duration::from_secs(60), "ttwright never started");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    assert!(
+        Command::new("kill")
+            .args(["-INT", &child.id().to_string()])
+            .status()
+            .unwrap()
+            .success()
+    );
+    let out = child.wait_with_output().unwrap();
+    assert_eq!(out.status.code(), Some(4), "{}", String::from_utf8_lossy(&out.stderr));
+    let kept = f.work().join("package/Tale of Two Wastelands 3.4.mpi");
+    assert!(kept.is_file(), "the unpacked package is kept for --resume");
+    // Resuming does not unpack again: the package is taken from the work folder, and the run ends with it removed.
+    let (code, lines) = f.ttw_for(&download, &["--resume"]);
+    assert_eq!(code, Some(0), "{lines:?}");
+    assert!(
+        lines.iter().all(|l| l["phase"] != "unpack"),
+        "unpacked again: {lines:?}"
+    );
+    assert!(!f.work().exists());
+}
+
+#[test]
+fn a_patch_archive_is_refused_with_exit_2_before_anything_is_written() {
+    let f = Fixture::new("raul-ttw-patch");
+    let patch = f.path("Downloads/YUPTTW 13.9.1-133-3.4.0-2026.05.09-[mod.pub].7z");
+    make_7z(
+        &patch,
+        &[
+            ("YUPTTW.esm", b"TES4 made up"),
+            ("Fallout - Meshes.bsa", b"BSA\0 a Mod's archive, not a package"),
+            ("YUPTTW.esm.override", b""),
+        ],
+    );
+    let before = f.state();
+    let out = f.raul(&with_extra(&f.ttw_args_for(&patch), &[]));
+    let lines = lines(&out);
+    let (result, finished) = check_stream(out.status.code(), &lines);
+    assert_eq!(out.status.code(), Some(2), "{lines:?}");
+    assert_eq!(result["error"]["code"], "missing_input");
+    assert_eq!(finished["status"], "refused");
+    assert_eq!(lines.len(), 2, "refused before anything ran: {lines:?}");
+    let message = result["error"]["message"].as_str().unwrap();
+    assert!(message.contains("Tale of Two Wastelands <version>.mpi"), "{message}");
+    assert_eq!(f.state(), before);
+    assert!(!f.work().exists());
+}
+
+#[test]
+fn a_file_that_is_neither_a_package_nor_an_archive_is_refused_with_exit_2() {
+    let f = Fixture::new("raul-ttw-neither");
+    let text = f.path("Downloads/notes.txt");
+    std::fs::create_dir_all(text.parent().unwrap()).unwrap();
+    std::fs::write(&text, "not a package").unwrap();
+    let (code, lines) = f.ttw_for(&text, &[]);
+    assert_eq!(code, Some(2), "{lines:?}");
+    let (result, _) = check_stream(code, &lines);
+    let message = result["error"]["message"].as_str().unwrap();
+    assert!(message.contains("`BSA\\0`") && message.contains(".7z"), "{message}");
+    assert!(!f.work().exists());
+}
+
+#[test]
+fn a_failed_dry_run_leaves_no_work_folder_and_the_text_has_no_empty_checksum() {
+    let f = Fixture::new("raul-ttw-dry-failed");
+    // Starts like a package, is not one: ttwright refuses it after the work folder was made.
+    let broken = f.path("Downloads/broken.mpi");
+    std::fs::create_dir_all(broken.parent().unwrap()).unwrap();
+    std::fs::write(&broken, b"BSA\0 broken").unwrap();
+    let args: Vec<String> = f
+        .ttw_args_for(&broken)
+        .into_iter()
+        .filter(|a| a != "--json")
+        .chain(["--dry-run".to_owned()])
+        .collect();
+    let out = f.raul(&args);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(out.status.code(), Some(4), "{stderr}");
+    assert!(!f.work().exists(), "a dry run leaves nothing behind: {stderr}");
+    assert!(!stderr.contains("SHA-256"), "{stderr}");
+    assert!(stderr.contains("running ttwright inside"), "{stderr}");
 }

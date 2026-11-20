@@ -40,6 +40,7 @@ fn parse(args: &[String]) -> Result<Flags, String> {
         dry_run: false,
         resume: false,
         timeout: ttw::DEFAULT_TIMEOUT,
+        free_space: None,
     };
     let (mut instance, mut json) = (None, false);
     let mut rest = args.iter();
