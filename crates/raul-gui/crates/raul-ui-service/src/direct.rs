@@ -285,6 +285,7 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
         "install-nv-rs" => {
             Some(install_nvrs_request(rest).map_or_else(DirectJob::usage, install_nvrs))
         }
+        "target" => Some(target_request(rest).map_or_else(DirectJob::usage, |r| target(&r))),
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
@@ -894,6 +895,23 @@ pub fn target(request: &nvmod_api::target::SetRequest) -> DirectJob {
         "target",
         move |progress, cancel| nvmod_api::target::set(&request, progress, cancel),
     )
+}
+
+/// The request of `raul target <vanilla|nv-rs> --instance <dir>` from the words after `target`.
+fn target_request(rest: &[String]) -> Result<nvmod_api::target::SetRequest, String> {
+    let target = match positional(rest, &["--instance"]) {
+        Some("vanilla") => nvmod_api::target::Target::Vanilla,
+        Some("nv-rs") => nvmod_api::target::Target::NvRs,
+        Some(other) => return Err(format!("target: `{other}` is not a target")),
+        None => return Err("target: give vanilla or nv-rs".to_owned()),
+    };
+    match value_of(rest, "--instance") {
+        "" => Err("target: give --instance".to_owned()),
+        instance => Ok(nvmod_api::target::SetRequest {
+            instance: PathBuf::from(instance),
+            target,
+        }),
+    }
 }
 
 /// The exit class of a job's error kind: the code the command line would have ended with, except that an
