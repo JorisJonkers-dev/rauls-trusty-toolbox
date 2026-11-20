@@ -145,6 +145,22 @@ pub struct Report {
     pub code: Option<String>,
     /// The error message, unless it succeeded.
     pub message: Option<String>,
+    /// How many files went to `_ttwright_game_root/` in the Mod instead of a place outside it, also those past the
+    /// ones listed.
+    pub redirected_total: u64,
+    /// The files redirected that the installer listed (at most 100).
+    pub redirected: Vec<Redirected>,
+}
+
+/// A file the installer put under `_ttwright_game_root/` because the package meant it for a place outside the Mod.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Redirected {
+    /// The package's name of the place it was meant for, such as `FNV Root`.
+    pub location: String,
+    /// The path the package meant.
+    pub target: String,
+    /// Where it went, relative to the Mod.
+    pub written_to: String,
 }
 
 impl Report {
@@ -159,6 +175,8 @@ impl Report {
             tool: None,
             code: None,
             message: None,
+            redirected_total: 0,
+            redirected: Vec::new(),
         }
     }
 
