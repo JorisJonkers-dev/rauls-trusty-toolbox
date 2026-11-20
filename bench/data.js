@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795189112693,
+  "lastUpdate": 1795197138255,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7202,6 +7202,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 4.950149,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "336879a8fd79a7eb7a1a194fc757ca695c46f109",
+          "message": "fix(test): wait for a written asset, not for ttwright's unpacked package, before stopping; clippy in the GUI workspace (#431)\n\nttwright 0.5.0 spends longer between unpacking the package into .mpi_package and\nwriting the journal, so the stop that the resume test sent on the first file it saw\nlanded before any journal existed. The test now counts only assets. The GUI workspace\nlint failed on redundant closures in the Hold and unused items in its TTW test.",
+          "timestamp": "2026-11-20T17:47:53Z",
+          "tree_id": "88b1c6e3794c666cb3c8120b1f11956de593b655",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/336879a8fd79a7eb7a1a194fc757ca695c46f109"
+        },
+        "date": 1795197137135,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.914078,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.735588,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.832294000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.180985,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.192548,
             "unit": "ms"
           }
         ]
