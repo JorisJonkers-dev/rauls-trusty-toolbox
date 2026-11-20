@@ -418,6 +418,19 @@ jobs:
             target/packages/*.dmg
           if-no-files-found: error
 
+      # The notices are in every package; the release also carries them as a file of their own (#72). The three
+      # systems write the same text, so one of them uploads it.
+      - name: Notices as a release asset
+        if: ${{ matrix.name == 'linux-x64' }}
+        run: cp target/bundle/THIRD-PARTY-NOTICES.md target/packages/THIRD-PARTY-NOTICES.md
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ matrix.name == 'linux-x64' }}
+        with:
+          name: packages-notices
+          path: target/packages/THIRD-PARTY-NOTICES.md
+          if-no-files-found: error
+
   publish:
     needs: [release-please, build]
     if: ${{ !cancelled() && needs.build.result == 'success' }}
