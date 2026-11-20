@@ -214,6 +214,33 @@ fn target_set_as_a_direct_job_writes_the_instance_file() {
 }
 
 #[test]
+fn the_setup_wizards_target_command_is_the_direct_target_job() {
+    // The words the wizard's last engine step passes: `target nv-rs --instance <dir>` after the command word.
+    let words = |w: &[&str]| w.iter().map(|x| (*x).to_owned()).collect::<Vec<_>>();
+    let inst = Instance::new();
+    assert_eq!(instance_record(&inst)["target"], "vanilla");
+    let job = direct::for_command("target", &words(&["nv-rs", "--instance", &s(&inst.root())]))
+        .expect("target is a direct job");
+    let spec = JobSpec::new(JobId(5), Action::Target, Vec::new()).writing();
+    let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+    assert_eq!(out.code, Some(0), "{out:?}");
+    assert_eq!(instance_record(&inst)["target"], "nv-rs");
+
+    // A target that is none, or no Instance, is a usage error that writes nothing.
+    let before = instance_record(&inst);
+    for rest in [
+        words(&["steam", "--instance", &s(&inst.root())]),
+        words(&["--instance", &s(&inst.root())]),
+        words(&["vanilla"]),
+    ] {
+        let job = direct::for_command("target", &rest).unwrap();
+        let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+        assert_eq!(out.code, Some(5), "{rest:?}: {out:?}");
+        assert_eq!(instance_record(&inst), before);
+    }
+}
+
+#[test]
 fn a_held_instance_lock_refuses_a_target_change_and_changes_nothing() {
     let inst = Instance::new();
     let before = instance_record(&inst);

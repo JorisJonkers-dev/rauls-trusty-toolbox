@@ -13,6 +13,40 @@
 use super::load_order;
 use super::settings::{Command, Config, Fetch, Key};
 use super::{PageId, Severity, View};
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct DoctorOrderDoc {
+    findings: Vec<DoctorOrderFinding>,
+}
+
+#[derive(Deserialize)]
+struct DoctorOrderFinding {
+    #[serde(default)]
+    code: String,
+    #[serde(default)]
+    severity: String,
+}
+
+/// How many errors of the load order (`loadorder.*`, as a master loading after its dependant) the Doctor's report
+/// holds: `raul doctor --instance <dir> --json`.
+///
+/// # Errors
+/// When it is not that document.
+pub fn parse_order_errors(stdout: &str) -> Result<usize, String> {
+    let doc: DoctorOrderDoc = serde_json::from_str(stdout.trim())
+        .map_err(|e| format!("not a raul doctor report: {e}"))?;
+    Ok(doc
+        .findings
+        .iter()
+        .filter(|f| f.severity == "error" && f.code.starts_with("loadorder."))
+        .count())
+}
+
+/// `raul doctor --instance <dir>`: read only; Home reads the load order's errors from it.
+pub fn doctor_command(instance: &str) -> Command {
+    Command::read("doctor", 1, &["doctor", "--instance", instance])
+}
 
 /// A readiness row.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -192,6 +226,9 @@ pub struct State {
     pub instance_exists: Option<bool>,
     /// Whether the Profile's load order can be listed; `Failed` carries why not.
     pub load_order: Fetch<()>,
+    /// How many errors of the load order the Doctor reports (a master after the plugin that needs it); `Idle`
+    /// until asked.
+    pub order_errors: Fetch<usize>,
     /// The launch.
     pub launch: Launch,
     /// Whether Home already opened the setup wizard this session, so it does so once.
@@ -205,6 +242,7 @@ impl State {
             config: Fetch::Ready(config),
             instance_exists: Some(true),
             load_order: Fetch::Ready(()),
+            order_errors: Fetch::Ready(0),
             ..State::default()
         }
     }
@@ -227,7 +265,10 @@ impl State {
             .config
             .ready()
             .is_some_and(|c| c.get(Key::Instance).is_some());
-        has_instance && (self.instance_exists.is_none() || self.load_order.is_pending())
+        has_instance
+            && (self.instance_exists.is_none()
+                || self.load_order.is_pending()
+                || self.order_errors.is_pending())
     }
 
     /// The one definition of "ready to play": the game is found, the storage folder is set, the Instance exists,
@@ -261,8 +302,9 @@ impl State {
         if self.instance_exists == Some(false) {
             return Some(Step::Instance);
         }
-        match self.load_order {
-            Fetch::Failed(_) => Some(Step::LoadOrder),
+        match (&self.load_order, &self.order_errors) {
+            (Fetch::Failed(_), _) | (_, Fetch::Failed(_)) => Some(Step::LoadOrder),
+            (_, Fetch::Ready(n)) if *n > 0 => Some(Step::LoadOrder),
             _ => None,
         }
     }
@@ -583,6 +625,32 @@ mod tests {
             assert_eq!(unread.readiness(), Readiness::Checking);
             assert!(!unread.can_play());
         }
+    }
+
+    #[test]
+    fn not_ready_while_the_doctor_reports_load_order_errors() {
+        // The state right after a TTW install that did not sort: masters after their dependants.
+        let mut unsorted = sound();
+        unsorted.order_errors = Fetch::Ready(21);
+        assert_eq!(unsorted.readiness(), Readiness::Next(Step::LoadOrder));
+        assert!(!unsorted.can_play());
+        unsorted.order_errors = Fetch::Ready(0);
+        assert_eq!(unsorted.readiness(), Readiness::Ready);
+        unsorted.order_errors = Fetch::Loading;
+        assert_eq!(unsorted.readiness(), Readiness::Checking);
+    }
+
+    #[test]
+    fn only_load_order_errors_of_the_doctor_count() {
+        let doc = r#"{"findings":[
+            {"code":"loadorder.missing-master","severity":"error","subject":"A.esm","message":"m"},
+            {"code":"loadorder.missing-master","severity":"error","subject":"B.esm","message":"m"},
+            {"code":"loadorder.note","severity":"warning","subject":"C.esm","message":"m"},
+            {"code":"game.exe","severity":"error","subject":"x","message":"m"}],
+            "summary":{"errors":3,"warnings":1}}"#;
+        assert_eq!(parse_order_errors(doc), Ok(2));
+        assert!(parse_order_errors("nope").is_err());
+        assert_eq!(doctor_command("/i").shown(), "raul doctor --instance /i");
     }
 
     #[test]

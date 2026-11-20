@@ -20,7 +20,8 @@ use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText, Stroke};
 use raul_ui_model::pages::home::{
-    Block, Launch, Level, Readiness, Row, RowId, State, Step, Why, load_order_command,
+    Block, Launch, Level, Readiness, Row, RowId, State, Step, Why, doctor_command, load_order_command,
+    parse_order_errors,
 };
 use raul_ui_model::pages::settings::{Command, Config, Fetch, Key};
 use raul_ui_model::pages::{Attention, PageId, Severity, View};
@@ -107,6 +108,7 @@ pub struct Home {
 enum Job {
     Config,
     LoadOrder,
+    OrderErrors,
     Run,
     Stop,
 }
@@ -129,6 +131,7 @@ impl Home {
     fn load(&mut self, cx: &mut PageCx<'_>, first: bool) {
         self.state.instance_exists = None;
         self.state.load_order = Fetch::Idle;
+        self.state.order_errors = Fetch::Idle;
         match start(cx, &Command::config_list()) {
             Ok(id) => {
                 self.pending.add(Job::Config, id);
@@ -149,7 +152,8 @@ impl Home {
     /// Settles the reads that run against the settings' paths, with the reason they were not asked for.
     fn settle_without_paths(&mut self, why: String) {
         self.state.instance_exists = Some(false);
-        self.state.load_order = Fetch::Failed(why);
+        self.state.load_order = Fetch::Failed(why.clone());
+        self.state.order_errors = Fetch::Failed(why);
     }
 
     /// Settles the reads that run against the Instance folder: an Instance that is not there has no load order to
@@ -157,6 +161,7 @@ impl Home {
     fn settle_without_instance(&mut self) {
         self.state.instance_exists = Some(false);
         self.state.load_order = Fetch::Failed(WHY_NO_INSTANCE.to_owned());
+        self.state.order_errors = Fetch::Failed(WHY_NO_INSTANCE.to_owned());
     }
 
     /// Reads the load order once the Instance is known: an Instance that does not exist yet has none.
@@ -176,6 +181,13 @@ impl Home {
                 self.state.load_order = Fetch::Loading;
             }
             Err(e) => self.state.load_order = Fetch::Failed(e.what.to_owned()),
+        }
+        match start(cx, &doctor_command(instance)) {
+            Ok(id) => {
+                self.pending.add(Job::OrderErrors, id);
+                self.state.order_errors = Fetch::Loading;
+            }
+            Err(e) => self.state.order_errors = Fetch::Failed(e.what.to_owned()),
         }
     }
 
@@ -197,6 +209,13 @@ impl Home {
                     self.state.load_order = match &result {
                         Ok(out) if out.code == Some(0) => Fetch::Ready(()),
                         Ok(out) => Fetch::Failed(failure_of(out)),
+                        Err(why) => Fetch::Failed(why.clone()),
+                    };
+                }
+                Job::OrderErrors => {
+                    self.state.order_errors = match &result {
+                        Ok(out) => parse_order_errors(&out.stdout)
+                            .map_or_else(|_| Fetch::Failed(failure_of(out)), Fetch::Ready),
                         Err(why) => Fetch::Failed(why.clone()),
                     };
                 }

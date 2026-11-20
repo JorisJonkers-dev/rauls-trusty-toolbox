@@ -340,12 +340,7 @@ impl Setup {
     fn entered_step(&mut self, cx: &mut PageCx<'_>) {
         match self.state.step {
             Step::Instance if self.state.instance_step == InstanceStep::Idle => {
-                let capabilities = self.state.instance().map(|i| {
-                    std::path::Path::new(&i)
-                        .join("nv-rs")
-                        .join("capabilities.json")
-                });
-                if capabilities.is_some_and(|c| c.exists()) {
+                if self.state.instance().is_some_and(|i| runs_on_engine(&i)) {
                     self.state.instance_step = InstanceStep::Made;
                 }
             }
@@ -726,6 +721,14 @@ impl Setup {
             });
         });
     }
+}
+
+/// Whether the Instance in `instance` is set to run on the engine. An Instance file that cannot be read says no.
+fn runs_on_engine(instance: &str) -> bool {
+    std::fs::read_to_string(std::path::Path::new(instance).join("nvmod-instance.json"))
+        .ok()
+        .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+        .is_some_and(|record| record["target"] == "nv-rs")
 }
 
 fn rail(ui: &mut egui::Ui, t: &Tokens, current: Step) {
@@ -1184,6 +1187,57 @@ mod tests {
         assert!(
             !calls.iter().any(|c| c[0] == "doctor"),
             "the Doctor is not a command line: {calls:?}"
+        );
+    }
+
+    #[test]
+    fn an_instance_left_on_the_games_own_extender_is_pointed_at_the_engine() {
+        // A storage folder whose Instance exists but never had its target set.
+        let storage = nvmod_testkit::TempDir::new("gui-setup-vanilla-engine");
+        let instance = storage.path().join("instance");
+        std::fs::create_dir_all(&instance).unwrap();
+        std::fs::write(
+            instance.join("nvmod-instance.json"),
+            r#"{"schema_version":2,"base":"/games/nv","storefront":"steam","target":"vanilla"}"#,
+        )
+        .unwrap();
+        let storage = storage.path().to_string_lossy().into_owned();
+        let state = State::opened(
+            Config::with(
+                "/c",
+                &[(Key::NewVegas, "/games/nv"), (Key::StorageRoot, &storage)],
+            ),
+            None,
+        );
+        let exec = Arc::new(Script::default());
+        let app = App::fixture(
+            Fixture::new("flow", Setup::with(state)),
+            Jobs::new(exec.clone()).scripted(&["init", "target-nv-rs"]),
+        );
+        let mut h = Harness::builder()
+            .with_size([1280.0, 800.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            });
+        h.run();
+        h.get_by_label(NEXT).click();
+        wait_for(&mut h, |_| true);
+        h.get_by_label(NEXT).click();
+        h.run_steps(2);
+        h.get_by_label(SET_UP_INSTANCE).click();
+        let calls = exec.clone();
+        wait_for(&mut h, move |_| !calls.calls.lock().unwrap().is_empty());
+        let calls = exec.calls.lock().unwrap();
+        assert_eq!(
+            calls.as_slice(),
+            [[
+                "target",
+                "nv-rs",
+                "--instance",
+                &format!("{storage}/instance")
+            ]],
+            "only the target is set: the Instance exists already"
         );
     }
 }
