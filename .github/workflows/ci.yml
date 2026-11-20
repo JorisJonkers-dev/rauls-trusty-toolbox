@@ -133,6 +133,12 @@ jobs:
           scripts/check-gpl-scope.sh --self-test
           scripts/check-gpl-scope.sh
 
+      - name: Public text does not name the private workshop
+        if: ${{ !cancelled() }}
+        run: |
+          scripts/check-public-text.sh --self-test
+          scripts/check-public-text.sh
+
       - name: Release notes contents
         if: ${{ !cancelled() }}
         run: scripts/release-contents.sh --self-test

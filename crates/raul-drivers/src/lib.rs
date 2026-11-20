@@ -6,7 +6,10 @@
 
 pub mod events;
 pub mod lod;
+pub mod stop;
 pub mod ttw;
+
+pub use stop::Stop;
 
 /// A schema as pretty JSON with a final newline, the form the files in `contracts/` have. Every property of every
 /// object is listed as required: the Toolbox always prints every field, with `null` for one that has no value.

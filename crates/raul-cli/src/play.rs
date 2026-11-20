@@ -118,6 +118,72 @@ pub fn with_viewer(args: &[String], exe: &Path) -> Vec<String> {
     out
 }
 
+/// What a plain person is told about how the game ended, by the exit code it left (the engine's documented
+/// classes, `fork_play::ExitClass`). A code is only a hint: the game's own code can equal one of these, so the log has
+/// the last word; `asked_stop` says the stop file was asked for.
+#[must_use]
+pub fn exit_words(code: i32, asked_stop: bool) -> Option<&'static str> {
+    match code {
+        0 => None,
+        1 => Some("the game could not start; check the game folder"),
+        2 => Some("the game did not understand how it was started"),
+        3 => Some(
+            "the game stopped because it ran into something it cannot do yet; the log says what",
+        ),
+        69 => Some("this computer refused to start the game; check the graphics driver"),
+        143 if asked_stop => Some("the game was stopped as asked"),
+        143 => Some("the game was stopped"),
+        _ => Some("the game ended unexpectedly; the log says why"),
+    }
+}
+
+/// `raul run --stop --instance <dir> [--profile <name>] [--json]`: asks a running game to stop between two frames.
+/// Without a profile every run folder of the Instance is asked, since only one game runs at a time.
+pub fn stop(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    let value = |flag: &str| {
+        args.iter()
+            .position(|a| a == flag)
+            .and_then(|i| args.get(i + 1))
+            .cloned()
+    };
+    let Some(instance) = value("--instance") else {
+        let _ = writeln!(
+            err,
+            "usage: raul run --stop --instance <dir> [--profile <name>] [--json]"
+        );
+        return crate::USAGE;
+    };
+    let runs = Path::new(&instance).join("run");
+    let folders: Vec<PathBuf> = match value("--profile") {
+        Some(profile) => vec![runs.join(profile)],
+        None => std::fs::read_dir(&runs).map_or_else(
+            |_| Vec::new(),
+            |d| {
+                d.filter_map(Result::ok)
+                    .map(|e| e.path())
+                    .filter(|p| p.is_dir())
+                    .collect()
+            },
+        ),
+    };
+    let mut asked = Vec::new();
+    for folder in folders.iter().filter(|f| f.is_dir()) {
+        if let Err(e) = request_stop(folder) {
+            let _ = writeln!(err, "raul: run: the stop could not be asked for: {e}");
+            return crate::FAILED;
+        }
+        asked.push(folder.to_string_lossy().into_owned());
+    }
+    if args.iter().any(|a| a == "--json") {
+        let _ = writeln!(out, "{}", serde_json::json!({ "stop_asked": asked }));
+    } else if asked.is_empty() {
+        let _ = writeln!(out, "no game was started from this Instance");
+    } else {
+        let _ = writeln!(out, "asked the game to stop");
+    }
+    crate::OK
+}
+
 /// `raul run ...` with the play mode: `rest` is the command line with `run` first.
 pub fn run(rest: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let Ok(exe) = std::env::current_exe() else {
@@ -126,7 +192,23 @@ pub fn run(rest: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     };
     let args = with_viewer(&rest[1..], &exe);
     let launcher = PlayLauncher::new(&exe, &nvmod_run::ProcessLauncher);
-    nvmod_cli::run_with_launcher(&args, out, err, &launcher)
+    let code = nvmod_cli::run_with_launcher(&args, out, err, &launcher);
+    if args.iter().any(|a| a == "--wait") {
+        let asked = args
+            .iter()
+            .position(|a| a == "--instance")
+            .and_then(|i| args.get(i + 1))
+            .is_some_and(|i| {
+                std::fs::read_dir(Path::new(i).join("run")).is_ok_and(|d| {
+                    d.filter_map(Result::ok)
+                        .any(|e| stop_file(&e.path()).exists())
+                })
+            });
+        if let Some(words) = exit_words(i32::from(code), asked) {
+            let _ = writeln!(err, "raul: run: {words}");
+        }
+    }
+    code
 }
 
 #[cfg(test)]
@@ -214,6 +296,38 @@ mod tests {
             .unwrap();
         assert!(!stop_file(&dir).exists());
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn exit_codes_have_plain_words_and_a_finished_game_has_none() {
+        assert_eq!(exit_words(0, false), None);
+        for code in [1, 2, 3, 69, 143, 77] {
+            let words = exit_words(code, false).unwrap();
+            assert!(
+                !words.contains("exit") && !words.contains("code"),
+                "{words}"
+            );
+        }
+        assert_ne!(exit_words(143, true), exit_words(143, false));
+    }
+
+    #[test]
+    fn stop_asks_every_run_folder_or_the_named_one() {
+        let inst = scratch("stopcmd");
+        for p in ["Default", "Other"] {
+            std::fs::create_dir_all(inst.join("run").join(p)).unwrap();
+        }
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let i = inst.to_string_lossy().into_owned();
+        let args = words(&format!("--stop --instance {i} --profile Other --json"));
+        assert_eq!(stop(&args, &mut out, &mut err), crate::OK);
+        assert!(stop_file(&inst.join("run/Other")).is_file());
+        assert!(!stop_file(&inst.join("run/Default")).exists());
+        let args = words(&format!("--stop --instance {i}"));
+        assert_eq!(stop(&args, &mut out, &mut err), crate::OK);
+        assert!(stop_file(&inst.join("run/Default")).is_file());
+        assert_eq!(stop(&words("--stop"), &mut out, &mut err), crate::USAGE);
+        std::fs::remove_dir_all(&inst).unwrap();
     }
 
     #[test]

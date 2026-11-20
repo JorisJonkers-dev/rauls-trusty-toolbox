@@ -254,9 +254,25 @@ pub(crate) fn drain(
     rx
 }
 
+/// How many programs this process has started through the Toolbox's runner. A test reads it before and after an
+/// action to prove the action started none (ADR-0016).
+static STARTED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// How many programs this process has started so far, through [`Runner`] or [`crate::start_program`].
+#[must_use]
+pub fn programs_started() -> u64 {
+    STARTED.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+/// Counts one started program.
+pub(crate) fn count_started() {
+    STARTED.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+}
+
 /// Start the command. A program that was written an instant ago can still be "busy" on Linux while another thread's
 /// fork holds the file open for writing; that clears in milliseconds, so it is tried again a few times.
 pub(crate) fn spawn(command: &mut Command) -> std::io::Result<std::process::Child> {
+    count_started();
     let mut tries = 0;
     loop {
         match command.spawn() {

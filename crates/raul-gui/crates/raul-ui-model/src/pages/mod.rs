@@ -13,6 +13,7 @@ pub mod load_order;
 pub mod lod;
 pub mod lod_settings;
 pub mod mods;
+pub mod mods_install;
 pub mod settings;
 pub mod setup;
 pub mod ttw;

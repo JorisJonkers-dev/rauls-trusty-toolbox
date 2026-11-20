@@ -406,6 +406,22 @@ pub const COMMANDS: &[Command] = &[
         awaits: None,
     },
     Command {
+        // One Mod from an archive: the archive is the first value, and `--answers` names the FOMOD answers file.
+        id: "install",
+        action: Action::InstallMod,
+        words: &[],
+        flags: &[
+            "--instance",
+            "--profile",
+            "--name",
+            "--answers",
+            "--dry-run",
+            "--json",
+        ],
+        writes: true,
+        awaits: None,
+    },
+    Command {
         id: "mods-list",
         action: Action::Mods,
         words: &["list"],
@@ -581,6 +597,15 @@ pub const COMMANDS: &[Command] = &[
         // It stages the Profile before the launch and holds the Instance while it does; without --wait it returns
         // once the game has started.
         writes: true,
+        awaits: None,
+    },
+    Command {
+        id: "run-stop",
+        action: Action::Run,
+        // `run --stop`: asks the running game to stop; it creates a file in the run folder and holds no lock.
+        words: &["--stop"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: false,
         awaits: None,
     },
     Command {
