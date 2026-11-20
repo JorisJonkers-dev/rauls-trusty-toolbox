@@ -86,6 +86,7 @@ fn the_update_check_is_a_command_of_the_release_build() {
 }
 
 /// A copy of the built program in a folder of its own, with the files of a portable install around it.
+#[cfg(not(target_os = "macos"))]
 fn portable_copy(dir: &std::path::Path) -> std::path::PathBuf {
     let exe = dir.join(format!("raul{}", std::env::consts::EXE_SUFFIX));
     std::fs::copy(env!("CARGO_BIN_EXE_raul"), &exe).expect("copy raul");
