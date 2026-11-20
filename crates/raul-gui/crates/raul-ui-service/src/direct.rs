@@ -851,6 +851,8 @@ pub fn install_request(
         answers: answers.map(Path::to_path_buf),
         max_extract_bytes: None,
         extract_limits: nvmod_api::install::LimitOverrides::default(),
+        fomod_answers: None,
+        on_conflict: nvmod_api::install::OnConflict::default(),
     }
 }
 

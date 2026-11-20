@@ -198,6 +198,8 @@ fn execute(
                 answers: req.answers.clone(),
                 max_extract_bytes: None,
                 extract_limits: api::install::LimitOverrides::default(),
+                fomod_answers: None,
+                on_conflict: api::install::OnConflict::default(),
             };
             let r = api::install::install(&request, &mut detail(step, progress), cancel);
             match finish(step, r)? {
