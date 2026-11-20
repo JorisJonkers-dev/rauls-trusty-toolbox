@@ -298,10 +298,14 @@ pub fn for_command_in(
                 })
             },
         ),
-        "install-nv-rs" => {
-            Some(install_nvrs_request(rest).map_or_else(DirectJob::usage, install_nvrs))
-        }
-        "target" => Some(target_request(rest).map_or_else(DirectJob::usage, |r| target(&r))),
+        "target-nv-rs" => Some(if value_of(rest, "--instance").is_empty() {
+            DirectJob::usage("target: give --instance")
+        } else {
+            target(&nvmod_api::target::SetRequest {
+                instance: PathBuf::from(value_of(rest, "--instance")),
+                target: nvmod_api::target::Target::NvRs,
+            })
+        }),
         "install" => {
             Some(install_command_request(rest).map_or_else(DirectJob::usage, |r| install_mod(&r)))
         }
@@ -653,6 +657,7 @@ fn sort_document(output: &nvmod_api::loadorder::SortOutput) -> serde_json::Value
     serde_json::json!({
         "profile": proposal.profile,
         "reordered": proposal.reordered(),
+        "times_stale": nvmod_loadorder::times_stale(&proposal.data, &proposal.current),
         "positions": { "changed": proposal.positions_changed(), "total": proposal.proposed.len() },
         "order": order,
         "general_messages": found.general_messages.iter()
@@ -776,63 +781,6 @@ pub fn init(request: &nvmod_api::init::CreateRequest) -> DirectJob {
     DirectJob::creating_as(
         move |progress, cancel| nvmod_api::init::create(&request, progress, cancel),
         |made: &nvmod_api::init::CreateOutput| serde_json::to_value(made).map(Reply::ok),
-    )
-}
-
-/// What `raul install-nv-rs` takes from the words after it: the Instance, and for a developer a source workspace and
-/// the `cargo` to build it with. The options that used to fetch a release are gone and are refused (#179).
-struct InstallNvRs {
-    instance: PathBuf,
-    source: Option<PathBuf>,
-    cargo: Option<PathBuf>,
-}
-
-fn install_nvrs_request(rest: &[String]) -> Result<InstallNvRs, String> {
-    if value_of(rest, "--instance").is_empty() {
-        return Err("install-nv-rs: give --instance".to_owned());
-    }
-    for gone in [
-        "--release",
-        "--release-url",
-        "--asset",
-        "--repo",
-        "--gh",
-        "--curl",
-        "--retry-delay-ms",
-    ] {
-        if has_flag(rest, gone) {
-            return Err(format!(
-                "install-nv-rs: {gone} is gone: the engine comes with raul and is never downloaded"
-            ));
-        }
-    }
-    if option_of(rest, "--cargo").is_some() && option_of(rest, "--source").is_none() {
-        return Err("install-nv-rs: --cargo only goes with --source".to_owned());
-    }
-    Ok(InstallNvRs {
-        instance: PathBuf::from(value_of(rest, "--instance")),
-        source: option_of(rest, "--source").map(PathBuf::from),
-        cargo: option_of(rest, "--cargo").map(PathBuf::from),
-    })
-}
-
-/// `raul_core::setup::packaged::job`: puts the engine that ships with raul in the Instance (or builds a developer's
-/// source), under the Instance lock. It fetches nothing.
-fn install_nvrs(request: InstallNvRs) -> DirectJob {
-    let instance = request.instance.clone();
-    DirectJob::writing(
-        request.instance,
-        "install-nv-rs",
-        move |progress, cancel| {
-            raul_core::setup::packaged::job(
-                &instance,
-                request.source.as_deref(),
-                request.cargo.as_deref(),
-                None,
-                progress,
-                cancel,
-            )
-        },
     )
 }
 
@@ -962,31 +910,29 @@ pub fn setup(mode: raul_core::setup::Mode) -> DirectJob {
 }
 
 /// `nvmod_api::target::set`: sets what the Instance at `request.instance` runs on. The command has no `--json`, so
-/// the document is the outcome only.
+/// the document is the outcome only. Making nv-rs the target also writes the linked engine's capabilities where the
+/// Doctor reads them (#398), as `raul target nv-rs` does.
 pub fn target(request: &nvmod_api::target::SetRequest) -> DirectJob {
     let request = request.clone();
     DirectJob::writing(
         request.instance.clone(),
         "target",
-        move |progress, cancel| nvmod_api::target::set(&request, progress, cancel),
+        move |progress, cancel| {
+            let outcome = nvmod_api::target::set(&request, progress, cancel)?;
+            if matches!(outcome, Outcome::Done(_))
+                && request.target == nvmod_api::target::Target::NvRs
+            {
+                raul_core::capabilities::write_provided(&request.instance).map_err(|e| {
+                    JobError::new(
+                        ErrorKind::Failed,
+                        "target",
+                        format!("the engine's capabilities could not be written: {e}"),
+                    )
+                })?;
+            }
+            Ok(outcome)
+        },
     )
-}
-
-/// The request of `raul target <vanilla|nv-rs> --instance <dir>` from the words after `target`.
-fn target_request(rest: &[String]) -> Result<nvmod_api::target::SetRequest, String> {
-    let target = match positional(rest, &["--instance"]) {
-        Some("vanilla") => nvmod_api::target::Target::Vanilla,
-        Some("nv-rs") => nvmod_api::target::Target::NvRs,
-        Some(other) => return Err(format!("target: `{other}` is not a target")),
-        None => return Err("target: give vanilla or nv-rs".to_owned()),
-    };
-    match value_of(rest, "--instance") {
-        "" => Err("target: give --instance".to_owned()),
-        instance => Ok(nvmod_api::target::SetRequest {
-            instance: PathBuf::from(instance),
-            target,
-        }),
-    }
 }
 
 /// The exit class of a job's error kind: the code the command line would have ended with, except that an

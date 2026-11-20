@@ -73,15 +73,6 @@ pub struct Ended {
     pub note: Option<String>,
 }
 
-/// The name of a step in the stream: the id, except that the engine step is called `nv-rs` there, as before.
-#[must_use]
-pub fn stream_name(step: &Step) -> String {
-    match step {
-        Step::Engine => "nv-rs".to_owned(),
-        other => other.id(),
-    }
-}
-
 /// What a step does, in words.
 #[must_use]
 pub fn describe(step: &Step, request: &Request) -> String {
@@ -95,7 +86,6 @@ pub fn describe(step: &Step, request: &Request) -> String {
                 .map_or_else(String::new, |p| p.display().to_string())
         ),
         Step::Profile => "make the first profile".to_owned(),
-        Step::Engine => "put nv-rs in the Instance and check it".to_owned(),
         Step::Target => "make nv-rs the target of the Instance".to_owned(),
         Step::Ttw => "install Tale of Two Wastelands".to_owned(),
         Step::Mod(_) => format!("install the Mod {}", &step.id()["mod:".len()..]),
@@ -249,7 +239,7 @@ fn plan_event(
         .iter()
         .map(|p| {
             json!({
-                "step": stream_name(&p.step),
+                "step": p.step.id(),
                 "description": describe(&p.step, request),
                 "skip": (p.skip == Some(SkipReason::KeepsImportedOrder)).then_some(KEEPS_ORDER),
             })
@@ -280,7 +270,7 @@ fn fresh(
         plan_event(events, request, &planned, true, false);
         let total = planned.len();
         for (i, p) in planned.iter().enumerate() {
-            let name = stream_name(&p.step);
+            let name = p.step.id();
             let what = describe(&p.step, request);
             events.put(
                 json!({"event": "step", "step": name, "status": "planned", "index": i + 1, "total": total, "description": what}),
@@ -442,13 +432,10 @@ impl Progress for Reporter<'_, '_> {
                     let completed: Vec<String> = steps
                         .iter()
                         .filter(|p| p.skip == Some(SkipReason::Done))
-                        .map(|p| stream_name(&p.step))
+                        .map(|p| p.step.id())
                         .collect();
                     self.finished = completed.len();
-                    let next = steps
-                        .iter()
-                        .find(|p| p.skip.is_none())
-                        .map(|p| stream_name(&p.step));
+                    let next = steps.iter().find(|p| p.skip.is_none()).map(|p| p.step.id());
                     let at = self.finished.min(self.total.saturating_sub(1)) + 1;
                     self.events.put(
                         json!({"event": "resumed", "instance": self.request.instance, "total": self.total, "completed": completed, "next": next}),
@@ -459,7 +446,7 @@ impl Progress for Reporter<'_, '_> {
             Event::Started { step, index, total } => {
                 self.at = self.at.max(*index);
                 self.started = Some((step.clone(), *index));
-                let (name, what) = (stream_name(step), describe(step, self.request));
+                let (name, what) = (step.id(), describe(step, self.request));
                 self.events.put(
                     json!({"event": "step", "step": name, "status": "started", "index": index, "total": total, "description": what}),
                     format!("[{index}/{total}] {name}: {what}"),
@@ -472,7 +459,7 @@ impl Progress for Reporter<'_, '_> {
                 reason,
             } => {
                 self.at = self.at.max(*index);
-                let (name, what) = (stream_name(step), describe(step, self.request));
+                let (name, what) = (step.id(), describe(step, self.request));
                 let why = match reason {
                     SkipReason::Done => FINISHED_EARLIER,
                     SkipReason::KeepsImportedOrder => KEEPS_ORDER,
@@ -486,7 +473,7 @@ impl Progress for Reporter<'_, '_> {
                 self.at = self.at.max(*index);
                 self.finished += 1;
                 self.started = None;
-                let (name, what) = (stream_name(step), describe(step, self.request));
+                let (name, what) = (step.id(), describe(step, self.request));
                 self.events.put(
                     json!({"event": "step", "step": name, "status": "done", "index": index, "total": total, "description": what, "code": 0, "detail": ""}),
                     "",
@@ -615,7 +602,7 @@ fn fail(
 ) -> Ended {
     let resumable = keep && any_finished;
     let undone = !resumable && roll_back(&request.instance, pre_existing);
-    let (name, what) = (stream_name(&f.step), describe(&f.step, request));
+    let (name, what) = (f.step.id(), describe(&f.step, request));
     events.put(
         json!({"event": "step", "step": name, "status": "failed", "index": f.index, "total": f.total, "description": what, "code": f.code, "detail": f.detail}),
         format!("step {name} failed (exit {})", f.code),

@@ -139,12 +139,21 @@ fn the_service_sorts_and_applies_with_no_command_line_and_the_apply_can_be_undon
 
     request.apply = true;
     let applied = service().sort(&request).unwrap();
-    assert!(applied.applied.is_some());
-    service()
-        .rollback(&RollbackRequest {
-            instance: s(&inst.root()),
-        })
-        .unwrap();
+    let applied = applied.applied.expect("an apply reports what it did");
+    let undone = service().rollback(&RollbackRequest {
+        instance: s(&inst.root()),
+    });
+    if applied.journal.is_some() {
+        undone.unwrap();
+    } else {
+        // The stage already put the plugin file times where this one-plugin order wants them, so the apply wrote
+        // nothing and has nothing to undo: the rollback says so and changes nothing.
+        let ServiceError::Failed(e) = undone.unwrap_err() else {
+            panic!("expected a refusal");
+        };
+        assert_eq!(e.exit, ExitClass::Refused);
+        assert!(e.what.contains("no install to roll back"), "{e:?}");
+    }
 }
 
 #[test]

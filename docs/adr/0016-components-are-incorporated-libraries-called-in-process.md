@@ -69,8 +69,9 @@ of the window.
 - **Shader precompile** runs in this child (`--play-mode <DATA> --precompile-shaders`), not in the window's process,
   because it opens a GPU device and a driver may abort or hang; the result is the child's exit code and log lines.
 - A test forbids any other process start in the GUI; the play mode is the one allowed.
-- The engine program that installers carry today, and the place where its pin lives, are removed in a later change
-  (ADR-0017 still names the files of the earlier pin); until then the packaged engine stays the fallback.
+- The engine program that installers carried, and the place where its pin lived, are removed (amended 2026-11-20).
+  Installers hold no `components/nv-rs` folder and no `FILES.sha256`, and the release smoke test fails if one appears.
+  ADR-0017's standalone nv-rs package stays for people who run the engine without `raul`.
 
 ## Folders as a value, not the environment
 
@@ -103,7 +104,7 @@ a process any more.
   lock file may then be stale, so the next start checks that its holder is gone before it takes the lock. Mitigations: jobs bound
   their memory over untrusted input (archive limits), every step is journaled, and the next start resumes. This
   gives up the crash isolation ADR-0002 chose; the epic (#166) prefers one self-contained app over it.
-- Installers no longer contain the lodwright-rs and ttwright-rs programs, only the engine package.
+- Installers no longer contain the lodwright-rs and ttwright-rs programs, no engine program either: the engine is linked.
 - A Component release reaches the person only in the next `raul` release.
 - Licences are unchanged: `raul` is GPL-3.0-only, and MPL-2.0 lodwright-rs may be linked into it (ADR-0002).
 

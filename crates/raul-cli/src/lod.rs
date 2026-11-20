@@ -346,8 +346,8 @@ mod tests {
     fn a_run_with_no_instance_streams_its_refusal_and_its_end() {
         let dir = std::env::temp_dir().join(format!("raul-lod-job-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let config = dir.join("config.toml");
-        let job = generate_job_in(&words(&["--dry-run"]), Some(&config)).unwrap();
+        let ctx = Context::default().with_config_folder(&dir);
+        let job = generate_job_in(&words(&["--dry-run"]), &ctx).unwrap();
         assert!(job.instance().is_none());
         let mut lines = Vec::new();
         let (code, note) = job.run_lines(Stop::Process, &mut |l| lines.push(l.to_owned()));

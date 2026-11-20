@@ -2,7 +2,7 @@
 #
 # The release workflow builds the NSIS installer only on a release or a manual run, and its silent install did not
 # finish there. This job builds the same installer with the same cargo-packager settings around the command-line
-# raul and a synthetic stand-in for the packaged engine (many small files and a few large ones, no game data and no
+# raul and a synthetic stand-in payload (many small files and a few large ones, no game data and no
 # engine), runs `setup.exe /S` under a time limit, and uploads the installer's own output and a process list taken
 # while it runs. A silent install that does not finish fails the job.
 name: Installer smoke
@@ -60,7 +60,7 @@ jobs:
         run: |
           set -euo pipefail
           cargo build --release --locked -p raul-cli
-          # The release workflow puts the engine under components/nv-rs; here a stand-in of the same shape: 3000 small
+          # A stand-in payload of the same weight as a large package: 3000 small
           # files in folders and three files of 80 MiB of data that does not compress.
           eng=target/bundle/components/nv-rs
           mkdir -p "$eng/lib"
@@ -69,7 +69,7 @@ jobs:
           done
           for i in 1 2 3; do head -c 83886080 /dev/urandom > "$eng/nv-viewer-$i.bin"; done
           cp "$eng/nv-viewer-1.bin" "$eng/nv-viewer.exe"
-          echo "stand-in for the packaged engine" > target/bundle/THIRD-PARTY-NOTICES.md
+          echo "stand-in payload" > target/bundle/THIRD-PARTY-NOTICES.md
           cp LICENSE target/bundle/LICENSE
           cargo packager --release -p raul-cli --formats nsis
           ls -l target/packages

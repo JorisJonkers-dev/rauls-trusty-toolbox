@@ -44,8 +44,6 @@ pub enum Action {
     Plugins,
     /// `raul config`: the game folders, the TTW package and the storage folder.
     Config,
-    /// `raul install-nv-rs`: put the engine that ships with raul in an Instance (nothing is downloaded).
-    InstallNvRs,
     /// `raul init`: an Instance skeleton for a base copy of the game.
     Init,
     /// `raul lod`: plan and generate distant land with lodwright.
@@ -67,7 +65,7 @@ pub enum Action {
 
 impl Action {
     /// Every action.
-    pub const ALL: [Action; 24] = [
+    pub const ALL: [Action; 23] = [
         Action::Setup,
         Action::ImportMo2,
         Action::InstallMod,
@@ -83,7 +81,6 @@ impl Action {
         Action::Tree,
         Action::Plugins,
         Action::Config,
-        Action::InstallNvRs,
         Action::Init,
         Action::Lod,
         Action::Run,
@@ -112,7 +109,6 @@ impl Action {
             Self::Tree => "tree",
             Self::Plugins => "plugins",
             Self::Config => "config",
-            Self::InstallNvRs => "install-nv-rs",
             Self::Init => "init",
             Self::Lod => "lod",
             Self::Run => "run",
@@ -126,18 +122,12 @@ impl Action {
 
     /// Whether a run of it can be stopped from the GUI: the long ones that write.
     pub fn cancellable(self) -> bool {
-        matches!(
-            self,
-            Self::Setup | Self::Ttw | Self::InstallMod | Self::InstallNvRs | Self::Lod
-        )
+        matches!(self, Self::Setup | Self::Ttw | Self::InstallMod | Self::Lod)
     }
 
-    /// Whether the command takes `--json`. `init`, `install-nv-rs` and `target` print text only.
+    /// Whether the command takes `--json`. `init`, `profile` and `target` print text only.
     pub fn takes_json(self) -> bool {
-        !matches!(
-            self,
-            Self::Init | Self::InstallNvRs | Self::Profile | Self::Target
-        )
+        !matches!(self, Self::Init | Self::Profile | Self::Target)
     }
 
     /// What the GUI calls it.
@@ -158,7 +148,6 @@ impl Action {
             Self::Tree => "Explore the virtual Data folder",
             Self::Plugins => "Manage the plugins",
             Self::Config => "Game folders",
-            Self::InstallNvRs => "Install the engine",
             Self::Init => "Create the Instance",
             Self::Lod => "Distant land",
             Self::Run => "Play",
@@ -377,23 +366,6 @@ pub const COMMANDS: &[Command] = &[
         action: Action::Config,
         words: &["unset"],
         flags: &["--json"],
-        writes: true,
-        awaits: None,
-    },
-    Command {
-        // nvmod's `target <vanilla|nv-rs>`: the target is the first value a page passes; the setup wizard passes `nv-rs`.
-        id: "target",
-        action: Action::Target,
-        words: &[],
-        flags: &["--instance"],
-        writes: true,
-        awaits: None,
-    },
-    Command {
-        id: "install-nv-rs",
-        action: Action::InstallNvRs,
-        words: &[],
-        flags: &["--instance"],
         writes: true,
         awaits: None,
     },
@@ -648,6 +620,14 @@ pub const COMMANDS: &[Command] = &[
         words: &[],
         flags: &["--instance", "--profile", "--json"],
         writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "target-nv-rs",
+        action: Action::Target,
+        words: &["nv-rs"],
+        flags: &["--instance"],
+        writes: true,
         awaits: None,
     },
 ];

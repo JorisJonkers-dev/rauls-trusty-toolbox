@@ -22,7 +22,9 @@ use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobEvent, JobId, JobState, JobTable, Outcome};
 use raul_ui_model::pages::{Flow, View};
 use raul_ui_service::registry::Action;
-use raul_ui_service::{CancelHandle, CliService, Hold, InProcessExec, JobSpec, Service, TtwRequest};
+use raul_ui_service::{
+    CancelHandle, CliService, Hold, InProcessExec, JobSpec, Service, TtwRequest,
+};
 use serde_json::json;
 use std::path::PathBuf;
 use std::sync::Arc;

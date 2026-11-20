@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The setup job (ADR-0019): `raul` plans the steps from a typed request and runs each as a call in its own
 //! process, from a base copy to a modded, checked Instance. The steps are the ones nvmod's `setup` runs today: init
-//! or the MO2 import, the first Profile, the engine, the target, TTW, the Mod installs, Staging, the Load order and
+//! or the MO2 import, the first Profile, the target, TTW, the Mod installs, Staging, the Load order and
 //! the check. The mod-management steps call the typed jobs of `nvmod-api`; the TTW step calls the in-process
 //! ttwright driver of `raul-drivers`. No argument vector is built and no command is re-entered.
 //!
@@ -11,8 +11,6 @@
 
 mod args;
 mod command;
-mod engine;
-pub mod packaged;
 mod plan;
 mod run;
 
@@ -23,12 +21,11 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 
 pub use args::{Parsed, parse as parse_words};
-pub use command::{Ended, Line, Mode, describe, execute, stream_name};
+pub use command::{Ended, Line, Mode, describe, execute};
 pub use command::{
     FAILED as EXIT_FAILED, OK as EXIT_OK, REFUSED as EXIT_REFUSED,
     VERIFICATION as EXIT_VERIFICATION,
 };
-pub use engine::EngineOptions;
 pub use nvmod_api::CancelToken;
 pub use plan::plan;
 pub use run::run;
@@ -51,15 +48,11 @@ pub struct Request {
     /// Copy files into the Staging tree and the import instead of linking them.
     #[serde(default)]
     pub copy: bool,
-    /// Put the nv-rs engine in the Instance and make it the target. The request leaves it off unless it is set;
-    /// `raul setup` and the wizard set it unless told to skip it, as nvmod's `setup` did. The engine step installs and
-    /// checks nv-rs in process through the engine install library (see `engine.rs`; it goes with the play mode,
-    /// #260), and the target step then sets the nv-rs target.
+    /// Make nv-rs the target of the Instance. The request leaves it off unless it is set; `raul setup` and the wizard
+    /// set it unless told to skip it, as nvmod's `setup` did. The engine is linked into `raul` (ADR-0016), so there is
+    /// nothing to install: the target step sets the target and writes the engine's capabilities beside the Instance.
     #[serde(default)]
     pub engine: bool,
-    /// How the engine step gets nv-rs: the packaged engine, or a source build; read only when `engine` is set.
-    #[serde(default)]
-    pub engine_options: EngineOptions,
     /// Install Tale of Two Wastelands; `None` skips the step.
     #[serde(default)]
     pub ttw: Option<Ttw>,
@@ -110,8 +103,6 @@ pub enum Step {
     ImportMo2,
     /// Make the first Profile.
     Profile,
-    /// Put the nv-rs engine in the Instance and check it (goes with the play mode, #260).
-    Engine,
     /// Make nv-rs the target of the Instance.
     Target,
     /// Install Tale of Two Wastelands.
@@ -129,7 +120,7 @@ pub enum Step {
 }
 
 impl Step {
-    /// The stable id of the step, as nvmod's `setup` names them (its engine step is `nv-rs`): `init`, `import-mo2`, `profile`, `engine`,
+    /// The stable id of the step, as nvmod's `setup` names them `init`, `import-mo2`, `profile`,
     /// `target`, `ttw`, `mod:<file name>`, `stage`, `sort`, `stamp`, `verify`.
     #[must_use]
     pub fn id(&self) -> String {
@@ -137,7 +128,6 @@ impl Step {
             Self::Init => "init".to_owned(),
             Self::ImportMo2 => "import-mo2".to_owned(),
             Self::Profile => "profile".to_owned(),
-            Self::Engine => "engine".to_owned(),
             Self::Target => "target".to_owned(),
             Self::Ttw => "ttw".to_owned(),
             Self::Mod(archive) => format!(
@@ -161,7 +151,6 @@ impl Step {
             Self::Init => "setup.init",
             Self::ImportMo2 => "setup.import-mo2",
             Self::Profile => "setup.profile",
-            Self::Engine => "setup.engine",
             Self::Target => "setup.target",
             Self::Ttw => "setup.ttw",
             Self::Mod(_) => "setup.mod",
@@ -284,8 +273,7 @@ pub enum ErrorKind {
     Refused,
     /// The step failed and put back what it had started.
     Failed,
-    /// Every step ran and the check does not pass, or the engine step could not verify the checksum or
-    /// attestation of the release (nothing was installed).
+    /// Every step ran and the check does not pass.
     Unverified,
     /// A check inside a job failed: a bug, never a property of the input.
     Internal,
