@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795101203109,
+  "lastUpdate": 1795148516439,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6173,6 +6173,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.907433999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "290797fb3e9e112860f77b02f117dd0248984c8f",
+          "message": "fix(deps): pin dependencies (#371)\n\nCo-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-20T04:17:08Z",
+          "tree_id": "667e3dff36ce088f244ab7b7182e883255d86b03",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/290797fb3e9e112860f77b02f117dd0248984c8f"
+        },
+        "date": 1795148515515,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.327248,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.629608000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.92657,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.120617,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 15.490950999999999,
             "unit": "ms"
           }
         ]
