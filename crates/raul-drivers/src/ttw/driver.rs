@@ -12,6 +12,7 @@ use nvmod_modinstall::{InstallError, Limits, Request};
 
 use super::package::{self, Package};
 use super::{CONTRACT, MOD_NAME, SCHEMA_VERSION, TtwError, TtwErrorCode, TtwResult};
+use crate::Stop;
 use crate::events::{Event, Status, ToolInfo};
 
 /// The `ttwright-events` version this build reads.
@@ -359,7 +360,13 @@ fn write_failure_log(folder: &Path, headline: &str, messages: &[&str]) -> Option
 /// [`Outcome::finished`] after the `result`). A dry run leaves nothing in the Instance, not even its work folder
 /// (unless it continues a run that was stopped, whose work folder is that run's).
 pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
-    let mut outcome = run(req, emit);
+    install_with_stop(req, Stop::Process, emit)
+}
+
+/// [`install`] that stops when `stop` says so and on the timeout, and not on the process-wide request: the run a
+/// window starts, whose stop belongs to that run alone.
+pub fn install_with_stop(req: &TtwRequest, stop: Stop<'_>, emit: &mut dyn FnMut(Event)) -> Outcome {
+    let mut outcome = run(req, stop, emit);
     // `tool` is set once the work folder was made.
     if req.dry_run && !req.resume && outcome.result.tool.is_some() {
         let work = req.instance.join(WORK_DIR);
@@ -373,7 +380,7 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
 }
 
 #[allow(clippy::too_many_lines)] // one flow: check, run, read, add
-fn run(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
+fn run(req: &TtwRequest, stop: Stop<'_>, emit: &mut dyn FnMut(Event)) -> Outcome {
     let mut draft = Draft::new(req);
     let ready = match prepare(req, &mut draft.result.profile) {
         Ok(r) => r,
@@ -439,7 +446,7 @@ fn run(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         resume: req.resume,
         ..ttwright_core::api::InstallJob::default()
     };
-    let done = super::inproc::install_with_events(&job, req.timeout, emit);
+    let done = super::inproc::install_with_events(&job, stop, req.timeout, emit);
     let journal = dest.join(".ttwright-journal.json").is_file();
     let (exit_code, doc) = (done.exit_code, done.doc);
     if let Some(tool) = &mut draft.result.tool {
@@ -509,7 +516,7 @@ fn run(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         );
     }
     // A stop asked for while ttwright was finishing: its work is kept and nothing is added.
-    if nvmod_core::cancel::requested() {
+    if stop.requested() {
         draft.result.resumable = true;
         return draft.fail(
             Status::Cancelled,
@@ -565,7 +572,7 @@ fn run(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         Err(InstallError::Refused(why) | InstallError::Failed(why)) => why,
         Err(InstallError::Questions(_)) => "the output holds a FOMOD that needs answers".to_owned(),
     };
-    if nvmod_core::cancel::requested() {
+    if stop.requested() {
         return draft.fail(
             Status::Cancelled,
             TtwErrorCode::Cancelled,

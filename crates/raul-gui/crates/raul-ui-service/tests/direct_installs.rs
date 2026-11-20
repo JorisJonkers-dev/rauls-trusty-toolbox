@@ -238,3 +238,40 @@ fn an_install_takes_an_automatic_snapshot_and_a_failed_one_puts_it_away() {
         "an install that went through keeps the snapshot taken before it"
     );
 }
+
+/// The page's command: the archive first, then the flags, as the registry's `install` command gives them.
+fn page_install(rest: &[&str]) -> Output {
+    use raul_ui_service::exec::CancelHandle;
+    use raul_ui_service::jobs::JobSpec;
+    let rest: Vec<String> = rest.iter().map(|w| (*w).to_owned()).collect();
+    let job = raul_ui_service::direct::for_command("install", &rest).expect("install is converted");
+    let spec = JobSpec::new(
+        raul_ui_model::job::JobId(1),
+        raul_ui_service::registry::Action::InstallMod,
+        Vec::new(),
+    );
+    raul_ui_service::run_direct(&spec, job, &mut |_| {}, &CancelHandle::new())
+}
+
+#[test]
+fn the_pages_install_command_plans_then_installs_a_synthetic_archive() {
+    let inst = Instance::new();
+    let zip = plain_archive(&inst);
+    let archive = s(&zip);
+    let root = s(&inst.root());
+
+    let plan = page_install(&[&archive, "--instance", &root, "--dry-run"]);
+    assert_eq!(plan.code, Some(0), "{plan:?}");
+    let report: InstallReport = serde_json::from_str(&plan.stdout).unwrap();
+    assert!(report.dry_run);
+    assert!(!inst.root().join("mods/Plain").exists());
+
+    let done = page_install(&[&archive, "--instance", &root]);
+    assert_eq!(done.code, Some(0), "{done:?}");
+    let report: InstallReport = serde_json::from_str(&done.stdout).unwrap();
+    assert!(!report.dry_run);
+    assert!(inst.root().join("mods").join(&report.mod_name).is_dir());
+
+    let none = page_install(&["--instance", &root]);
+    assert_ne!(none.code, Some(0), "no archive is refused: {none:?}");
+}

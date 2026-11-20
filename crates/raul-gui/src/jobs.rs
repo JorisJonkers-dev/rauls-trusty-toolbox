@@ -66,6 +66,8 @@ pub struct Jobs {
     repaint: Option<egui::Context>,
     /// Registry ids that a test scripts as command lines through the runner instead of running them in process.
     scripted: Vec<&'static str>,
+    /// The configuration file the in-process runs that read `raul config` use; `None` is the person's own.
+    config_file: Option<std::path::PathBuf>,
 }
 
 impl std::fmt::Debug for Jobs {
@@ -92,7 +94,16 @@ impl Jobs {
             writer: None,
             repaint: None,
             scripted: Vec::new(),
+            config_file: None,
         }
+    }
+
+    /// Reads `raul config` from `folder` (its `config.toml`) in the runs that happen in this process, instead of the
+    /// person's own folder: how a test keeps a run away from the real configuration.
+    #[must_use]
+    pub fn with_config_folder(mut self, folder: &std::path::Path) -> Jobs {
+        self.config_file = Some(folder.join(raul_core::config::FILE_NAME));
+        self
     }
 
     /// Lets a test script the registry commands `ids` as command lines through the runner, where they would run in
@@ -109,7 +120,7 @@ impl Jobs {
         if self.scripted.contains(&id) {
             return None;
         }
-        raul_ui_service::direct::for_command(id, rest)
+        raul_ui_service::direct::for_command_in(id, rest, self.config_file.as_deref())
     }
 
     /// Jobs that run inside this process (ADR-0016): the actions with an nvmod job call it directly, and every other

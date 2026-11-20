@@ -16,6 +16,9 @@ mod ttw;
 mod update;
 mod version;
 
+pub use lod::{LodJob, generate_job as lod_generate_job, generate_job_in as lod_generate_job_in};
+pub use ttw::{TtwJob, install_job as ttw_install_job, install_job_in as ttw_install_job_in};
+
 use std::io::Write;
 
 /// Exit code for success.
@@ -136,6 +139,8 @@ usage:
   raul install-nv-rs --instance <dir> [--source <dir> [--cargo <path>]]
                               put the engine that ships with raul in an Instance and check it; nothing is
                               downloaded. --source builds an nv-rs workspace instead (for developers)
+  raul run --stop --instance <dir> [--profile <name>] [--json]
+                              ask the running game to stop between two frames (the play mode's stop file)
   raul <nvmod command> ...    every nvmod command (install, sort, run, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";
@@ -155,6 +160,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("ttw") => ttw::run(&args[1..], out, err),
         Some("lod") => lod::run(&args[1..], out, err),
         Some("install-nv-rs") => install_nv_rs::run(&args[1..], out, err),
+        Some("run") if args.iter().any(|a| a == "--stop") => play::stop(&args[1..], out, err),
         Some("run") if play::enabled() => run_in_play_mode(args, out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
         Some(_) if route(args) == Route::Own => {

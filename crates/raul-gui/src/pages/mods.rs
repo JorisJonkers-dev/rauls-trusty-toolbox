@@ -7,6 +7,7 @@
 //! are expected, and one line says so. Every change is one command; the list is read again after it.
 
 use super::home::{Mark, icon};
+use super::mods_install::{self as install_panel, Panel};
 use super::settings::{Pending, Visits, error_block, failure_of, start, waiting};
 use super::{Fixture, Page, PageCx, ShellState};
 use crate::catalogue::{self as msg, ErrorText};
@@ -19,8 +20,10 @@ use raul_ui_model::pages::mods::{
     disable_command, enable_command, generated_command, list_command, move_command,
     parse_generated, parse_list, remove_command,
 };
+use raul_ui_model::pages::mods_install::{self as install_model, Installed, Phase as InstallPhase};
 use raul_ui_model::pages::settings::Command;
 use raul_ui_model::pages::{PageId, View};
+use raul_ui_model::wizard::{FomodOption, FomodQuestion, FomodWizard, GroupRule, OptionKind};
 use raul_ui_service::Output;
 
 crate::texts!(TEXTS {
@@ -117,6 +120,8 @@ pub struct Mods {
     asked: Option<String>,
     /// The Mod the running change is for, and the place a move takes it to.
     target: Option<(String, usize)>,
+    /// Installing a Mod from an archive.
+    install: Panel,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -565,6 +570,10 @@ impl Page for Mods {
             error_block(ui, &t, &e, Some(&p.cause));
             ui.add_space(12.0);
         }
+        if self.install.ui(ui, cx, &t, &instance).installed {
+            self.read(cx);
+        }
+        ui.add_space(12.0);
         if self.state.phase == Phase::Loading && self.state.mods.is_empty() {
             waiting(ui, &t, READING, &list_command(&instance));
             return;
@@ -593,11 +602,26 @@ impl Page for Mods {
     }
 
     fn texts(&self) -> &'static [(&'static str, &'static str)] {
-        TEXTS
+        static ALL: std::sync::OnceLock<Vec<(&'static str, &'static str)>> =
+            std::sync::OnceLock::new();
+        ALL.get_or_init(|| {
+            TEXTS
+                .iter()
+                .chain(install_panel::PANEL_TEXTS)
+                .copied()
+                .collect()
+        })
     }
 
     fn errors(&self) -> &'static [ErrorText] {
-        ERRORS
+        static ALL: std::sync::OnceLock<Vec<ErrorText>> = std::sync::OnceLock::new();
+        ALL.get_or_init(|| {
+            ERRORS
+                .iter()
+                .chain(install_panel::PANEL_ERRORS)
+                .copied()
+                .collect()
+        })
     }
 }
 
@@ -612,12 +636,20 @@ const NAMES: &[&str] = &[
 ];
 
 fn fixture(name: &'static str, state: State) -> Fixture {
+    install_fixture(name, state, install_model::State::default())
+}
+
+/// A fixture whose install panel is in `install`.
+fn install_fixture(name: &'static str, state: State, install: install_model::State) -> Fixture {
     Fixture {
         name,
-        page: Box::new(Mods::with(State {
-            instance: Some(INSTANCE.to_owned()),
-            ..state
-        })),
+        page: Box::new(Mods {
+            install: Panel::with(install),
+            ..Mods::with(State {
+                instance: Some(INSTANCE.to_owned()),
+                ..state
+            })
+        }),
         shell: ShellState {
             instance: Some(INSTANCE.to_owned()),
             new_vegas: Some("/games/steamapps/common/Fallout New Vegas".to_owned()),
@@ -671,6 +703,7 @@ fn out_of_date(state: &str, reason: &str) -> State {
 }
 
 /// The states the snapshot tests render (UI-RULES S1).
+#[allow(clippy::too_many_lines)] // one list of named states
 pub fn fixtures() -> Vec<Fixture> {
     let mut empty = State::default();
     empty.listed("Default".to_owned(), Vec::new());
@@ -708,7 +741,78 @@ pub fn fixtures() -> Vec<Fixture> {
     let large: Vec<&str> = large.iter().map(String::as_str).collect();
     let mut large_list = State::default();
     large_list.listed("Default".to_owned(), entries(&large));
+    let choosing = install_model::State {
+        phase: InstallPhase::Choosing,
+        archive: "/users/player/Downloads/Sample Armour-1234.zip".to_owned(),
+        found: vec![
+            "/users/player/Downloads/Sample Armour-1234.zip".to_owned(),
+            "/users/player/Downloads/Sample Retexture-77.7z".to_owned(),
+        ],
+        ..install_model::State::default()
+    };
+    let installing = install_model::State {
+        phase: InstallPhase::Installing,
+        ..choosing.clone()
+    };
+    let asking = install_model::State {
+        phase: InstallPhase::Asking,
+        questions: Some(FomodWizard::new(vec![
+            FomodQuestion {
+                id: "Main/Look".to_owned(),
+                step: "Main".to_owned(),
+                group: "Look".to_owned(),
+                rule: GroupRule::SelectExactlyOne,
+                min: 1,
+                max: 1,
+                options: vec![
+                    FomodOption {
+                        name: "Worn".to_owned(),
+                        description: "Scratched and dusty.".to_owned(),
+                        kind: Some(OptionKind::Recommended),
+                    },
+                    FomodOption {
+                        name: "Clean".to_owned(),
+                        description: String::new(),
+                        kind: None,
+                    },
+                ],
+            },
+            FomodQuestion {
+                id: "Main/Extras".to_owned(),
+                step: "Main".to_owned(),
+                group: "Extras".to_owned(),
+                rule: GroupRule::SelectAny,
+                min: 0,
+                max: 2,
+                options: vec![FomodOption {
+                    name: "Patch".to_owned(),
+                    description: "Fixes a clipping gap.".to_owned(),
+                    kind: None,
+                }],
+            },
+        ])),
+        ..choosing.clone()
+    };
+    let done = install_model::State {
+        phase: InstallPhase::Done,
+        installed: Some(Installed {
+            name: "Sample Armour".to_owned(),
+            files: 14,
+            plugins: vec!["Sample Armour.esp".to_owned()],
+        }),
+        ..choosing.clone()
+    };
+    let install_failed = install_model::State {
+        phase: InstallPhase::Failed,
+        problem: Some("install: refused: the archive has no files".to_owned()),
+        ..choosing.clone()
+    };
     vec![
+        install_fixture("install-choosing", listed(), choosing),
+        install_fixture("install-installing", listed(), installing),
+        install_fixture("install-questions", listed(), asking),
+        install_fixture("install-done", listed(), done),
+        install_fixture("install-failed", listed(), install_failed),
         Fixture {
             name: "no-instance",
             page: Box::new(Mods::with(State::default())),
