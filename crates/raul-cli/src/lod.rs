@@ -340,3 +340,39 @@ fn generate(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let _ = ctrlc::set_handler(nvmod_core::cancel::request);
     job.run_to(raul_drivers::Stop::Process, out, err).0
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use raul_drivers::Stop;
+
+    fn words(line: &[&str]) -> Vec<String> {
+        line.iter().map(|w| (*w).to_owned()).collect()
+    }
+
+    #[test]
+    fn a_run_with_no_instance_streams_its_refusal_and_its_end() {
+        let dir = std::env::temp_dir().join(format!("raul-lod-job-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let config = dir.join("config.toml");
+        let job = generate_job_in(&words(&["--dry-run"]), Some(&config)).unwrap();
+        assert!(job.instance().is_none());
+        let mut lines = Vec::new();
+        let (code, note) = job.run_lines(Stop::Process, &mut |l| lines.push(l.to_owned()));
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(code, crate::REFUSED);
+        assert!(note.is_some(), "{lines:?}");
+        assert!(lines.iter().any(|l| l.contains("\"event\":\"result\"")));
+        assert!(
+            lines
+                .last()
+                .is_some_and(|l| l.contains("\"event\":\"finished\""))
+        );
+    }
+
+    #[test]
+    fn a_command_line_that_cannot_be_understood_is_a_usage_message() {
+        let why = generate_job(&words(&["--no-such-flag"])).err().unwrap();
+        assert!(why.contains("unknown option --no-such-flag"), "{why}");
+    }
+}

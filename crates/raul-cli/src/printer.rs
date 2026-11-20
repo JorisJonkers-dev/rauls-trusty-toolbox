@@ -107,3 +107,23 @@ impl Write for LineSink<'_> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_sink_hands_over_each_line_when_it_is_complete_and_the_last_one_at_the_end() {
+        let mut seen = Vec::new();
+        {
+            let mut take = |line: &str| seen.push(line.to_owned());
+            let mut sink = LineSink::new(&mut take);
+            sink.write_all(b"one\ntw").unwrap();
+            sink.write_all(b"o\n\nthree").unwrap();
+            sink.flush().unwrap();
+            sink.finish();
+            sink.finish();
+        }
+        assert_eq!(seen, ["one", "two", "", "three"]);
+    }
+}
