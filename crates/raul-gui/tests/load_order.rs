@@ -208,7 +208,7 @@ fn sort_preview_apply_then_undo_restores_the_lists_byte_for_byte() {
     h.get_by_label(SORT).click();
     settle(&mut h);
     assert_eq!(f.lists(), before, "a preview writes nothing");
-    h.get_by_label_contains("Apply 1 move").click();
+    h.get_by_label_contains("Apply 2 moves").click();
     settle(&mut h);
     assert_eq!(
         h.state_mut().shell_mut().status.as_deref(),

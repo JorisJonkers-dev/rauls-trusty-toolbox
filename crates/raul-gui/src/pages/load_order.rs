@@ -585,13 +585,23 @@ fn messages(ui: &mut egui::Ui, t: &Tokens, list: &[Message]) {
     // Every message, worst first, each wrapped inside the column: none is cut off or hidden behind a count.
     let mut ordered: Vec<&Message> = list.iter().collect();
     ordered.sort_by_key(|m| std::cmp::Reverse(m.kind));
+    // A narrow window has no room to wrap in: there each message keeps to one line, whole in its tooltip.
+    let room = ui.available_width();
+    let narrow = room < 300.0;
     ui.vertical(|ui| {
-        ui.set_max_width(ui.available_width().max(200.0));
+        if !narrow {
+            ui.set_max_width(room);
+        }
         for m in ordered {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = 6.0;
                 icon(ui, t, mark_of(m.kind));
-                ui.add(egui::Label::new(RichText::new(&m.text).color(t.text.color())).wrap());
+                let label = egui::Label::new(RichText::new(&m.text).color(t.text.color()));
+                if narrow {
+                    ui.add(label.truncate()).on_hover_text(&m.text);
+                } else {
+                    ui.add(label.wrap());
+                }
             });
         }
     });
