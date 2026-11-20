@@ -19,14 +19,16 @@ use raul_ui_model::job::{JobId, JobState, Outcome};
 use raul_ui_model::pages::load_order::Problem;
 use raul_ui_model::pages::settings::{Answer, Command, Fetch, Key};
 use raul_ui_model::pages::ttw::{
-    DOWNLOAD_URL, Found, NEEDED_BYTES, PackageInfo, Progress, Report, Settling, Sources, State,
-    Step, check_command, check_package, default_downloads, find_in, find_package, free_bytes_of,
-    install_command, is_archive_name, newest_archive, newest_candidate, space_command,
+    DOWNLOAD_URL, Found, NEEDED_BYTES, PackageInfo, Progress, Redirected, Report, Settling,
+    Sources, State, Step, check_command, check_package, default_downloads, find_in, find_package,
+    free_bytes_of, install_command, is_archive_name, newest_archive, newest_candidate,
+    space_command,
 };
 use raul_ui_model::pages::{Flow, PageId, View};
 use raul_ui_model::wizard::{Step as FlowStep, TtwNeed};
 use raul_ui_service::Output;
 use raul_ui_service::dto::TtwReport;
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 crate::texts!(TEXTS {
@@ -76,6 +78,7 @@ crate::texts!(TEXTS {
     SECTION_OUTPUT = "Output";
     FACT_INTO = "Installs into";
     FACT_AS = "Added as";
+    REDIRECTED = "{n} files meant for a place outside the Mod, such as the game folder, were put in the folder {folder} inside the Mod instead: the installer never writes outside its destination.";
     ADDED_AS = "One Mod, with its plugins enabled in your load order";
     FACT_GAMES = "Game folders";
     GAMES_UNTOUCHED = "Not changed";
@@ -174,6 +177,12 @@ impl Drop for Watch {
 }
 
 /// How often the watch looks at the folder.
+/// The folder inside the Mod where the installer puts what the package meant for a place outside it.
+const REDIRECTED_FOLDER: &str = "_ttwright_game_root";
+
+/// What the copied details say was being done.
+const REDIRECTED_DOING: &str = "Installing Tale of Two Wastelands";
+
 const WATCH_EVERY: std::time::Duration = if cfg!(test) {
     std::time::Duration::from_millis(10)
 } else {
@@ -846,6 +855,14 @@ impl Ttw {
             rows.push((FACT_FILES, files.as_str(), false));
         }
         facts(ui, t, "ttw-installed", &rows);
+        if let Some((line, list)) = redirected_note(r) {
+            ui.add_space(12.0);
+            note(ui, t, Mark::Warning, &line, None);
+            if ui.button(msg::COPY_DETAILS).clicked() {
+                ui.ctx()
+                    .copy_text(shell::copy_text(REDIRECTED_DOING, &line, &list));
+            }
+        }
         if !r.plugins.is_empty() {
             ui.add_space(12.0);
             shell::section_label(ui, t, FACT_PLUGINS, true);
@@ -1096,6 +1113,7 @@ fn report_of(result: &Result<Output, String>) -> Result<Report, String> {
             what
         }
     })?;
+    let (redirected_total, redirected) = redirected_of(r.ttwright.as_ref());
     Ok(Report {
         status: r.status,
         dry_run: r.dry_run,
@@ -1105,7 +1123,66 @@ fn report_of(result: &Result<Output, String>) -> Result<Report, String> {
         tool: r.tool.map(|t| t.name),
         code: r.error.as_ref().map(|e| e.code.clone()),
         message: r.error.map(|e| e.message),
+        redirected_total,
+        redirected,
     })
+}
+
+/// The files the installer redirected, from its own result document: how many in all and the ones it listed.
+fn redirected_of(doc: Option<&serde_json::Value>) -> (u64, Vec<Redirected>) {
+    let Some(doc) = doc else {
+        return (0, Vec::new());
+    };
+    let text = |v: &serde_json::Value, key: &str| {
+        v.get(key)
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default()
+            .to_owned()
+    };
+    let listed: Vec<Redirected> = doc
+        .get("redirected")
+        .and_then(serde_json::Value::as_array)
+        .map_or_else(Vec::new, |files| {
+            files
+                .iter()
+                .map(|f| Redirected {
+                    location: text(f, "location"),
+                    target: text(f, "target"),
+                    written_to: text(f, "written_to"),
+                })
+                .collect()
+        });
+    let total = doc
+        .get("redirected_total")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(0)
+        .max(listed.len() as u64);
+    (total, listed)
+}
+
+/// The note under a finished install about redirected files, and the list for Copy details.
+fn redirected_note(r: &Report) -> Option<(String, String)> {
+    if r.redirected_total == 0 {
+        return None;
+    }
+    let line = REDIRECTED
+        .replace("{n}", &r.redirected_total.to_string())
+        .replace("{folder}", REDIRECTED_FOLDER);
+    let mut list = format!(
+        "{} files redirected to {REDIRECTED_FOLDER}\n",
+        r.redirected_total
+    );
+    for f in &r.redirected {
+        let _ = writeln!(list, "{}: {} -> {}", f.location, f.target, f.written_to);
+    }
+    if r.redirected_total > r.redirected.len() as u64 {
+        let _ = writeln!(
+            list,
+            "... and {} more not listed",
+            r.redirected_total - r.redirected.len() as u64
+        );
+    }
+    Some((line, list))
 }
 
 /// A share as a whole percentage, 0 to 100.
@@ -1416,6 +1493,7 @@ fn looking(name: &'static str, state: State) -> Fixture {
 }
 
 /// The states the snapshot tests render.
+#[allow(clippy::too_many_lines)]
 pub fn fixtures() -> Vec<Fixture> {
     let mut loading = State::new(Some(INSTANCE.to_owned()));
     loading.loading();
@@ -1446,6 +1524,23 @@ pub fn fixtures() -> Vec<Fixture> {
         Report {
             plugins,
             files: Some(41_872),
+            ..Report::of(Status::Success, false)
+        },
+        problem(&INSTALL_FAILED, ""),
+    );
+    let mut redirected = installing(48, Some(48));
+    let _ = redirected.installed(
+        Report {
+            plugins: vec!["TaleOfTwoWastelands.esm".to_owned()],
+            files: Some(41_872),
+            redirected_total: 120,
+            redirected: (1..=3)
+                .map(|i| Redirected {
+                    location: "FNV Root".to_owned(),
+                    target: format!("/games/steamapps/common/Fallout New Vegas/Data/Sample{i}.bsa"),
+                    written_to: format!("_ttwright_game_root/FNV Root/Data/Sample{i}.bsa"),
+                })
+                .collect(),
             ..Report::of(Status::Success, false)
         },
         problem(&INSTALL_FAILED, ""),
@@ -1511,6 +1606,7 @@ pub fn fixtures() -> Vec<Fixture> {
         fixture("installing-no-estimate", installing(0, None)),
         fixture("cancelling", cancelling),
         fixture("installed", installed),
+        fixture("installed-redirected", redirected),
         fixture("cancelled", cancelled),
         fixture("unknown", unknown),
     ]
@@ -1965,5 +2061,49 @@ mod tests {
             "it says where it looked"
         );
         let _ = std::fs::remove_dir_all(&empty);
+    }
+}
+
+#[cfg(test)]
+mod redirected_tests {
+    use super::*;
+
+    #[test]
+    fn the_installers_redirected_files_are_read_from_its_result() {
+        let doc = serde_json::json!({
+            "redirected_total": 150,
+            "redirected": [
+                {"step": "asset", "location": "FNV Root", "target": "/g/Data/a.bsa", "written_to": "_ttwright_game_root/a.bsa"}
+            ]
+        });
+        let (total, listed) = redirected_of(Some(&doc));
+        assert_eq!(total, 150);
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].location, "FNV Root");
+        assert_eq!(redirected_of(None), (0, Vec::new()));
+        assert_eq!(redirected_of(Some(&serde_json::json!({}))), (0, Vec::new()));
+    }
+
+    #[test]
+    fn a_result_with_redirected_files_has_the_note_and_the_list_and_one_without_has_neither() {
+        let plain = Report::of(Status::Success, false);
+        assert!(redirected_note(&plain).is_none());
+        let report = Report {
+            redirected_total: 3,
+            redirected: vec![Redirected {
+                location: "FNV Root".into(),
+                target: "/g/a.bsa".into(),
+                written_to: "_ttwright_game_root/a.bsa".into(),
+            }],
+            ..plain
+        };
+        let (line, list) = redirected_note(&report).unwrap();
+        assert!(line.starts_with("3 files"), "{line}");
+        assert!(line.contains("_ttwright_game_root"));
+        assert!(
+            list.contains("FNV Root: /g/a.bsa -> _ttwright_game_root/a.bsa"),
+            "{list}"
+        );
+        assert!(list.contains("2 more not listed"), "{list}");
     }
 }
