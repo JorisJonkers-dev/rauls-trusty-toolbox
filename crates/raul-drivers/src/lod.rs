@@ -166,6 +166,8 @@ pub fn levels_of(settings: &Settings, always: bool) -> Vec<lodwright_contract::L
                 normal_size: set
                     .normal_size
                     .unwrap_or(default(level, "normal_size") as u32),
+                // The Specular in alpha row is a later change (#345); until then the request keeps the default.
+                specular_alpha: false,
             }
         })
         .collect()
