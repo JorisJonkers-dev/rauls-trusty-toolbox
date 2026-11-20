@@ -10,6 +10,7 @@ description = "The service seam of the Toolbox GUI: a trait whose real implement
 
 [dependencies]
 nvmod-api = { workspace = true }
+nvmod-loadorder = { workspace = true }
 nvmod-backup = { workspace = true }
 nvmod-core = { workspace = true }
 nvmod-instance = { workspace = true }

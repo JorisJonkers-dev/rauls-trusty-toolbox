@@ -653,6 +653,7 @@ fn sort_document(output: &nvmod_api::loadorder::SortOutput) -> serde_json::Value
     serde_json::json!({
         "profile": proposal.profile,
         "reordered": proposal.reordered(),
+        "times_stale": nvmod_loadorder::times_stale(&proposal.data, &proposal.current),
         "positions": { "changed": proposal.positions_changed(), "total": proposal.proposed.len() },
         "order": order,
         "general_messages": found.general_messages.iter()

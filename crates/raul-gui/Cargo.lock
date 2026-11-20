@@ -4399,6 +4399,7 @@ dependencies = [
  "nvmod-backup",
  "nvmod-core",
  "nvmod-instance",
+ "nvmod-loadorder",
  "nvmod-testkit",
  "nvmod-tools",
  "raul-cli",
