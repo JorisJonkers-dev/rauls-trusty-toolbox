@@ -11,8 +11,8 @@ use raul_core::context::Context;
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::mods::{
-    DISABLE, DISABLED_STATUS, ENABLE, ENABLED_STATUS, GENERATED_NOTE, MOVE_UP, MOVED_STATUS,
-    REGENERATE, REMOVE, REMOVE_ACTION, REMOVED_STATUS, TAG_GENERATED,
+    DELETE, DELETE_ACTION, DISABLE, DISABLED_STATUS, ENABLE, ENABLED_STATUS, GENERATED_NOTE,
+    MOVE_UP, MOVED_STATUS, REGENERATE, REMOVE, REMOVE_ACTION, REMOVED_STATUS, TAG_GENERATED,
 };
 use raul_gui::shell::App;
 use raul_ui_model::pages::{PageId, View};
@@ -218,4 +218,16 @@ fn the_page_lists_changes_and_removes_mods_and_leaves_the_generated_lod_mod_to_t
         h.query_by_label("2 Mods, 2 enabled").is_some(),
         "the list is read again"
     );
+
+    // Delete on the generated LOD Mod asks once, then takes it out the same way (issue 417).
+    h.get_by_label(LOD).click();
+    h.run_steps(4);
+    h.get_by_label(DELETE).click();
+    h.run_steps(4);
+    assert!(h.state().dialogs().is_open(), "Delete asks first");
+    h.get_all_by_label(DELETE_ACTION).last().unwrap().click();
+    settle(&mut h);
+    assert_eq!(status(&mut h).as_deref(), Some(REMOVED_STATUS));
+    assert_eq!(f.modlist(), ["+Beta".to_owned()]);
+    assert!(!f.path(&format!("storage/instance/mods/{LOD}")).exists());
 }
