@@ -73,6 +73,17 @@ of the window.
   Installers hold no `components/nv-rs` folder and no `FILES.sha256`, and the release smoke test fails if one appears.
   ADR-0017's standalone nv-rs package stays for people who run the engine without `raul`.
 
+## Folders as a value, not the environment
+
+Several runs share one process (the window's jobs, a test), so a run cannot get its own configuration folder from an
+environment variable: the variable is shared by every thread and `unsafe_code` is forbidden. `raul_core::context::Context`
+carries the configuration folder (and whether nvmod's run log is written) from the entry point down: `raul_cli::run_in`
+takes it, `InProcessExec` and the window's `Jobs` hold one, and the typed jobs that read `raul config` take it. The
+default is the person's own folders, so the command line is unchanged. A state folder of its own needs a path in nvmod's
+run log, so a context that must not touch the real one writes no run log. Tests give each fixture a context instead of
+starting the built `raul` with `RAUL_CONFIG_DIR` and `NVMOD_STATE_DIR`; the service has no implementation that starts
+a process any more.
+
 ## What changes
 
 - `raul-runner` and the rule "only `raul-runner` may start a process" (ADR-0007) narrow to the game launcher and any

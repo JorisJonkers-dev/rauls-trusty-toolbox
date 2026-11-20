@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! Running the `raul` command line in this process.
 //!
-//! [`InProcessExec`] calls the command line's own entry point instead of starting a program, so a test, or a build
-//! with no `raul` binary beside it, can drive exactly the commands the GUI drives. It is the cheap counterpart of
-//! [`ProcessExec`](crate::exec::ProcessExec): no process and no process group, so a stop reaches the command only
-//! where the command itself looks at the cancel flag.
+//! [`InProcessExec`] calls the command line's own entry point instead of starting a program, so the window, a test, or a
+//! build with no `raul` binary beside it, drive exactly the commands the command line has (ADR-0016). There is no process
+//! and no process group, so a stop reaches the command only where the command itself looks at the cancel flag.
 
 use crate::exec::{CancelHandle, Exec, Output};
+use raul_core::context::Context;
 use std::io::Write;
 use std::sync::{Mutex, PoisonError, mpsc};
 use std::time::Duration;
@@ -18,13 +18,53 @@ const TICK: Duration = Duration::from_millis(50);
 const STOPPED: &str = "the command was stopped";
 
 /// Runs `raul` in this process, by calling the command line's own entry point.
-#[derive(Debug, Clone, Copy, Default)]
-pub struct InProcessExec;
+#[derive(Debug, Clone, Default)]
+pub struct InProcessExec {
+    context: Context,
+    replaced: Vec<(String, Vec<String>)>,
+}
 
 impl InProcessExec {
-    /// An exec that runs the command line in this process.
+    /// An exec that runs the command line in this process, with the person's own folders.
     pub fn new() -> Self {
-        Self
+        Self::default()
+    }
+
+    /// An exec whose commands use the folders and switches of `context` instead of the person's own: how a test keeps
+    /// a run away from the real configuration without setting an environment variable of the process.
+    pub fn with_context(context: Context) -> Self {
+        Self {
+            context,
+            replaced: Vec::new(),
+        }
+    }
+
+    /// Pass `with` in place of every `argument` of the command line, how
+    /// a test hands a file where a page asks for the pinned masterlist (`--fetch-masterlist`), so nothing is fetched.
+    #[must_use]
+    pub fn with_argument_replaced(mut self, argument: &str, with: &[&str]) -> Self {
+        self.replaced.push((
+            argument.to_owned(),
+            with.iter().map(|w| (*w).to_owned()).collect(),
+        ));
+        self
+    }
+
+    /// The command line as it is run: `args` with the replacements made.
+    fn arguments(&self, args: &[String]) -> Vec<String> {
+        args.iter()
+            .flat_map(|a| {
+                self.replaced
+                    .iter()
+                    .find(|(from, _)| from == a)
+                    .map_or_else(|| vec![a.clone()], |(_, to)| to.clone())
+            })
+            .collect()
+    }
+
+    /// The context its commands run in.
+    pub fn context(&self) -> &Context {
+        &self.context
     }
 }
 
@@ -46,9 +86,10 @@ impl Exec for InProcessExec {
         args: &[String],
         on_line: &mut dyn FnMut(&str),
     ) -> Result<Output, String> {
+        let args = self.arguments(args);
         let mut out = Lines::new(on_line);
         let mut err = Vec::new();
-        let code = guarded(|| raul_cli::run(args, &mut out, &mut err))?;
+        let code = guarded(|| raul_cli::run_in(&self.context, &args, &mut out, &mut err))?;
         out.finish();
         Ok(Output {
             code: Some(i64::from(code)),
@@ -71,6 +112,8 @@ impl Exec for InProcessExec {
         on_line: &mut dyn FnMut(&str),
         cancel: &CancelHandle,
     ) -> Result<Output, String> {
+        let args = self.arguments(args);
+        let args = args.as_slice();
         let _active = Active::enter();
         let mut asked = false;
         let (tx, rx) = mpsc::channel();
@@ -83,7 +126,7 @@ impl Exec for InProcessExec {
                     err: false,
                 };
                 let mut err = Channel { tx, err: true };
-                guarded(|| raul_cli::run(args, &mut out, &mut err))
+                guarded(|| raul_cli::run_in(&self.context, args, &mut out, &mut err))
             });
             loop {
                 if cancel.is_requested() {

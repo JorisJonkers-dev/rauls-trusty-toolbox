@@ -1773,7 +1773,11 @@ mod tests {
     fn find_it_for_me_shows_the_package_it_found_and_use_this_file_saves_it() {
         use egui_kittest::kittest::Queryable;
         let (downloads, exec) = fake_downloads("found");
-        let file = format!("{}/unpacked/TTW_3.4.0.mpi", downloads.display());
+        let file = downloads
+            .join("unpacked")
+            .join("TTW_3.4.0.mpi")
+            .display()
+            .to_string();
         let mut h = harness(
             Fixture {
                 page: Box::new(
@@ -1825,7 +1829,11 @@ mod tests {
     fn a_refused_save_says_so_and_does_not_use_the_file() {
         use egui_kittest::kittest::Queryable;
         let (downloads, _) = fake_downloads("refused");
-        let file = format!("{}/unpacked/TTW_3.4.0.mpi", downloads.display());
+        let file = downloads
+            .join("unpacked")
+            .join("TTW_3.4.0.mpi")
+            .display()
+            .to_string();
         let exec = std::sync::Arc::new(Refusing::default());
         let mut h = harness(
             Fixture {
