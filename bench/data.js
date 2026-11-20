@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795184885761,
+  "lastUpdate": 1795185474063,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6761,6 +6761,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.166579,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "52ca49e8083c34578d1eff2219e54cb03eed0078",
+          "message": "test(gui): cover the Stop command, its button and how a failed Stop is shown (#411)\n\nThe changed-line gate failed on main after #407: the stop command in the Home model and the Stop job and button in the page ran in no test.",
+          "timestamp": "2026-11-20T14:35:53Z",
+          "tree_id": "d2c33f3d3f071ec033e3cbd3bc6195d1c7d829b0",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/52ca49e8083c34578d1eff2219e54cb03eed0078"
+        },
+        "date": 1795185472839,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.487258,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.759035,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 32.125780999999996,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.268952,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.739902,
             "unit": "ms"
           }
         ]
