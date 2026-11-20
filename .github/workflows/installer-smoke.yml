@@ -80,7 +80,7 @@ jobs:
         run: |
           set -uo pipefail
           mkdir -p diag
-          setup="$(ls target/packages/*.setup.exe)"
+          setup="$(ls target/packages/*setup.exe)"
           dest="$(cygpath -w "$RUNNER_TEMP/installed")"
           started=$(date +%s)
           "$setup" /S /D="$dest" > diag/installer-output.txt 2>&1 < /dev/null &
