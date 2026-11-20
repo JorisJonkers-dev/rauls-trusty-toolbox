@@ -931,23 +931,6 @@ pub fn target(request: &nvmod_api::target::SetRequest) -> DirectJob {
     )
 }
 
-/// The request of `raul target <vanilla|nv-rs> --instance <dir>` from the words after `target`.
-fn target_request(rest: &[String]) -> Result<nvmod_api::target::SetRequest, String> {
-    let target = match positional(rest, &["--instance"]) {
-        Some("vanilla") => nvmod_api::target::Target::Vanilla,
-        Some("nv-rs") => nvmod_api::target::Target::NvRs,
-        Some(other) => return Err(format!("target: `{other}` is not a target")),
-        None => return Err("target: give vanilla or nv-rs".to_owned()),
-    };
-    match value_of(rest, "--instance") {
-        "" => Err("target: give --instance".to_owned()),
-        instance => Ok(nvmod_api::target::SetRequest {
-            instance: PathBuf::from(instance),
-            target,
-        }),
-    }
-}
-
 /// The exit class of a job's error kind: the code the command line would have ended with, except that an
 /// `internal` error (a bug, never a property of the input) stays [`ExitClass::Internal`] instead of being folded into
 /// "a step failed and was put back", so the page does not offer a retry that cannot help.
