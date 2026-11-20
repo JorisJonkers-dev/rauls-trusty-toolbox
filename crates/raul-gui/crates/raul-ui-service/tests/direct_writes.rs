@@ -215,12 +215,15 @@ fn target_set_as_a_direct_job_writes_the_instance_file() {
 
 #[test]
 fn the_setup_wizards_target_command_is_the_direct_target_job() {
-    // The words the wizard's last step passes to the registry command `target-nv-rs`: `--instance <dir>`.
+    // The words the wizard's last engine step passes: `target nv-rs --instance <dir>` after the command word.
     let words = |w: &[&str]| w.iter().map(|x| (*x).to_owned()).collect::<Vec<_>>();
     let inst = Instance::new();
     assert_eq!(instance_record(&inst)["target"], "vanilla");
-    let job = direct::for_command("target-nv-rs", &words(&["--instance", &s(&inst.root())]))
-        .expect("target is a direct job");
+    let job = direct::for_command(
+        "target-nv-rs",
+        &words(&["nv-rs", "--instance", &s(&inst.root())]),
+    )
+    .expect("target is a direct job");
     let spec = JobSpec::new(JobId(5), Action::Target, Vec::new()).writing();
     let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
     assert_eq!(out.code, Some(0), "{out:?}");
@@ -228,9 +231,10 @@ fn the_setup_wizards_target_command_is_the_direct_target_job() {
 
     // No Instance is a usage error that writes nothing.
     let before = instance_record(&inst);
-    let job = direct::for_command("target-nv-rs", &[]).unwrap();
+    let rest = words(&["nv-rs"]);
+    let job = direct::for_command("target-nv-rs", &rest).unwrap();
     let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
-    assert_eq!(out.code, Some(5), "{out:?}");
+    assert_eq!(out.code, Some(5), "{rest:?}: {out:?}");
     assert_eq!(instance_record(&inst), before);
 }
 
