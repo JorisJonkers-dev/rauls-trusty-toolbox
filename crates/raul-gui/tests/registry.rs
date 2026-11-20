@@ -150,6 +150,8 @@ fn expected(command: &Command) -> i32 {
         // TTW and a run: no folder, and no engine installed in the fixture, so even a dry run is refused. The engine
         // install finds no packaged engine next to the test program.
         // The fixture's Instance has its default profile already: a second one is refused.
+        // `run --stop` only asks for a stop, so it succeeds with nothing running.
+        Action::Run if command.words.first() == Some(&"--stop") => 0,
         Action::InstallNvRs | Action::Ttw | Action::Run | Action::Profile => 2,
         // lodwright is linked in: the fixture's plugin defines no worldspace with terrain, so the generation fails.
         Action::Lod if command.words.first() == Some(&"generate") => 4,

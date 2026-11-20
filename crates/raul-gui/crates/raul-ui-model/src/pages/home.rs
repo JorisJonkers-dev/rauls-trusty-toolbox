@@ -272,6 +272,12 @@ pub fn run_command(instance: &str) -> Command {
     Command::write("run", 1, &["run", "nv-rs", "--instance", instance])
 }
 
+/// `raul run --stop --instance <dir>`: asks the running game to stop between two frames. It writes nothing in the
+/// Instance, so it does not take the Instance lock the running game holds.
+pub fn stop_command(instance: &str) -> Command {
+    Command::read("run-stop", 2, &["run", "--stop", "--instance", instance])
+}
+
 /// `raul plugins list`: Home asks it to know whether the load order is valid.
 pub fn load_order_command(instance: &str) -> Command {
     load_order::list_command(instance)
@@ -485,6 +491,14 @@ impl State {
             .ready()
             .and_then(|c| c.get(Key::Instance))
             .map(run_command)
+    }
+
+    /// The command Stop runs, once the Instance is known.
+    pub fn stop_command(&self) -> Option<Command> {
+        self.config
+            .ready()
+            .and_then(|c| c.get(Key::Instance))
+            .map(stop_command)
     }
 
     /// Whether Play can start the game now: readiness holds in full, nothing blocks and no launch runs. Play

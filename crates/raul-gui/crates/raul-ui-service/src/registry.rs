@@ -572,6 +572,15 @@ pub const COMMANDS: &[Command] = &[
         awaits: None,
     },
     Command {
+        id: "run-stop",
+        action: Action::Run,
+        // `run --stop`: asks the running game to stop; it creates a file in the run folder and holds no lock.
+        words: &["--stop"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
         id: "ttw",
         action: Action::Ttw,
         words: &[],
