@@ -4322,6 +4322,7 @@ dependencies = [
  "nvmod-cli",
  "nvmod-core",
  "nvmod-instance",
+ "nvmod-run",
  "raul-bench",
  "raul-core",
  "raul-drivers",

@@ -81,8 +81,10 @@ impl Launcher for PlayLauncher<'_> {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(format!("the old stop request could not be cleared: {e}")),
         }
-        play.env
-            .insert(STOP_FILE_ENV.to_owned(), stop.to_string_lossy().into_owned());
+        play.env.insert(
+            STOP_FILE_ENV.to_owned(),
+            stop.to_string_lossy().into_owned(),
+        );
         self.inner.start(&play, attached)
     }
 }

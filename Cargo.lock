@@ -1744,6 +1744,7 @@ dependencies = [
  "nvmod-cli",
  "nvmod-core",
  "nvmod-instance",
+ "nvmod-run",
  "nvmod-testkit",
  "raul-bench",
  "raul-core",
