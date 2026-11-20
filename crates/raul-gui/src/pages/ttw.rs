@@ -56,9 +56,9 @@ crate::texts!(TEXTS {
     FROM_INSTANCE = "From the Instance";
     NEW_VEGAS_DEFAULT = "The Instance's own copy";
     CHANGE = "Change in Settings";
-    MISSING_BOTH = "To continue, set the Fallout 3 folder in Settings, and add the TTW package below.";
+    MISSING_BOTH = "To continue, set the Fallout 3 folder in Settings, and set the TTW package in Settings.";
     MISSING_FALLOUT3 = "To continue, set the Fallout 3 folder in Settings.";
-    MISSING_PACKAGE = "To continue, add the TTW package below.";
+    MISSING_PACKAGE = "To continue, set the TTW package in Settings.";
     SECTION_PACKAGE = "The TTW package";
     PACKAGE_WHAT = "Download the Tale of Two Wastelands installer package from the TTW website. Its file name starts with TTW_ and ends in .mpi. If what you downloaded ends in .7z, unpack it first.";
     OPEN_DOWNLOAD = "Open the download page";
@@ -132,6 +132,10 @@ crate::errors!(ERRORS {
     CHECK_FAILED = (
         "The checks did not pass",
         "Nothing changed. Fix what the line below names, then check again."
+    );
+    UNSUPPORTED_PACKAGE = (
+        "This version of the Toolbox cannot install this TTW version yet",
+        "Nothing changed, and nothing here is yours to fix. Use another TTW package, or wait for a newer Toolbox."
     );
     INSTALL_FAILED = (
         "TTW was not installed",
@@ -526,7 +530,8 @@ impl Ttw {
                 Job::Check => match report_of(&result) {
                     Ok(r) => {
                         let cause = r.message.clone().unwrap_or_default();
-                        self.state.checked(r, problem(&CHECK_FAILED, cause))
+                        let e = failure_of(r.status, &CHECK_FAILED);
+                        self.state.checked(r, problem(e, cause))
                     }
                     Err(why) => self.state.check_failed(problem(&CHECK_FAILED, why)),
                 },
@@ -536,7 +541,7 @@ impl Ttw {
                         Ok(r) => {
                             let e = match r.status {
                                 Status::Cancelled => &INSTALL_CANCELLED,
-                                _ => &INSTALL_FAILED,
+                                status => failure_of(status, &INSTALL_FAILED),
                             };
                             let cause = r.message.clone().unwrap_or_default();
                             if r.status == Status::Success {
@@ -610,7 +615,12 @@ impl Ttw {
             .copied()
             .unwrap_or(INSTALL_FAILED);
         let said = (!p.cause.is_empty()).then_some(p.cause.as_str());
-        error_block(ui, t, &e, said);
+        if e.id == UNSUPPORTED_PACKAGE.id {
+            // The raw line is for "Copy details" only: nothing in it is for the player to act on.
+            shell::error_widget_copying(ui, t, e.detail, e.what, "", said.unwrap_or_default());
+        } else {
+            error_block(ui, t, &e, said);
+        }
         ui.add_space(12.0);
     }
 
@@ -998,6 +1008,15 @@ impl Page for Ttw {
             .replace("{name}", step_name(s.step))
     }
 
+    fn pinned(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
+        // The step tabs stay under the page header when the content scrolls.
+        if self.state.instance.is_some() && self.state.sources.ready().is_some() {
+            let installed = self.state.outcome() == Some(Outcome::Completed);
+            steps(ui, cx.tokens, self.state.step, installed);
+            ui.add_space(14.0);
+        }
+    }
+
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
         let back = self.visits.returned(ui.ctx());
@@ -1047,9 +1066,6 @@ impl Page for Ttw {
             }
             Fetch::Ready(s) => s.clone(),
         };
-        let installed = self.state.outcome() == Some(Outcome::Completed);
-        steps(ui, &t, self.state.step, installed);
-        ui.add_space(14.0);
         self.problem_block(ui, &t);
         match self.state.step {
             Step::Sources => self.sources(ui, &t, cx, &sources),
@@ -1361,6 +1377,16 @@ fn installing(done: u64, total: Option<u64>) -> State {
     s
 }
 
+/// The error a run that did not succeed shows: a package the Component refuses as unsupported has its own words,
+/// every other status shows `other`.
+fn failure_of(status: Status, other: &'static ErrorText) -> &'static ErrorText {
+    if status == Status::Unsupported {
+        &UNSUPPORTED_PACKAGE
+    } else {
+        other
+    }
+}
+
 fn problem(e: &ErrorText, cause: &str) -> Problem {
     Problem {
         id: e.id,
@@ -1406,8 +1432,8 @@ pub fn fixtures() -> Vec<Fixture> {
             ..Report::of(Status::Unsupported, true)
         },
         problem(
-            &CHECK_FAILED,
-            "the package version is not supported by this installer",
+            failure_of(Status::Unsupported, &CHECK_FAILED),
+            "ttwright does not support this TTW package; nothing was written (unsupported_feature): the manifest uses the audio parameter `audio_param:-c`",
         ),
     );
     let mut cancelling = installing(12, Some(48));
@@ -1518,6 +1544,37 @@ mod tests {
         assert_eq!(r.message.as_deref(), Some("stopped"));
         assert!(report_of(&Ok(output(0, "not a stream"))).is_err());
         assert_eq!(report_of(&Err("no raul".into())).unwrap_err(), "no raul");
+    }
+
+    #[test]
+    fn an_unsupported_package_says_the_toolbox_cannot_install_it_yet() {
+        use egui_kittest::kittest::Queryable;
+        assert_eq!(
+            failure_of(Status::Unsupported, &CHECK_FAILED).id,
+            UNSUPPORTED_PACKAGE.id
+        );
+        assert_eq!(
+            failure_of(Status::Failed, &INSTALL_FAILED).id,
+            INSTALL_FAILED.id
+        );
+        let page = fixtures()
+            .into_iter()
+            .find(|f| f.name == "check-failed")
+            .expect("the unsupported package fixture");
+        let mut h = harness(page, std::sync::Arc::new(Recording::default()));
+        h.run();
+        h.get_by_label(UNSUPPORTED_PACKAGE.what);
+        // The detail shows once, and the raw line stays off the screen.
+        assert_eq!(h.query_all_by_label(UNSUPPORTED_PACKAGE.detail).count(), 1);
+        assert!(h.query_by_label_contains("audio_param").is_none());
+    }
+
+    #[test]
+    fn the_sources_hints_point_to_the_settings_not_to_something_below() {
+        for text in [MISSING_BOTH, MISSING_PACKAGE] {
+            assert!(!text.contains("below"), "{text}");
+            assert!(text.contains("Settings"), "{text}");
+        }
     }
 
     #[test]
