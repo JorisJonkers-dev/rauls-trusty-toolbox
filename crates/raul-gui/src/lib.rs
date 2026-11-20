@@ -29,6 +29,19 @@ pub static SMOKE_FRAMES_DRAWN: std::sync::atomic::AtomicBool =
 /// The environment variable that makes the window close after its first frames: the headless smoke test.
 pub const SMOKE_ENV: &str = "RAUL_GUI_SMOKE";
 
+/// Makes `raul run` start the game in this binary's play mode when the build links the engine (ADR-0016). `main`
+/// calls it before anything else runs a command: the command line and the Play button, which runs `raul run` in
+/// process, both ask `raul_cli::play::enabled`.
+pub fn enable_play_mode() {
+    enable_play_mode_if(raul_engine::ENGINE_LINKED);
+}
+
+fn enable_play_mode_if(engine_linked: bool) {
+    if engine_linked {
+        raul_cli::play::enable();
+    }
+}
+
 /// Installs the fonts and the dark theme in `ctx`. They apply from the next frame, so a host calls this before the
 /// first one (eframe's creation closure, a test harness's context setup); [`shell::App`] does it itself otherwise.
 pub fn set_up(ctx: &eframe::egui::Context) {
@@ -88,5 +101,16 @@ pub fn open() -> ExitCode {
             eprintln!("raul: every command still works from a terminal; `raul help` lists them");
             ExitCode::from(raul_cli::FOUND)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn raul_run_uses_the_play_mode_only_once_a_build_that_links_the_engine_turns_it_on() {
+        super::enable_play_mode_if(false);
+        assert!(!raul_cli::play::enabled());
+        super::enable_play_mode_if(true);
+        assert!(raul_cli::play::enabled());
     }
 }
