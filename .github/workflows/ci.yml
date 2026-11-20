@@ -46,6 +46,10 @@ jobs:
         with:
           submodules: recursive
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: |
+            . -> target
+            crates/raul-gui -> target
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
       - name: Fetch Component tags
         shell: bash
@@ -59,6 +63,16 @@ jobs:
       - name: Doc tests
         if: ${{ !cancelled() }}
         run: cargo test --workspace --doc --locked
+      # The GUI workspace (crates/raul-gui) has its own lock file, so the steps above never see it; gui.yml runs it
+      # on Linux only and only when its paths change. Built and tested here on every pull request.
+      - name: GUI workspace lint
+        if: ${{ !cancelled() }}
+        working-directory: crates/raul-gui
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: GUI workspace tests
+        if: ${{ !cancelled() }}
+        working-directory: crates/raul-gui
+        run: mise exec -- cargo nextest run --workspace --locked
 
   # The GUI workspace (crates/raul-gui) has its own lock file; gui.yml runs it, as a reusable workflow so that
   # Pipeline Complete can wait for it and fail with it (#440).

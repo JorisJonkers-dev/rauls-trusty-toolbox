@@ -1001,7 +1001,17 @@ mod tests {
             }
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
-        h.run_steps(10);
+        // The answer arrives on a worker thread: wait for the page to show it rather than
+        // assuming a fixed number of frames is enough on a slow machine.
+        for _ in 0..200 {
+            h.run_steps(2);
+            if h.query_by_label(STOP_ASKED_STATUS).is_some()
+                || h.query_by_label(RUN_FAILED_PROBE).is_some()
+            {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
         let calls = exec.calls.lock().unwrap().clone();
         let asked = h.query_by_label(STOP_ASKED_STATUS).is_some();
         let failed = h.query_by_label(RUN_FAILED_PROBE).is_some();
