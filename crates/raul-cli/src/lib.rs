@@ -11,6 +11,7 @@ mod lod_settings;
 pub mod play;
 mod printer;
 mod setup;
+mod space;
 mod ttw;
 mod update;
 mod version;
@@ -33,6 +34,7 @@ pub const USAGE: u8 = nvmod_cli::USAGE;
 pub const OWN_COMMANDS: &[&str] = &[
     "version",
     "detect",
+    "space",
     "bench",
     "update",
     "config",
@@ -67,6 +69,8 @@ const HELP: &str = "raul: Raul's tRusty Toolbox
 usage:
   raul --version | raul version [--json]
                               the Toolbox version
+  raul space --folder <dir> [--json]
+                              the free space on the storage the folder is, or would be made, on
   raul detect [--folder <dir>] [--json]
                               find Fallout: New Vegas and Fallout 3 copies (Steam, GOG, Epic), or check one folder
   raul bench [--quick] [--out <dir>]
@@ -145,6 +149,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("--version" | "-V") => version::run(&[], out, err),
         Some("version") => version::run(&args[1..], out, err),
         Some("detect") => detect::run(&args[1..], out, err),
+        Some("space") => space::run(&args[1..], out, err),
         Some("bench") => bench::run(&args[1..], out, err),
         Some("update") => update::run(&args[1..], out, err),
         Some("config") => config::run(&args[1..], out, err),

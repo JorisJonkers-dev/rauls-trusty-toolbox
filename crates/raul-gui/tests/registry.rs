@@ -104,7 +104,7 @@ impl Fixture {
             }
             (Action::Sort, _) => vec!["--instance", &instance, "--masterlist", "MASTERLIST"],
             (Action::Ttw, _) => vec!["--instance", &instance, "--dry-run"],
-            (Action::Detect, _) => vec!["--folder", "BASE"],
+            (Action::Detect | Action::Space, _) => vec!["--folder", "BASE"],
             // The default profile of an Instance that already has one: nothing changes.
             (Action::Profile, _) => vec!["--name", "Default", "--instance", &instance],
             // A dry run: the launch plan is printed and nothing is started.

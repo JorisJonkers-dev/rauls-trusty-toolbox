@@ -8,4 +8,5 @@ pub mod instance_lock;
 pub mod journal;
 pub mod selfupdate;
 pub mod setup;
+pub mod space;
 pub mod update;
