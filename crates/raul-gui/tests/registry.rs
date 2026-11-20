@@ -89,7 +89,7 @@ impl Fixture {
                 vec!["output.trees", "false", "--instance", &instance]
             }
             (Action::Lod, ["settings", "unset"]) => vec!["output.water", "--instance", &instance],
-            (Action::InstallNvRs, _) => {
+            (Action::Target, _) => {
                 vec!["--instance", &instance]
             }
             (Action::Init, _) => vec!["--base", "BASE", "--instance", "NEW"],
@@ -142,17 +142,16 @@ fn understood(line: &str, (code, out, err): &(i32, String, String), json: bool) 
     }
 }
 
-/// The exit code each command gives on the fixture: the engine install finds no engine packaged next to the test program and is refused (2), TTW
-/// with no Fallout 3 folder is refused (2), LOD generation in the fixture, whose game master has no terrain, fails in lodwright (4), verify finds no engine (3), a run with no engine is refused (2),
+/// The exit code each command gives on the fixture: TTW with no Fallout 3 folder is refused (2), LOD generation in the
+/// fixture, whose game master has no terrain, fails in lodwright (4), a run with no engine program to start is refused (2),
 /// the Doctor finds the fixture's missing pieces (1), the rest succeed; the rollback undoes the sort that ran before it.
 fn expected(command: &Command) -> i32 {
     match command.action {
-        // TTW and a run: no folder, and no engine installed in the fixture, so even a dry run is refused. The engine
-        // install finds no packaged engine next to the test program.
+        // TTW and a run: no folder, and no engine program to start in the fixture, so even a dry run is refused.
         // The fixture's Instance has its default profile already: a second one is refused.
         // `run --stop` only asks for a stop, so it succeeds with nothing running.
         Action::Run if command.words.first() == Some(&"--stop") => 0,
-        Action::InstallNvRs | Action::Ttw | Action::Run | Action::Profile => 2,
+        Action::Ttw | Action::Run | Action::Profile => 2,
         // lodwright is linked in: the fixture's plugin defines no worldspace with terrain, so the generation fails.
         Action::Lod if command.words.first() == Some(&"generate") => 4,
         Action::Doctor => 1,

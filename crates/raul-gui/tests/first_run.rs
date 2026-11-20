@@ -13,7 +13,7 @@ use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, write_file};
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::load_order::SORT;
-use raul_gui::pages::setup::{INSTALL, NEXT};
+use raul_gui::pages::setup::{NEXT, SET_UP_INSTANCE};
 use raul_gui::shell::App;
 use raul_ui_service::{Exec, ProcessExec};
 use std::path::PathBuf;
@@ -117,12 +117,12 @@ fn first_run_sorts_the_load_order_with_no_profile_action() {
         "the wizard is open"
     );
 
-    // New Vegas folder, TTW, Engine: Install makes the Instance and its default profile, then the engine.
+    // New Vegas folder, TTW, Instance: Set up makes the Instance and its default profile, then points it at the engine.
     for _ in 0..2 {
         h.get_by_label(NEXT).click();
         settle(&mut h);
     }
-    h.get_by_label(INSTALL).click();
+    h.get_by_label(SET_UP_INSTANCE).click();
     settle(&mut h);
     for _ in 0..200 {
         if f.instance().join("profiles/Default/modlist.txt").is_file() {
@@ -135,8 +135,8 @@ fn first_run_sorts_the_load_order_with_no_profile_action() {
     assert!(list.is_file(), "setup left a working default profile");
     settle(&mut h);
 
-    // The engine itself comes from a release on the network, so the wizard is left here: the Instance and its
-    // default profile are what the pages need, and Home is where Open the Toolbox goes.
+    // The wizard is left here: the Instance and its default profile are what the pages need, and Home is where
+    // Open the Toolbox goes.
     h.state_mut().open(raul_ui_model::pages::View::Page(
         raul_ui_model::pages::PageId::Home,
     ));

@@ -162,7 +162,7 @@ impl App {
             .inner_margin(egui::Margin::symmetric(if narrow { 14 } else { 20 }, 8));
         egui::Panel::top("top")
             .frame(bar)
-            .show(ui, |ui| self.top_bar(ui, narrow));
+            .show(ui, |ui| self.top_bar(ui));
         egui::Panel::bottom("foot")
             .frame(bar.inner_margin(egui::Margin::symmetric(20, 6)))
             .show(ui, |ui| self.footer(ui));
@@ -282,7 +282,7 @@ impl App {
         }
     }
 
-    fn top_bar(&mut self, ui: &mut egui::Ui, narrow: bool) {
+    fn top_bar(&mut self, ui: &mut egui::Ui) {
         let t = self.tokens;
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing.x = 12.0;
@@ -294,13 +294,6 @@ impl App {
             let nv = self.shell.new_vegas.clone();
             if setup_entry(ui, &t, msg::NEW_VEGAS, nv.as_deref()).clicked() {
                 self.view = View::Page(PageId::Settings);
-            }
-            if !narrow {
-                ui.add(egui::Separator::default().vertical().spacing(4.0));
-            }
-            let engine = self.shell.engine.clone();
-            if setup_entry(ui, &t, msg::ENGINE, engine.as_deref()).clicked() {
-                self.view = View::Flow(raul_ui_model::pages::Flow::Setup);
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let blocked = self.play_block();

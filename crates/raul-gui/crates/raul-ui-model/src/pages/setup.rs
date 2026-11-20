@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The toolkit-free state of the setup wizard (UI-RULES P2): New Vegas folder, TTW, Engine, Quick check, Ready.
+//! The toolkit-free state of the setup wizard (UI-RULES P2): New Vegas folder, TTW, Instance, Quick check, Ready.
 //!
 //! The wizard writes nothing to a game folder. It saves the paths with `raul config set`, makes the Instance with
-//! `raul init` in the storage folder when there is none, puts the engine that ships with raul there with `raul install-nv-rs`
-//! (nothing is downloaded) and runs the read-only `raul doctor`. It can be skipped, and run again from Settings. TTW itself is
+//! `raul init` in the storage folder when there is none, points it at the engine built into raul with
+//! `raul target nv-rs` (there is nothing to install or download) and runs the read-only `raul doctor`. It can be skipped, and run again from Settings. TTW itself is
 //! set up in its own flow; the wizard only asks whether it is wanted and for the Fallout 3 folder.
 
 use super::settings::{Command, Config, Fetch, Field, Key, Save};
@@ -17,8 +17,8 @@ pub enum Step {
     NewVegas,
     /// Whether TTW is wanted, and the Fallout 3 folder if so.
     Ttw,
-    /// The engine install.
-    Engine,
+    /// The Instance: made when there is none, and pointed at the engine built into raul.
+    Instance,
     /// The read-only checks.
     Check,
     /// What was set up.
@@ -30,7 +30,7 @@ impl Step {
     pub const ALL: [Step; 5] = [
         Step::NewVegas,
         Step::Ttw,
-        Step::Engine,
+        Step::Instance,
         Step::Check,
         Step::Ready,
     ];
@@ -49,48 +49,28 @@ impl Step {
     }
 }
 
-/// `raul install-nv-rs --instance <dir>`: puts the engine that ships with raul in the Instance, checked against its
-/// checksums, and runs its check. It fetches nothing (#179): there is no release and no address in it.
-pub fn install_command(instance: &str) -> Command {
+/// `raul target nv-rs --instance <dir>`: makes the Instance run on the engine that is built into raul. Nothing is
+/// installed or downloaded; the engine's capabilities are written for the Doctor.
+pub fn target_command(instance: &str) -> Command {
     Command::write(
-        "install-nv-rs",
-        1,
-        &["install-nv-rs", "--instance", instance],
+        "target-nv-rs",
+        2,
+        &["target", "nv-rs", "--instance", instance],
     )
 }
 
-/// What the person reads when the engine step failed, from the last line the command wrote: the command's own prefix
-/// (its name and the kind of failure) is dropped, so the words are plain (UI-RULES: no commands, no tool names).
-pub fn engine_failure(line: &str) -> String {
-    let mut rest = line.trim();
-    if let Some(after) = rest.strip_prefix("raul install-nv-rs:") {
-        rest = after.trim_start();
-        for kind in [
-            "refused:",
-            "verification failed:",
-            "failed and was rolled back:",
-        ] {
-            if let Some(after) = rest.strip_prefix(kind) {
-                rest = after.trim_start();
-                break;
-            }
-        }
-    }
-    rest.to_owned()
-}
-
-/// Where the engine install of the wizard is.
+/// Where the Instance step of the wizard is.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum EngineStep {
+pub enum InstanceStep {
     /// Not started.
     #[default]
     Idle,
     /// `raul init` makes the Instance.
     Initialising,
-    /// `raul install-nv-rs` runs.
-    Installing,
-    /// The engine is in the Instance and passed its check.
-    Installed,
+    /// `raul target nv-rs` runs.
+    Targeting,
+    /// The Instance is made and runs on the engine built into raul.
+    Made,
     /// A step failed; what it said. Nothing in the game folder changed.
     Failed(String),
 }
@@ -104,8 +84,8 @@ pub enum Missing {
     Storage,
     /// A path is being saved.
     Saving,
-    /// The engine is not installed.
-    Engine,
+    /// The Instance is not made yet.
+    Instance,
     /// The checks still run.
     Checks,
 }
@@ -261,8 +241,8 @@ pub struct State {
     pub found: Option<Option<String>>,
     /// Why Find failed, when it did.
     pub find_failed: Option<String>,
-    /// The engine install.
-    pub engine: EngineStep,
+    /// The Instance step.
+    pub instance_step: InstanceStep,
     /// The checks.
     pub checks: Fetch<Checks>,
 }
@@ -279,7 +259,7 @@ impl Default for State {
             advancing: false,
             found: None,
             find_failed: None,
-            engine: EngineStep::Idle,
+            instance_step: InstanceStep::Idle,
             checks: Fetch::Idle,
         }
     }
@@ -366,7 +346,7 @@ impl State {
         match self.step {
             Step::NewVegas if !ready(&self.game) => Some(Missing::Game),
             Step::NewVegas if !ready(&self.storage) => Some(Missing::Storage),
-            Step::Engine if self.engine != EngineStep::Installed => Some(Missing::Engine),
+            Step::Instance if self.instance_step != InstanceStep::Made => Some(Missing::Instance),
             Step::Check if self.checks.is_pending() => Some(Missing::Checks),
             _ => None,
         }
@@ -398,7 +378,7 @@ impl State {
         }
     }
 
-    /// Goes back a step; the Engine and Check steps keep what they did.
+    /// Goes back a step; the Instance and Check steps keep what they did.
     pub fn back(&mut self) {
         if let Some(previous) = self.step.previous() {
             self.step = previous;
@@ -418,36 +398,6 @@ impl State {
 mod tests {
     use super::*;
 
-    #[test]
-    fn the_engine_install_names_no_release_and_no_address() {
-        let c = install_command("/i");
-        let shown = c.shown();
-        assert_eq!(shown, "raul install-nv-rs --instance /i");
-        for word in ["--release", "http", "download", "fetch"] {
-            assert!(!shown.contains(word), "{word}: {shown}");
-        }
-    }
-
-    #[test]
-    fn a_failed_engine_step_reads_without_the_commands_prefix() {
-        for (line, plain) in [
-            (
-                "raul install-nv-rs: refused: This copy of raul does not come with the game engine.",
-                "This copy of raul does not come with the game engine.",
-            ),
-            (
-                "raul install-nv-rs: failed and was rolled back: the check did not pass",
-                "the check did not pass",
-            ),
-            (
-                "raul install-nv-rs: verification failed: it is damaged",
-                "it is damaged",
-            ),
-            ("something else", "something else"),
-        ] {
-            assert_eq!(engine_failure(line), plain);
-        }
-    }
     use crate::pages::settings::Answer;
 
     fn saved(state: &mut State, key: Key, value: &str) {
@@ -457,14 +407,15 @@ mod tests {
     }
 
     #[test]
-    fn the_engine_install_command_names_the_instance_and_no_release() {
-        let c = install_command("/storage/instance");
-        assert_eq!(c.id, "install-nv-rs");
+    fn the_target_command_names_the_instance_and_installs_nothing() {
+        let c = target_command("/storage/instance");
+        assert_eq!(c.id, "target-nv-rs");
         assert!(c.writes);
         assert_eq!(
             c.words,
-            ["install-nv-rs", "--instance", "/storage/instance"]
+            ["target", "nv-rs", "--instance", "/storage/instance"]
         );
+        assert_eq!(c.rest(), ["--instance", "/storage/instance"]);
     }
 
     #[test]
@@ -473,7 +424,7 @@ mod tests {
         assert_eq!(Step::Ready.number(), 5);
         assert_eq!(Step::Ready.next(), None);
         assert_eq!(Step::NewVegas.previous(), None);
-        assert_eq!(Step::Check.previous(), Some(Step::Engine));
+        assert_eq!(Step::Check.previous(), Some(Step::Instance));
     }
 
     #[test]
@@ -527,17 +478,17 @@ mod tests {
         assert_eq!(s.step_fields(), [Key::Fallout3]);
         assert_eq!(s.missing(), None, "the Fallout 3 folder can be set later");
         assert!(s.advance());
-        assert_eq!(s.step, Step::Engine);
+        assert_eq!(s.step, Step::Instance);
     }
 
     #[test]
-    fn the_engine_and_the_checks_hold_next() {
+    fn the_instance_and_the_checks_hold_next() {
         let mut s = State {
-            step: Step::Engine,
+            step: Step::Instance,
             ..State::default()
         };
-        assert_eq!(s.missing(), Some(Missing::Engine));
-        s.engine = EngineStep::Installed;
+        assert_eq!(s.missing(), Some(Missing::Instance));
+        s.instance_step = InstanceStep::Made;
         assert!(s.advance());
         assert_eq!(s.missing(), Some(Missing::Checks));
         s.checks = Fetch::Failed("could not run".into());

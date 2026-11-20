@@ -1,101 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The toolkit-free state of Home: readiness, what needs attention, and the launch panel (UI-RULES G2, G3).
 //!
-//! Home owns no data (UI-RULES P3): it reads the paths of Settings and the engine and shows them, each
+//! Home owns no data (UI-RULES P3): it reads the paths of Settings and shows them, each
 //! row one click from the page that fixes it. Play is blocked only for a blocking problem, and the reason says
 //! which. Play runs `raul run nv-rs`.
 //!
 //! [`State::readiness`] is the one definition of "ready to play": the game folder is found, the storage folder is
-//! set, the Instance folder exists, the engine is installed and matches its install record, and the load order is
-//! valid. Nothing that Home has not read counts as read: while a read is on its way Home is checking, and when a
+//! set, the Instance folder exists, and the load order is valid. The engine is linked into `raul` (ADR-0016), so there
+//! is nothing of it to install or check. Nothing that Home has not read counts as read: while a read is on its way Home is checking, and when a
 //! read cannot be asked for at all it has stopped checking and names what is missing.
 
 use super::load_order;
 use super::settings::{Command, Config, Fetch, Key};
 use super::{PageId, Severity, View};
-use serde::Deserialize;
-
-/// The installed nv-rs, as `raul verify` sees it.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Engine {
-    /// Whether an nv-rs is installed in the Instance.
-    pub installed: bool,
-    /// Whether it is still the file its install record names.
-    pub verified: bool,
-    /// What `raul verify` said, for the detail line.
-    pub message: String,
-}
-
-/// How the engine stands.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum EngineStatus {
-    /// Installed and matching its record: the active build.
-    Active,
-    /// Installed, but the program differs from its record.
-    Differs,
-    /// Not installed.
-    Missing,
-}
-
-impl Engine {
-    /// No nv-rs: the Instance does not exist yet, or holds none.
-    pub fn missing() -> Engine {
-        Engine {
-            installed: false,
-            verified: false,
-            message: String::new(),
-        }
-    }
-
-    /// An installed nv-rs that matches its record.
-    pub fn active() -> Engine {
-        Engine {
-            installed: true,
-            verified: true,
-            message: String::new(),
-        }
-    }
-
-    /// How it stands.
-    pub fn status(&self) -> EngineStatus {
-        match (self.installed, self.verified) {
-            (false, _) => EngineStatus::Missing,
-            (true, true) => EngineStatus::Active,
-            (true, false) => EngineStatus::Differs,
-        }
-    }
-}
-
-#[derive(Deserialize)]
-struct VerifyDoc {
-    nv_rs: VerifyNvRs,
-}
-
-#[derive(Deserialize)]
-struct VerifyNvRs {
-    installed: bool,
-    verified: bool,
-    message: String,
-}
-
-/// Reads the `nv_rs` part of what `raul verify --json` printed. The rest of the report is the Doctor's.
-///
-/// # Errors
-/// When it is not that document.
-pub fn parse_verify(stdout: &str) -> Result<Engine, String> {
-    let doc: VerifyDoc = serde_json::from_str(stdout.trim())
-        .map_err(|e| format!("not a raul verify document: {e}"))?;
-    Ok(Engine {
-        installed: doc.nv_rs.installed,
-        verified: doc.nv_rs.verified,
-        message: doc.nv_rs.message,
-    })
-}
-
-/// `raul verify --instance <dir>`: read only.
-pub fn verify_command(instance: &str) -> Command {
-    Command::read("verify", 1, &["verify", "--instance", instance])
-}
 
 /// A readiness row.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -104,8 +21,6 @@ pub enum RowId {
     NewVegas,
     /// The Toolbox storage folder, which holds the Instance.
     Storage,
-    /// The engine build.
-    Engine,
     /// Tale of Two Wastelands: optional, set up in its own flow.
     Ttw,
     /// The plugin order, on Load order.
@@ -116,10 +31,9 @@ pub enum RowId {
 
 impl RowId {
     /// Every row, in the order Home shows them.
-    pub const ALL: [RowId; 6] = [
+    pub const ALL: [RowId; 5] = [
         RowId::NewVegas,
         RowId::Storage,
-        RowId::Engine,
         RowId::Ttw,
         RowId::LoadOrder,
         RowId::Lod,
@@ -129,7 +43,6 @@ impl RowId {
     pub fn home(self) -> View {
         match self {
             RowId::NewVegas | RowId::Storage => View::Page(PageId::Settings),
-            RowId::Engine => View::Flow(super::Flow::Setup),
             RowId::Ttw => View::Flow(super::Flow::Ttw),
             RowId::LoadOrder => View::Page(PageId::LoadOrder),
             RowId::Lod => View::Page(PageId::Lod),
@@ -176,12 +89,6 @@ pub enum Why {
     Checking,
     /// The read failed; its message.
     Unreadable(String),
-    /// The engine matches its install record.
-    EngineActive,
-    /// The engine differs from its install record; what verify said.
-    EngineDiffers(String),
-    /// No engine is installed.
-    EngineMissing,
     /// TTW: the Fallout 3 folder and the installer are both set.
     TtwReady,
     /// TTW: something it needs is not set.
@@ -199,10 +106,6 @@ pub enum Block {
     NoGame,
     /// No storage folder, so no Instance.
     NoStorage,
-    /// No engine installed.
-    NoEngine,
-    /// The engine differs from its install record.
-    EngineDiffers,
 }
 
 impl Block {
@@ -210,7 +113,6 @@ impl Block {
     pub fn fix(self) -> View {
         match self {
             Block::Unreadable | Block::NoGame | Block::NoStorage => View::Page(PageId::Settings),
-            Block::NoEngine | Block::EngineDiffers => View::Flow(super::Flow::Setup),
         }
     }
 }
@@ -224,8 +126,6 @@ pub enum Step {
     Storage,
     /// The Instance folder does not exist yet.
     Instance,
-    /// No engine installed, or it differs from its install record.
-    Engine,
     /// The load order cannot be read or is not valid.
     LoadOrder,
 }
@@ -235,7 +135,7 @@ impl Step {
     pub fn fix(self) -> View {
         match self {
             Step::Game | Step::Storage => View::Page(PageId::Settings),
-            Step::Instance | Step::Engine => View::Flow(super::Flow::Setup),
+            Step::Instance => View::Flow(super::Flow::Setup),
             Step::LoadOrder => View::Page(PageId::LoadOrder),
         }
     }
@@ -288,8 +188,6 @@ pub fn load_order_command(instance: &str) -> Command {
 pub struct State {
     /// The paths, from Settings.
     pub config: Fetch<Config>,
-    /// The engine, as Versions reads it.
-    pub engine: Fetch<Engine>,
     /// Whether the Instance folder exists; `None` until known.
     pub instance_exists: Option<bool>,
     /// Whether the Profile's load order can be listed; `Failed` carries why not.
@@ -301,11 +199,10 @@ pub struct State {
 }
 
 impl State {
-    /// Home showing `config` and `engine`.
-    pub fn ready(config: Config, engine: Engine) -> State {
+    /// Home showing `config`.
+    pub fn ready(config: Config) -> State {
         State {
             config: Fetch::Ready(config),
-            engine: Fetch::Ready(engine),
             instance_exists: Some(true),
             load_order: Fetch::Ready(()),
             ..State::default()
@@ -324,20 +221,17 @@ impl State {
         if self.config.is_pending() {
             return true;
         }
-        // The engine, the Instance folder and the load order are read only when the settings name an Instance;
-        // without one they are never asked for, so they are not on their way either.
+        // The Instance folder and the load order are read only when the settings name an Instance; without one
+        // they are never asked for, so they are not on their way either.
         let has_instance = self
             .config
             .ready()
             .is_some_and(|c| c.get(Key::Instance).is_some());
-        has_instance
-            && (self.engine.is_pending()
-                || self.instance_exists.is_none()
-                || self.load_order.is_pending())
+        has_instance && (self.instance_exists.is_none() || self.load_order.is_pending())
     }
 
     /// The one definition of "ready to play": the game is found, the storage folder is set, the Instance exists,
-    /// the engine is installed and matches its record, and the load order is valid. Otherwise the first missing
+    /// and the load order is valid. Otherwise the first missing
     /// step. A step whose read has not been asked for, has not come back, or came back unread is not met.
     pub fn readiness(&self) -> Readiness {
         if self.reading() {
@@ -367,11 +261,6 @@ impl State {
         if self.instance_exists == Some(false) {
             return Some(Step::Instance);
         }
-        match &self.engine {
-            Fetch::Ready(e) if e.status() != EngineStatus::Active => return Some(Step::Engine),
-            Fetch::Failed(_) => return Some(Step::Engine),
-            _ => {}
-        }
         match self.load_order {
             Fetch::Failed(_) => Some(Step::LoadOrder),
             _ => None,
@@ -388,23 +277,6 @@ impl State {
             },
         };
         Row { id, level, why }
-    }
-
-    fn engine_row(&self) -> Row {
-        let (level, why) = match &self.engine {
-            Fetch::Idle | Fetch::Loading => (Level::Checking, Why::Checking),
-            Fetch::Failed(m) => (Level::Warning, Why::Unreadable(m.clone())),
-            Fetch::Ready(e) => match e.status() {
-                EngineStatus::Active => (Level::Ok, Why::EngineActive),
-                EngineStatus::Differs => (Level::Problem, Why::EngineDiffers(e.message.clone())),
-                EngineStatus::Missing => (Level::Problem, Why::EngineMissing),
-            },
-        };
-        Row {
-            id: RowId::Engine,
-            level,
-            why,
-        }
     }
 
     fn ttw_row(&self) -> Row {
@@ -436,7 +308,6 @@ impl State {
         vec![
             self.path_row(RowId::NewVegas, Key::NewVegas),
             self.path_row(RowId::Storage, Key::StorageRoot),
-            self.engine_row(),
             self.ttw_row(),
             elsewhere(RowId::LoadOrder),
             elsewhere(RowId::Lod),
@@ -473,14 +344,9 @@ impl State {
     /// missing Instance folder or a load order that cannot be read, still keeps Play from starting anything.
     pub fn block(&self) -> Option<Block> {
         match &self.config {
-            Fetch::Failed(_) => return Some(Block::Unreadable),
-            Fetch::Ready(c) if c.get(Key::NewVegas).is_none() => return Some(Block::NoGame),
-            Fetch::Ready(c) if c.get(Key::Instance).is_none() => return Some(Block::NoStorage),
-            _ => {}
-        }
-        match self.engine.ready().map(Engine::status) {
-            Some(EngineStatus::Missing) => Some(Block::NoEngine),
-            Some(EngineStatus::Differs) => Some(Block::EngineDiffers),
+            Fetch::Failed(_) => Some(Block::Unreadable),
+            Fetch::Ready(c) if c.get(Key::NewVegas).is_none() => Some(Block::NoGame),
+            Fetch::Ready(c) if c.get(Key::Instance).is_none() => Some(Block::NoStorage),
             _ => None,
         }
     }
@@ -538,7 +404,7 @@ mod tests {
 
     #[test]
     fn a_ready_setup_blocks_nothing_and_needs_no_attention() {
-        let s = State::ready(all_set(), Engine::active());
+        let s = State::ready(all_set());
         assert_eq!(s.block(), None);
         assert!(s.can_play());
         assert!(s.attention().is_empty());
@@ -557,27 +423,11 @@ mod tests {
 
     #[test]
     fn each_blocking_problem_names_its_fix() {
-        let none = State::ready(Config::with("/c", &[]), Engine::missing());
+        let none = State::ready(Config::with("/c", &[]));
         assert_eq!(none.block(), Some(Block::NoGame));
         assert_eq!(Block::NoGame.fix(), View::Page(PageId::Settings));
-        let no_storage = State::ready(
-            Config::with("/c", &[(Key::NewVegas, "/nv")]),
-            Engine::missing(),
-        );
+        let no_storage = State::ready(Config::with("/c", &[(Key::NewVegas, "/nv")]));
         assert_eq!(no_storage.block(), Some(Block::NoStorage));
-        let no_engine = State::ready(all_set(), Engine::missing());
-        assert_eq!(no_engine.block(), Some(Block::NoEngine));
-        assert_eq!(Block::NoEngine.fix(), View::Flow(super::super::Flow::Setup));
-        let differs = State::ready(
-            all_set(),
-            Engine {
-                installed: true,
-                verified: false,
-                message: "differs".into(),
-            },
-        );
-        assert_eq!(differs.block(), Some(Block::EngineDiffers));
-        assert!(!differs.can_play());
         let unreadable = State {
             config: Fetch::Failed("bad".into()),
             ..State::default()
@@ -590,66 +440,67 @@ mod tests {
         let s = State::default();
         assert_eq!(s.block(), None);
         assert!(!s.can_play());
-        assert!(s.rows()[..4].iter().all(|r| r.level == Level::Checking));
+        assert!(s.rows()[..3].iter().all(|r| r.level == Level::Checking));
     }
 
     #[test]
     fn problems_come_before_warnings_and_set_the_chip() {
         let s = State {
             config: Fetch::Ready(Config::with("/c", &[(Key::StorageRoot, "/s")])),
-            engine: Fetch::Failed("verify failed".into()),
             ..State::default()
         };
         let ids: Vec<RowId> = s.attention().iter().map(|r| r.id).collect();
-        assert_eq!(ids, [RowId::NewVegas, RowId::Engine]);
-        assert_eq!(s.chip(), Some((Severity::Problem, 2)));
+        assert_eq!(ids, [RowId::NewVegas]);
+        assert_eq!(s.chip(), Some((Severity::Problem, 1)));
+        let unreadable = State {
+            config: Fetch::Failed("bad".into()),
+            ..State::default()
+        };
+        assert_eq!(unreadable.chip().map(|c| c.0), Some(Severity::Warning));
     }
 
     #[test]
     fn ttw_is_optional_and_never_needs_attention() {
         let mut c = all_set();
-        let s = State::ready(c.clone(), Engine::active());
-        assert_eq!(s.rows()[3].why, Why::TtwNeedsSources);
+        let s = State::ready(c.clone());
+        assert_eq!(s.rows()[2].why, Why::TtwNeedsSources);
         c.put(Key::Fallout3, Some("/games/fo3".into()));
         c.put(Key::TtwPackage, Some("/d/ttw.mpi".into()));
-        let s = State::ready(c, Engine::active());
-        assert_eq!(s.rows()[3].why, Why::TtwReady);
+        let s = State::ready(c);
+        assert_eq!(s.rows()[2].why, Why::TtwReady);
         assert!(s.attention().is_empty());
         assert_eq!(RowId::Ttw.home(), View::Flow(super::super::Flow::Ttw));
     }
 
     #[test]
     fn the_wizard_is_offered_once_on_a_first_run() {
-        let mut s = State::ready(Config::with("/c", &[]), Engine::missing());
+        let mut s = State::ready(Config::with("/c", &[]));
         assert!(s.wants_setup());
         s.offered_setup = true;
         assert!(!s.wants_setup());
         assert!(!State::default().wants_setup(), "not before the read");
-        assert!(!State::ready(all_set(), Engine::active()).wants_setup());
+        assert!(!State::ready(all_set()).wants_setup());
     }
 
     #[test]
     fn a_running_launch_is_not_started_twice() {
-        let mut s = State::ready(all_set(), Engine::active());
+        let mut s = State::ready(all_set());
         s.launch = Launch::Starting;
         assert!(!s.can_play());
     }
 
     #[test]
     fn readiness_is_ready_only_when_every_condition_holds() {
-        let s = State::ready(all_set(), Engine::active());
+        let s = State::ready(all_set());
         assert_eq!(s.readiness(), Readiness::Ready);
     }
 
     #[test]
     fn readiness_names_the_first_missing_step() {
-        let ready = || State::ready(all_set(), Engine::active());
-        let no_game = State::ready(Config::with("/c", &[]), Engine::active());
+        let ready = || State::ready(all_set());
+        let no_game = State::ready(Config::with("/c", &[]));
         assert_eq!(no_game.readiness(), Readiness::Next(Step::Game));
-        let no_storage = State::ready(
-            Config::with("/c", &[(Key::NewVegas, "/nv")]),
-            Engine::active(),
-        );
+        let no_storage = State::ready(Config::with("/c", &[(Key::NewVegas, "/nv")]));
         assert_eq!(no_storage.readiness(), Readiness::Next(Step::Storage));
         let no_instance = State {
             instance_exists: Some(false),
@@ -657,8 +508,6 @@ mod tests {
         };
         assert_eq!(no_instance.readiness(), Readiness::Next(Step::Instance));
         assert_eq!(Step::Instance.fix(), View::Flow(super::super::Flow::Setup));
-        let no_engine = State::ready(all_set(), Engine::missing());
-        assert_eq!(no_engine.readiness(), Readiness::Next(Step::Engine));
         let bad_order = State {
             load_order: Fetch::Failed("no profile".into()),
             ..ready()
@@ -675,15 +524,12 @@ mod tests {
 
     /// Everything readiness asks of a setup, so a test can break exactly one condition.
     fn sound() -> State {
-        State::ready(all_set(), Engine::active())
+        State::ready(all_set())
     }
 
     #[test]
     fn not_ready_without_a_game_folder_and_play_does_not_run() {
-        let no_game = State::ready(
-            Config::with("/c", &[(Key::Instance, "/s/instance")]),
-            Engine::active(),
-        );
+        let no_game = State::ready(Config::with("/c", &[(Key::Instance, "/s/instance")]));
         assert_eq!(no_game.readiness(), Readiness::Next(Step::Game));
         assert_eq!(no_game.first_missing(), Some(Step::Game));
         assert_eq!(no_game.block(), Some(Block::NoGame));
@@ -692,10 +538,7 @@ mod tests {
 
     #[test]
     fn not_ready_without_a_storage_folder_and_play_does_not_run() {
-        let no_storage = State::ready(
-            Config::with("/c", &[(Key::NewVegas, "/nv")]),
-            Engine::active(),
-        );
+        let no_storage = State::ready(Config::with("/c", &[(Key::NewVegas, "/nv")]));
         assert_eq!(no_storage.readiness(), Readiness::Next(Step::Storage));
         assert_eq!(no_storage.first_missing(), Some(Step::Storage));
         assert_eq!(no_storage.block(), Some(Block::NoStorage));
@@ -715,33 +558,6 @@ mod tests {
     }
 
     #[test]
-    fn not_ready_when_the_engine_is_not_installed_or_does_not_match_and_play_does_not_run() {
-        assert_eq!(sound().readiness(), Readiness::Ready);
-        let mut not_installed = sound();
-        not_installed.engine = Fetch::Ready(Engine::missing());
-        assert_eq!(not_installed.readiness(), Readiness::Next(Step::Engine));
-        assert!(!not_installed.can_play());
-        let differs = State::ready(
-            all_set(),
-            Engine {
-                installed: true,
-                verified: false,
-                message: "differs".into(),
-            },
-        );
-        assert_eq!(differs.readiness(), Readiness::Next(Step::Engine));
-        assert!(!differs.can_play());
-    }
-
-    #[test]
-    fn not_ready_when_the_engine_could_not_be_read_and_play_does_not_run() {
-        let mut unread_engine = sound();
-        unread_engine.engine = Fetch::Failed("the install record could not be read".into());
-        assert_eq!(unread_engine.readiness(), Readiness::Next(Step::Engine));
-        assert!(!unread_engine.can_play());
-    }
-
-    #[test]
     fn not_ready_when_the_load_order_cannot_be_read_and_play_does_not_run() {
         let mut unread_order = sound();
         unread_order.load_order = Fetch::Failed("the load order could not be read".into());
@@ -753,7 +569,7 @@ mod tests {
     #[test]
     fn not_ready_while_the_load_order_has_not_been_read_and_play_does_not_run() {
         // An order that was never asked for, or is still on its way, is not an order that is valid. Play used to
-        // start the game on the strength of the engine alone.
+        // start the game on the strength of the paths alone.
         for order in [Fetch::Idle, Fetch::Loading] {
             let mut unread = sound();
             unread.load_order = order;
@@ -769,7 +585,6 @@ mod tests {
         // any more. Home used to wait forever: "Checking" with no read running and Check again disabled.
         let mut unreadable = sound();
         unreadable.config = Fetch::Failed("the settings file could not be read".into());
-        unreadable.engine = Fetch::Idle;
         unreadable.load_order = Fetch::Idle;
         assert!(!unreadable.reading());
         assert_eq!(unreadable.readiness(), Readiness::Next(Step::Storage));
@@ -782,27 +597,9 @@ mod tests {
         // A settings answer that read as empty is a read that came back; the other reads were never asked for.
         let mut no_paths = sound();
         no_paths.config = Fetch::Ready(Config::with("/c", &[]));
-        no_paths.engine = Fetch::Idle;
         no_paths.load_order = Fetch::Idle;
         assert!(!no_paths.reading());
         assert_eq!(no_paths.readiness(), Readiness::Next(Step::Game));
         assert!(!no_paths.can_play());
-    }
-
-    #[test]
-    fn verify_tells_active_differing_and_missing_apart() {
-        let read = |installed: bool, verified: bool| {
-            parse_verify(&format!(
-                r#"{{"schema_version":1,"verified":false,"doctor":{{}},"nv_rs":{{"installed":{installed},"verified":{verified},"message":"m"}},"launch_plan":{{}}}}"#
-            ))
-            .unwrap()
-            .status()
-        };
-        assert_eq!(read(true, true), EngineStatus::Active);
-        assert_eq!(read(true, false), EngineStatus::Differs);
-        assert_eq!(read(false, false), EngineStatus::Missing);
-        assert!(parse_verify("{}").is_err());
-        assert_eq!(Engine::missing().status(), EngineStatus::Missing);
-        assert_eq!(Engine::active().status(), EngineStatus::Active);
     }
 }

@@ -13,11 +13,10 @@ use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText, Stroke};
 use raul_ui_model::pages::settings::{Answer, Command, Config, Fetch, Field, Key, Save};
-use raul_ui_model::pages::setup::install_command;
 use raul_ui_model::pages::setup::{
-    Checks, EngineStep, Finding, Missing, State, Step, detect_command, doctor_command,
-    engine_failure, init_and_profile_command, init_and_profile_commands, parse_detect,
-    parse_doctor, suggest_storage,
+    Checks, Finding, InstanceStep, Missing, State, Step, detect_command, doctor_command,
+    init_and_profile_command, init_and_profile_commands, parse_detect, parse_doctor,
+    suggest_storage, target_command,
 };
 use raul_ui_model::pages::{Flow, PageId, View};
 
@@ -32,8 +31,8 @@ crate::texts!(TEXTS {
     RAIL_NEW_VEGAS_SUB = "Find your game";
     RAIL_TTW = "TTW";
     RAIL_TTW_SUB = "Optional";
-    RAIL_ENGINE = "Engine";
-    RAIL_ENGINE_SUB = "Install the engine";
+    RAIL_INSTANCE = "Instance";
+    RAIL_INSTANCE_SUB = "Set up your files";
     RAIL_CHECK = "Check";
     RAIL_CHECK_SUB = "Quick health check";
     RAIL_READY = "Ready";
@@ -45,9 +44,9 @@ crate::texts!(TEXTS {
     TITLE_TTW = "Tale of Two Wastelands";
     SUB_TTW = "Optional. Plays both worlds as one game. You can set it up later from Home.";
     RAUL_TTW = "Both worlds as one? Needs Fallout 3 too. Skip it if unsure.";
-    TITLE_ENGINE = "Engine";
-    SUB_ENGINE = "The engine runs the game natively. Your game folder stays as it is.";
-    RAUL_ENGINE = "This is the bit that makes it run on Linux. No Proton.";
+    TITLE_INSTANCE = "Instance";
+    SUB_INSTANCE = "The Instance holds your mods and load order, and runs on the engine built into the Toolbox. Your game folder stays as it is.";
+    RAUL_INSTANCE = "A home for your mods. The engine is already built in.";
     TITLE_CHECK = "Quick check";
     SUB_CHECK = "Read-only checks of the game and the Instance.";
     RAUL_CHECK = "Kicking the tyres.";
@@ -71,13 +70,13 @@ crate::texts!(TEXTS {
     TTW_YES = "I want TTW";
     TTW_YES_SUB = "Needs your Fallout 3 install. The install runs later and takes a while.";
     TTW_LATER = "You can also set this later in Settings.";
-    INSTALL = "Install";
+    SET_UP_INSTANCE = "Set up";
     INSTALL_AGAIN = "Try again";
     INITIALISING = "Making the Instance in the storage folder";
-    INSTALLING = "Checking the engine and putting it in place. This can take a few minutes.";
-    INSTALLED = "Installed and checked.";
-    ENGINE_NOTE = "Run the setup again if the engine ever needs a look.";
-    MARK_INSTALLED = "Installed";
+    TARGETING = "Pointing the Instance at the built-in engine";
+    INSTANCE_MADE = "Set up and ready.";
+    INSTANCE_NOTE = "Run the setup again if the Instance ever needs a look.";
+    MARK_MADE = "Ready";
     MARK_WORKING = "Working";
     CHECKING = "Running the checks";
     NOTHING_FOUND = "Nothing to fix.";
@@ -89,11 +88,10 @@ crate::texts!(TEXTS {
     FACT_GAME = "Game";
     FACT_STORAGE = "Storage";
     FACT_TTW = "TTW";
-    FACT_ENGINE = "Engine";
+    FACT_INSTANCE = "Instance";
     FACT_CHECKS = "Checks";
     TTW_WANTED = "Wanted. Set it up from Home or now.";
     TTW_NOT_NOW = "Not now";
-    ENGINE_INSTALLED = "Installed and checked.";
     CHECKS_CLEAN = "Nothing to look at";
     CHECKS_SOME = "{n} to look at";
     CHECKS_UNKNOWN = "Not run";
@@ -101,18 +99,18 @@ crate::texts!(TEXTS {
     MISSING_GAME = "Next needs the game folder.";
     MISSING_STORAGE = "Next needs a storage folder.";
     MISSING_SAVING = "Saving the folders.";
-    MISSING_ENGINE = "Next needs the engine installed.";
+    MISSING_INSTANCE = "Next needs the Instance set up.";
     MISSING_CHECKS = "The checks are still running.";
     MISSING_REFUSED = "Fix the folder above, then press Next.";
     READING = "Reading the settings";
     RETRY = "Try again";
-    INSTALL_WAITING = "This build cannot install from the window yet.";
+    SET_UP_WAITING = "This build cannot set up from the window yet.";
     NO_STORAGE_YET = "There is no storage folder yet; go back to the first step.";
 });
 
 crate::errors!(ERRORS {
-    INSTALL_FAILED = (
-        "The engine was not installed",
+    SET_UP_FAILED = (
+        "The Instance was not set up",
         "Your game folder did not change."
     );
     CHECKS_FAILED = (
@@ -140,7 +138,7 @@ enum Job {
     Save(Key),
     Find(Key, Step),
     Init,
-    Install,
+    Target,
     Doctor,
 }
 
@@ -189,10 +187,11 @@ impl Setup {
         }
     }
 
-    /// Install: `raul init` first when there is no Instance yet, then the default profile, then
-    /// `raul install-nv-rs`. `made` says the init of this install already succeeded, so it is not run again
-    /// whatever the folder looks like. The profile is made by the wizard itself, so no step ever asks for one.
-    fn install(&mut self, cx: &mut PageCx<'_>, made: bool) {
+    /// Set up: `raul init` first when there is no Instance yet, then the default profile, then `raul target nv-rs`,
+    /// which points the Instance at the engine built into the Toolbox (nothing is installed). `made` says the init of
+    /// this run already succeeded, so it is not run again whatever the folder looks like. The profile is made by the
+    /// wizard itself, so no step ever asks for one.
+    fn set_up(&mut self, cx: &mut PageCx<'_>, made: bool) {
         let (Some(instance), Some(game)) = (self.state.instance(), self.state.game.saved.clone())
         else {
             return;
@@ -200,24 +199,24 @@ impl Setup {
         let has_instance = made || std::path::Path::new(&instance).exists();
         let (job, started, step) = if has_instance {
             (
-                Job::Install,
-                start(cx, &install_command(&instance)),
-                EngineStep::Installing,
+                Job::Target,
+                start(cx, &target_command(&instance)),
+                InstanceStep::Targeting,
             )
         } else {
             let [init, profile] = init_and_profile_commands(&game, &instance);
             (
                 Job::Init,
                 start_then(cx, &init, Some(&profile)),
-                EngineStep::Initialising,
+                InstanceStep::Initialising,
             )
         };
         match started {
             Ok(id) => {
                 self.pending.add(job, id);
-                self.state.engine = step;
+                self.state.instance_step = step;
             }
-            Err(e) => self.state.engine = EngineStep::Failed(e.what.to_owned()),
+            Err(e) => self.state.instance_step = InstanceStep::Failed(e.what.to_owned()),
         }
     }
 
@@ -299,30 +298,15 @@ impl Setup {
                     }
                 }
                 Job::Init => match &result {
-                    Ok(out) if out.code == Some(0) => self.install(cx, true),
-                    Ok(out) => self.state.engine = EngineStep::Failed(failure_of(out)),
-                    Err(why) => self.state.engine = EngineStep::Failed(why.clone()),
+                    Ok(out) if out.code == Some(0) => self.set_up(cx, true),
+                    Ok(out) => self.state.instance_step = InstanceStep::Failed(failure_of(out)),
+                    Err(why) => self.state.instance_step = InstanceStep::Failed(why.clone()),
                 },
-                Job::Install => {
-                    self.state.engine = match &result {
-                        Ok(out) if out.code == Some(0) => {
-                            cx.shell.engine = Some(super::home::FACT_ENGINE_ACTIVE.to_owned());
-                            // Play was blocked for want of the engine: it is there now.
-                            let lifted = [
-                                super::home::PLAY_NO_ENGINE.id,
-                                super::home::PLAY_ENGINE_CHANGED.id,
-                            ];
-                            if cx
-                                .shell
-                                .play_blocked
-                                .is_some_and(|b| lifted.contains(&b.id))
-                            {
-                                cx.shell.play_blocked = None;
-                            }
-                            EngineStep::Installed
-                        }
-                        Ok(out) => EngineStep::Failed(engine_failure(&failure_of(out))),
-                        Err(why) => EngineStep::Failed(why.clone()),
+                Job::Target => {
+                    self.state.instance_step = match &result {
+                        Ok(out) if out.code == Some(0) => InstanceStep::Made,
+                        Ok(out) => InstanceStep::Failed(failure_of(out)),
+                        Err(why) => InstanceStep::Failed(why.clone()),
                     };
                 }
                 Job::Doctor => {
@@ -351,18 +335,18 @@ impl Setup {
         self.entered_step(cx);
     }
 
-    /// What a step does when it is shown: the engine step notices an engine already in place, and the check step
-    /// runs the checks.
+    /// What a step does when it is shown: the Instance step notices an Instance that already runs on the engine
+    /// (its capabilities are written when the target is set), and the check step runs the checks.
     fn entered_step(&mut self, cx: &mut PageCx<'_>) {
         match self.state.step {
-            Step::Engine if self.state.engine == EngineStep::Idle => {
-                let record = self
-                    .state
-                    .instance()
-                    .map(|i| std::path::Path::new(&i).join("nv-rs").join("install.json"));
-                if record.is_some_and(|r| r.exists()) {
-                    self.state.engine = EngineStep::Installed;
-                    cx.shell.engine = Some(super::home::FACT_ENGINE_ACTIVE.to_owned());
+            Step::Instance if self.state.instance_step == InstanceStep::Idle => {
+                let capabilities = self.state.instance().map(|i| {
+                    std::path::Path::new(&i)
+                        .join("nv-rs")
+                        .join("capabilities.json")
+                });
+                if capabilities.is_some_and(|c| c.exists()) {
+                    self.state.instance_step = InstanceStep::Made;
                 }
             }
             Step::Check if self.state.checks == Fetch::Idle => self.run_checks(cx),
@@ -461,8 +445,8 @@ impl Setup {
         self.pending.is_empty()
             && !self.state.saving()
             && !matches!(
-                self.state.engine,
-                EngineStep::Initialising | EngineStep::Installing
+                self.state.instance_step,
+                InstanceStep::Initialising | InstanceStep::Targeting
             )
             && self.state.checks != Fetch::Loading
     }
@@ -472,7 +456,7 @@ impl Setup {
         let (title, sub, line) = match self.state.step {
             Step::NewVegas => (TITLE_NEW_VEGAS, SUB_NEW_VEGAS, RAUL_NEW_VEGAS),
             Step::Ttw => (TITLE_TTW, SUB_TTW, RAUL_TTW),
-            Step::Engine => (TITLE_ENGINE, SUB_ENGINE, RAUL_ENGINE),
+            Step::Instance => (TITLE_INSTANCE, SUB_INSTANCE, RAUL_INSTANCE),
             Step::Check => (TITLE_CHECK, SUB_CHECK, RAUL_CHECK),
             Step::Ready if self.state.to_look_at() > 0 || self.state.checks.ready().is_none() => {
                 (TITLE_READY, SUB_READY, RAUL_READY_LOOK)
@@ -493,7 +477,7 @@ impl Setup {
         match self.state.step {
             Step::NewVegas => self.new_vegas(ui, cx),
             Step::Ttw => self.ttw(ui, cx),
-            Step::Engine => self.engine(ui, cx),
+            Step::Instance => self.instance(ui, cx),
             Step::Check => {
                 if checks(ui, &t, &self.state) {
                     self.state.checks = Fetch::Idle;
@@ -594,48 +578,48 @@ impl Setup {
         }
     }
 
-    fn engine(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
+    fn instance(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
         let instance = self.state.instance().unwrap_or_default();
         let game = self.state.game.saved.clone().unwrap_or_default();
         let has_instance = std::path::Path::new(&instance).exists();
-        let install = install_command(&instance);
+        let target = target_command(&instance);
         let init = init_and_profile_command(&game, &instance);
-        match &self.state.engine {
-            EngineStep::Idle | EngineStep::Failed(_) => {
-                let label = if matches!(self.state.engine, EngineStep::Failed(_)) {
+        match &self.state.instance_step {
+            InstanceStep::Idle | InstanceStep::Failed(_) => {
+                let label = if matches!(self.state.instance_step, InstanceStep::Failed(_)) {
                     INSTALL_AGAIN
                 } else {
-                    INSTALL
+                    SET_UP_INSTANCE
                 };
-                let can = available(&install) && (has_instance || available(&init));
+                let can = available(&target) && (has_instance || available(&init));
                 if ui
                     .add_enabled(can, shell::primary_button(&t, label))
                     .clicked()
                 {
-                    self.install(cx, false);
+                    self.set_up(cx, false);
                 }
                 if !can {
-                    ui.label(RichText::new(INSTALL_WAITING).color(t.muted.color()));
+                    ui.label(RichText::new(SET_UP_WAITING).color(t.muted.color()));
                 }
             }
-            EngineStep::Initialising => {
+            InstanceStep::Initialising => {
                 mark(ui, &t, Mark::Info, MARK_WORKING);
                 ui.label(RichText::new(INITIALISING).color(t.muted.color()));
             }
-            EngineStep::Installing => {
+            InstanceStep::Targeting => {
                 mark(ui, &t, Mark::Info, MARK_WORKING);
-                ui.label(RichText::new(INSTALLING).color(t.muted.color()));
+                ui.label(RichText::new(TARGETING).color(t.muted.color()));
             }
-            EngineStep::Installed => {
-                mark(ui, &t, Mark::Ok, MARK_INSTALLED);
-                ui.label(RichText::new(INSTALLED).color(t.muted.color()));
+            InstanceStep::Made => {
+                mark(ui, &t, Mark::Ok, MARK_MADE);
+                ui.label(RichText::new(INSTANCE_MADE).color(t.muted.color()));
             }
         }
-        if let EngineStep::Failed(why) = &self.state.engine {
-            error_block(ui, &t, &INSTALL_FAILED, Some(why));
+        if let InstanceStep::Failed(why) = &self.state.instance_step {
+            error_block(ui, &t, &SET_UP_FAILED, Some(why));
         }
-        ui.label(RichText::new(ENGINE_NOTE).color(t.muted.color()));
+        ui.label(RichText::new(INSTANCE_NOTE).color(t.muted.color()));
     }
 
     fn ready(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
@@ -671,7 +655,7 @@ impl Setup {
                     if s.want_ttw { TTW_WANTED } else { TTW_NOT_NOW },
                     false,
                 );
-                fact(ui, FACT_ENGINE, ENGINE_INSTALLED, false);
+                fact(ui, FACT_INSTANCE, INSTANCE_MADE, false);
                 fact(ui, FACT_CHECKS, &checks, false);
             });
         if s.want_ttw {
@@ -694,7 +678,7 @@ impl Setup {
             Some(Missing::Game) => Some(MISSING_GAME),
             Some(Missing::Storage) => Some(MISSING_STORAGE),
             Some(Missing::Saving) => Some(MISSING_SAVING),
-            Some(Missing::Engine) => Some(MISSING_ENGINE),
+            Some(Missing::Instance) => Some(MISSING_INSTANCE),
             Some(Missing::Checks) => Some(MISSING_CHECKS),
             None if refused => Some(MISSING_REFUSED),
             None => None,
@@ -710,8 +694,9 @@ impl Setup {
         }
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                // The engine step's Install is its primary button until the engine is in.
-                let primary = !(step == Step::Engine && self.state.engine != EngineStep::Installed);
+                // The Instance step's Set up is its primary button until the Instance is ready.
+                let primary =
+                    !(step == Step::Instance && self.state.instance_step != InstanceStep::Made);
                 let label = if step == Step::Ready { FINISH } else { NEXT };
                 let button = if primary {
                     shell::primary_button(&t, label)
@@ -729,8 +714,8 @@ impl Setup {
                 // Back waits for a running install or save, so it never runs against a changed folder.
                 let busy = self.state.saving()
                     || matches!(
-                        self.state.engine,
-                        EngineStep::Initialising | EngineStep::Installing
+                        self.state.instance_step,
+                        InstanceStep::Initialising | InstanceStep::Targeting
                     );
                 if step != Step::NewVegas
                     && step != Step::Ready
@@ -748,7 +733,7 @@ fn rail(ui: &mut egui::Ui, t: &Tokens, current: Step) {
         let (name, sub) = match step {
             Step::NewVegas => (RAIL_NEW_VEGAS, RAIL_NEW_VEGAS_SUB),
             Step::Ttw => (RAIL_TTW, RAIL_TTW_SUB),
-            Step::Engine => (RAIL_ENGINE, RAIL_ENGINE_SUB),
+            Step::Instance => (RAIL_INSTANCE, RAIL_INSTANCE_SUB),
             Step::Check => (RAIL_CHECK, RAIL_CHECK_SUB),
             Step::Ready => (RAIL_READY, RAIL_READY_SUB),
         };
@@ -973,35 +958,35 @@ pub fn fixtures() -> Vec<Fixture> {
                 },
             ),
         ),
-        Fixture::new("engine", at(Step::Engine, base.clone())),
+        Fixture::new("instance", at(Step::Instance, base.clone())),
         Fixture::new(
-            "engine-installing",
+            "instance-targeting",
             at(
-                Step::Engine,
+                Step::Instance,
                 State {
-                    engine: EngineStep::Installing,
+                    instance_step: InstanceStep::Targeting,
                     ..base.clone()
                 },
             ),
         ),
         Fixture::new(
-            "engine-failed",
+            "instance-failed",
             at(
-                Step::Engine,
+                Step::Instance,
                 State {
-                    engine: EngineStep::Failed(
-                        "This copy of raul does not come with the game engine. Download raul from its release page and install raul again; the engine is part of the same download.".into(),
+                    instance_step: InstanceStep::Failed(
+                        "The Instance folder could not be written: permission denied.".into(),
                     ),
                     ..base.clone()
                 },
             ),
         ),
         Fixture::new(
-            "engine-installed",
+            "instance-made",
             at(
-                Step::Engine,
+                Step::Instance,
                 State {
-                    engine: EngineStep::Installed,
+                    instance_step: InstanceStep::Made,
                     ..base.clone()
                 },
             ),
@@ -1011,7 +996,7 @@ pub fn fixtures() -> Vec<Fixture> {
             at(
                 Step::Check,
                 State {
-                    engine: EngineStep::Installed,
+                    instance_step: InstanceStep::Made,
                     checks: Fetch::Loading,
                     ..base.clone()
                 },
@@ -1022,7 +1007,7 @@ pub fn fixtures() -> Vec<Fixture> {
             at(
                 Step::Check,
                 State {
-                    engine: EngineStep::Installed,
+                    instance_step: InstanceStep::Made,
                     checks: Fetch::Ready(checks.clone()),
                     ..base.clone()
                 },
@@ -1034,7 +1019,7 @@ pub fn fixtures() -> Vec<Fixture> {
                 Step::Ready,
                 State {
                     want_ttw: true,
-                    engine: EngineStep::Installed,
+                    instance_step: InstanceStep::Made,
                     checks: Fetch::Ready(checks),
                     ..base.clone()
                 },
@@ -1045,7 +1030,7 @@ pub fn fixtures() -> Vec<Fixture> {
             at(
                 Step::Ready,
                 State {
-                    engine: EngineStep::Installed,
+                    instance_step: InstanceStep::Made,
                     checks: Fetch::Ready(Checks::default()),
                     ..base
                 },
@@ -1104,7 +1089,7 @@ mod tests {
     }
 
     #[test]
-    fn the_wizard_installs_the_engine_runs_the_checks_and_opens_home() {
+    fn the_wizard_sets_up_the_instance_runs_the_checks_and_opens_home() {
         let storage = std::env::temp_dir().join("raul-setup-test-does-not-exist");
         let storage = storage.to_string_lossy().into_owned();
         let state = State::opened(
@@ -1117,7 +1102,7 @@ mod tests {
         let exec = Arc::new(Script::default());
         let app = App::fixture(
             Fixture::new("flow", Setup::with(state)),
-            Jobs::new(exec.clone()).scripted(&["init", "install-nv-rs"]),
+            Jobs::new(exec.clone()).scripted(&["init", "target-nv-rs"]),
         );
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
@@ -1126,13 +1111,11 @@ mod tests {
                 app
             });
         h.run();
-        // Play was blocked for want of the engine, as Home leaves it; installing the engine lifts that block.
-        h.state_mut().shell_mut().play_blocked = Some(super::super::home::PLAY_NO_ENGINE);
         h.get_by_label(NEXT).click();
         wait_for(&mut h, |_| true);
         h.get_by_label(NEXT).click();
         h.run_steps(2);
-        h.get_by_label(INSTALL).click();
+        h.get_by_label(SET_UP_INSTANCE).click();
         let calls = exec.clone();
         wait_for(&mut h, move |_| calls.calls.lock().unwrap().len() >= 3);
         std::thread::sleep(std::time::Duration::from_millis(50));
@@ -1162,10 +1145,6 @@ mod tests {
             h.state().view(),
             h.query_by_label(MISSING_CHECKS)
                 .map_or("nothing about running", |_| MISSING_CHECKS)
-        );
-        assert!(
-            h.state_mut().shell_mut().play_blocked.is_none(),
-            "a finished install lifts the block that said the engine was missing"
         );
         h.get_by_label(FINISH).click();
         h.run_steps(2);
@@ -1198,7 +1177,10 @@ mod tests {
                 instance.as_str()
             ]
         );
-        assert_eq!(calls[2], ["install-nv-rs", "--instance", instance.as_str()]);
+        assert_eq!(
+            calls[2],
+            ["target", "nv-rs", "--instance", instance.as_str()]
+        );
         assert!(
             !calls.iter().any(|c| c[0] == "doctor"),
             "the Doctor is not a command line: {calls:?}"
