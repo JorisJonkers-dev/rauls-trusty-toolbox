@@ -20,9 +20,10 @@ use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText, Stroke};
 use raul_ui_model::pages::home::{
-    Block, Launch, Level, Readiness, Row, RowId, State, Step, Why, doctor_command,
+    Block, Launch, Level, Readiness, Row, RowId, State, Step, TTW_MOD, Why, doctor_command,
     load_order_command, parse_order_errors,
 };
+use raul_ui_model::pages::mods::{generated_command, list_command, parse_generated, parse_list};
 use raul_ui_model::pages::settings::{Command, Config, Fetch, Key};
 use raul_ui_model::pages::{Attention, PageId, Severity, View};
 
@@ -54,6 +55,9 @@ crate::texts!(TEXTS {
     DETAIL_TTW_READY = "Sources set. Ready when you are.";
     DETAIL_TTW_NEEDS = "Optional. Needs Fallout 3 and the TTW installer.";
     DETAIL_LOAD_ORDER = "Sorted and reviewed on its own page";
+    DETAIL_TTW_INSTALLED = "Installed: the Mod is in your mod list.";
+    DETAIL_ORDER_VALID = "The Doctor finds no error in the load order.";
+    DETAIL_LOD_GENERATED = "A generated LOD Mod is in your mod list.";
     DETAIL_LOD = "Generated and checked on its own page";
     MARK_OK = "OK";
     MARK_WARNING = "Warning";
@@ -109,6 +113,8 @@ enum Job {
     Config,
     LoadOrder,
     OrderErrors,
+    Mods,
+    Generated,
     Run,
     Stop,
 }
@@ -189,6 +195,17 @@ impl Home {
             }
             Err(e) => self.state.order_errors = Fetch::Failed(e.what.to_owned()),
         }
+        // Whether TTW and a generated LOD Mod are in the Instance comes from its mod list, not from this session.
+        self.state.ttw_installed = None;
+        self.state.lod_generated = None;
+        for (job, command) in [
+            (Job::Mods, list_command(instance)),
+            (Job::Generated, generated_command(instance)),
+        ] {
+            if let Ok(id) = start(cx, &command) {
+                self.pending.add(job, id);
+            }
+        }
     }
 
     fn take_answers(&mut self, cx: &mut PageCx<'_>) {
@@ -218,6 +235,20 @@ impl Home {
                             .map_or_else(|_| Fetch::Failed(failure_of(out)), Fetch::Ready),
                         Err(why) => Fetch::Failed(why.clone()),
                     };
+                }
+                Job::Mods => {
+                    if let Ok(out) = &result
+                        && let Ok((_, mods)) = parse_list(&out.stdout)
+                    {
+                        self.state.ttw_installed = Some(mods.iter().any(|m| m.name == TTW_MOD));
+                    }
+                }
+                Job::Generated => {
+                    if let Ok(out) = &result
+                        && let Ok(g) = parse_generated(&out.stdout)
+                    {
+                        self.state.lod_generated = Some(!g.mods.is_empty());
+                    }
                 }
                 Job::Stop => {
                     // The game ends between two frames; Home reads its state again.
@@ -641,8 +672,8 @@ fn readiness_row(ui: &mut egui::Ui, t: &Tokens, cx: &mut PageCx<'_>, row: &Row) 
             |ui| mark(ui, t, mark_of(row.level), mark_word(row.level)),
         );
         let action = match (row.id, row.level) {
+            (RowId::Ttw, Level::Ok) | (RowId::LoadOrder | RowId::Lod, _) => Some(OPEN),
             (RowId::Ttw, _) => Some(SET_UP),
-            (RowId::LoadOrder | RowId::Lod, _) => Some(OPEN),
             (_, Level::Problem | Level::Warning) => Some(FIX),
             _ => None,
         };
@@ -674,6 +705,9 @@ fn row_detail(row: &Row) -> String {
         Why::Checking => DETAIL_CHECKING.to_owned(),
         Why::TtwReady => DETAIL_TTW_READY.to_owned(),
         Why::TtwNeedsSources => DETAIL_TTW_NEEDS.to_owned(),
+        Why::TtwInstalled => DETAIL_TTW_INSTALLED.to_owned(),
+        Why::OrderValid => DETAIL_ORDER_VALID.to_owned(),
+        Why::LodGenerated => DETAIL_LOD_GENERATED.to_owned(),
         Why::OnItsPage if row.id == RowId::Lod => DETAIL_LOD.to_owned(),
         Why::OnItsPage => DETAIL_LOAD_ORDER.to_owned(),
     }
@@ -869,7 +903,15 @@ pub fn fixtures() -> Vec<Fixture> {
                 ..State::ready(all.clone())
             }),
         ),
-        Fixture::new("ttw-ready", seen(State::ready(ttw))),
+        Fixture::new("ttw-ready", seen(State::ready(ttw.clone()))),
+        Fixture::new(
+            "ttw-installed",
+            seen(State {
+                ttw_installed: Some(true),
+                lod_generated: Some(true),
+                ..State::ready(ttw)
+            }),
+        ),
         Fixture {
             name: "error",
             page: Box::new(seen(State {

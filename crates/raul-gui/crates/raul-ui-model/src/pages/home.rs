@@ -129,6 +129,12 @@ pub enum Why {
     TtwNeedsSources,
     /// Shown and fixed on its own page.
     OnItsPage,
+    /// TTW: the Tale of Two Wastelands Mod is in the Instance's mod list.
+    TtwInstalled,
+    /// Load order: the plugin list reads and the Doctor finds no error in it.
+    OrderValid,
+    /// LOD: the Profile lists a generated LOD Mod.
+    LodGenerated,
 }
 
 /// Why Play is blocked.
@@ -233,7 +239,14 @@ pub struct State {
     pub launch: Launch,
     /// Whether Home already opened the setup wizard this session, so it does so once.
     pub offered_setup: bool,
+    /// Whether the Instance's mod list holds the Tale of Two Wastelands Mod; `None` until it was read.
+    pub ttw_installed: Option<bool>,
+    /// Whether the Profile lists a generated LOD Mod; `None` until it was read.
+    pub lod_generated: Option<bool>,
 }
+
+/// The name TTW's install gives its Mod.
+pub const TTW_MOD: &str = "Tale of Two Wastelands";
 
 impl State {
     /// Home showing `config`.
@@ -326,7 +339,9 @@ impl State {
             Fetch::Idle | Fetch::Loading => (Level::Checking, Why::Checking),
             Fetch::Failed(m) => (Level::Warning, Why::Unreadable(m.clone())),
             Fetch::Ready(c) => {
-                if c.get(Key::Fallout3).is_some() && c.get(Key::TtwPackage).is_some() {
+                if self.ttw_installed == Some(true) {
+                    (Level::Ok, Why::TtwInstalled)
+                } else if c.get(Key::Fallout3).is_some() && c.get(Key::TtwPackage).is_some() {
                     (Level::NotSet, Why::TtwReady)
                 } else {
                     (Level::NotSet, Why::TtwNeedsSources)
@@ -347,12 +362,38 @@ impl State {
             level: Level::Elsewhere,
             why: Why::OnItsPage,
         };
+        let has_instance = self.instance_exists == Some(true)
+            && self
+                .config
+                .ready()
+                .is_some_and(|c| c.get(Key::Instance).is_some());
+        let load_order = if has_instance
+            && matches!(self.load_order, Fetch::Ready(()))
+            && matches!(self.order_errors, Fetch::Ready(0))
+        {
+            Row {
+                id: RowId::LoadOrder,
+                level: Level::Ok,
+                why: Why::OrderValid,
+            }
+        } else {
+            elsewhere(RowId::LoadOrder)
+        };
+        let lod = if self.lod_generated == Some(true) {
+            Row {
+                id: RowId::Lod,
+                level: Level::Ok,
+                why: Why::LodGenerated,
+            }
+        } else {
+            elsewhere(RowId::Lod)
+        };
         vec![
             self.path_row(RowId::NewVegas, Key::NewVegas),
             self.path_row(RowId::Storage, Key::StorageRoot),
             self.ttw_row(),
-            elsewhere(RowId::LoadOrder),
-            elsewhere(RowId::Lod),
+            load_order,
+            lod,
         ]
     }
 
@@ -442,6 +483,35 @@ mod tests {
                 (Key::Instance, "/s/instance"),
             ],
         )
+    }
+
+    fn row(s: &State, id: RowId) -> Row {
+        s.rows().into_iter().find(|r| r.id == id).unwrap()
+    }
+
+    #[test]
+    fn the_ttw_load_order_and_lod_rows_follow_the_instance() {
+        // Nothing read yet from the mod list: TTW is not set, the LOD row is on its page.
+        let mut s = State::ready(all_set());
+        assert_eq!(row(&s, RowId::Ttw).why, Why::TtwNeedsSources);
+        assert_eq!(row(&s, RowId::Lod).level, Level::Elsewhere);
+        // The Doctor found no error in a list that reads: that row is fine.
+        assert_eq!(row(&s, RowId::LoadOrder).level, Level::Ok);
+        assert_eq!(row(&s, RowId::LoadOrder).why, Why::OrderValid);
+        // The mod list holds TTW and a generated LOD Mod.
+        s.ttw_installed = Some(true);
+        s.lod_generated = Some(true);
+        assert_eq!(row(&s, RowId::Ttw).level, Level::Ok);
+        assert_eq!(row(&s, RowId::Ttw).why, Why::TtwInstalled);
+        assert_eq!(row(&s, RowId::Lod).why, Why::LodGenerated);
+        // Errors in the order, or a list that does not read, are not called fine.
+        s.order_errors = Fetch::Ready(2);
+        assert_eq!(row(&s, RowId::LoadOrder).level, Level::Elsewhere);
+        s.order_errors = Fetch::Ready(0);
+        s.load_order = Fetch::Failed("no list".into());
+        assert_eq!(row(&s, RowId::LoadOrder).level, Level::Elsewhere);
+        // Rows that are fine need no attention.
+        assert!(State::ready(all_set()).attention().is_empty());
     }
 
     #[test]
