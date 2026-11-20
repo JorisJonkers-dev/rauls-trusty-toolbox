@@ -20,6 +20,7 @@ pub mod direct;
 pub mod dto;
 pub mod exec;
 pub mod fake;
+pub mod fetch;
 pub mod inproc;
 pub mod jobs;
 pub mod lifecycle;
@@ -33,6 +34,7 @@ pub use conflicts::{
 pub use direct::{DirectJob, Reply, run_direct};
 pub use exec::{CancelHandle, Exec, Output, ProcessExec};
 pub use fake::{FakeService, ScriptedExec};
+pub use fetch::CurlFetcher;
 pub use inproc::InProcessExec;
 pub use jobs::{JobSpec, cancel_job};
 pub use lifecycle::{CategoryEntry, LifecycleReport, LifecycleRequest, LifecycleStep, Where};

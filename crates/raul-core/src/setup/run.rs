@@ -202,6 +202,7 @@ fn execute(
                 dry_run: false,
                 answers: req.answers.clone(),
                 max_extract_bytes: None,
+                extract_limits: api::install::LimitOverrides::default(),
             };
             let r = api::install::install(&request, &mut detail(step, progress), cancel);
             match finish(step, r)? {
@@ -345,24 +346,31 @@ fn run_ttw(
         dry_run: false,
         resume: choice.resume,
         timeout: choice.timeout.unwrap_or(ttw::DEFAULT_TIMEOUT),
+        free_space: Some(crate::space::free_bytes),
     };
-    let outcome = with_cancel_bridge(cancel, || {
-        ttw::install(&request, &mut |event| {
-            let (label, done, total) = match event {
-                TtwEvent::Phase { phase } => (format!("ttw.{phase}"), None, None),
-                TtwEvent::Progress {
-                    phase, done, of, ..
-                } => (format!("ttw.{phase}"), Some(done), (of > 0).then_some(of)),
-                _ => return,
-            };
-            progress.report(&Event::Detail {
-                step: step.clone(),
-                label,
-                done,
-                total,
-            });
-        })
-    });
+    // This setup's own cancel token stops the install: no process-wide request is set, so nothing else is stopped.
+    let cancelled = || cancel.is_cancelled();
+    let outcome = {
+        ttw::install_with_stop(
+            &request,
+            raul_drivers::Stop::Run(&cancelled),
+            &mut |event| {
+                let (label, done, total) = match event {
+                    TtwEvent::Phase { phase } => (format!("ttw.{phase}"), None, None),
+                    TtwEvent::Progress {
+                        phase, done, of, ..
+                    } => (format!("ttw.{phase}"), Some(done), (of > 0).then_some(of)),
+                    _ => return,
+                };
+                progress.report(&Event::Detail {
+                    step: step.clone(),
+                    label,
+                    done,
+                    total,
+                });
+            },
+        )
+    };
     let kind = match outcome.result.status {
         Status::Success => return Ok(true),
         Status::Cancelled => return Ok(false),

@@ -378,6 +378,22 @@ pub const COMMANDS: &[Command] = &[
         awaits: None,
     },
     Command {
+        // One Mod from an archive: the archive is the first value, and `--answers` names the FOMOD answers file.
+        id: "install",
+        action: Action::InstallMod,
+        words: &[],
+        flags: &[
+            "--instance",
+            "--profile",
+            "--name",
+            "--answers",
+            "--dry-run",
+            "--json",
+        ],
+        writes: true,
+        awaits: None,
+    },
+    Command {
         id: "mods-list",
         action: Action::Mods,
         words: &["list"],

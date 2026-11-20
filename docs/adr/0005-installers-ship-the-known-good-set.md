@@ -16,4 +16,4 @@ from, so a fresh install works offline. Between Toolbox releases the GUI may off
 published as known-good; the person chooses to fetch it, and nvmod verifies its checksum and attestation. nv-rs alone
 may also move ahead of the set on the opt-in Rolling channel (nvmod-rs `docs/DECISIONS.md`, 2026-11-16): compatibility
 check, side-by-side install, one-click return. Nothing updates without the person asking, and update checks carry no
-identifier. This supersedes nv-linux ADR-0009's "tools are never bundled".
+identifier. This supersedes the earlier workshop decision that tools are never bundled.

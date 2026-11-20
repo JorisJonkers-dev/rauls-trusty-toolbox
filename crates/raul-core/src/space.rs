@@ -62,6 +62,13 @@ pub fn free_space(folder: &Path) -> Result<Space, SpaceError> {
     })
 }
 
+/// The free bytes on the storage of `folder`, or `None` when they are not known: the form the TTW install takes its
+/// check in (`raul_drivers::ttw::FreeSpace`), where an unknown answer does not block.
+#[must_use]
+pub fn free_bytes(folder: &Path) -> Option<u64> {
+    free_space(folder).ok().map(|space| space.free_bytes)
+}
+
 /// A Windows path without the verbatim prefix `canonicalize` adds, because the system lists its drives as `C:\`.
 fn plain(path: PathBuf) -> PathBuf {
     match path.to_str().and_then(|p| p.strip_prefix(r"\\?\")) {

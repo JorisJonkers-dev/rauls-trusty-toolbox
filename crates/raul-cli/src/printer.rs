@@ -37,16 +37,27 @@ impl Printer<'_> {
         }
         match event {
             Event::Started { tool, .. } => {
-                let _ = writeln!(
-                    self.err,
-                    "raul {}: running {} (SHA-256 {})",
-                    self.command,
-                    tool.path.display(),
-                    tool.sha256
-                );
+                // A Component linked into raul has no file of its own, so there is no checksum to show.
+                if tool.sha256.is_empty() {
+                    let _ = writeln!(
+                        self.err,
+                        "raul {}: running {} inside {}",
+                        self.command,
+                        tool.name,
+                        tool.path.display()
+                    );
+                } else {
+                    let _ = writeln!(
+                        self.err,
+                        "raul {}: running {} (SHA-256 {})",
+                        self.command,
+                        tool.path.display(),
+                        tool.sha256
+                    );
+                }
             }
             Event::Phase { phase } => {
-                let _ = writeln!(self.err, "raul {}: {phase}", self.command);
+                let _ = writeln!(self.err, "raul {}: {}", self.command, phase_text(&phase));
             }
             Event::Progress {
                 phase, done, of, ..
@@ -63,5 +74,77 @@ impl Printer<'_> {
             }
             _ => {}
         }
+    }
+}
+
+/// The words a phase name is shown in for people; a name that has none is shown as it is.
+fn phase_text(phase: &str) -> &str {
+    match phase {
+        "unpack" => "unpacking the TTW package",
+        "package" => "reading the TTW package",
+        "add_mod" => "adding the Mod",
+        other => other,
+    }
+}
+
+/// A [`Write`] that hands each complete line to a callback as it is written, so a run that prints `raul-events` lines
+/// can be read line by line without a process or a pipe.
+pub(crate) struct LineSink<'a> {
+    partial: Vec<u8>,
+    on_line: &'a mut dyn FnMut(&str),
+}
+
+impl<'a> LineSink<'a> {
+    pub(crate) fn new(on_line: &'a mut dyn FnMut(&str)) -> Self {
+        Self {
+            partial: Vec::new(),
+            on_line,
+        }
+    }
+
+    /// Hands over a last line that has no newline, if there is one.
+    pub(crate) fn finish(&mut self) {
+        if !self.partial.is_empty() {
+            let line = std::mem::take(&mut self.partial);
+            (self.on_line)(&String::from_utf8_lossy(&line));
+        }
+    }
+}
+
+impl Write for LineSink<'_> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        for &byte in buf {
+            if byte == b'\n' {
+                let line = std::mem::take(&mut self.partial);
+                (self.on_line)(&String::from_utf8_lossy(&line));
+            } else {
+                self.partial.push(byte);
+            }
+        }
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_sink_hands_over_each_line_when_it_is_complete_and_the_last_one_at_the_end() {
+        let mut seen = Vec::new();
+        {
+            let mut take = |line: &str| seen.push(line.to_owned());
+            let mut sink = LineSink::new(&mut take);
+            sink.write_all(b"one\ntw").unwrap();
+            sink.write_all(b"o\n\nthree").unwrap();
+            sink.flush().unwrap();
+            sink.finish();
+            sink.finish();
+        }
+        assert_eq!(seen, ["one", "two", "", "three"]);
     }
 }

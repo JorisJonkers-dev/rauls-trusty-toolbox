@@ -413,12 +413,18 @@ mod tests {
             s.run_command().unwrap().shown(),
             "raul run nv-rs --instance /s/instance"
         );
+        assert_eq!(
+            s.stop_command().unwrap().shown(),
+            "raul run --stop --instance /s/instance"
+        );
         assert_eq!(s.rows().len(), RowId::ALL.len());
         assert_eq!(
             run_command("/i").rest(),
             ["nv-rs", "--instance", "/i"],
             "the target is the first value after `raul run`"
         );
+        assert_eq!(stop_command("/i").shown(), "raul run --stop --instance /i");
+        assert!(State::default().stop_command().is_none());
     }
 
     #[test]

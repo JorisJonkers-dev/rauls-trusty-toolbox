@@ -257,6 +257,12 @@ impl DirectJob {
 /// The direct job that does what the page's command with the registry id `id` does, from the values and flags after
 /// its words; `None` for a command that still runs as a command line. Each converted action adds one arm here.
 pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
+    for_command_in(id, rest, None)
+}
+
+/// [`for_command`] with the configuration file the runs that read `raul config` use (`None`: the person's own). A test
+/// gives its own, so nothing reaches the real one and no environment variable of the process is set.
+pub fn for_command_in(id: &str, rest: &[String], config: Option<&Path>) -> Option<DirectJob> {
     match id {
         "rollback" => Some(match value_of(rest, "--instance") {
             "" => DirectJob::reading(|_, _| -> Result<Outcome<()>, JobError> {
@@ -290,11 +296,20 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
                 target: nvmod_api::target::Target::NvRs,
             })
         }),
+        "install" => {
+            Some(install_command_request(rest).map_or_else(DirectJob::usage, |r| install_mod(&r)))
+        }
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
         "verify" => Some(verify_request(rest).map_or_else(DirectJob::usage, |r| verify(&r))),
         "plugins-list" => Some(plugins_list(&plugins_list_request(rest))),
+        "ttw" => Some(
+            raul_cli::ttw_install_job_in(rest, config).map_or_else(DirectJob::usage, ttw_install),
+        ),
+        "lod-generate" => Some(
+            raul_cli::lod_generate_job_in(rest, config).map_or_else(DirectJob::usage, lod_generate),
+        ),
         "mods-list" => {
             Some(mods_list_request(rest).map_or_else(DirectJob::usage, |r| mods_list(&r)))
         }
@@ -311,6 +326,36 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
         }
         _ => None,
     }
+}
+
+/// The Instance to hold the lock of while a run writes into it: the one the run names, when it is one.
+fn lockable(instance: Option<&Path>) -> Option<PathBuf> {
+    instance
+        .filter(|root| root.join("nvmod-instance.json").is_file())
+        .map(Path::to_path_buf)
+}
+
+/// The TTW install of `raul-drivers` (ttwright, linked in process) as a streaming job: the `raul-events` lines of
+/// `raul ttw --json`, then its result and its end. It stops at its next safe point when this job's own cancel token is
+/// set, and the job never sets the process-wide request, so its Cancel cannot reach another job. (The nvmod steps that
+/// add the Mod to the Instance still read the process-wide request until nvmod-rs#212 gives them a token.) It holds
+/// the Instance lock.
+pub fn ttw_install(job: raul_cli::TtwJob) -> DirectJob {
+    let lock = lockable(job.instance()).map(|root| (root, "ttw"));
+    DirectJob::streaming(lock, move |sink, cancel| {
+        let stop = || cancel.is_cancelled();
+        job.run_lines(raul_drivers::Stop::Run(&stop), sink)
+    })
+}
+
+/// The LOD generation of `raul-drivers` (lodwright, linked in process) as a streaming job, as [`ttw_install`] is one
+/// for the TTW install: the lines of `raul lod generate --json`, this job's own cancel token, the Instance lock.
+pub fn lod_generate(job: raul_cli::LodJob) -> DirectJob {
+    let lock = lockable(job.instance()).map(|root| (root, "lod"));
+    DirectJob::streaming(lock, move |sink, cancel| {
+        let stop = || cancel.is_cancelled();
+        job.run_lines(raul_drivers::Stop::Run(&stop), sink)
+    })
 }
 
 /// The value after `flag` in `rest` as an option: `None` when the flag is absent.
@@ -526,7 +571,8 @@ fn fetch_masterlist(
     lock: Option<&Path>,
     store: Option<&Path>,
 ) -> Result<PathBuf, JobError> {
-    use nvmod_tools::{Acquire, AcquireError, Curl, Lock, Store, Trust, builtin_lock};
+    use crate::fetch::CurlFetcher;
+    use nvmod_tools::{Acquire, AcquireError, Lock, Store, Trust, builtin_lock};
     const WHAT: &str = "loadorder.sort.fetch";
     let refused = |why: String| JobError::new(ErrorKind::Refused, WHAT, why);
     let lock = match lock {
@@ -544,9 +590,7 @@ fn fetch_masterlist(
         ))
     })?;
     let store = Store::new(store.map_or_else(Store::default_location, Path::to_path_buf));
-    let curl = Curl {
-        program: "curl".into(),
-    };
+    let curl = CurlFetcher::default();
     let trust = Trust::load(instance).map_err(refused)?;
     let acquire = Acquire {
         fetcher: &curl,
@@ -747,7 +791,26 @@ pub fn install_request(
         dry_run,
         answers: answers.map(Path::to_path_buf),
         max_extract_bytes: None,
+        extract_limits: nvmod_api::install::LimitOverrides::default(),
     }
+}
+
+/// The request of `raul install` from the words after it: the archive first, then the flags; no archive is its usage
+/// message.
+fn install_command_request(rest: &[String]) -> Result<nvmod_api::install::InstallRequest, String> {
+    let archive = rest
+        .first()
+        .filter(|w| !w.starts_with("--"))
+        .ok_or_else(|| "install: give the archive".to_string())?;
+    let answers = option_of(rest, "--answers");
+    Ok(install_request(
+        Path::new(value_of(rest, "--instance")),
+        option_of(rest, "--profile").as_deref(),
+        Path::new(archive),
+        option_of(rest, "--name").as_deref(),
+        has_flag(rest, "--dry-run"),
+        answers.as_deref().map(Path::new),
+    ))
 }
 
 /// `nvmod_api::install::install`: installs a Mod, or plans to. Its document is the report, as `raul install --json`
