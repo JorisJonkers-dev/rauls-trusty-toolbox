@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795178297338,
+  "lastUpdate": 1795178662687,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6418,6 +6418,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.306636,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e86498d5e27d013acb0aee69f8b4fab011b59866",
+          "message": "docs(adr): name what the installers cannot bundle and the guided step for each (#383)\n\n* docs(adr): name what the installers cannot bundle and the guided step for each (#169)\n\n* docs(adr): match the step names to the setup",
+          "timestamp": "2026-11-20T12:42:31Z",
+          "tree_id": "2977163e8aae833580ddb03d00e9b94f5d1a1069",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e86498d5e27d013acb0aee69f8b4fab011b59866"
+        },
+        "date": 1795178662008,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.290623,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.380398000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.450522,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.114794,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.03805,
             "unit": "ms"
           }
         ]
