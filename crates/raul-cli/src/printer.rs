@@ -37,16 +37,27 @@ impl Printer<'_> {
         }
         match event {
             Event::Started { tool, .. } => {
-                let _ = writeln!(
-                    self.err,
-                    "raul {}: running {} (SHA-256 {})",
-                    self.command,
-                    tool.path.display(),
-                    tool.sha256
-                );
+                // A Component linked into raul has no file of its own, so there is no checksum to show.
+                if tool.sha256.is_empty() {
+                    let _ = writeln!(
+                        self.err,
+                        "raul {}: running {} inside {}",
+                        self.command,
+                        tool.name,
+                        tool.path.display()
+                    );
+                } else {
+                    let _ = writeln!(
+                        self.err,
+                        "raul {}: running {} (SHA-256 {})",
+                        self.command,
+                        tool.path.display(),
+                        tool.sha256
+                    );
+                }
             }
             Event::Phase { phase } => {
-                let _ = writeln!(self.err, "raul {}: {phase}", self.command);
+                let _ = writeln!(self.err, "raul {}: {}", self.command, phase_text(&phase));
             }
             Event::Progress {
                 phase, done, of, ..
@@ -63,6 +74,16 @@ impl Printer<'_> {
             }
             _ => {}
         }
+    }
+}
+
+/// The words a phase name is shown in for people; a name that has none is shown as it is.
+fn phase_text(phase: &str) -> &str {
+    match phase {
+        "unpack" => "unpacking the TTW package",
+        "package" => "reading the TTW package",
+        "add_mod" => "adding the Mod",
+        other => other,
     }
 }
 
