@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795176815074,
+  "lastUpdate": 1795177695507,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6320,6 +6320,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 36.051014,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f0e7549b3242099791250f34bf6bdb4069a0068e",
+          "message": "feat(lod): record what a LOD run was built from and tell when it is out of date (#66) (#382)\n\nA successful run keeps a fingerprint in the Profile's work folder: the request digest, a digest of the settings and worlds, and for each active plugin its size, a digest of its first and last megabyte and whether it has a top-level world group. raul lod mods --json now gives the Profile's own LOD Mod a stale field: current, may (a reorder, or a plugin without a world turned on, off or changed), must (any settings change, Restore defaults, Undo restore, or a plugin with a world turned on, off or changed) or unknown, with a one-line reason. A Mod without plugins and an inactive plugin do not count. A new run clears it. The packing switch does not exist yet, so it is not in the fingerprint; it joins the settings digest with the BSA work.",
+          "timestamp": "2026-11-20T12:26:36Z",
+          "tree_id": "5c4999d9bdc917de0fd47e6de229fedb681eca6d",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f0e7549b3242099791250f34bf6bdb4069a0068e"
+        },
+        "date": 1795177694746,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.691201,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.684533,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.606983999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.2775240000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 11.178645,
             "unit": "ms"
           }
         ]
