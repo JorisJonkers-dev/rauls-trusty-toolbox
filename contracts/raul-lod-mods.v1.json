@@ -45,6 +45,17 @@
             "string",
             "null"
           ]
+        },
+        "stale": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Staleness"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How out of date it is: only this Profile's own Mod has it, and `null` for the others."
         }
       },
       "required": [
@@ -55,9 +66,53 @@
         "own",
         "position",
         "profile",
-        "request_digest"
+        "request_digest",
+        "stale"
       ],
       "type": "object"
+    },
+    "Staleness": {
+      "description": "The state and why, in a plain line.",
+      "properties": {
+        "reason": {
+          "description": "What changed, or why it is not known; empty when current.",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/State",
+          "description": "The state."
+        }
+      },
+      "required": [
+        "reason",
+        "state"
+      ],
+      "type": "object"
+    },
+    "State": {
+      "description": "How out of date the LOD is.",
+      "oneOf": [
+        {
+          "const": "unknown",
+          "description": "Nothing recorded, or it cannot be told now.",
+          "type": "string"
+        },
+        {
+          "const": "current",
+          "description": "Nothing that shows in the LOD changed.",
+          "type": "string"
+        },
+        {
+          "const": "may",
+          "description": "A change may show in the LOD.",
+          "type": "string"
+        },
+        {
+          "const": "must",
+          "description": "A change shows in the LOD: generate again.",
+          "type": "string"
+        }
+      ]
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",

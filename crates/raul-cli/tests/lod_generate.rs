@@ -509,6 +509,76 @@ fn lod_mods_lists_the_generated_mods_of_the_profile_and_nothing_else() {
     assert_eq!(out.status.code(), Some(2), "{out:?}");
 }
 
+fn find_file(dir: &Path, name: &str) -> Option<PathBuf> {
+    for entry in std::fs::read_dir(dir).ok()?.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            if let Some(found) = find_file(&path, name) {
+                return Some(found);
+            }
+        } else if entry
+            .file_name()
+            .to_string_lossy()
+            .eq_ignore_ascii_case(name)
+        {
+            return Some(path);
+        }
+    }
+    None
+}
+
+/// The staleness `raul lod mods` reports for the Profile's own LOD Mod.
+fn stale_of(f: &Fixture) -> (String, String) {
+    let doc = lod_mods(f);
+    let stale = &doc["mods"][0]["stale"];
+    (
+        stale["state"].as_str().unwrap_or_default().to_owned(),
+        stale["reason"].as_str().unwrap_or_default().to_owned(),
+    )
+}
+
+#[test]
+fn a_run_records_what_it_was_built_from_and_a_settings_change_marks_the_lod_out_of_date_until_it_runs_again()
+ {
+    let f = Fixture::new("raul-lodgen-stale");
+    assert_eq!(lod_mods(&f)["mods"], serde_json::json!([]));
+    assert_eq!(f.generate(&[]).0, Some(0));
+    assert!(
+        f.instance()
+            .join(".raul/lod/Default/fingerprint.json")
+            .is_file()
+    );
+    assert_eq!(stale_of(&f).0, "current");
+    // A Mod without plugins is not what the LOD is built from.
+    raul_ok(&f, &["mods", "create", "Alpha", "--top"]);
+    assert_eq!(stale_of(&f).0, "current");
+    // Any setting, then the same run again.
+    f.settings("[output]\nwater = false\n");
+    let (state, reason) = stale_of(&f);
+    assert_eq!(state, "must", "{reason}");
+    assert!(reason.contains("settings"), "{reason}");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    assert_eq!(stale_of(&f).0, "current");
+    // Restore defaults and its undo are settings changes too.
+    f.settings("");
+    assert_eq!(stale_of(&f).0, "must");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    assert_eq!(stale_of(&f).0, "current");
+}
+
+#[test]
+fn a_changed_plugin_with_a_world_marks_the_lod_out_of_date() {
+    let f = Fixture::new("raul-lodgen-stale-plugin");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    let esm = find_file(&f.instance(), "falloutnv.esm").expect("a staged FalloutNV.esm");
+    let mut bytes = std::fs::read(&esm).unwrap();
+    bytes.extend_from_slice(&[0; 8]);
+    std::fs::write(&esm, bytes).unwrap();
+    let (state, reason) = stale_of(&f);
+    assert_eq!(state, "must", "{reason}");
+    assert!(reason.contains("falloutnv.esm"), "{reason}");
+}
+
 #[test]
 fn a_mod_that_is_not_generated_lod_but_has_its_name_is_refused() {
     let f = Fixture::new("raul-lodgen-taken");
