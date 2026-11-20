@@ -293,6 +293,11 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
         "mods-list" => {
             Some(mods_list_request(rest).map_or_else(DirectJob::usage, |r| mods_list(&r)))
         }
+        "mods-enable" | "mods-disable" | "mods-reorder" => {
+            Some(mods_change_request(id, rest).map_or_else(DirectJob::usage, |r| mods_change(&r)))
+        }
+        // `mods remove` has no job in `nvmod_api` yet (nvmod-rs has the command and `nvmod_modinstall` the code), so it
+        // stays a command line, run in process.
         // `--keep-order` is nvmod's other sort job (`sort_apply::keep_order`), which no page starts: it stays a
         // command line.
         "sort-preview" | "sort-apply" if has_flag(rest, "--keep-order") => None,
@@ -643,6 +648,51 @@ fn value_of<'a>(rest: &'a [String], flag: &str) -> &'a str {
         .position(|w| w == flag)
         .and_then(|i| rest.get(i + 1))
         .map_or("", String::as_str)
+}
+
+/// The first word of `rest` that is neither a flag nor the value of one of `flags` (the options that take a value).
+fn positional<'a>(rest: &'a [String], flags: &[&str]) -> Option<&'a str> {
+    let mut words = rest.iter();
+    while let Some(w) = words.next() {
+        if flags.contains(&w.as_str()) {
+            words.next();
+        } else if !w.starts_with("--") {
+            return Some(w);
+        }
+    }
+    None
+}
+
+/// The request of `raul mods enable|disable|reorder` from the words after the subcommand, for the registry command
+/// `id`: the Mod, then `--instance`, `--profile` and, for a reorder, `--position`.
+fn mods_change_request(
+    id: &str,
+    rest: &[String],
+) -> Result<nvmod_api::mods::ChangeRequest, String> {
+    let verb = id.trim_start_matches("mods-");
+    let Some(name) = positional(rest, &["--instance", "--profile", "--position"]) else {
+        return Err(format!("mods {verb}: give the Mod"));
+    };
+    let name = name.to_owned();
+    let change = match verb {
+        "enable" => nvmod_api::mods::Change::Enable { mods: vec![name] },
+        "disable" => nvmod_api::mods::Change::Disable { mods: vec![name] },
+        _ => {
+            let position = value_of(rest, "--position")
+                .parse::<usize>()
+                .map_err(|_| "mods reorder: --position takes a number".to_owned())?;
+            nvmod_api::mods::Change::Move {
+                name,
+                to: nvmod_api::mods::Place::Position(position),
+            }
+        }
+    };
+    Ok(nvmod_api::mods::ChangeRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        change,
+        dry_run: false,
+    })
 }
 
 /// `nvmod_api::mods::change`: enables, disables or moves Mods of a profile. Its document is the report, as
