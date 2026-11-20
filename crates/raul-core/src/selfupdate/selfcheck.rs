@@ -2,7 +2,7 @@
 //! The check a new version runs on itself after an update (ADR-0020), and the way the old version asks for it.
 //!
 //! [`run_in_process`] is what `raul update self-check` does: the version is the expected one, every file of the
-//! unit matches `INSTALLED-FILES.sha256`, the packaged engine matches its list, and the configuration reads.
+//! unit matches `INSTALLED-FILES.sha256`, and the configuration reads.
 //! [`run_child`] starts the new program once with that command and reads its answer; a program that cannot start, runs
 //! too long, exits with an error or answers anything but a pass counts as a failed check.
 
@@ -51,14 +51,6 @@ pub fn run_in_process(
             problems.push("The list of installed files is missing.".to_owned());
         }
         Err(_) => {}
-    }
-    let engine = root.join("components").join("nv-rs");
-    if engine
-        .join(super::super::setup::packaged::MANIFEST)
-        .is_file()
-        && super::super::setup::packaged::verify(&engine).is_err()
-    {
-        problems.push("The game engine that came with this version is damaged.".to_owned());
     }
     if let Some(file) = crate::config::default_file().filter(|f| f.exists())
         && crate::config::Config::load(&file).is_err()
@@ -202,30 +194,6 @@ mod tests {
         write_file(t.path(), "mine.txt", b"the person's own file");
         write_file(t.path(), ".raul-update/journal.json", b"{}");
         assert!(run_in_process(t.path(), "2.0.0", None, true).ok);
-    }
-
-    #[test]
-    fn a_damaged_packaged_engine_fails() {
-        let t = install();
-        // The engine program is `nv-viewer.exe` on Windows.
-        let viewer = format!(
-            "components/nv-rs/bin/nv-viewer{}",
-            std::env::consts::EXE_SUFFIX
-        );
-        write_file(t.path(), &viewer, b"viewer");
-        let line = format!(
-            "{}  bin/nv-viewer{}\n",
-            hash(b"viewer"),
-            std::env::consts::EXE_SUFFIX
-        );
-        write_file(t.path(), "components/nv-rs/FILES.sha256", line.as_bytes());
-        assert!(run_in_process(t.path(), "2.0.0", None, true).ok);
-        write_file(t.path(), &viewer, b"tampered");
-        let r = run_in_process(t.path(), "2.0.0", None, true);
-        assert!(
-            !r.ok && r.problems.iter().any(|p| p.contains("engine")),
-            "{r:?}"
-        );
     }
 
     #[test]

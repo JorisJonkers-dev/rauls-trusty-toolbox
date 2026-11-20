@@ -4,7 +4,7 @@
 use super::{Planned, Request, SkipReason, Step};
 
 /// The steps of `request` in the order nvmod's `setup` runs them: the MO2 import, or init and the first Profile;
-/// the engine and the target when the engine is wanted; TTW; each Mod archive; Staging; the sort (skipped on an
+/// the target when nv-rs is wanted; TTW; each Mod archive; Staging; the sort (skipped on an
 /// imported Instance unless asked for) or, on an imported Instance, the stamp; and the check. Steps the request
 /// does not ask for are left out; steps it lists as done are planned as skipped.
 #[must_use]
@@ -19,7 +19,6 @@ pub fn plan(request: &Request) -> Vec<Planned> {
         steps.push(Step::Profile);
     }
     if request.engine {
-        steps.push(Step::Engine);
         steps.push(Step::Target);
     }
     if request.ttw.is_some() {
@@ -50,7 +49,6 @@ pub fn plan(request: &Request) -> Vec<Planned> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::setup::EngineOptions;
     use crate::setup::Ttw;
     use std::path::PathBuf;
 
@@ -63,7 +61,6 @@ mod tests {
             import_mo2: None,
             copy: false,
             engine: false,
-            engine_options: EngineOptions::default(),
             ttw: None,
             mods: Vec::new(),
             answers: None,
@@ -95,7 +92,6 @@ mod tests {
             [
                 "init",
                 "profile",
-                "engine",
                 "target",
                 "ttw",
                 "mod:A.zip",
@@ -124,15 +120,7 @@ mod tests {
         let planned = plan(&r);
         assert_eq!(
             ids(&planned),
-            [
-                "import-mo2",
-                "engine",
-                "target",
-                "stage",
-                "sort",
-                "stamp",
-                "verify"
-            ]
+            ["import-mo2", "target", "stage", "sort", "stamp", "verify"]
         );
         let sort = planned.iter().find(|p| p.step == Step::Sort).unwrap();
         assert_eq!(sort.skip, Some(SkipReason::KeepsImportedOrder));

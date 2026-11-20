@@ -9,19 +9,15 @@ use raul_drivers::events::Event as TtwEvent;
 use raul_drivers::events::Status;
 use raul_drivers::ttw::{self, TtwRequest};
 
-use super::{
-    CancelToken, Error, ErrorKind, Event, Outcome, Output, Progress, Request, Step, engine, plan,
-};
+use super::{CancelToken, Error, ErrorKind, Event, Outcome, Output, Progress, Request, Step, plan};
 
 /// Run the setup `request` asks for: report the plan, then run each planned step in order, reporting it as a
 /// progress step. A step the plan skips is reported as skipped. The run ends at the first failing step with its
 /// typed [`Error`]; a stop asked for through `cancel` ends it before the next step, or inside a step that checks
 /// the token, as [`Outcome::Cancelled`].
 ///
-/// The engine step installs and checks nv-rs through the engine install library (`engine.rs`). Mod archives are
-/// read in process (`zip`, `7z` and compressed `tar`; a `rar` or another format nvmod cannot read is refused with its
-/// message). No step starts a process of its own except the engine install, which runs `cargo` for a source build
-/// and `curl` and `gh` to fetch and verify the release.
+/// Mod archives are read in process (`zip`, `7z` and compressed `tar`; a `rar` or another format nvmod cannot read
+/// is refused with its message). No step starts a process of its own.
 ///
 /// # Errors
 /// An [`Error`] naming the step, the job and the reason; the Instance is as that step left it (each job puts
@@ -178,14 +174,23 @@ fn execute(
             let r = api::profile::create(&request, &mut detail(step, progress), cancel);
             Ok(finish(step, r)?.is_some())
         }
-        Step::Engine => engine::run(req, step, progress, cancel),
         Step::Target => {
             let request = api::target::SetRequest {
                 instance,
                 target: api::target::Target::NvRs,
             };
             let r = api::target::set(&request, &mut detail(step, progress), cancel);
-            Ok(finish(step, r)?.is_some())
+            let done = finish(step, r)?.is_some();
+            if done {
+                // The engine is linked in: its capabilities come from it, for the Doctor (#398).
+                crate::capabilities::write_provided(&req.instance).map_err(|e| Error {
+                    kind: ErrorKind::Failed,
+                    step: step.clone(),
+                    job: "target.capabilities",
+                    summary: format!("the engine's capabilities could not be written: {e}"),
+                })?;
+            }
+            Ok(done)
         }
         Step::Ttw => run_ttw(req, step, progress, cancel),
         Step::Mod(archive) => {
