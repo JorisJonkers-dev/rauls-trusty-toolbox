@@ -72,6 +72,17 @@ impl Launcher for PlayLauncher<'_> {
         if spec.program != self.exe {
             return self.inner.start(spec, attached);
         }
+        // Tale of Two Wastelands needs its values in the Profile's Fallout.ini; a failure is said, not fatal.
+        match raul_core::game_ini::sync_run_folder(&spec.working_dir) {
+            Ok(raul_core::game_ini::Outcome::Changed(said)) => {
+                eprintln!(
+                    "raul: run: game settings for this Profile: {}",
+                    said.join(", ")
+                );
+            }
+            Ok(_) => {}
+            Err(why) => eprintln!("raul: run: the game settings could not be checked: {why}"),
+        }
         let mut play = spec.clone();
         play.args.insert(0, PLAY_MODE_ARG.to_owned());
         // A file left from an earlier run would stop this one at once.
@@ -270,6 +281,35 @@ mod tests {
             stop_file(&dir).to_string_lossy()
         );
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_profile_with_tale_of_two_wastelands_gets_its_game_settings_before_the_game_starts() {
+        let root = scratch("ttw-ini");
+        let run = root.join("run/Default");
+        std::fs::create_dir_all(&run).unwrap();
+        std::fs::create_dir_all(root.join("profiles/Default")).unwrap();
+        std::fs::write(
+            root.join("profiles/Default/plugins.txt"),
+            "*TaleOfTwoWastelands.esm\n",
+        )
+        .unwrap();
+        std::fs::write(
+            run.join("Fallout_default.ini"),
+            "[General]\nSCharGenQuest=00102037\n",
+        )
+        .unwrap();
+        let inner = Recording::default();
+        PlayLauncher::new(Path::new("/opt/raul"), &inner)
+            .start(&spec("/opt/raul", &run), false)
+            .unwrap();
+        let ini = nvmod_run::my_games(&run.join("userdata")).join("Fallout.ini");
+        assert!(
+            std::fs::read_to_string(ini)
+                .unwrap()
+                .contains("SCharGenQuest=001FFFF8")
+        );
+        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]
