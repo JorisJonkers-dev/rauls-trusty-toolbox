@@ -49,5 +49,5 @@ tmp="$(mktemp "${TMPDIR:-/tmp}/components.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
 # The linked Components are compiled into raul. nv-rs is the engine's packaged build until it is linked too (#260).
 for c in nvmod-rs loot-rs lodwright-rs ttwright-rs; do echo "$c $(scripts/component-version.sh "$c") linked into raul"; done >"$tmp"
-echo "nv-rs $(scripts/component-version.sh nv-rs) packaged engine build (Linux and Windows)" >>"$tmp"
+echo "nv-rs $(scripts/component-version.sh nv-rs) packaged engine build" >>"$tmp"
 render "$sums" "$tmp"
