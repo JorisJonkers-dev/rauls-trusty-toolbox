@@ -124,6 +124,10 @@ fn fail(
     done(result, false)
 }
 
+/// What a run that stopped before the swap says about the LOD Mod: lodwright builds in a staging folder next to the
+/// output and replaces the output only when it is finished, and the Mod is replaced from the output after that.
+const MOD_UNTOUCHED: &str = "the LOD Mod in the Instance was not touched";
+
 /// The request document of a Profile as the library's typed request.
 fn typed(request: &Value) -> Result<LodwrightRequest, String> {
     serde_json::from_value(request.clone()).map_err(|e| e.to_string())
@@ -374,15 +378,6 @@ fn drop_replaced(
     warnings
 }
 
-/// Clears the output folder after a run that failed while writing it and left no manifest. Without a manifest the next
-/// run cannot tell these files from a foreign folder and refuses with `output_not_empty`, so the folder is cleared.
-/// A folder with a manifest is kept: the next run resumes from it.
-fn discard_partial(out: &Path) {
-    if !out.join(MANIFEST_FILE).exists() {
-        let _ = clear(out);
-    }
-}
-
 /// Records what the run was built from, so a later change can show the LOD as out of date. A failure is a warning:
 /// the LOD is in place either way.
 fn keep_fingerprint(
@@ -555,7 +550,6 @@ fn generate_stopped(
 
     let run = inproc::generate_with_events(&job, cancel, stop, req.timeout, emit);
     if run.panicked {
-        discard_partial(&plan.output_dir);
         let why = "LOD generation stopped unexpectedly; nothing was added";
         return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
     }
@@ -563,23 +557,23 @@ fn generate_stopped(
         Ok(GenerateOutcome::Done { result }) => *result,
         Ok(GenerateOutcome::Cancelled) if run.timed_out => {
             let why = format!(
-                "LOD generation ran longer than {} seconds and was stopped; nothing was added",
+                "LOD generation ran longer than {} seconds and was stopped; {MOD_UNTOUCHED}, and the next run continues from its checkpoint",
                 req.timeout.as_secs()
             );
             return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
         }
         Ok(GenerateOutcome::Cancelled) => {
-            let why = "cancelled; nothing was added to the Instance, and the next run continues the LOD already written";
+            let why = format!(
+                "cancelled; {MOD_UNTOUCHED}, and the next run with the same settings continues from the checkpoint it kept"
+            );
             return fail(r, Status::Cancelled, LodErrorCode::Cancelled, None, why);
         }
         Err(e) => {
-            if matches!(e.code, "generate_failed" | "output_failed") {
-                discard_partial(&plan.output_dir);
-            }
             let why = match &e.detail {
                 Some(detail) => format!("{}: {detail}", e.summary),
                 None => e.summary.clone(),
             };
+            let why = format!("{why}; {MOD_UNTOUCHED}");
             return fail(
                 r,
                 Status::Failed,
@@ -674,28 +668,5 @@ fn generate_stopped(
                 format!("putting the LOD into the Instance failed and was rolled back: {why}");
             fail(r, Status::Failed, LodErrorCode::AddModFailed, None, why)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use nvmod_testkit::{TempDir, write_file};
-
-    #[test]
-    fn a_failed_write_without_a_manifest_is_cleared_and_one_with_a_manifest_is_kept() {
-        let dir = TempDir::new("raul-lod-partial");
-        let out = dir.path().join("out");
-        write_file(&out, "meshes/partial.nif", b"half");
-        discard_partial(&out);
-        assert!(!out.exists(), "the partial output is cleared");
-
-        write_file(&out, "meshes/done.nif", b"whole");
-        write_file(&out, MANIFEST_FILE, b"{}");
-        discard_partial(&out);
-        assert!(
-            out.join("meshes/done.nif").is_file(),
-            "a resumable folder is kept"
-        );
     }
 }

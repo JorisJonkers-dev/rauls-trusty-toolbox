@@ -125,12 +125,34 @@ fn a_stop_request_during_the_generation_adds_nothing_and_the_next_run_completes(
     assert_eq!(outcome.result.mod_name, None);
     assert!(!outcome.changed);
     assert_eq!(f.state(), before, "a stopped run changed the Instance");
-    // The library itself stopped: its answer to a cancel is an interrupted manifest, with no request digest.
-    let manifest = std::fs::read(f.instance().join(".raul/lod/Default/out/manifest.json")).unwrap();
-    let manifest: serde_json::Value = serde_json::from_slice(&manifest).unwrap();
-    assert_eq!(manifest["request_digest"], "", "{manifest}");
+    // The library itself stopped: it kept a checkpoint in the staging folder and wrote no output folder.
+    let work = f.instance().join(".raul/lod/Default");
+    assert!(
+        !work.join("out").exists(),
+        "the output is written only at the swap"
+    );
+    assert!(
+        work.join("out.lodwright-staging/checkpoint.json").is_file(),
+        "the cancel kept a checkpoint"
+    );
 
     let outcome = lod::generate_with_cancel(&f.request(), &CancelToken::new(), &mut |_| {});
     assert_eq!(outcome.exit_code, 0, "{:?}", outcome.result);
     assert!(outcome.changed);
+}
+
+#[test]
+fn a_run_that_outlasts_its_timeout_is_stopped_and_leaves_the_mod_alone() {
+    let f = Fixture::new("raul-lodtimeout");
+    let before = f.state();
+    let mut request = f.request();
+    request.timeout = Duration::from_millis(1);
+    let outcome = lod::generate_with_cancel(&request, &CancelToken::new(), &mut |_| {});
+    assert_eq!(outcome.exit_code, 4, "{:?}", outcome.result);
+    assert_eq!(outcome.result.status, Status::Failed);
+    let message = outcome.result.error.as_ref().map(|e| e.message.clone());
+    let message = message.unwrap_or_default();
+    assert!(message.contains("longer than"), "{message}");
+    assert!(message.contains("was not touched"), "{message}");
+    assert_eq!(f.state(), before, "a timed out run changed the Instance");
 }

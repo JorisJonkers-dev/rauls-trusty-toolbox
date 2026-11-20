@@ -501,8 +501,33 @@ fn plugin(row: &PluginRow) -> Plugin {
 fn message(m: &SortMessage) -> Message {
     Message {
         kind: MessageKind::parse(&m.kind),
-        text: m.text.clone(),
+        text: without_links(&m.text),
     }
+}
+
+/// `text` with each Markdown link, `[words](address)`, written as its words: the masterlist's messages are
+/// Markdown, and the window shows plain text.
+fn without_links(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(open) = rest.find('[') {
+        let link = rest[open + 1..]
+            .split_once("](")
+            .and_then(|(words, after)| {
+                let (_, tail) = after.split_once(')')?;
+                (!words.contains(['[', ']'])).then_some((words, tail))
+            });
+        if let Some((words, tail)) = link {
+            out.push_str(&rest[..open]);
+            out.push_str(words);
+            rest = tail;
+        } else {
+            out.push_str(&rest[..=open]);
+            rest = &rest[open + 1..];
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 /// The proposed order of a sort, with each plugin's group, messages and findings, and the notes about the whole
@@ -794,6 +819,24 @@ mod tests {
                 .contains("nothing to undo")
         );
         assert_eq!(parse(&Err("no raul".into()), read).unwrap_err(), "no raul");
+    }
+
+    #[test]
+    fn markdown_links_are_shown_as_their_words() {
+        assert_eq!(
+            without_links("See [Latest LOOT thread](https://loot.github.io/latest-thread/)."),
+            "See Latest LOOT thread."
+        );
+        assert_eq!(without_links("[a](x) and [b](y)!"), "a and b!");
+        assert_eq!(without_links("no link [here"), "no link [here");
+        assert_eq!(without_links("[open](no close"), "[open](no close");
+        assert_eq!(without_links("[[a]](x) [b](y)"), "[[a]](x) b");
+        assert_eq!(without_links("plain"), "plain");
+        let m = message(&SortMessage {
+            kind: "say".into(),
+            text: "[x](y)".into(),
+        });
+        assert_eq!(m.text, "x");
     }
 
     #[test]
