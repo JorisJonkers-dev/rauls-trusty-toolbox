@@ -83,10 +83,10 @@ its own guided step and nothing is fetched silently:
 
 | Item | Why it is not bundled | Guided step |
 |---|---|---|
-| Fallout 3 and Fallout: New Vegas game files | The person's own copy; never redistributed | The Game step asks for the game folder and only reads it |
+| Fallout 3 and Fallout: New Vegas game files | The person's own copy; never redistributed | The setup asks for the game folder and only reads it |
 | The TTW package (`.mpi`) | TTW data, not redistributable (docs/PLAN.md section 3) | The TTW step asks for the file and says where to get it |
-| xNVSE and JIP LN DLLs | Third-party binaries, not ours to redistribute | Offered as Mods the person chooses to install |
-| The LOOT masterlist | Data, fetched at run time (CC0) | Fetched when a load order is sorted, with the reason shown |
+| xNVSE and JIP LN DLLs | Third-party binaries, not ours to redistribute | Installed as Mods through the Mods page, by choice |
+| The LOOT masterlist | Data, fetched at run time (CC0) | Fetched when a load order is sorted |
 | Mod archives | Owned by their authors and the Nexus terms | The Mods page, one archive at a time |
 
 ## Considered options
