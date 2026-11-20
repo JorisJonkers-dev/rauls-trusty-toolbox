@@ -420,8 +420,9 @@ jobs:
               # The installer must hold the same raul.exe: 7z unpacks an NSIS installer without running it.
               7z x -bso0 -o"$RUNNER_TEMP/nsis" "$setup"; check "$(find "$RUNNER_TEMP/nsis" -iname raul.exe -print -quit)"
               no_component_programs "$RUNNER_TEMP/nsis"; engine_shipped "$RUNNER_TEMP/nsis"
-              # A silent install is tried under a time limit; it hung in CI before, so a hang is a warning, not a stuck job.
-              if timeout 180 "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"; then
+              # A silent install is tried under a time limit; it hung in CI before (#108): Git Bash rewrote /S into S:/, so
+              # the installer opened its window and waited. MSYS_NO_PATHCONV keeps the argument. A hang is a warning.
+              if MSYS_NO_PATHCONV=1 timeout 180 "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"; then
                 sleep 5; check "$RUNNER_TEMP/installed/raul.exe"
               else
                 echo "::warning::the silent NSIS install did not finish within 180 s (exit $?); the installer contents were checked above"

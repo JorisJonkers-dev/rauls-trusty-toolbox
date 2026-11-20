@@ -9,7 +9,7 @@ use std::path::PathBuf;
 
 pub use driver::{
     DEFAULT_TIMEOUT, Outcome, TTWRIGHT, TTWRIGHT_EVENTS_VERSION, TtwRequest, WORK_DIR, exit_code,
-    install, refused,
+    install, install_with_stop, refused,
 };
 
 use schemars::JsonSchema;

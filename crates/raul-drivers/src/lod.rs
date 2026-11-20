@@ -12,7 +12,9 @@ mod run_lock;
 pub mod settings;
 pub mod stale;
 
-pub use generate::{LODWRIGHT, LodOutcome, LodRequest, generate, generate_with_cancel};
+pub use generate::{
+    LODWRIGHT, LodOutcome, LodRequest, generate, generate_with_cancel, generate_with_stop,
+};
 pub use marker::{LEGACY_MOD_NAME, Marker, is_generated, meta_ini, mod_name, read_marker};
 pub use mods::{
     GeneratedMod, LodMods, MODS_CONTRACT, MODS_SCHEMA_VERSION, generated_mods, mods_schema,
