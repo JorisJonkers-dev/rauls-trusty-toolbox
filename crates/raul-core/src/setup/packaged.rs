@@ -135,11 +135,12 @@ pub struct Verified {
 }
 
 /// Check every file the packaged engine's [`MANIFEST`] lists against its checksum. A listed file must be a regular
-/// file (a link is refused), and the list must name exactly one viewer.
+/// file (a link is refused), and the list must name exactly one viewer. The capabilities file is taken wherever the
+/// package keeps it (the Linux archive holds it in `<top folder>/share/nv-rs`), and the list may name at most one.
 ///
 /// # Errors
 /// [`ErrorKind::Unverified`] when the list is unreadable or malformed, a listed file is missing, a link or differs, or
-/// the list names no viewer or more than one.
+/// the list names no viewer or more than one, or more than one capabilities file.
 pub fn verify(dir: &Path) -> Result<Verified, Problem> {
     let list = std::fs::read_to_string(dir.join(MANIFEST))
         .map_err(|e| unverified(format!("the checksum list cannot be read: {e}")))?;
@@ -165,8 +166,8 @@ pub fn verify(dir: &Path) -> Result<Verified, Problem> {
             if viewer.replace(checked).is_some() {
                 return Err(unverified("it lists more than one program"));
             }
-        } else if name.as_deref() == Some(CAPABILITIES) && relative.components().count() == 1 {
-            capabilities = Some(checked);
+        } else if name.as_deref() == Some(CAPABILITIES) && capabilities.replace(checked).is_some() {
+            return Err(unverified("it lists more than one capabilities file"));
         }
     }
     let viewer = viewer.ok_or_else(|| unverified("it holds no program"))?;
@@ -439,7 +440,7 @@ mod tests {
         let mut list = String::new();
         for (name, bytes) in files {
             if name.ends_with(&nv_viewer_name()) {
-                let bin = dir.join("bin");
+                let bin = dir.join(Path::new(name).parent().expect("folder"));
                 std::fs::create_dir_all(&bin).expect("bin");
                 write_executable(&bin, &nv_viewer_name(), bytes);
             } else {
@@ -753,6 +754,55 @@ mod tests {
         let dir = engine(
             t.path(),
             &[(&viewer(), viewer_bytes()), (&other, viewer_bytes())],
+        );
+        assert_eq!(problem(verify(&dir)).kind, ErrorKind::Unverified);
+    }
+
+    /// The layout of the Linux release asset once unpacked: everything under one top folder, the viewer in `bin` and
+    /// the capabilities file in `share/nv-rs`.
+    fn linux_layout() -> (String, String) {
+        let top = "nv-rs-0.0.0-linux-x86_64";
+        (
+            format!("{top}/bin/{}", nv_viewer_name()),
+            format!("{top}/share/nv-rs/capabilities.json"),
+        )
+    }
+
+    #[test]
+    fn a_capabilities_file_in_the_archive_s_share_folder_is_installed() {
+        let t = TempDir::new("packaged-caps-nested");
+        let (program, capabilities) = linux_layout();
+        let dir = engine(
+            t.path(),
+            &[
+                (&program, viewer_bytes()),
+                (&capabilities, b"{\"nested\":true}".to_vec()),
+            ],
+        );
+        let verified = verify(&dir).expect("verified");
+        assert_eq!(
+            verified.capabilities.expect("capabilities").path,
+            dir.join(&capabilities)
+        );
+        let root = instance(&t);
+        install(&root, &dir, &|| false).expect("installed");
+        assert_eq!(
+            std::fs::read(root.join("nv-rs/capabilities.json")).expect("copied"),
+            b"{\"nested\":true}"
+        );
+    }
+
+    #[test]
+    fn two_capabilities_files_are_unverified() {
+        let t = TempDir::new("packaged-caps-two");
+        let (program, capabilities) = linux_layout();
+        let dir = engine(
+            t.path(),
+            &[
+                (&program, viewer_bytes()),
+                (&capabilities, b"{}".to_vec()),
+                ("other/capabilities.json", b"{}".to_vec()),
+            ],
         );
         assert_eq!(problem(verify(&dir)).kind, ErrorKind::Unverified);
     }
