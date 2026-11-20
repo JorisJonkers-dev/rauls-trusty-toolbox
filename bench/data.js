@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795180734851,
+  "lastUpdate": 1795181368295,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6516,6 +6516,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.335532,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "434b71051be570a0de38d7b273323d5e0db18624",
+          "message": "feat(gui): check the free space before the TTW install, with raul space (#385)\n\n* feat(gui): check the free space before the TTW install, with raul space (#155)\n\n* fix(core): drop the verbatim prefix of a Windows path before matching it to a drive (#155)",
+          "timestamp": "2026-11-20T13:26:12Z",
+          "tree_id": "e632cd89ad03f87b8bdb57536bf8a7427177ee5a",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/434b71051be570a0de38d7b273323d5e0db18624"
+        },
+        "date": 1795181367584,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.646132,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.589417,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.592301,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.140975,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.601098,
             "unit": "ms"
           }
         ]
