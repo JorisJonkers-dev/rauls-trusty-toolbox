@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795212605546,
+  "lastUpdate": 1795212885511,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7741,6 +7741,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.6332379999999995,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0d6aa95ff4946a5f405719bfa7864c0a2afc33be",
+          "message": "fix(gui): Delete on the generated LOD Mod runs its remove command (#417) (#448)\n\nThe Mods page took the confirmed answer only for a Mod that is not generated, so the Delete dialog of the generated\nLOD Mod closed and did nothing. The answer now counts for any listed Mod the dialog named.",
+          "timestamp": "2026-11-20T22:11:16Z",
+          "tree_id": "f035ddbe07fe61570109c9e242a49b6d43208791",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/0d6aa95ff4946a5f405719bfa7864c0a2afc33be"
+        },
+        "date": 1795212884931,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.524267,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.015665,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.092481999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.001918,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.109886,
             "unit": "ms"
           }
         ]
