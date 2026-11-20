@@ -23,9 +23,9 @@ use raul_ui_model::pages::{Flow, View};
 use raul_ui_service::registry::Action;
 use raul_ui_service::{CancelHandle, CliService, Hold, JobSpec, ProcessExec, Service, TtwRequest};
 use serde_json::json;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use ttwright_testkit::{Manifest, loc, mpi_package};
 
 /// The package's own folder name inside the Instance's `mods`.
@@ -286,7 +286,6 @@ fn a_cancelled_ttw_job_stops_the_install() {
     let cancel = CancelHandle::new();
     let asker = cancel.clone();
     let spec = JobSpec::new(JobId(1), Action::Ttw, f.request().args()).writing();
-    let started = Instant::now();
     f.service()
         .run_job_cancellable(
             &spec,
