@@ -14,7 +14,8 @@ mod stream;
 
 pub use program::{Started, start_program};
 pub use runner::{
-    Call, EXIT_REFUSED, EXIT_TOOL_FAILED, EXIT_VERIFICATION, NETWORK_ENV, Output, Runner, ToolError,
+    Call, EXIT_REFUSED, EXIT_TOOL_FAILED, EXIT_VERIFICATION, NETWORK_ENV, Output, Runner,
+    ToolError, programs_started,
 };
 pub use sha256::sha256_hex;
 pub use stream::{STOP_GRACE, StopHandle, Streamed};

@@ -194,3 +194,61 @@ fn a_write_through_the_real_jobs_also_runs_in_process() {
         "the applied order puts the master first: {text}"
     );
 }
+
+/// ADR-0016: no action the window offers starts a program. The runner counts every program it starts, so the count
+/// before and after a run of actions that call nvmod, loot-rs, lodwright and ttwright (and the ones that write) is the
+/// proof, not a scan of the sources. The count is of this process, so the test also fails when one of the Components
+/// reaches a process through the runner of the Toolbox.
+#[test]
+fn no_action_the_window_offers_starts_a_program() {
+    let f = Fixture::new();
+    let (instance, masterlist) = (f.s("storage/instance"), f.s("masterlist.yaml"));
+    let with = |extra: &[&str]| -> Vec<String> {
+        let mut args: Vec<String> = extra.iter().map(|a| (*a).to_owned()).collect();
+        args.extend(["--instance".to_owned(), instance.clone()]);
+        args
+    };
+    let sort = |apply: bool| {
+        let mut args = with(&[]);
+        args.extend(["--masterlist".to_owned(), masterlist.clone()]);
+        if apply {
+            args.push("--apply".to_owned());
+        }
+        args
+    };
+    let actions: Vec<(Action, Vec<String>, bool)> = vec![
+        (Action::Doctor, with(&[]), false),
+        (Action::Conflicts, with(&[]), false),
+        (Action::Tree, with(&[]), false),
+        (Action::Plugins, with(&["list"]), false),
+        (Action::Mods, with(&["list"]), false),
+        (Action::Mods, with(&["disable", "Other"]), true),
+        (Action::Mods, with(&["enable", "Other"]), true),
+        (Action::Sort, sort(false), false),
+        (Action::Sort, sort(true), true),
+        (Action::Lod, with(&["plan"]), false),
+        (Action::Lod, with(&["mods"]), false),
+        // No package is configured, so the install is refused before it starts: the path to ttwright is still taken.
+        (Action::Ttw, with(&["--dry-run"]), true),
+        (Action::Rollback, with(&[]), true),
+    ];
+    let before = raul_runner::programs_started();
+    let mut jobs = Jobs::real();
+    for (action, args, writes) in actions {
+        let id = jobs.start(action, args.clone(), writes).unwrap();
+        assert!(
+            jobs.wait_all(JOB_TIMEOUT),
+            "{action:?} {args:?} did not end within {JOB_TIMEOUT:?}"
+        );
+        jobs.poll();
+        assert!(
+            jobs.output(id).is_some(),
+            "{action:?} {args:?} ended without an answer"
+        );
+    }
+    assert_eq!(
+        raul_runner::programs_started(),
+        before,
+        "an action the window offers started a program (ADR-0016)"
+    );
+}
