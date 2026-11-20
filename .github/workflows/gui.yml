@@ -1,30 +1,13 @@
 # The GUI workspace (crates/raul-gui, ADR-0004) has its own lock file, so ci.yml's workspace steps never see it.
 # This workflow runs its checks: format, lint, tests with the 70% changed-line coverage gate (docs/COVERAGE.md),
-# the page snapshots, a headless start of the release `raul` (#16), licences and advisories. It runs when the GUI or
-# anything it builds on changes. There is no GPU: snapshots render on Mesa's software Vulkan (lavapipe) and the
+# the page snapshots, a headless start of the release `raul` (#16), licences and advisories. It runs on every change. There is no GPU:
+# snapshots render on Mesa's software Vulkan (lavapipe) and the
 # window opens under Xvfb on Mesa's software OpenGL (llvmpipe).
 name: GUI
 
+# Called by ci.yml on every pull request and every push to main (no path filter), so Pipeline Complete can wait for it.
 on:
-  pull_request:
-    paths:
-      - "crates/raul-gui/**"
-      - "crates/raul-cli/**"
-      - "crates/raul-core/**"
-      - "crates/raul-runner/**"
-      - "components/**"
-      - "rust-toolchain.toml"
-      - ".github/workflows/gui.yml"
-  push:
-    branches: [main]
-    paths:
-      - "crates/raul-gui/**"
-      - "crates/raul-cli/**"
-      - "crates/raul-core/**"
-      - "crates/raul-runner/**"
-      - "components/**"
-      - "rust-toolchain.toml"
-      - ".github/workflows/gui.yml"
+  workflow_call:
   workflow_dispatch:
 
 concurrency:
