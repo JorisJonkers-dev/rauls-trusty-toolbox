@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795186020037,
+  "lastUpdate": 1795186158534,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6908,6 +6908,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 12.797864,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d16a17d1e686e9dcd21c3d5d5feb9074379402d6",
+          "message": "docs: describe the private workshop in plain words and check that no public file names it (#134) (#416)",
+          "timestamp": "2026-11-20T14:47:26Z",
+          "tree_id": "9e9ff523da3df67bbbb9434ffb76d14e6fffd5ee",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d16a17d1e686e9dcd21c3d5d5feb9074379402d6"
+        },
+        "date": 1795186157729,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.3145100000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.565658,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.647409,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.117555,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.139694,
             "unit": "ms"
           }
         ]
