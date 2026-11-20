@@ -843,6 +843,7 @@ pub fn install_request(
         dry_run,
         answers: answers.map(Path::to_path_buf),
         max_extract_bytes: None,
+        extract_limits: nvmod_api::install::LimitOverrides::default(),
     }
 }
 
