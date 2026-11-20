@@ -21,6 +21,26 @@ use std::time::{Duration, SystemTime};
 /// Where the TTW package is downloaded from: the one place the page links to.
 pub const DOWNLOAD_URL: &str = "https://taleoftwowastelands.com/";
 
+/// The space the TTW install needs on the Instance's storage: the output and the files it works with, rounded up.
+pub const NEEDED_BYTES: u64 = 40 * 1024 * 1024 * 1024;
+
+/// `raul space --folder <dir>`: the free space where the Instance is; read only.
+pub fn space_command(folder: &str) -> Command {
+    Command::read("space", 1, &["space", "--folder", folder])
+}
+
+/// The free bytes in the answer of `raul space --json`.
+///
+/// # Errors
+/// The answer is not that document.
+pub fn free_bytes_of(stdout: &str) -> Result<u64, String> {
+    let v: serde_json::Value =
+        serde_json::from_str(stdout.trim()).map_err(|e| format!("not a raul space answer: {e}"))?;
+    v.get("free_bytes")
+        .and_then(serde_json::Value::as_u64)
+        .ok_or_else(|| "the answer has no free space".to_owned())
+}
+
 /// `raul ttw --instance <dir> --dry-run`: reads the package and checks the game copies; nothing is written.
 pub fn check_command(instance: &str) -> Command {
     Command::read("ttw", 1, &["ttw", "--instance", instance, "--dry-run"])
@@ -501,6 +521,8 @@ pub struct State {
     pub resuming: bool,
     /// The search for the package on this machine.
     pub found: Found,
+    /// The free bytes where the Instance is, read from `raul space` when Output is shown.
+    pub space: Fetch<u64>,
     /// Sources read again while a command ran, applied by [`State::settle`] when it ends.
     pub deferred: Option<Sources>,
 }
@@ -540,6 +562,29 @@ impl State {
     /// The sources could not be read; the command's message.
     pub fn sources_failed(&mut self, why: String) {
         self.sources = Fetch::Failed(why);
+    }
+
+    /// The free space is being read.
+    pub fn space_loading(&mut self) {
+        self.space = Fetch::Loading;
+    }
+
+    /// The free space arrived.
+    pub fn space_read(&mut self, free_bytes: u64) {
+        self.space = Fetch::Ready(free_bytes);
+    }
+
+    /// The free space could not be read; the command's message.
+    pub fn space_failed(&mut self, why: String) {
+        self.space = Fetch::Failed(why);
+    }
+
+    /// How many bytes are missing when the free space is known and smaller than the install needs.
+    pub fn space_missing(&self) -> Option<u64> {
+        self.space
+            .ready()
+            .and_then(|free| NEEDED_BYTES.checked_sub(*free))
+            .filter(|missing| *missing > 0)
     }
 
     /// The search for the package started.
@@ -639,7 +684,7 @@ impl State {
     pub fn can_next(&self) -> bool {
         match self.step {
             Step::Sources => self.sources.ready().is_some() && self.missing().is_empty(),
-            Step::Output => self.instance.is_some(),
+            Step::Output => self.instance.is_some() && self.space_missing().is_none(),
             Step::Review => self.wizard.flow.can_apply(),
             Step::Install => false,
         }
@@ -664,7 +709,10 @@ impl State {
             return;
         }
         match self.step {
-            Step::Output => self.step = Step::Sources,
+            Step::Output => {
+                self.step = Step::Sources;
+                self.space = Fetch::Idle;
+            }
             Step::Review => {
                 self.step = Step::Output;
                 self.reset_review();
@@ -920,6 +968,35 @@ mod tests {
             s.progress.as_ref().is_some_and(|p| p.done == 1),
             "late progress is dropped"
         );
+    }
+
+    #[test]
+    fn output_waits_only_for_a_known_shortage_of_space() {
+        let mut s = ready();
+        s.next();
+        assert_eq!(s.step, Step::Output);
+        assert!(s.can_next(), "space not read yet: not blocked");
+        s.space_loading();
+        assert!(s.can_next());
+        s.space_failed("unreadable".into());
+        assert!(s.can_next(), "an unreadable folder does not block");
+        s.space_read(NEEDED_BYTES - 1);
+        assert_eq!(s.space_missing(), Some(1));
+        assert!(!s.can_next());
+        s.space_read(NEEDED_BYTES);
+        assert_eq!(s.space_missing(), None);
+        assert!(s.can_next());
+    }
+
+    #[test]
+    fn the_space_answer_is_read_from_its_document() {
+        assert_eq!(
+            free_bytes_of(r#"{"folder":"/i","free_bytes":5,"total_bytes":9}"#),
+            Ok(5)
+        );
+        assert!(free_bytes_of("nope").is_err());
+        assert!(free_bytes_of("{}").is_err());
+        assert_eq!(space_command("/i").shown(), "raul space --folder /i");
     }
 
     #[test]
