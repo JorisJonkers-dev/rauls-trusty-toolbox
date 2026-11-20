@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795178662687,
+  "lastUpdate": 1795180734851,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6467,6 +6467,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.03805,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2fd8776939d82a48517126ce5e233213091073fd",
+          "message": "feat(cli): raul run starts raul itself in the play mode when the build links the engine (#396)\n\n* feat(gui): raul's own binary runs the game when started with --play-mode (#260)\n\n* chore(deps): bump nvmod to 0.13.0\n\n* style(gui): fmt and a clippy-clean refusal test (#260)\n\n* wip: play launcher\n\n* feat(cli): raul run starts raul itself in the play mode when the build links the engine (#377)\n\n* fix(deps): refresh both lock files for ttwright-rs 0.4.4 and the nvmod-run edge of raul-cli\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-20T13:14:32Z",
+          "tree_id": "c3b6b2af0d5ec3423892d621c717841b67822e02",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/2fd8776939d82a48517126ce5e233213091073fd"
+        },
+        "date": 1795180733861,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.556602,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.140518999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.382008,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.008578,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.335532,
             "unit": "ms"
           }
         ]
