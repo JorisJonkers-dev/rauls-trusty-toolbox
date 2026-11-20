@@ -28,7 +28,7 @@ raul-bench = { path = "crates/raul-bench" }
 raul-runner = { path = "crates/raul-runner" }
 raul-drivers = { path = "crates/raul-drivers" }
 # The same source and tag nvmod v0.8.1 links, so Cargo builds one copy (the lock file fixes the version).
-loot-rs = { git = "https://github.com/JorisJonkers-dev/loot-rs", tag = "v0.6.3" }
+loot-rs = { git = "https://github.com/JorisJonkers-dev/loot-rs", tag = "v0.7.0" }
 nvmod-api = { path = "components/nvmod-rs/crates/nvmod-api" }
 nvmod-cli = { path = "components/nvmod-rs/crates/nvmod-cli" }
 nvmod-core = { path = "components/nvmod-rs/crates/nvmod-core" }
