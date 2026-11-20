@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795217093108,
+  "lastUpdate": 1795218077609,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8035,6 +8035,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.187497,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f4499c9e43732c40c8e02bf87137d3d3b14394f9",
+          "message": "feat(gui): the LOD page shows the generated Mod that is already in the mod list and whether it is current (#415) (#456)",
+          "timestamp": "2026-11-20T23:39:23Z",
+          "tree_id": "26cb90e5cc238c72227514929b7796f927f72c43",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f4499c9e43732c40c8e02bf87137d3d3b14394f9"
+        },
+        "date": 1795218076553,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.7189009999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.009452,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.928402000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.3910290000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.490931,
             "unit": "ms"
           }
         ]
