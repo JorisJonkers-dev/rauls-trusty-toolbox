@@ -197,6 +197,7 @@ fn execute(
                 dry_run: false,
                 answers: req.answers.clone(),
                 max_extract_bytes: None,
+                extract_limits: Default::default(),
             };
             let r = api::install::install(&request, &mut detail(step, progress), cancel);
             match finish(step, r)? {
