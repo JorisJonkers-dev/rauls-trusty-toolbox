@@ -33,7 +33,6 @@ nvmod-api = { path = "components/nvmod-rs/crates/nvmod-api" }
 nvmod-cli = { path = "components/nvmod-rs/crates/nvmod-cli" }
 nvmod-core = { path = "components/nvmod-rs/crates/nvmod-core" }
 nvmod-formats = { path = "components/nvmod-rs/crates/nvmod-formats" }
-nvmod-install = { path = "components/nvmod-rs/crates/nvmod-install" }
 nvmod-instance = { path = "components/nvmod-rs/crates/nvmod-instance" }
 nvmod-loadorder = { path = "components/nvmod-rs/crates/nvmod-loadorder" }
 nvmod-modinstall = { path = "components/nvmod-rs/crates/nvmod-modinstall" }

@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use super::{EngineOptions, Request, Ttw};
+use super::{Request, Ttw};
 
 /// The options that take a value, as `--name value` or `--name=value`.
 const OPTIONS: &[&str] = &[
@@ -20,12 +20,10 @@ const OPTIONS: &[&str] = &[
     "fallout3",
     "package",
     "timeout-secs",
-    "source",
-    "cargo",
     "catalog",
 ];
 
-/// Options that fetched an engine release. They are gone: the engine ships with raul and is never downloaded (#179).
+/// Options that fetched an engine release. They are gone: the engine is linked into raul and is never downloaded (#179).
 const FETCH_OPTIONS: &[&str] = &[
     "release",
     "release-url",
@@ -39,7 +37,7 @@ const FETCH_OPTIONS: &[&str] = &[
 /// The message for an option that does not exist (any more): a plain usage error.
 fn unknown(name: &str) -> String {
     if FETCH_OPTIONS.contains(&name) {
-        format!("--{name} is gone: the engine comes with raul and is never downloaded")
+        format!("--{name} is gone: the engine is part of raul and is never downloaded")
     } else {
         format!("unknown option --{name}")
     }
@@ -108,7 +106,6 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
         import_mo2: None,
         copy: false,
         engine: true,
-        engine_options: EngineOptions::default(),
         ttw: None,
         mods: Vec::new(),
         answers: None,
@@ -206,17 +203,10 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
                     })?;
                 timeout = Some(Duration::from_secs(secs));
             }
-            "source" => request.engine_options.source = Some(absolute(&value)),
-            "cargo" => request.engine_options.cargo = Some(absolute(&value)),
             "catalog" => request.catalog = Some(absolute(&value)),
             // An option an old setup recorded: read, and nothing is done with it.
             _ => {}
         }
-    }
-    if request.engine_options.cargo.is_some() && request.engine_options.source.is_none() {
-        return Err(
-            "--cargo only goes with --source (it builds the engine from source)".to_owned(),
-        );
     }
     if let Some(fallout3) = fallout3 {
         request.ttw = Some(Ttw {
@@ -252,7 +242,7 @@ mod tests {
     fn the_options_of_a_setup_make_a_typed_request() {
         let p = parse(&words(
             "--base /b --instance /i --masterlist /m.yaml --profile P --mod /a/One.zip --mod /a/Two.zip \
-             --fallout3 /f3 --package /p.mpi --timeout-secs 60 --source /nv --skip-nv-rs --sort --copy --dry-run --json",
+             --fallout3 /f3 --package /p.mpi --timeout-secs 60 --skip-nv-rs --sort --copy --dry-run --json",
         ))
         .unwrap();
         let r = &p.request;
@@ -265,7 +255,6 @@ mod tests {
         assert_eq!(ttw.package, Some(abs("/p.mpi")));
         assert_eq!(ttw.timeout, Some(Duration::from_secs(60)));
         assert!(!r.engine && r.sort && r.copy);
-        assert_eq!(r.engine_options.source, Some(abs("/nv")));
         assert!(p.json && p.dry_run && !p.keep_partial && p.has_run_options);
     }
 
@@ -290,14 +279,7 @@ mod tests {
     }
 
     #[test]
-    fn a_cargo_without_a_source_is_refused_instead_of_doing_nothing() {
-        let e = parse(&words("--instance /i --cargo /c")).unwrap_err();
-        assert!(e.contains("--cargo") && e.contains("--source"), "{e}");
-        assert!(parse(&words("--instance /i --cargo /c --source /s")).is_ok());
-    }
-
-    #[test]
-    fn the_engine_is_on_unless_it_is_skipped_as_in_nvmod_setup() {
+    fn the_nv_rs_target_is_on_unless_it_is_skipped_as_in_nvmod_setup() {
         assert!(parse(&words("--instance /i")).unwrap().request.engine);
     }
 

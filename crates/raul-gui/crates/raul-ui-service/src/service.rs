@@ -188,9 +188,7 @@ pub struct SetupRequest {
     pub fallout3: Option<String>,
     /// The TTW package file.
     pub package: Option<String>,
-    /// Build nv-rs from this source folder (`--source`).
-    pub source: Option<String>,
-    /// Leave out the nv-rs step.
+    /// Leave out making nv-rs the target.
     pub skip_nv_rs: bool,
     /// Sort an imported MO2 Instance too (`--sort`); by default its order is kept.
     pub sort: bool,
@@ -233,7 +231,7 @@ impl SetupRequest {
 
     /// What the setup job is asked to do: the typed mode of `raul-core`, with no command line in between.
     pub fn mode(&self) -> raul_core::setup::Mode {
-        use raul_core::setup::{EngineOptions, Mode, Request, Ttw};
+        use raul_core::setup::{Mode, Request, Ttw};
         // Every path of the request is absolute, as the journal keeps it for a resume from anywhere.
         let path = |s: &String| std::path::absolute(s).unwrap_or_else(|_| PathBuf::from(s));
         let instance = path(&self.instance);
@@ -255,10 +253,6 @@ impl SetupRequest {
             import_mo2: self.import_mo2.as_ref().map(path),
             copy: self.copy_only,
             engine: !self.skip_nv_rs,
-            engine_options: EngineOptions {
-                source: self.source.as_ref().map(path),
-                ..EngineOptions::default()
-            },
             ttw: self.fallout3.as_ref().map(|fallout3| Ttw {
                 fallout3: path(fallout3),
                 newvegas: None,

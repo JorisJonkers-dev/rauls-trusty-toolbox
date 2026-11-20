@@ -55,7 +55,6 @@ macro_rules! errors {
 texts!(SHELL {
     BRAND = "Raul's Toolbox";
     NEW_VEGAS = "New Vegas";
-    ENGINE = "Engine";
     NOT_SET = "Not set";
     PLAY = "Play";
     GROUP_PLAY = "Play";

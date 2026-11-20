@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The init and install-nv-rs commands as direct jobs on synthetic folders: a made Instance is the same whether the
+//! The init and target commands as direct jobs on synthetic folders: a made Instance is the same whether the
 //! job or the command line makes it, a missing base copy is one line of refusal, and a held Instance lock refuses
-//! the engine install. Every folder is a `TempDir` child; no game data is used.
+//! the nv-rs target. Every folder is a `TempDir` child; no game data is used.
 
 #![cfg(unix)]
 
@@ -99,35 +99,40 @@ fn init_refuses_a_missing_base_with_one_line_and_no_command_line() {
 }
 
 #[test]
-fn install_nv_rs_refuses_an_instance_when_no_engine_is_packaged() {
-    let inst = Instance::new();
-    install_plain(&inst);
-    let root = s(&inst.root());
+fn the_nv_rs_target_writes_the_engines_capabilities_as_the_command_line_does() {
+    raul_core::capabilities::provide(r#"{"schema_version":1,"extenders":[]}"#);
+    let (direct_side, cli_side) = (Instance::new(), Instance::new());
+    install_plain(&direct_side);
+    install_plain(&cli_side);
+    let (root, cli_root) = (s(&direct_side.root()), s(&cli_side.root()));
 
     let rest: Vec<String> = ["--instance", root.as_str()]
         .iter()
         .map(|w| (*w).to_owned())
         .collect();
-    let job = direct::for_command("install-nv-rs", &rest).expect("install-nv-rs is a direct job");
-    let spec = JobSpec::new(JobId(3), Action::InstallNvRs, Vec::new());
+    let job = direct::for_command("target-nv-rs", &rest).expect("target-nv-rs is a direct job");
+    let spec = JobSpec::new(JobId(3), Action::Target, Vec::new());
     let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
 
-    let words: Vec<String> = ["install-nv-rs", "--instance", root.as_str()]
+    let words: Vec<String> = ["target", "nv-rs", "--instance", cli_root.as_str()]
         .iter()
         .map(|w| (*w).to_owned())
         .collect();
     let cli = InProcessExec::new().run(&words).unwrap();
+    assert_eq!(out.code, Some(0), "{out:?}");
     assert_eq!(out.code, cli.code, "direct {out:?} / command line {cli:?}");
-
-    let lines: Vec<&str> = out.stderr.lines().collect();
-    assert_eq!(lines.len(), 1, "one line of refusal: {:?}", out.stderr);
-    assert!(!lines[0].is_empty(), "{:?}", out.stderr);
-    assert!(!out.stderr.contains("install-nv-rs"), "{:?}", out.stderr);
-    assert!(!out.stderr.contains("--"), "{:?}", out.stderr);
+    for side in [&direct_side, &cli_side] {
+        let file = side.root().join("nv-rs/capabilities.json");
+        assert_eq!(
+            std::fs::read_to_string(&file).unwrap(),
+            r#"{"schema_version":1,"extenders":[]}"#,
+            "{file:?}"
+        );
+    }
 }
 
 #[test]
-fn a_held_instance_lock_refuses_install_nv_rs() {
+fn a_held_instance_lock_refuses_the_nv_rs_target_and_writes_nothing() {
     let inst = Instance::new();
     install_plain(&inst);
     let root = s(&inst.root());
@@ -137,41 +142,12 @@ fn a_held_instance_lock_refuses_install_nv_rs() {
         .iter()
         .map(|w| (*w).to_owned())
         .collect();
-    let job = direct::for_command("install-nv-rs", &rest).expect("install-nv-rs is a direct job");
-    let spec = JobSpec::new(JobId(4), Action::InstallNvRs, Vec::new());
+    let job = direct::for_command("target-nv-rs", &rest).expect("target-nv-rs is a direct job");
+    let spec = JobSpec::new(JobId(4), Action::Target, Vec::new());
     let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
     drop(held);
 
     assert_eq!(out.code, Some(2), "{out:?}");
     assert!(!out.stderr.is_empty(), "{out:?}");
-}
-
-#[test]
-fn the_options_that_fetched_a_release_are_a_usage_error_as_on_the_command_line() {
-    let inst = Instance::new();
-    install_plain(&inst);
-    let root = s(&inst.root());
-    for option in [
-        &["--release"][..],
-        &["--release-url", "http://127.0.0.1:9/none"],
-        &["--retry-delay-ms", "0"],
-        &["--cargo", "/c"],
-    ] {
-        let mut rest = vec!["--instance".to_owned(), root.clone()];
-        rest.extend(option.iter().map(|w| (*w).to_owned()));
-        let job =
-            direct::for_command("install-nv-rs", &rest).expect("install-nv-rs is a direct job");
-        let spec = JobSpec::new(JobId(5), Action::InstallNvRs, Vec::new());
-        let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
-        let mut words = vec!["install-nv-rs".to_owned()];
-        words.extend(rest);
-        let cli = InProcessExec::new().run(&words).unwrap();
-        assert_eq!(out.code, cli.code, "{option:?}: {out:?} / {cli:?}");
-        assert_eq!(
-            out.code,
-            Some(5),
-            "{option:?}: a usage error, not a refusal: {out:?}"
-        );
-        assert!(!out.stderr.is_empty(), "{option:?}");
-    }
+    assert!(!inst.root().join("nv-rs").exists());
 }

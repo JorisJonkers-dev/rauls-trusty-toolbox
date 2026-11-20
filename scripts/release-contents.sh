@@ -10,7 +10,8 @@ set -euo pipefail
 render() {
   echo "## Contents"
   echo
-  echo "Every installer holds raul with the linked Components built in (ADR-0016) and the packaged engine."
+  echo "Every installer holds raul with the linked Components built in (ADR-0016) and the engine (nv-rs) too."
+  echo "No separate engine program is included; the game starts as raul's own play mode."
   echo "Nothing of ours is downloaded on first run."
   echo
   echo "| Part | Version | How it is in the installer |"
@@ -32,12 +33,14 @@ if [ "${1:-}" = "--self-test" ]; then
   a="$(printf a | sha256sum | cut -d' ' -f1)"
   b="$(printf b | sha256sum | cut -d' ' -f1)"
   printf '%s  raul-1.0.0-linux-x64.AppImage\n%s *raul-1.0.0-windows-x64.setup.exe\n' "$a" "$b" >"$tmp/sums"
-  printf 'nvmod-rs v1.2.3 linked into raul\nnv-rs v4.5.6 packaged engine build\n' >"$tmp/components"
+  printf 'nvmod-rs v1.2.3 linked into raul\nnv-rs v4.5.6 linked into raul\n' >"$tmp/components"
   out="$(render "$tmp/sums" "$tmp/components")"
   fail() { echo "self-test: $1" >&2; exit 1; }
   grep -qF "| \`raul-1.0.0-linux-x64.AppImage\` | \`$a\` |" <<<"$out" || fail "a checksum row is missing"
   grep -qF "| \`raul-1.0.0-windows-x64.setup.exe\` | \`$b\` |" <<<"$out" || fail "the binary-mode marker was not stripped"
-  grep -qF '| nv-rs | v4.5.6 | packaged engine build |' <<<"$out" || fail "a Component row is missing"
+  grep -qF '| nv-rs | v4.5.6 | linked into raul |' <<<"$out" || fail "a Component row is missing"
+  ! grep -qi 'packaged engine' <<<"$out" || fail "a packaged engine is still named"
+  grep -qF 'No separate engine program is included' <<<"$out" || fail "the no-engine sentence is missing"
   [ "$(grep -c '^| `' <<<"$out")" = 2 ] || fail "the file table has the wrong number of rows"
   echo "self-test ok"
   exit 0
@@ -47,7 +50,6 @@ sums="$(realpath "${1:?usage: scripts/release-contents.sh SHA256SUMS}")"
 cd "$(git rev-parse --show-toplevel)"
 tmp="$(mktemp "${TMPDIR:-/tmp}/components.XXXXXX")"
 trap 'rm -f "$tmp"' EXIT
-# The linked Components are compiled into raul. nv-rs is the engine's packaged build until it is linked too (#260).
-for c in nvmod-rs loot-rs lodwright-rs ttwright-rs; do echo "$c $(scripts/component-version.sh "$c") linked into raul"; done >"$tmp"
-echo "nv-rs $(scripts/component-version.sh nv-rs) packaged engine build (Linux and Windows)" >>"$tmp"
+# The Components are all compiled into raul, the engine (nv-rs) included.
+for c in nvmod-rs nv-rs loot-rs lodwright-rs ttwright-rs; do echo "$c $(scripts/component-version.sh "$c") linked into raul"; done >"$tmp"
 render "$sums" "$tmp"

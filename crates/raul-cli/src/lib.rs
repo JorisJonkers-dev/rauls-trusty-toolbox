@@ -5,13 +5,13 @@
 mod bench;
 mod config;
 mod detect;
-mod install_nv_rs;
 mod lod;
 mod lod_settings;
 pub mod play;
 mod printer;
 mod setup;
 mod space;
+mod target;
 mod ttw;
 mod update;
 mod version;
@@ -44,6 +44,7 @@ pub const OWN_COMMANDS: &[&str] = &[
     "setup",
     "ttw",
     "lod",
+    "target",
     "install-nv-rs",
     "help",
 ];
@@ -99,7 +100,7 @@ usage:
                               the game folders, the TTW package and the storage folder (game.newvegas,
                               game.fallout3, ttw.package, storage.root; instance is derived)
   raul setup --base <dir> --instance <dir> --masterlist <file> [--import-mo2 <dir>] [--mod <archive>]...
-             [--fallout3 <dir> [--package <file>]] [--profile <name>] [--source <dir> [--cargo <path>]] [--skip-nv-rs]
+             [--fallout3 <dir> [--package <file>]] [--profile <name>] [--skip-nv-rs]
              [--sort] [--copy] [--keep-partial] [--dry-run] [--json]
   raul setup --resume --instance <dir> [--json]
   raul setup --restart --instance <dir> --yes [--json]
@@ -136,9 +137,6 @@ usage:
                               the file as it was in raul-lod.toml.previous; --dry-run names what it would remove
   raul lod settings undo [--instance <dir>] [--profile <name>] [--json]
                               put back the file the last reset kept (one level; a later set or unset ends it)
-  raul install-nv-rs --instance <dir> [--source <dir> [--cargo <path>]]
-                              put the engine that ships with raul in an Instance and check it; nothing is
-                              downloaded. --source builds an nv-rs workspace instead (for developers)
   raul run --stop --instance <dir> [--profile <name>] [--json]
                               ask the running game to stop between two frames (the play mode's stop file)
   raul <nvmod command> ...    every nvmod command (install, sort, run, profile, doctor, ...);
@@ -159,7 +157,8 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("setup") => setup::run(&args[1..], out, err),
         Some("ttw") => ttw::run(&args[1..], out, err),
         Some("lod") => lod::run(&args[1..], out, err),
-        Some("install-nv-rs") => install_nv_rs::run(&args[1..], out, err),
+        Some("install-nv-rs") => gone_install_nv_rs(err),
+        Some("target") => target::run(args, out, err),
         Some("run") if args.iter().any(|a| a == "--stop") => play::stop(&args[1..], out, err),
         Some("run") if play::enabled() => run_in_play_mode(args, out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
@@ -186,10 +185,15 @@ fn run_in_play_mode(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -
     }
 }
 
-/// Prints a failed engine install as `raul install-nv-rs` does (exposed for its test).
-#[doc(hidden)]
-pub fn print_install_failure(e: &nvmod_api::JobError, err: &mut dyn Write) -> u8 {
-    install_nv_rs::failure(e, err)
+/// `raul install-nv-rs` is gone: the engine is part of `raul` (ADR-0016). The name stays reserved so that nvmod's
+/// command of the same name, which fetches a release, is never reached through `raul`.
+fn gone_install_nv_rs(err: &mut dyn Write) -> u8 {
+    let _ = writeln!(
+        err,
+        "raul install-nv-rs: this command is gone: the engine is part of raul and needs no install; \
+         `raul target nv-rs --instance <dir>` makes an Instance run on it"
+    );
+    USAGE
 }
 
 /// At start, before anything else: settle an update that is half done or not yet confirmed (ADR-0020). Returns an exit
@@ -236,7 +240,7 @@ mod tests {
 
     #[test]
     fn the_commands_that_moved_from_nvmod_are_own_commands() {
-        for command in ["config", "setup", "ttw", "lod"] {
+        for command in ["config", "setup", "ttw", "lod", "target"] {
             assert!(OWN_COMMANDS.contains(&command), "{command}");
         }
     }

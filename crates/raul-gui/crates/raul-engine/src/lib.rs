@@ -50,6 +50,21 @@ pub fn play_mode(err: &mut dyn std::io::Write) -> u8 {
 #[cfg(feature = "engine")]
 pub const FACADE_API_VERSION: u32 = fork_api::API_VERSION;
 
+/// The capabilities file of the engine this build links (`fork_api::CAPABILITIES`), as JSON text; `None` for a build
+/// without the engine. nvmod's Doctor reads it from `<instance>/nv-rs/capabilities.json`, which raul writes from this
+/// text when nv-rs becomes an Instance's target (#398).
+#[must_use]
+pub fn capabilities() -> Option<&'static str> {
+    #[cfg(feature = "engine")]
+    {
+        Some(fork_api::CAPABILITIES)
+    }
+    #[cfg(not(feature = "engine"))]
+    {
+        None
+    }
+}
+
 /// What the installation check found in a game folder. The engine's own words (`detail`) are kept for the copyable
 /// error and the log; a screen shows plain words from the message catalogue instead (UI-RULES W1, W3).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -175,6 +190,11 @@ mod tests {
         assert!(fork_api::CAPABILITIES.trim_start().starts_with('{'));
     }
 
+    #[test]
+    fn the_capabilities_are_there_exactly_when_the_engine_is_linked() {
+        assert_eq!(capabilities().is_some(), ENGINE_LINKED);
+        assert!(capabilities().is_none_or(|text| text.trim_start().starts_with('{')));
+    }
     #[cfg(feature = "engine")]
     /// A folder name under the system temp folder that is unique to this call and not created.
     fn temp_path(name: &str) -> std::path::PathBuf {

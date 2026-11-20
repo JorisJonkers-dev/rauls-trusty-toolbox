@@ -4304,7 +4304,6 @@ dependencies = [
  "flate2",
  "nvmod-api",
  "nvmod-core",
- "nvmod-install",
  "nvmod-instance",
  "nvmod-pe",
  "nvmod-run",
