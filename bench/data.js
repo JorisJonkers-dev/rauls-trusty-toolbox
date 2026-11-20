@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795185601664,
+  "lastUpdate": 1795186020037,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6859,6 +6859,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.770480000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3c540d122b4b4dddb1e65fdd486d569bd18715b0",
+          "message": "feat(gui): install a Mod from an archive on the Mods page, with FOMOD questions (#372) (#395)",
+          "timestamp": "2026-11-20T14:45:08Z",
+          "tree_id": "07e6df2f5b88a095cc503ae9f2fc5de070e1c497",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3c540d122b4b4dddb1e65fdd486d569bd18715b0"
+        },
+        "date": 1795186019456,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.303775,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.516579,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.80998700000001,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.248411,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.797864,
             "unit": "ms"
           }
         ]
