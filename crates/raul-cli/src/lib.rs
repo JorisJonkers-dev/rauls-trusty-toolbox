@@ -8,6 +8,7 @@ mod detect;
 mod install_nv_rs;
 mod lod;
 mod lod_settings;
+pub mod play;
 mod printer;
 mod setup;
 mod ttw;
@@ -149,12 +150,28 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("ttw") => ttw::run(&args[1..], out, err),
         Some("lod") => lod::run(&args[1..], out, err),
         Some("install-nv-rs") => install_nv_rs::run(&args[1..], out, err),
+        Some("run") if play::enabled() => run_in_play_mode(args, out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
         Some(_) if route(args) == Route::Own => {
             let _ = writeln!(err, "raul: {} has no handler", args[0]);
             FAILED
         }
         Some(_) => nvmod_cli::run_logged(args, out, err),
+    }
+}
+
+/// `raul run` with the game started as raul's own play mode, logged like every nvmod command.
+fn run_in_play_mode(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    match nvmod_cli::begin_run_log(args) {
+        Ok((rest, session)) => {
+            let code = play::run(&rest, out, err);
+            session.finish(code);
+            code
+        }
+        Err(why) => {
+            let _ = writeln!(err, "nvmod: {why}");
+            USAGE
+        }
     }
 }
 

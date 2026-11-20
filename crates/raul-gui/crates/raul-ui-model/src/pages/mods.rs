@@ -67,8 +67,8 @@ pub fn remove_command(instance: &str, name: &str) -> Command {
     )
 }
 
-/// How out of date a generated LOD Mod is. The slot for the staleness chip of raul#66: nothing fills it until that
-/// ticket records a fingerprint after a run and classifies later changes; the page then shows it next to the Mod.
+/// How out of date a generated LOD Mod is, as the run's recorded fingerprint and the Load order and settings now say
+/// (raul#66). The page shows it as a chip next to the Mod; a Mod that is current or not measured has none.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Staleness {
     /// A change since the run may show in the LOD.
@@ -86,8 +86,10 @@ pub struct Generated {
     pub legacy: bool,
     /// The generator version that built it, when its marker says.
     pub version: Option<String>,
-    /// How out of date it is; `None` while nothing measures it (raul#66).
+    /// How out of date it is; `None` when it is current or nothing measures it.
     pub stale: Option<Staleness>,
+    /// What changed, in a line, when `stale` is set.
+    pub stale_reason: Option<String>,
 }
 
 /// One entry of the Profile's mod list.
@@ -232,7 +234,16 @@ impl State {
                     own: g.own,
                     legacy: g.legacy,
                     version: g.lodwright_version.clone(),
-                    stale: None,
+                    stale: g.stale.as_ref().and_then(|s| match s.state.as_str() {
+                        "may" => Some(Staleness::May),
+                        "must" => Some(Staleness::Must),
+                        _ => None,
+                    }),
+                    stale_reason: g
+                        .stale
+                        .as_ref()
+                        .filter(|s| matches!(s.state.as_str(), "may" | "must"))
+                        .map(|s| s.reason.clone()),
                 });
         }
     }
@@ -375,6 +386,19 @@ pub struct GeneratedRow {
     pub legacy: bool,
     /// The generator version, when its marker says.
     pub lodwright_version: Option<String>,
+    /// How out of date it is, for the Profile's own Mod.
+    #[serde(default)]
+    pub stale: Option<StaleRow>,
+}
+
+/// The staleness `raul lod mods --json` reports: `unknown`, `current`, `may` or `must`, and why.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct StaleRow {
+    /// The state.
+    pub state: String,
+    /// What changed, or why it is not known.
+    #[serde(default)]
+    pub reason: String,
 }
 
 /// The generated LOD Mods of a Profile.
@@ -439,6 +463,38 @@ mod tests {
     }
 
     #[test]
+    fn the_staleness_of_the_generated_mod_reads_from_the_command_and_current_shows_no_chip() {
+        let doc = |stale: &str| {
+            format!(
+                r#"{{"schema_version":1,"contract":"raul-lod-mods","instance":"/i","profile":"Default",
+            "own_name":"Generated LOD (Default)","mods":[{{"name":"Generated LOD (Default)","position":1,
+            "enabled":true,"own":true,"legacy":false,"profile":"Default","request_digest":"sha256:00",
+            "lodwright_version":"0.3.0","stale":{stale}}}]}}"#
+            )
+        };
+        let mut s = State::default();
+        s.listed(
+            "Default".into(),
+            vec![ModEntry::named("Generated LOD (Default)", 1)],
+        );
+        for (json, want) in [
+            (
+                r#"{"state":"must","reason":"Settings."}"#,
+                Some(Staleness::Must),
+            ),
+            (r#"{"state":"may","reason":"Order."}"#, Some(Staleness::May)),
+            (r#"{"state":"current","reason":""}"#, None),
+            (r#"{"state":"unknown","reason":"No run."}"#, None),
+            ("null", None),
+        ] {
+            s.mark_generated(parse_generated(&doc(json)).unwrap());
+            let g = s.mods[0].generated.clone().unwrap();
+            assert_eq!(g.stale, want, "{json}");
+            assert_eq!(g.stale_reason.is_some(), want.is_some(), "{json}");
+        }
+    }
+
+    #[test]
     fn the_list_and_the_generated_mods_read_from_the_commands() {
         let list = r#"{"profile":"Default","mods":[
             {"position":1,"name":"Alpha","state":"enabled","kind":"mod","installed":true,"categories":[]},
@@ -465,7 +521,8 @@ mod tests {
                 own: true,
                 legacy: false,
                 version: Some("0.3.0".into()),
-                stale: None
+                stale: None,
+                stale_reason: None,
             })
         );
         assert!(s.mods[0].generated.is_none());
