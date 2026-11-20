@@ -10,12 +10,13 @@
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, write_file};
+use raul_core::context::Context;
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::load_order::SORT;
 use raul_gui::pages::setup::{NEXT, SET_UP_INSTANCE};
 use raul_gui::shell::App;
-use raul_ui_service::{Exec, ProcessExec};
+use raul_ui_service::{Exec, InProcessExec};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -49,15 +50,19 @@ impl Fixture {
         f
     }
 
-    /// `raul` with this fixture's configuration and state, and the masterlist file where the pages ask for the pinned one.
-    fn exec(&self) -> ProcessExec {
-        ProcessExec::new(env!("CARGO_BIN_EXE_raul"))
-            .with_env("RAUL_CONFIG_DIR", &self.s("config"))
-            .with_env("NVMOD_STATE_DIR", &self.s("state"))
-            .with_argument_replaced(
-                "--fetch-masterlist",
-                &["--masterlist", &self.s("masterlist.yaml")],
-            )
+    /// The folders this fixture's runs use: its own configuration, and no run log, so nothing reaches the real home.
+    fn context(&self) -> Context {
+        Context::new()
+            .with_config_folder(self.path("config"))
+            .without_run_log()
+    }
+
+    /// The command line run in this process with this fixture's folders.
+    fn exec(&self) -> InProcessExec {
+        InProcessExec::with_context(self.context()).with_argument_replaced(
+            "--fetch-masterlist",
+            &["--masterlist", &self.s("masterlist.yaml")],
+        )
     }
 
     fn path(&self, p: &str) -> PathBuf {
@@ -79,10 +84,12 @@ impl Fixture {
     }
 
     fn app(&self) -> Harness<'static, App> {
-        let exec = self.exec().with_grace(Duration::from_secs(5));
+        let exec = self.exec();
         // The sort stays a command line here: the fixture's command swaps the pinned masterlist for a file, which a direct sort
         // (it fetches the pinned one itself) would not go through.
-        let jobs = Jobs::new(Arc::new(exec)).scripted(&["sort-preview", "sort-apply"]);
+        let jobs = Jobs::new(Arc::new(exec))
+            .with_context(self.context())
+            .scripted(&["sort-preview", "sort-apply"]);
         let app = App::new(jobs);
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])

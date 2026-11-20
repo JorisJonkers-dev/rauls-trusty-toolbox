@@ -3,6 +3,7 @@
 
 pub mod capabilities;
 pub mod config;
+pub mod context;
 pub mod contracts;
 pub mod detect;
 pub mod game_ini;

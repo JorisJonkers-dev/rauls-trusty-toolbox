@@ -7,15 +7,16 @@
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, write_file};
+use raul_core::context::Context;
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::mods::{
-    DISABLE, DISABLED_STATUS, ENABLE, ENABLED_STATUS, GENERATED_NOTE, MOVE_UP, MOVED_STATUS,
-    REGENERATE, REMOVE, REMOVE_ACTION, REMOVED_STATUS, TAG_GENERATED,
+    DELETE, DELETE_ACTION, DISABLE, DISABLED_STATUS, ENABLE, ENABLED_STATUS, GENERATED_NOTE,
+    MOVE_UP, MOVED_STATUS, REGENERATE, REMOVE, REMOVE_ACTION, REMOVED_STATUS, TAG_GENERATED,
 };
 use raul_gui::shell::App;
 use raul_ui_model::pages::{PageId, View};
-use raul_ui_service::{Exec, ProcessExec};
+use raul_ui_service::{Exec, InProcessExec};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -80,11 +81,16 @@ impl Fixture {
         f
     }
 
-    /// `raul` with this fixture's own configuration and state, so nothing reaches the real home.
-    fn exec(&self) -> ProcessExec {
-        ProcessExec::new(env!("CARGO_BIN_EXE_raul"))
-            .with_env("RAUL_CONFIG_DIR", &self.s("config"))
-            .with_env("NVMOD_STATE_DIR", &self.s("state"))
+    /// The folders this fixture's runs use: its own configuration, and no run log, so nothing reaches the real home.
+    fn context(&self) -> Context {
+        Context::new()
+            .with_config_folder(self.path("config"))
+            .without_run_log()
+    }
+
+    /// The command line run in this process with this fixture's folders.
+    fn exec(&self) -> InProcessExec {
+        InProcessExec::with_context(self.context())
     }
 
     fn path(&self, p: &str) -> PathBuf {
@@ -112,8 +118,8 @@ impl Fixture {
     }
 
     fn app(&self) -> Harness<'static, App> {
-        let exec = self.exec().with_grace(Duration::from_secs(5));
-        let app = App::new(Jobs::new(Arc::new(exec)));
+        let exec = self.exec();
+        let app = App::new(Jobs::new(Arc::new(exec)).with_context(self.context()));
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {
@@ -212,4 +218,16 @@ fn the_page_lists_changes_and_removes_mods_and_leaves_the_generated_lod_mod_to_t
         h.query_by_label("2 Mods, 2 enabled").is_some(),
         "the list is read again"
     );
+
+    // Delete on the generated LOD Mod asks once, then takes it out the same way (issue 417).
+    h.get_by_label(LOD).click();
+    h.run_steps(4);
+    h.get_by_label(DELETE).click();
+    h.run_steps(4);
+    assert!(h.state().dialogs().is_open(), "Delete asks first");
+    h.get_all_by_label(DELETE_ACTION).last().unwrap().click();
+    settle(&mut h);
+    assert_eq!(status(&mut h).as_deref(), Some(REMOVED_STATUS));
+    assert_eq!(f.modlist(), ["+Beta".to_owned()]);
+    assert!(!f.path(&format!("storage/instance/mods/{LOD}")).exists());
 }

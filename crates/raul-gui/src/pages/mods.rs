@@ -536,17 +536,14 @@ impl Page for Mods {
             self.read(cx);
         }
         self.take_answers(cx);
-        // The answer counts only for the Mod the dialog named, and only while nothing runs.
+        // The answer counts only for the Mod the dialog named (the generated LOD Mod too: its Delete asks here), and only
+        // while nothing runs.
         if let Some(answer) = cx.dialogs.take_answer(REMOVE_DIALOG) {
             let asked = self.asked.take();
             if answer == Answer::Confirmed
                 && self.state.phase == Phase::Listed
                 && let Some(name) = asked
-                && self
-                    .state
-                    .mods
-                    .iter()
-                    .any(|m| m.name == name && m.generated.is_none())
+                && self.state.mods.iter().any(|m| m.name == name)
             {
                 self.change(cx, Job::Remove, name, 0);
             }

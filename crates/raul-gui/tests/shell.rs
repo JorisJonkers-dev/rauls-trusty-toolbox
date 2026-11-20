@@ -168,6 +168,14 @@ fn the_update_button_sits_beside_the_version_and_starts_the_check() {
             .any(|c| c[0] == "update" && c.get(1).is_some_and(|w| w != "status")),
         "nothing reaches the network before a click (the status is read from this machine only)"
     );
+    // The call is made before its answer is drawn: give the page the frames to show it.
+    for _ in 0..200 {
+        h.run_steps(2);
+        if h.query_by_label("0.2.0").is_some() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
     assert!(
         h.query_by_label(TOOLBOX_LABEL).is_some() && h.query_by_label("0.2.0").is_some(),
         "the Toolbox's own version is plain text"
@@ -180,14 +188,22 @@ fn the_update_button_sits_beside_the_version_and_starts_the_check() {
     }
     let button = h.get_by_role_and_label(egui::accesskit::Role::Button, CHECK_UPDATES);
     button.click();
-    assert!(seen(&mut h, "update"), "the button starts the update check");
+    // Wait for the check itself: other `update` words (the install's status) may be read first, and the call is made
+    // on a worker thread, so on a slow machine it can arrive after the first one.
+    let check = vec!["update".to_owned(), "check".to_owned(), "--json".to_owned()];
+    let mut started = false;
+    for _ in 0..300 {
+        h.run_steps(2);
+        if exec.calls.lock().unwrap().contains(&check) {
+            started = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
     assert!(
-        exec.calls.lock().unwrap().contains(&vec![
-            "update".to_owned(),
-            "check".to_owned(),
-            "--json".to_owned()
-        ]),
-        "Check for updates runs `raul update check`"
+        started,
+        "Check for updates runs `raul update check`: {:?}",
+        exec.calls.lock().unwrap()
     );
 }
 
@@ -414,14 +430,16 @@ fn the_shell_reads_the_instance_at_start_and_after_a_config_change() {
     });
     let mut h = harness(1280.0, App::new(Jobs::new(exec.clone())));
     let settle = |h: &mut Harness<'static, App>| {
+        // A finishing job asks for a repaint, so how many frames it takes to settle varies with timing; run a fixed
+        // number instead of asserting that the page settles within four.
         for _ in 0..3 {
-            h.run();
+            h.run_steps(6);
             assert!(
                 h.state_mut()
                     .wait_for_jobs(std::time::Duration::from_secs(10))
             );
         }
-        h.run();
+        h.run_steps(6);
     };
     settle(&mut h);
     assert_eq!(
