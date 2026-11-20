@@ -181,6 +181,14 @@ pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn
 
 /// An nvmod command, with its run log unless the context says none.
 fn nvmod(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    // A `--json` document is data for a program: its text is not rewritten.
+    if args.iter().any(|a| a == "--json") {
+        return if ctx.run_log() {
+            nvmod_cli::run_logged(args, out, err)
+        } else {
+            nvmod_cli::run(args, out, err)
+        };
+    }
     let mut out = program_name::Renamed::new(out);
     let mut err = program_name::Renamed::new(err);
     if ctx.run_log() {
