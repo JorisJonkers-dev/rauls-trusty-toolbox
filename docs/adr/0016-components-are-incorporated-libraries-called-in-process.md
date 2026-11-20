@@ -52,6 +52,26 @@ shape, defined in the Component and wrapped by one adapter in the Toolbox:
 The CLI subcommands of `raul` and of each Component are thin wrappers over the same calls. A test fails when a GUI
 action starts a process other than the game.
 
+## The play mode
+
+The game runs in a child of `raul`'s own binary: `raul` starts `current_exe()` with the reserved first argument
+`--play-mode <DATA> [arguments]`, and that child calls the engine's `fork_play::play_main`. No environment variable
+selects the mode, so a build that does not link the engine (`engine` feature off, and the CLI-only `raul`) refuses
+the argument with one plain line and exit code 2. The game is a process of its own so a crash of the engine stays out
+of the window.
+
+- **Stop**: the launcher names a stop file in `NV_STOP_FILE` and creates it to ask for the stop. The game ends between
+  two frames with status 143 after its exit hooks and the pipeline-cache flush; a signal or a kill skips both, so
+  it is only the last resort after a grace period.
+- **Exit codes** are the engine's (`fork_play::ExitClass`): 0 finished, 1 start-up error, 2 arguments, 3 the game's
+  code stopped, 69 the system refused the start, 143 stopped by the stop file. The launcher trusts a code only
+  together with the log and with whether it asked for the stop.
+- **Shader precompile** runs in this child (`--play-mode <DATA> --precompile-shaders`), not in the window's process,
+  because it opens a GPU device and a driver may abort or hang; the result is the child's exit code and log lines.
+- A test forbids any other process start in the GUI; the play mode is the one allowed.
+- The engine program that installers carry today, and the place where its pin lives, are removed in a later change
+  (ADR-0017 still names the files of the earlier pin); until then the packaged engine stays the fallback.
+
 ## What changes
 
 - `raul-runner` and the rule "only `raul-runner` may start a process" (ADR-0007) narrow to the game launcher and any
@@ -75,6 +95,19 @@ action starts a process other than the game.
 - Installers no longer contain the lodwright-rs and ttwright-rs programs, only the engine package.
 - A Component release reaches the person only in the next `raul` release.
 - Licences are unchanged: `raul` is GPL-3.0-only, and MPL-2.0 lodwright-rs may be linked into it (ADR-0002).
+
+## What is not bundled, and why
+
+The installer holds everything we build. A few things cannot ship in it for a licence or ownership reason, so each has
+its own guided step and nothing is fetched silently:
+
+| Item | Why it is not bundled | Guided step |
+|---|---|---|
+| Fallout 3 and Fallout: New Vegas game files | The person's own copy; never redistributed | The setup asks for the game folder and only reads it |
+| The TTW package (`.mpi`) | TTW data, not redistributable (docs/PLAN.md section 3) | The TTW step asks for the file and says where to get it |
+| xNVSE and JIP LN DLLs | Third-party binaries, not ours to redistribute | Installed as Mods through the Mods page, by choice |
+| The LOOT masterlist | Data, fetched at run time (CC0) | Fetched when a load order is sorted |
+| Mod archives | Owned by their authors and the Nexus terms | The Mods page, one archive at a time |
 
 ## Considered options
 

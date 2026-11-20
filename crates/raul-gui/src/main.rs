@@ -6,6 +6,10 @@ use std::process::ExitCode;
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    // The game runs in a child of raul's own binary (ADR-0016); nothing else may run before it.
+    if raul_engine::is_play_mode(&args) {
+        return ExitCode::from(raul_engine::play_mode(&mut std::io::stderr()));
+    }
     if let Some(code) = raul_cli::settle_update_at_start(&args, &mut std::io::stderr()) {
         return ExitCode::from(code);
     }

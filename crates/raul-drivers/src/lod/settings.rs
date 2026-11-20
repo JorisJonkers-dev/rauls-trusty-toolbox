@@ -9,8 +9,7 @@
 //! which [`undo`] puts back; the next [`set`] or [`unset`] drops that copy.
 //!
 //! Every option is a row of [`OPTIONS`]: its key, tier, kind, range and the catalogue strings that name and explain
-//! it. Its default comes from [`default_value`], which today holds the Toolbox's copy of the generator's defaults and
-//! is the one place that changes when the generator publishes its own.
+//! it. Its default comes from [`default_value`], which asks the generator's own table of defaults.
 //!
 //! Every change is checked before it is saved, by the option's range and then by the generator's own
 //! `Request::validate` on the request the settings give; a refused change leaves the file as it was.
@@ -157,6 +156,14 @@ pub mod catalogue {
     /// Normal size, explained.
     pub const NORMAL_SIZE_HELP: &str =
         "The edge of each block's shading texture in pixels. Larger costs disk space and memory.";
+    /// Drop faces under the terrain.
+    pub const DROP_UNDER_TERRAIN: &str = "Leave out object faces under the land";
+    /// Drop faces under the terrain, explained.
+    pub const DROP_UNDER_TERRAIN_HELP: &str = "Distant objects lose the faces that lie below the land, which nobody sees. The files get smaller. A face that was meant to show through the land goes too.";
+    /// Drop faces under the water.
+    pub const DROP_UNDER_WATER: &str = "Leave out object faces under the water";
+    /// Drop faces under the water, explained.
+    pub const DROP_UNDER_WATER_HELP: &str = "Distant objects lose the faces that lie below the water. The files get smaller. A face seen through clear water goes too.";
 }
 
 /// What kind of value an option holds.
@@ -236,7 +243,7 @@ macro_rules! level_rows {
 
 const LEVEL_ROWS: [Descriptor; 16] = level_rows!("4", "8", "16", "32");
 
-const BASE_ROWS: [Descriptor; 13] = [
+const BASE_ROWS: [Descriptor; 15] = [
     row(
         "worlds",
         1,
@@ -344,11 +351,27 @@ const BASE_ROWS: [Descriptor; 13] = [
             catalogue::ALLOW_IN_REPO_HELP,
         )
     },
+    row(
+        "objects.drop_under_terrain",
+        3,
+        Kind::Switch,
+        NONE,
+        catalogue::DROP_UNDER_TERRAIN,
+        catalogue::DROP_UNDER_TERRAIN_HELP,
+    ),
+    row(
+        "objects.drop_under_water",
+        3,
+        Kind::Switch,
+        NONE,
+        catalogue::DROP_UNDER_WATER,
+        catalogue::DROP_UNDER_WATER_HELP,
+    ),
 ];
 
 /// Every option, in the order a view lists them: tier 1, then the advanced ones.
-pub const OPTIONS: [Descriptor; 29] = {
-    let mut all = [BASE_ROWS[0]; 29];
+pub const OPTIONS: [Descriptor; 31] = {
+    let mut all = [BASE_ROWS[0]; 31];
     let mut i = 0;
     while i < BASE_ROWS.len() {
         all[i] = BASE_ROWS[i];
@@ -368,39 +391,75 @@ pub fn descriptor(key: &str) -> Option<&'static Descriptor> {
     OPTIONS.iter().find(|d| d.key == key)
 }
 
-/// The generator's defaults per terrain level: quality, vertex cap, diffuse size, normal size. A copy of the
-/// generator's own (`TerrainSettings::default()`); a test keeps the two equal.
-const LEVEL_DEFAULTS: [(u32, f64, u64, u64, u64); 4] = [
-    (4, 10.0, 2000, 256, 256),
-    (8, 15.0, 2000, 256, 256),
-    (16, 20.0, 2000, 256, 256),
-    (32, 25.0, 2000, 256, 256),
-];
+/// The generator's own table of defaults, ranges and tiers (`lodwright_api::request_defaults`), read once.
+fn generator() -> &'static lodwright_contract::Defaults {
+    static TABLE: std::sync::OnceLock<lodwright_contract::Defaults> = std::sync::OnceLock::new();
+    TABLE.get_or_init(lodwright_api::request_defaults)
+}
+
+/// Where an option sits in the generator's request: the dotted key its table uses.
+fn generator_key(key: &str) -> Option<String> {
+    Some(match key {
+        "worlds"
+        | "objects.drop_under_terrain"
+        | "objects.drop_under_water"
+        | "inclusion.exclude_plugins"
+        | "inclusion.only_plugins"
+        | "inclusion.exclude_records"
+        | "inclusion.exclude_models" => key.to_owned(),
+        "output.terrain" => "terrain.enabled".to_owned(),
+        "output.land_textures" => "terrain.land_textures".to_owned(),
+        "output.water" => "terrain.water".to_owned(),
+        "output.objects" => "objects.enabled".to_owned(),
+        "output.trees" => "trees.enabled".to_owned(),
+        "threads" => "limits.threads".to_owned(),
+        "memory_mib" => "limits.memory_mib".to_owned(),
+        _ => {
+            let rest = key.strip_prefix("levels.")?;
+            let (_, field) = rest.split_once('.')?;
+            format!("terrain.levels.{field}")
+        }
+    })
+}
+
+/// Whether the generator's table lists `d`. An option the pinned generator does not list is absent from every view
+/// and cannot be set.
+#[must_use]
+pub fn listed_in(table: &lodwright_contract::Defaults, d: &Descriptor) -> bool {
+    d.key == "allow_in_repo" || generator_key(d.key).is_some_and(|k| table.option(&k).is_some())
+}
+
+/// The release of the LOD generator whose defaults [`default_value`] reads.
+#[must_use]
+pub fn generator_version() -> &'static str {
+    &generator().version
+}
 
 /// The value an option takes when the file does not set it. `null` means the generator decides (workers) or there is
 /// none (memory budget).
 ///
-/// This is the one source of defaults: the Toolbox's copy today, the generator's published defaults once it offers
-/// them.
+/// This is the generator's own answer (`request_defaults`), so a better default reaches every Profile that did not
+/// change it with the next bump of the generator; the Toolbox holds no copy. The one setting the generator does not
+/// know, `allow_in_repo`, is off.
 #[must_use]
 pub fn default_value(key: &str) -> Option<Value> {
     let d = descriptor(key)?;
+    if key == "allow_in_repo" {
+        return Some(json!(false));
+    }
+    let info = generator().option(&generator_key(key)?)?;
     if let Some(rest) = key.strip_prefix("levels.") {
-        let (level, field) = rest.split_once('.')?;
+        let (level, _) = rest.split_once('.')?;
         let level: u32 = level.parse().ok()?;
-        let (_, quality, vertices, diffuse, normal) =
-            LEVEL_DEFAULTS.iter().find(|l| l.0 == level)?;
-        return Some(match field {
-            "quality" => json!(quality),
-            "max_vertices" => json!(vertices),
-            "diffuse_size" => json!(diffuse),
-            _ => json!(normal),
-        });
+        return info
+            .per_level
+            .iter()
+            .find(|l| l.level == level)
+            .map(|l| l.value.clone());
     }
     Some(match d.kind {
-        Kind::Switch => json!(key != "allow_in_repo"),
-        Kind::Names | Kind::Records => json!([]),
-        Kind::Count | Kind::Number | Kind::TextureSize => Value::Null,
+        Kind::Names | Kind::Records if info.default.is_null() => json!([]),
+        _ => info.default.clone(),
     })
 }
 
@@ -874,7 +933,7 @@ pub fn check_table(table: &Table) -> Result<Settings, Refusal> {
     let mut all = Vec::new();
     leaves(table, "", &mut all);
     for (key, value) in &all {
-        let Some(d) = descriptor(key) else {
+        let Some(d) = descriptor(key).filter(|d| listed_in(generator(), d)) else {
             return Err(Refusal::new(RefusalCode::UnknownKey, Some(key), None));
         };
         check_value(d, value)?;
@@ -886,6 +945,8 @@ pub fn check_table(table: &Table) -> Result<Settings, Refusal> {
     let parts = super::request_parts(&settings);
     request.worlds.clone_from(&settings.worlds);
     request.terrain = serde_json::from_value(parts["terrain"].clone())
+        .map_err(|e| Refusal::new(RefusalCode::Rejected, None, Some(e.to_string())))?;
+    request.objects = serde_json::from_value(parts["objects"].clone())
         .map_err(|e| Refusal::new(RefusalCode::Rejected, None, Some(e.to_string())))?;
     request.inclusion = serde_json::from_value(parts["inclusion"].clone())
         .map_err(|e| Refusal::new(RefusalCode::Rejected, None, Some(e.to_string())))?;
@@ -980,6 +1041,7 @@ pub fn parse_value(key: &str, words: &[String]) -> Result<Value, Refusal> {
 fn states(table: &Table) -> Vec<OptionState> {
     OPTIONS
         .iter()
+        .filter(|d| listed_in(generator(), d))
         .map(|d| {
             let default = default_value(d.key).unwrap_or(Value::Null);
             let set = get(table, d.key);
@@ -1273,6 +1335,31 @@ mod tests {
         assert_eq!(keys.len(), OPTIONS.len(), "a key is listed twice");
     }
 
+    /// The Toolbox holds no copy of a default or a range: each option has a row in the generator's table, and the
+    /// range it checks is the generator's.
+    #[test]
+    fn every_option_is_in_the_generators_table_with_its_range() {
+        for d in &OPTIONS {
+            if d.key == "allow_in_repo" {
+                continue;
+            }
+            let key = generator_key(d.key).unwrap();
+            let info = generator().option(&key).unwrap_or_else(|| panic!("{key}"));
+            if info.minimum.is_some() {
+                assert_eq!(d.min, info.minimum, "{}", d.key);
+            }
+            if info.maximum.is_some() {
+                assert_eq!(d.max, info.maximum, "{}", d.key);
+            }
+            assert!(default_value(d.key).is_some(), "{}", d.key);
+        }
+        assert_eq!(default_value("levels.16.quality"), Some(json!(20.0)));
+        assert_eq!(default_value("levels.4.max_vertices"), Some(json!(2000)));
+        assert_eq!(default_value("output.water"), Some(json!(true)));
+        assert_eq!(default_value("threads"), Some(Value::Null));
+        assert_ne!(generator_version(), "");
+    }
+
     #[test]
     fn the_defaults_are_the_generators_level_defaults() {
         // lodwright's TerrainSettings::default(): levels 4, 8, 16, 32 with qualities 10, 15, 20, 25, 2000 vertices
@@ -1452,6 +1539,37 @@ mod tests {
             unset(&at, "nothing.here").unwrap_err().code,
             RefusalCode::UnknownKey
         );
+    }
+
+    /// A tier 3 option is a row only when the generator's table lists it, and setting then restoring leaves the
+    /// request the one of a Profile with no file.
+    #[test]
+    fn a_tier_three_row_needs_the_generator_to_list_it_and_reset_leaves_the_digest() {
+        let d = descriptor("objects.drop_under_water").unwrap();
+        assert_eq!(d.tier, 3);
+        assert!(listed_in(generator(), d));
+        let mut older = generator().clone();
+        older
+            .options
+            .retain(|o| o.key != "objects.drop_under_water");
+        assert!(!listed_in(&older, d));
+        assert!(listed_in(
+            &older,
+            descriptor("objects.drop_under_terrain").unwrap()
+        ));
+        assert!(listed_in(&older, descriptor("allow_in_repo").unwrap()));
+
+        let dir = TempDir::new("raul-lodset-tier3");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        set(&at, "objects.drop_under_terrain", &json!(true)).unwrap();
+        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        assert_eq!(on["objects"]["drop_under_terrain"], json!(true));
+        assert_ne!(on, none);
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
+        assert!(none["objects"].get("drop_under_terrain").is_none());
     }
 
     fn names(n: &[&str]) -> Vec<String> {
