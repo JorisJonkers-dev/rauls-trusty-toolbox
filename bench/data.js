@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795148516439,
+  "lastUpdate": 1795174426833,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6222,6 +6222,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 15.490950999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "90575efdd74a8e8fa8657537aaaaeb45edfab217",
+          "message": "feat(release): the engine in the macOS package (#360)\n\n* feat(release): the engine in the macOS package\n\nraul is built with the feature engine on macOS too, for both\nprocessors, and the macOS package carries nv-rs's universal build\nunder the bundle's Resources/components/nv-rs with its FILES.sha256,\nchecked against nv-rs's SHA256SUMS-macos first. The checksum and file\nlisting steps use what macOS has (no find -printf, shasum for\nsha256sum). The macOS smoke test checks the engine folder in the\nbundle and in the tarball and that the viewer is universal. The setup\nmessage no longer says a Mac has no engine.\n\nRefs #353\n\n* ci(release): build the two macOS halves of raul in parallel\n\nraul with the engine was built for arm64 and then x86_64 in the macOS\npackage job. A macos-raul job now builds each processor on its own\nrunner (x86_64 cross-compiled on Apple silicon) with its own\nrust-cache, and the package job joins the halves with lipo.",
+          "timestamp": "2026-11-20T12:32:02+01:00",
+          "tree_id": "9657c4c4aa95efe6a98adb647b5ab7169a5930d4",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/90575efdd74a8e8fa8657537aaaaeb45edfab217"
+        },
+        "date": 1795174426009,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.0604900000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.704556999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 22.135416000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.5189489999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.52057,
             "unit": "ms"
           }
         ]
