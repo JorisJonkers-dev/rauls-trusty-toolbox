@@ -14,7 +14,7 @@ use nvmod_testkit::{BaseBuilder, TempDir};
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::ttw::{
     CANCEL, INSTALL, INSTALL_CANCELLED, INSTALL_FAILED, INSTALL_UNKNOWN, INSTALLED_STATUS, NEXT,
-    RESUME, TRY_AGAIN,
+    RESUME, TRY_AGAIN, UNSUPPORTED_PACKAGE,
 };
 use raul_gui::shell::App;
 use raul_ui_model::events::Status;
@@ -430,12 +430,12 @@ fn a_refused_install_says_why_and_tries_again_from_the_review() {
     f.unsupported_package();
     h.get_by_role_and_label(Role::Button, INSTALL).click();
     settle(&mut h);
-    assert!(h.query_by_label(INSTALL_FAILED.what).is_some());
+    assert!(h.query_by_label(UNSUPPORTED_PACKAGE.what).is_some());
     assert!(!f.installed());
     std::fs::write(&f.ttw.mpi, &good).unwrap();
     h.get_by_label(TRY_AGAIN).click();
     settle(&mut h);
-    assert!(h.query_by_label(INSTALL_FAILED.what).is_none());
+    assert!(h.query_by_label(UNSUPPORTED_PACKAGE.what).is_none());
     h.get_by_role_and_label(Role::Button, INSTALL).click();
     settle(&mut h);
     assert!(f.installed(), "checked again, then installed");

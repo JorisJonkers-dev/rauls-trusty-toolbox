@@ -511,18 +511,24 @@ impl Setup {
     fn find_row(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>, key: Key) {
         let t = *cx.tokens;
         let gap = label_width(ui) + ui.spacing().item_spacing.x;
-        ui.horizontal_wrapped(|ui| {
+        // The button and its note sit in a column of their own, so a note that wraps stays under the button and
+        // not under the label column.
+        ui.horizontal_top(|ui| {
             ui.add_space(gap);
-            let can = available(&detect_command());
-            if ui.add_enabled(can, egui::Button::new(FIND)).clicked() {
-                self.find(cx, key);
-            }
-            let note = match (&self.state.found, &self.state.find_failed) {
-                _ if !can => FIND_WAITING,
-                (Some(None), _) => FIND_NONE,
-                _ => FIND_NOTE,
-            };
-            ui.label(RichText::new(note).color(t.muted.color()));
+            ui.vertical(|ui| {
+                ui.horizontal_wrapped(|ui| {
+                    let can = available(&detect_command());
+                    if ui.add_enabled(can, egui::Button::new(FIND)).clicked() {
+                        self.find(cx, key);
+                    }
+                    let note = match (&self.state.found, &self.state.find_failed) {
+                        _ if !can => FIND_WAITING,
+                        (Some(None), _) => FIND_NONE,
+                        _ => FIND_NOTE,
+                    };
+                    ui.label(RichText::new(note).color(t.muted.color()));
+                });
+            });
         });
         if let Some(why) = &self.state.find_failed
             && why != WAITING.what
@@ -867,15 +873,30 @@ fn checks(ui: &mut egui::Ui, t: &Tokens, state: &State) -> bool {
 /// How many findings the check step lists.
 const SHOWN: usize = 8;
 
+/// Whether `f` only says the Staging tree is not built yet. That is the normal state of a fresh Instance (the first
+/// Mod builds it), and the fix it names is a command line, so the check step leaves it out.
+fn is_unbuilt_staging(f: &Finding) -> bool {
+    f.message.contains("no Staging tree has been built")
+}
+
+/// The findings the check step lists: all but the ones that are the normal state of a fresh Instance.
+fn listed(c: &Checks) -> Vec<&Finding> {
+    c.findings
+        .iter()
+        .filter(|f| !is_unbuilt_staging(f))
+        .collect()
+}
+
 fn findings(ui: &mut egui::Ui, t: &Tokens, c: &Checks) {
-    if c.findings.is_empty() {
+    let shown = listed(c);
+    if shown.is_empty() {
         mark(ui, t, Mark::Ok, NOTHING_FOUND);
         return;
     }
-    for f in c.findings.iter().take(SHOWN) {
+    for f in shown.iter().take(SHOWN) {
         finding_row(ui, t, f);
     }
-    if c.findings.len() > SHOWN {
+    if shown.len() > SHOWN {
         ui.label(RichText::new(MORE_FINDINGS).color(t.muted.color()));
     }
 }
@@ -1063,6 +1084,28 @@ mod tests {
     use egui_kittest::kittest::Queryable;
     use raul_ui_service::{Exec, Output};
     use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn a_fresh_instance_does_not_list_the_unbuilt_staging_tree() {
+        let finding = |message: &str| Finding {
+            severity: "info".into(),
+            subject: "staging".into(),
+            message: message.into(),
+        };
+        let c = Checks {
+            errors: 0,
+            warnings: 0,
+            findings: vec![
+                finding("no Staging tree has been built for this profile; run `nvmod stage`"),
+                finding("out of order"),
+            ],
+        };
+        let shown = listed(&c);
+        assert_eq!(shown.len(), 1);
+        assert_eq!(shown[0].message, "out of order");
+        assert!(is_unbuilt_staging(&c.findings[0]));
+        assert!(!is_unbuilt_staging(&c.findings[1]));
+    }
 
     /// Answers each command as `raul` does on success and records them.
     #[derive(Default)]
