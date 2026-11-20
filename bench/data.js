@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795200351219,
+  "lastUpdate": 1795200804044,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7398,6 +7398,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.337855,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "53d70fb9f35b9a9e81b0dc286e9c9f5a7a014c2e",
+          "message": "fix(gui): the direct sort document carries times_stale like nvmod 0.15.0's, and the sort test follows the apply that has nothing to write (#438)",
+          "timestamp": "2026-11-20T18:51:52Z",
+          "tree_id": "48909f782e420c2cc854748bdb50ec165e6fe140",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/53d70fb9f35b9a9e81b0dc286e9c9f5a7a014c2e"
+        },
+        "date": 1795200803322,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.697079,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.667433000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.552034,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.283487,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.791265,
             "unit": "ms"
           }
         ]
