@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795200804044,
+  "lastUpdate": 1795202271780,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7447,6 +7447,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.791265,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a39222efeb6e82bbfce823a6c76d1f2789bda499",
+          "message": "fix(gui): main after #432 met #428 and #426: the wizard target job id in its test, the arm of the registry test that cannot match, formatting, and the page snapshots (#439)",
+          "timestamp": "2026-11-20T19:14:00Z",
+          "tree_id": "c1da0811fc30010d5116f10d89548d071289b195",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a39222efeb6e82bbfce823a6c76d1f2789bda499"
+        },
+        "date": 1795202270820,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.911049,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.647747,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 35.918944,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.001008000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.9908030000000005,
             "unit": "ms"
           }
         ]
