@@ -61,8 +61,67 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  build:
+  # raul for macOS, one processor per runner in parallel (x86_64 cross-compiled on Apple silicon), each with its own
+  # rust-cache; the macOS package job joins the two with lipo. Building both one after the other in the package job
+  # took as long as the Windows package.
+  macos-raul:
     needs: release-please
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.release-please.outputs.release_created == 'true') }}
+    name: raul for macOS (${{ matrix.target }})
+    strategy:
+      fail-fast: true
+      matrix:
+        target: [aarch64-apple-darwin, x86_64-apple-darwin]
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name || inputs.tag }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.sha }}
+          submodules: recursive
+          persist-credentials: false
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: release-macos-${{ matrix.target }}
+
+      - name: Version from the tag
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          if [ -z "$version" ]; then version="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          perl -0pi -e "s/^version = \".*?\"$/version = \"$version\"/m" Cargo.toml crates/raul-gui/Cargo.toml
+          cargo update --workspace
+          # The GUI workspace's lock also names the umbrella crates it uses by path; resolving it again records their
+          # new version without touching any other entry.
+          cargo update --workspace --manifest-path crates/raul-gui/Cargo.toml
+          cargo metadata --format-version 1 --manifest-path crates/raul-gui/Cargo.toml >/dev/null
+          grep -m1 '^version' Cargo.toml crates/raul-gui/Cargo.toml
+
+      # The engine's crates are linked into raul (feature `engine`, ADR-0016).
+      - name: Build raul
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          rustup target add "$TARGET" >/dev/null
+          cargo build --release --locked --manifest-path crates/raul-gui/Cargo.toml -p raul-gui --target "$TARGET" --features engine
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: raul-macos-${{ matrix.target }}
+          path: crates/raul-gui/target/${{ matrix.target }}/release/raul
+          if-no-files-found: error
+          retention-days: 3
+
+  build:
+    needs: [release-please, macos-raul]
     if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.release-please.outputs.release_created == 'true') }}
     name: Package (${{ matrix.name }})
     strategy:
@@ -136,6 +195,13 @@ jobs:
         if: ${{ steps.packager-cache.outputs.cache-hit != 'true' }}
         run: cargo install --locked cargo-packager --version "$CARGO_PACKAGER_VERSION"
 
+      # macOS: the two halves the macos-raul jobs built, joined below.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: ${{ runner.os == 'macOS' }}
+        with:
+          pattern: raul-macos-*
+          path: ${{ runner.temp }}/raul-halves
+
       - name: Build raul
         run: |
           set -euo pipefail
@@ -158,22 +224,27 @@ jobs:
           OUT=target/release; mkdir -p "$OUT"
           # The release raul is the GUI workspace's (ADR-0004): the same command line as raul-cli's, plus the window
           # it opens when started with no arguments. cargo-packager takes it from target/release.
-          # The engine's crates are linked into raul (feature `engine`, ADR-0016) on Linux and Windows. nv-rs has no macOS
-          # build (ADR-0006) and its d3d9-wgpu crate does not compile there, so the macOS raul is built without it.
-          # nv-rs builds its own Windows release with a static C runtime and the engine is built the same way here,
-          # so it runs on the linkage it was tested with.
+          # The engine's crates are linked into raul (feature `engine`, ADR-0016) on every system, macOS's both processors
+          # included. nv-rs builds its own Windows release with a static C runtime and the engine is built the same way
+          # here, so it runs on the linkage it was tested with.
           if [ "$RUNNER_OS" = Windows ]; then export CARGO_ENCODED_RUSTFLAGS='-Ctarget-feature=+crt-static'; fi
-          if [ "$RUNNER_OS" = macOS ]; then features=""; else features="engine"; fi
-          RAUL_BUILD_FEATURES="$features" build crates/raul-gui/Cargo.toml raul-gui "raul$exe" "${targets[@]}"
+          if [ "$RUNNER_OS" = macOS ]; then
+            # Built by the macos-raul jobs, one per processor, in parallel.
+            outs=()
+            for t in "${targets[@]}"; do outs+=("$RUNNER_TEMP/raul-halves/raul-macos-$t/raul"); done
+            lipo -create -output "$OUT/raul" "${outs[@]}"
+            chmod 0755 "$OUT/raul"
+          else
+            RAUL_BUILD_FEATURES=engine build crates/raul-gui/Cargo.toml raul-gui "raul$exe" "${targets[@]}"
+          fi
           unset CARGO_ENCODED_RUSTFLAGS
           # lodwright-rs and ttwright-rs are linked into raul (ADR-0016): no program of theirs is built or bundled.
           ls -l target/release/raul*
 
       # nv-rs is not built here: its own release assets for the shipped version are verified against its
-      # SHA256SUMS and added. It publishes Linux and Windows builds; macOS has none yet, so Launch is disabled
-      # there (ADR-0006).
+      # checksum files and added: the Linux tarball, the Windows ZIP and the macOS universal tarball. On macOS
+      # cargo-packager puts components/ under the bundle's Resources.
       - name: Add the nv-rs release the submodule pins
-        if: ${{ runner.os != 'macOS' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -182,20 +253,24 @@ jobs:
           case "$RUNNER_OS" in
             Linux) pattern='nv-rs-linux-x86_64-*.tar.gz' ;;
             Windows) pattern='nv-rs-preview-*-windows-x64.zip' ;;
+            macOS) pattern='nv-rs-macos-universal-dev.tar.gz' ;;
           esac
           dir="$RUNNER_TEMP/nv-rs"; mkdir -p "$dir"
-          # nv-rs lists its Windows files in SHA256SUMS-windows and the rest in SHA256SUMS.
+          # nv-rs lists its Windows files in SHA256SUMS-windows, its macOS ones in SHA256SUMS-macos and the rest in SHA256SUMS.
           gh release download "$nvrs" --repo JorisJonkers-dev/nv-rs --pattern "$pattern" --pattern 'SHA256SUMS*' --dir "$dir"
-          asset="$(cd "$dir" && find . -maxdepth 1 -name "$pattern" -printf '%f\n' | head -1)"
-          (cd "$dir" && cat SHA256SUMS* | grep -E "[ *]$asset\$" | sha256sum -c -)
+          # macOS's find has no -printf and its shasum stands in for sha256sum.
+          hasher() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$@"; else shasum -a 256 "$@"; fi; }
+          asset="$(cd "$dir" && find . -maxdepth 1 -name "$pattern" | sed 's|^\./||' | head -1)"
+          [ -n "$asset" ] || { echo "::error::nv-rs $nvrs has no asset $pattern"; exit 1; }
+          (cd "$dir" && cat SHA256SUMS* | grep -E "[ *]$asset\$" | hasher -c -)
           mkdir -p target/bundle/components/nv-rs
           case "$RUNNER_OS" in
-            Linux) tar -xzf "$dir/$asset" -C target/bundle/components/nv-rs ;;
+            Linux|macOS) tar -xzf "$dir/$asset" -C target/bundle/components/nv-rs ;;
             Windows) unzip -q "$dir/$asset" -d target/bundle/components/nv-rs ;;
           esac
           # The checksum list raul checks the engine against before it puts it in an Instance (#179). The archive was
-          # verified against nv-rs's own SHA256SUMS above; this lists the files it unpacked to.
-          (cd target/bundle/components/nv-rs && find . -type f -printf '%P\n' | LC_ALL=C sort | xargs -d '\n' sha256sum > "$RUNNER_TEMP/FILES.sha256")
+          # verified against nv-rs's own checksum file above; this lists the files it unpacked to.
+          (cd target/bundle/components/nv-rs && find . -type f | sed 's|^\./||' | LC_ALL=C sort | while IFS= read -r f; do hasher "$f"; done > "$RUNNER_TEMP/FILES.sha256")
           mv "$RUNNER_TEMP/FILES.sha256" target/bundle/components/nv-rs/FILES.sha256
           grep -q 'nv-viewer' target/bundle/components/nv-rs/FILES.sha256
 
@@ -316,8 +391,8 @@ jobs:
             local found; found="$(find "$@" -type f \( -iname 'lodwright*' -o -iname 'ttwright*' \))"
             if [ -n "$found" ]; then echo "::error::Component programs in the package:"; echo "$found"; return 1; fi
           }
-          # The packaged engine and its checksum list must be in every Linux and Windows package; raul reads them from
-          # beside itself and never fetches an engine (#179).
+          # The packaged engine and its checksum list must be in every package (macOS: the bundle's Resources); raul
+          # reads them from beside itself and never fetches an engine (#179).
           engine_shipped() {
             local found; found="$(find "$@" -type f -path '*components/nv-rs/FILES.sha256')"
             if [ -z "$found" ]; then echo "::error::no packaged engine checksum list in the package"; return 1; fi
@@ -361,8 +436,15 @@ jobs:
               archs="$(lipo -archs "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul")"; echo "$archs"
               grep -qw arm64 <<<"$archs"; grep -qw x86_64 <<<"$archs"
               no_component_programs "$RUNNER_TEMP/dmg"
+              engine_shipped "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/Resources"
+              # The engine's viewer is universal too, as raul is.
+              viewer="$(find "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/Resources/components/nv-rs" -type f -name nv-viewer | head -1)"
+              [ -n "$viewer" ] || { echo "::error::no nv-viewer in the bundle's Resources"; exit 1; }
+              archs="$(lipo -archs "$viewer")"; echo "nv-viewer: $archs"
+              grep -qw arm64 <<<"$archs"; grep -qw x86_64 <<<"$archs"
               mkdir -p "$RUNNER_TEMP/mac" && tar -xzf target/packages/*.tar.gz -C "$RUNNER_TEMP/mac"
               scripts/installed-files.sh check "$RUNNER_TEMP/mac/raul-$VERSION-${{ matrix.name }}"
+              engine_shipped "$RUNNER_TEMP/mac/raul-$VERSION-${{ matrix.name }}"
               hdiutil detach "$RUNNER_TEMP/dmg" ;;
           esac
 
