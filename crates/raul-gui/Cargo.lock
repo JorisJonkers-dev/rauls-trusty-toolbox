@@ -4375,6 +4375,7 @@ dependencies = [
  "lodwright-testkit",
  "nvmod-api",
  "nvmod-modinstall",
+ "nvmod-run",
  "nvmod-testkit",
  "raul-cli",
  "raul-core",
@@ -4424,6 +4425,7 @@ dependencies = [
  "raul-ui-model",
  "serde",
  "serde_json",
+ "sevenz-rust2",
  "ttwright-testkit",
 ]
 

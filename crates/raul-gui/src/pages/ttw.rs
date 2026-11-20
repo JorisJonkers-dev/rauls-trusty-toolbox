@@ -20,13 +20,13 @@ use raul_ui_model::pages::load_order::Problem;
 use raul_ui_model::pages::settings::{Answer, Command, Fetch, Key};
 use raul_ui_model::pages::ttw::{
     DOWNLOAD_URL, Found, NEEDED_BYTES, PackageInfo, Progress, Redirected, Report, Settling,
-    Sources, State, Step, check_command, check_package, default_downloads, find_in, find_package,
-    free_bytes_of, install_command, is_archive_name, newest_archive, newest_candidate,
+    Sources, State, Step, check_command, default_downloads, free_bytes_of, install_command,
     space_command,
 };
 use raul_ui_model::pages::{Flow, PageId, View};
 use raul_ui_model::wizard::{Step as FlowStep, TtwNeed};
 use raul_ui_service::Output;
+use raul_ui_service::download;
 use raul_ui_service::dto::TtwReport;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -62,17 +62,14 @@ crate::texts!(TEXTS {
     MISSING_FALLOUT3 = "To continue, set the Fallout 3 folder in Settings.";
     MISSING_PACKAGE = "To continue, set the TTW package in Settings.";
     SECTION_PACKAGE = "The TTW package";
-    PACKAGE_WHAT = "Download the Tale of Two Wastelands installer package from the TTW website. Its file name starts with TTW_ and ends in .mpi. If what you downloaded ends in .7z, unpack it first.";
+    PACKAGE_WHAT = "Download the Tale of Two Wastelands installer package from the TTW website. What you download is a .7z file; it does not need to be unpacked.";
     OPEN_DOWNLOAD = "Open the download page";
     FIND_IT = "Find it for me";
     WATCH = "Watch my Downloads folder and use the package when it arrives";
-    UNPACK_NO_PLACE = "There is no place to unpack the package to yet. Finish setting up first.";
-    UNPACK_FAILED = "The archive could not be unpacked. Unpack it yourself, or save it again as a .zip, .7z or .tar.";
-    UNPACK_EMPTY = "The archive holds no TTW package.";
     FINDING = "Looking for the TTW package in your Downloads folder";
     FOUND = "Found the newest TTW package in your Downloads folder:";
     USE_THIS = "Use this file";
-    NOT_FOUND = "No TTW package in your Downloads folder or in the folders inside it. Download it, unpack it if it came in an archive, then find it again.";
+    NOT_FOUND = "No TTW package in your Downloads folder or in the folders inside it. Download it, then find it again.";
     LOOKED_IN = "Looked in";
     PACKAGE_SAVED = "TTW package saved.";
     SECTION_OUTPUT = "Output";
@@ -167,7 +164,7 @@ crate::errors!(ERRORS {
 #[derive(Debug)]
 struct Watch {
     stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    found: std::sync::mpsc::Receiver<Result<PackageInfo, String>>,
+    found: std::sync::mpsc::Receiver<PackageInfo>,
 }
 
 impl Drop for Watch {
@@ -204,8 +201,6 @@ pub struct Ttw {
     search: Option<std::sync::mpsc::Receiver<(PathBuf, Option<PackageInfo>)>>,
     /// The watch of the Downloads folder the user agreed to, if one runs.
     watch: Option<Watch>,
-    /// Where a package that comes in an archive is unpacked, when not the Instance's work folder (tests).
-    unpack_to: Option<PathBuf>,
     /// Why the package found was not saved.
     save_failed: Option<String>,
     /// The package the flow had before the one found was chosen: the wizard's and the sources', put back when the
@@ -241,13 +236,6 @@ impl Ttw {
     #[must_use]
     pub fn looking_in(mut self, folder: impl Into<PathBuf>) -> Ttw {
         self.downloads = Some(folder.into());
-        self
-    }
-
-    /// Unpacks a package that arrives in an archive into `folder` rather than into the Instance's work folder.
-    #[must_use]
-    pub fn unpacking_to(mut self, folder: impl Into<PathBuf>) -> Ttw {
-        self.unpack_to = Some(folder.into());
         self
     }
 
@@ -345,7 +333,7 @@ impl Ttw {
         let (tx, rx) = std::sync::mpsc::channel();
         let repaint = cx.repaint.clone();
         std::thread::spawn(move || {
-            let found = find_in(&folders);
+            let found = download::find(&folders);
             let _ = tx.send((folder, found));
             if let Some(repaint) = repaint {
                 repaint.request_repaint();
@@ -375,47 +363,28 @@ impl Ttw {
     /// Starts watching the folders the search looks in. Nothing starts until the user asked for it.
     fn start_watch(&mut self, cx: &PageCx<'_>) {
         let folders = self.search_folders(self.downloads());
-        // Where a package that came in an archive is unpacked: a folder of its own in the Instance's work folder.
-        let unpack_to = self.unpack_to.clone().or_else(|| {
-            self.state
-                .instance
-                .as_deref()
-                .map(|i| Path::new(i).join(".raul/ttw/package"))
-        });
         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let (tx, rx) = std::sync::mpsc::channel();
         let (flag, repaint) = (stop.clone(), cx.repaint.clone());
         std::thread::spawn(move || {
             let mut settling: Option<Settling> = None;
+            let mut refused = download::Refused::new();
             while !flag.load(std::sync::atomic::Ordering::SeqCst) {
                 std::thread::sleep(WATCH_EVERY);
-                // The newest candidate by name and shape, however small it is still: a file that is growing is
-                // settled first, and only then checked as a whole. A package wins over an archive.
-                let Some(path) = newest_candidate(&folders).or_else(|| newest_archive(&folders))
-                else {
+                // The newest file that is the package, or an archive that holds it (the same rule `raul ttw`
+                // uses); a file that is growing is settled first.
+                let Some(info) = download::newest_accepted(&folders, &mut refused) else {
                     settling = None;
                     continue;
                 };
-                let size = std::fs::metadata(&path).ok().map(|m| m.len());
-                let watched = settling.get_or_insert_with(|| Settling::new(path.clone()));
-                if watched.path() != path {
-                    *watched = Settling::new(path.clone());
+                let watched = settling.get_or_insert_with(|| Settling::new(info.path.clone()));
+                if watched.path() != info.path {
+                    *watched = Settling::new(info.path.clone());
                 }
-                if !watched.poll(WATCH_EVERY, size) {
+                if !watched.poll(WATCH_EVERY, Some(info.size)) {
                     continue;
                 }
-                let answer = if is_archive_name(&path.to_string_lossy()) && !path_is_package(&path)
-                {
-                    unpack(&path, unpack_to.as_deref())
-                } else {
-                    // A file under a package's name that does not check out yet may be a download that stalled
-                    // for a moment: the watch goes on.
-                    match check_package(&path) {
-                        Ok(info) => Ok(info),
-                        Err(_) => continue,
-                    }
-                };
-                let _ = tx.send(answer);
+                let _ = tx.send(info);
                 if let Some(repaint) = repaint {
                     repaint.request_repaint();
                 }
@@ -433,13 +402,7 @@ impl Ttw {
         };
         if let Ok(answer) = watch.found.try_recv() {
             self.watch = None;
-            let info = match answer {
-                Ok(info) => info,
-                Err(why) => {
-                    self.save_failed = Some(why);
-                    return;
-                }
-            };
+            let info = answer;
             let folder = info.path.parent().unwrap_or(Path::new("")).to_path_buf();
             self.state.searched_package(&folder, Some(&info));
             self.use_found(cx);
@@ -1247,27 +1210,6 @@ fn steps(ui: &mut egui::Ui, t: &Tokens, current: Step, installed: bool) {
     });
 }
 
-/// One source on a narrow page: its label, then its value and mark, wrapping onto the next line when they do not fit.
-/// Whether `path` is named like a TTW package file itself (`TTW_*.mpi`), not like an archive of one.
-fn path_is_package(path: &Path) -> bool {
-    path.file_name()
-        .is_some_and(|n| raul_ui_model::pages::ttw::is_package(&n.to_string_lossy()))
-}
-
-/// Unpacks `archive` into `dest` (a zip or tar in process; any other kind with a tool such as 7z when one is
-/// installed) and finds the package inside, checked. The reasons are plain words, without tool names or paths.
-fn unpack(archive: &Path, dest: Option<&Path>) -> Result<PackageInfo, String> {
-    let Some(dest) = dest else {
-        return Err(UNPACK_NO_PLACE.to_owned());
-    };
-    let _ = std::fs::remove_dir_all(dest);
-    std::fs::create_dir_all(dest).map_err(|_| UNPACK_FAILED.to_owned())?;
-    nvmod_modinstall::extract::extract(archive, dest, nvmod_modinstall::Limits::default())
-        .map_err(|_| UNPACK_FAILED.to_owned())?;
-    let package = find_package(dest).ok_or_else(|| UNPACK_EMPTY.to_owned())?;
-    check_package(&package).map_err(|p| p.why().to_owned())
-}
-
 /// A size in bytes as megabytes or gigabytes, for the package found.
 fn size_text(bytes: u64) -> String {
     const MB: u64 = 1_000_000;
@@ -1282,6 +1224,7 @@ fn size_text(bytes: u64) -> String {
     }
 }
 
+/// One source on a narrow page: its label, then its value and mark, wrapping onto the next line when they do not fit.
 fn source_line(ui: &mut egui::Ui, t: &Tokens, label: &str, value: Option<&str>, defaults: bool) {
     ui.label(RichText::new(label).color(t.text.color()));
     // A path takes the width the page has and truncates; the mark goes on the line below it.
@@ -1762,7 +1705,7 @@ mod tests {
         std::fs::write(root.join("notes.txt"), b"not a package").unwrap();
         // A package-shaped file: the search skips a file that is too small or does not start like a package.
         let mut body = vec![0u8; 1_000_000];
-        body[..4].copy_from_slice(b"PK\x03\x04");
+        body[..4].copy_from_slice(b"BSA\0");
         std::fs::write(root.join("unpacked/TTW_3.4.0.mpi"), body).unwrap();
         (root, std::sync::Arc::new(Recording::default()))
     }
@@ -1808,7 +1751,7 @@ mod tests {
             let file = file.clone();
             std::thread::spawn(move || {
                 let mut body = vec![0u8; 400_000];
-                body[..4].copy_from_slice(b"PK\x03\x04");
+                body[..4].copy_from_slice(b"BSA\0");
                 for extra in [0usize, 300_000, 300_000] {
                     body.extend(std::iter::repeat_n(1u8, extra));
                     std::fs::write(&file, &body).unwrap();
@@ -1841,22 +1784,24 @@ mod tests {
     }
 
     #[test]
-    fn a_zip_that_arrives_is_unpacked_and_its_package_used() {
+    fn a_download_archive_that_arrives_is_used_as_it_is_and_a_newer_patch_archive_is_not() {
         use egui_kittest::kittest::Queryable;
         let (downloads, exec) = fake_downloads("archive");
         let _ = std::fs::remove_dir_all(downloads.join("unpacked"));
-        let unpacked = downloads.join("work/package");
-        let mut package = vec![0u8; 1_000_000];
-        package[..4].copy_from_slice(b"PK\x03\x04");
-        let zip = nvmod_testkit::ZipBuilder::new()
-            .file("TTW 3.4/TTW_3.4.0.mpi", &package)
+        let mut package = vec![0u8; 4096];
+        package[..4].copy_from_slice(b"BSA\0");
+        let real = nvmod_testkit::ZipBuilder::new()
+            .file("Tale of Two Wastelands 3.4.mpi", &package)
+            .file("TTW_Installer.exe", b"MZ made-up")
+            .bytes();
+        let patch = nvmod_testkit::ZipBuilder::new()
+            .file("YUPTTW.esm", b"TES4")
             .bytes();
         let mut h = harness(
             Fixture {
                 page: Box::new(
                     Ttw::with(at(Step::Sources, sources(Some(FALLOUT3), None)))
-                        .looking_in(downloads.clone())
-                        .unpacking_to(unpacked.clone()),
+                        .looking_in(downloads.clone()),
                 ),
                 ..fixture("sources-missing", State::default())
             },
@@ -1865,12 +1810,11 @@ mod tests {
         h.run();
         h.get_by_label(WATCH).click();
         h.run_steps(2);
-        std::fs::write(downloads.join("TTW 3.4 Installer.zip"), zip).unwrap();
-        let want = unpacked
-            .join("TTW 3.4")
-            .join("TTW_3.4.0.mpi")
-            .display()
-            .to_string();
+        let real_path = downloads.join("Tale of Two Wastelands 3.4-133-[mod.pub].zip");
+        std::fs::write(&real_path, real).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1200));
+        std::fs::write(downloads.join("YUPTTW 13.9.1-1234.zip"), patch).unwrap();
+        let want = real_path.display().to_string();
         let mut used = false;
         for _ in 0..1000 {
             h.run_steps(2);
@@ -1883,7 +1827,7 @@ mod tests {
             }
             std::thread::sleep(std::time::Duration::from_millis(20));
         }
-        assert!(used, "the package inside the archive is saved and used");
+        assert!(used, "the download itself is saved and used");
     }
 
     #[test]
@@ -1894,7 +1838,7 @@ mod tests {
         let games = downloads.join("games");
         std::fs::create_dir_all(&games).unwrap();
         let mut body = vec![0u8; 1_000_000];
-        body[..4].copy_from_slice(b"PK\x03\x04");
+        body[..4].copy_from_slice(b"BSA\0");
         std::fs::write(games.join("TTW_7.mpi"), body).unwrap();
         let fallout3 = games.join("Fallout 3 goty").display().to_string();
         let mut h = harness(

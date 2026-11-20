@@ -29,6 +29,7 @@ raul-cli = { workspace = true }
 raul-core = { workspace = true }
 raul-drivers = { workspace = true }
 nvmod-modinstall = { workspace = true }
+nvmod-run = { workspace = true }
 raul-ui-model = { workspace = true }
 raul-ui-service = { workspace = true }
 eframe = { workspace = true }
