@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795199123802,
+  "lastUpdate": 1795200351219,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7349,6 +7349,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.672707,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7fbdc35eab8ef8865668efa43e481510da404d2a",
+          "message": "chore(deps): bump nvmod to 0.15.0 (#436)\n\n* chore(deps): bump nvmod to 0.15.0\n\n* fix: follow nvmod 0.15.0: Request gains answers_inline and on_conflict, InstallRequest gains fomod_answers and on_conflict (defaults keep the old behaviour)\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-20T18:42:04Z",
+          "tree_id": "b95f0661c90b2bf3da23d409019cd3b8a99be3c9",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7fbdc35eab8ef8865668efa43e481510da404d2a"
+        },
+        "date": 1795200350513,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.892115,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.711291,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.489836999999994,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.0213410000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.337855,
             "unit": "ms"
           }
         ]
