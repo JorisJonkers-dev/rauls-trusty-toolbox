@@ -501,6 +501,17 @@ fn lod_mods_lists_the_generated_mods_of_the_profile_and_nothing_else() {
     assert_eq!(mods[0]["own"], true);
     assert_eq!(mods[0]["legacy"], false);
     assert_eq!(mods[0]["profile"], "Default");
+    assert!(
+        mods[0]["generated_at"]
+            .as_u64()
+            .is_some_and(|t| t > 1_700_000_000),
+        "{doc}"
+    );
+    let files = mods[0]["files"].as_u64().expect("the file count");
+    let listing = f.raul(&["lod", "mods", "--instance", s(&f.instance())]);
+    let listing = String::from_utf8_lossy(&listing.stdout).into_owned();
+    assert!(listing.contains(&format!(", {files} file")), "{listing}");
+    assert!(listing.contains(", generated 20"), "{listing}");
     assert_eq!(
         mods[0]["lodwright_version"],
         shipped_lodwright_version().as_str()

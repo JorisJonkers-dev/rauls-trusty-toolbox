@@ -389,6 +389,12 @@ pub struct GeneratedRow {
     /// How out of date it is, for the Profile's own Mod.
     #[serde(default)]
     pub stale: Option<StaleRow>,
+    /// When it was generated, in seconds since 1970 UTC, when the marker file says.
+    #[serde(default)]
+    pub generated_at: Option<u64>,
+    /// How many files it holds, when the folder could be read.
+    #[serde(default)]
+    pub files: Option<u64>,
 }
 
 /// The staleness `raul lod mods --json` reports: `unknown`, `current`, `may` or `must`, and why.
