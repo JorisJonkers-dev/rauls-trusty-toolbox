@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795182668824,
+  "lastUpdate": 1795184885761,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6712,6 +6712,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 12.911079,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3ccb98a7e16a802f68920e7917d1be9370c74545",
+          "message": "feat(gui): run LOD generation and the TTW install as typed jobs with their own cancel (#402)\n\n* feat(gui): run the LOD generation and the TTW install as typed jobs with their own cancel (#168)\n\nThe Toolbox's LOD and TTW drivers take a Stop (the process-wide request, or one run's own), and raul lod generate and raul ttw are thin wrappers over TtwJob and LodJob. The window's ttw and lod-generate commands start those as streaming direct jobs in process: no command line is parsed, no Ctrl+C handler is installed in the window, the job's cancel token stops the run at its next safe point and the job never sets the process-wide request. The setup job's TTW step uses the setup's own token the same way. Tests drive both runs through the job table: progress events, cancel, the Instance lock.\n\n* test(cli): cover the typed LOD and TTW job streams and the line sink (#168)",
+          "timestamp": "2026-11-20T14:26:37Z",
+          "tree_id": "69fd12f77f98fa4764d759ed39cead505737da0d",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3ccb98a7e16a802f68920e7917d1be9370c74545"
+        },
+        "date": 1795184884884,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.663347,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.752591,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.765431,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.256436,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.166579,
             "unit": "ms"
           }
         ]
