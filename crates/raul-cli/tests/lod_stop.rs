@@ -125,10 +125,16 @@ fn a_stop_request_during_the_generation_adds_nothing_and_the_next_run_completes(
     assert_eq!(outcome.result.mod_name, None);
     assert!(!outcome.changed);
     assert_eq!(f.state(), before, "a stopped run changed the Instance");
-    // The library itself stopped: its answer to a cancel is an interrupted manifest, with no request digest.
-    let manifest = std::fs::read(f.instance().join(".raul/lod/Default/out/manifest.json")).unwrap();
-    let manifest: serde_json::Value = serde_json::from_slice(&manifest).unwrap();
-    assert_eq!(manifest["request_digest"], "", "{manifest}");
+    // The library itself stopped: it kept a checkpoint in the staging folder and wrote no output folder.
+    let work = f.instance().join(".raul/lod/Default");
+    assert!(
+        !work.join("out").exists(),
+        "the output is written only at the swap"
+    );
+    assert!(
+        work.join("out.lodwright-staging/checkpoint.json").is_file(),
+        "the cancel kept a checkpoint"
+    );
 
     let outcome = lod::generate_with_cancel(&f.request(), &CancelToken::new(), &mut |_| {});
     assert_eq!(outcome.exit_code, 0, "{:?}", outcome.result);

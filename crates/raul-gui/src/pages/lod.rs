@@ -37,8 +37,8 @@ crate::texts!(TEXTS {
     STATE_STOPPING = "Stopping";
     GENERATE = "Generate";
     CONFIRM_TITLE = "Generate LOD?";
-    CONFIRM_COST = "Reads {n} active plugins and writes LOD for them. This can take a long time; you can leave the page while it runs. The result replaces the Mod LOD. Stop leaves the Instance as it was.";
-    CONFIRM_COST_ONE = "Reads 1 active plugin and writes LOD for it. This can take a long time; you can leave the page while it runs. The result replaces the Mod LOD. Stop leaves the Instance as it was.";
+    CONFIRM_COST = "Reads {n} active plugins and writes LOD for them. This can take a long time; you can leave the page while it runs. The result replaces the Mod LOD. Stop leaves the Mod LOD as it was and keeps a checkpoint: the next run with the same settings continues from it.";
+    CONFIRM_COST_ONE = "Reads 1 active plugin and writes LOD for it. This can take a long time; you can leave the page while it runs. The result replaces the Mod LOD. Stop leaves the Mod LOD as it was and keeps a checkpoint: the next run with the same settings continues from it.";
     STOP = "Stop";
     GENERATE_HOVER = "Generates LOD for the Instance.";
     STOP_HOVER = "Stops the running LOD generation.";
@@ -74,7 +74,7 @@ crate::texts!(TEXTS {
     DONE_CURRENT = "Nothing changed: the LOD output is current.";
     DONE_STATUS = "LOD generated.";
     CURRENT_STATUS = "LOD is up to date.";
-    STOPPED_STATUS = "LOD generation stopped. Nothing changed.";
+    STOPPED_STATUS = "LOD generation stopped. The LOD Mod was not touched; a checkpoint is kept for the next run.";
     OUTPUT_LABEL = "Output";
     STEP_READ_PLUGINS = "Reading the plugins";
     STEP_TERRAIN = "Building distant land";
@@ -101,7 +101,7 @@ crate::errors!(ERRORS {
     );
     GENERATE_STOPPED = (
         "LOD generation was stopped",
-        "The Instance is as it was."
+        "The LOD Mod was not touched. The checkpoint is kept: the next Generate with the same settings continues from it, and changed settings start again."
     );
     STOP_FAILED = (
         "The run could not be stopped",
