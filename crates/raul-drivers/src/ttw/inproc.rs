@@ -55,25 +55,31 @@ pub(crate) fn install_in_process(
         };
         let result = ttwright_core::api::install(
             job,
-            &mut |event: &ttwright_contract::Event| match event {
-                ttwright_contract::Event::Phase { phase } => emit(Event::Phase {
-                    phase: phase_name(phase),
-                }),
-                ttwright_contract::Event::Progress {
-                    phase,
-                    done,
-                    of,
-                    message,
-                } => emit(Event::Progress {
-                    phase: phase_name(phase),
-                    done: *done,
-                    of: *of,
-                    message: Some(message.clone()),
-                }),
-                ttwright_contract::Event::Warning { message } => emit(Event::Warning {
-                    message: message.clone(),
-                }),
-                _ => {}
+            &mut |event: &ttwright_contract::Event| {
+                // A stop asked for is seen at the next event, not only at the watcher's next look.
+                if stop.requested() {
+                    cancel.cancel();
+                }
+                match event {
+                    ttwright_contract::Event::Phase { phase } => emit(Event::Phase {
+                        phase: phase_name(phase),
+                    }),
+                    ttwright_contract::Event::Progress {
+                        phase,
+                        done,
+                        of,
+                        message,
+                    } => emit(Event::Progress {
+                        phase: phase_name(phase),
+                        done: *done,
+                        of: *of,
+                        message: Some(message.clone()),
+                    }),
+                    ttwright_contract::Event::Warning { message } => emit(Event::Warning {
+                        message: message.clone(),
+                    }),
+                    _ => {}
+                }
             },
             &cancel,
         );
@@ -103,7 +109,9 @@ pub(crate) fn install_with_events(
     timeout: Duration,
     emit: &mut dyn FnMut(Event),
 ) -> InProc {
-    let (tx, rx) = std::sync::mpsc::channel();
+    // A rendezvous channel: the install goes on only when `emit` has taken the event, so a caller that holds `emit`
+    // holds the install at that event, and a slow reader slows the install instead of piling events up.
+    let (tx, rx) = std::sync::mpsc::sync_channel(0);
     std::thread::scope(|scope| {
         let worker = scope.spawn(move || {
             install_in_process(job, stop, timeout, &mut |event| {
