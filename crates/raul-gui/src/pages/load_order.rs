@@ -59,7 +59,6 @@ crate::texts!(TEXTS {
     INACTIVE = "{name} · inactive";
     NONE = "—";
     MOVE_FROM_TO = "{from} → {to}";
-    MORE_MESSAGES = "{n} more";
     SECTION_PLUGINS = "Plugins";
     SECTION_LIST = "About the list";
     APPLIED_STATUS = "Load order applied. Undo restores the old one.";
@@ -577,27 +576,23 @@ fn mark_of(kind: MessageKind) -> Mark {
     }
 }
 
-/// The messages of one plugin: the most serious first, the rest counted, all of them in the tooltip.
+/// The messages of one plugin: the most serious first, every one wrapped in the column.
 fn messages(ui: &mut egui::Ui, t: &Tokens, list: &[Message]) {
-    let Some(first) = list.iter().max_by_key(|m| m.kind) else {
+    if list.is_empty() {
         ui.label("");
         return;
-    };
-    let all = list
-        .iter()
-        .map(|m| m.text.as_str())
-        .collect::<Vec<_>>()
-        .join("\n");
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 6.0;
-        icon(ui, t, mark_of(first.kind));
-        ui.add(egui::Label::new(RichText::new(&first.text).color(t.text.color())).truncate())
-            .on_hover_text(all);
-        if list.len() > 1 {
-            ui.label(
-                RichText::new(MORE_MESSAGES.replace("{n}", &(list.len() - 1).to_string()))
-                    .color(t.muted.color()),
-            );
+    }
+    // Every message, worst first, each wrapped inside the column: none is cut off or hidden behind a count.
+    let mut ordered: Vec<&Message> = list.iter().collect();
+    ordered.sort_by_key(|m| std::cmp::Reverse(m.kind));
+    ui.vertical(|ui| {
+        ui.set_max_width(ui.available_width().max(200.0));
+        for m in ordered {
+            ui.horizontal_top(|ui| {
+                ui.spacing_mut().item_spacing.x = 6.0;
+                icon(ui, t, mark_of(m.kind));
+                ui.add(egui::Label::new(RichText::new(&m.text).color(t.text.color())).wrap());
+            });
         }
     });
 }
@@ -844,7 +839,7 @@ mod tests {
         let page = LoadOrder::with(preview());
         assert_eq!(
             page.state_line(),
-            "Preview · 2 moves · nothing changes until Apply"
+            "Preview · 3 moves · nothing changes until Apply"
         );
         let page = LoadOrder::with(listed(CURRENT));
         assert_eq!(page.state_line(), "7 plugins, 6 active");
