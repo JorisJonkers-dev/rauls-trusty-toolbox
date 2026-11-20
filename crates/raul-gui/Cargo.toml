@@ -77,6 +77,7 @@ fork-play = { path = "../../components/nv-rs/crates/fork-play" }
 raul-cli = { path = "../raul-cli" }
 raul-runner = { path = "../raul-runner" }
 nvmod-api = { path = "../../components/nvmod-rs/crates/nvmod-api" }
+nvmod-loadorder = { path = "../../components/nvmod-rs/crates/nvmod-loadorder" }
 raul-core = { path = "../raul-core" }
 raul-drivers = { path = "../raul-drivers" }
 nvmod-core = { path = "../../components/nvmod-rs/crates/nvmod-core" }

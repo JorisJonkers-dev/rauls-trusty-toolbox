@@ -196,7 +196,9 @@ fn every_mvp_command_is_a_registered_action_with_its_words() {
         assert_eq!(args.len(), command.words.len() + 1);
         assert_eq!(args.last().map(String::as_str), Some("--x"));
     }
-    assert!(!Action::Init.takes_json() && !Action::InstallNvRs.takes_json());
+    assert!(
+        !Action::Init.takes_json() && !Action::Profile.takes_json() && !Action::Target.takes_json()
+    );
     assert!(Action::Config.takes_json() && Action::Lod.cancellable());
 }
 

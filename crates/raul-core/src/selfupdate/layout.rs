@@ -69,7 +69,7 @@ impl Reason {
 /// How this install is updated.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Layout {
-    /// A folder holding `raul`, the packaged engine and `INSTALLED-FILES.sha256` (the tarball and the portable zip).
+    /// A folder holding `raul`, the Component programs and `INSTALLED-FILES.sha256` (the tarball and the portable zip).
     Folder {
         /// The folder.
         root: PathBuf,

@@ -430,7 +430,7 @@ mod tests {
 
     const FILES: &[(&str, &[u8])] = &[
         ("raul", b"binary"),
-        ("components/nv-rs/bin/nv-viewer", b"viewer"),
+        ("components/ttwright-rs/bin/ttwright", b"tool"),
     ];
 
     #[test]
@@ -440,11 +440,14 @@ mod tests {
         let dest = t.path().join("new");
         let mut files = extract_tar_gz(&a, &dest, 1, Limits::default()).unwrap();
         files.sort();
-        assert_eq!(files, [INVENTORY, "components/nv-rs/bin/nv-viewer", "raul"]);
+        assert_eq!(
+            files,
+            [INVENTORY, "components/ttwright-rs/bin/ttwright", "raul"]
+        );
         assert_eq!(std::fs::read(dest.join("raul")).unwrap(), b"binary");
         assert_eq!(
             check_unit(&dest).unwrap(),
-            [INVENTORY, "components/nv-rs/bin/nv-viewer", "raul"]
+            [INVENTORY, "components/ttwright-rs/bin/ttwright", "raul"]
         );
     }
 

@@ -54,7 +54,6 @@ impl Scratch {
             import_mo2: None,
             copy: false,
             engine: false,
-            engine_options: raul_core::setup::EngineOptions::default(),
             ttw: None,
             mods: Vec::new(),
             answers: None,
@@ -138,304 +137,35 @@ fn a_fresh_setup_runs_every_planned_step_in_order_and_reports_each() {
     )));
 }
 
-/// The engine step on synthetic fixtures: a tiny nv-rs workspace and a packaged engine folder. Nothing is fetched.
-mod engine {
-    use super::*;
-    use nvmod_testkit::{
-        FAKE_BUILT_BANNER, FAKE_CHECK_REFUSED, FakeNvRs, fake_failing_release_binary,
-        fake_release_binary, nv_viewer_name, write_executable,
-    };
-    use raul_core::setup::EngineOptions;
+/// The engine is linked in, so its capabilities come from it, not from a package (#398): the nv-rs target writes the
+/// text the program provided, and the Doctor then has no `capabilities.missing` to report on the fresh Instance.
+#[test]
+fn the_nv_rs_target_writes_the_linked_engines_capabilities_and_the_doctor_finds_them() {
+    const CAPABILITIES: &str = r#"{"schema_version":1,"extenders":[{"id":"synthetic","name":"Synthetic","commands":{"implemented":1,"total":2,"implemented_names":["Command1"]}}]}"#;
+    raul_core::capabilities::provide(CAPABILITIES);
+    let s = Scratch::new();
+    let mut request = s.request();
+    request.engine = true;
+    let out = done(record(&request, &CancelToken::new()).0);
+    assert_eq!(
+        ids(&out.completed),
+        ["init", "profile", "target", "stage", "sort", "verify"]
+    );
+    assert_eq!(
+        fs::read_to_string(s.instance().join("nv-rs/capabilities.json")).unwrap(),
+        CAPABILITIES
+    );
+    let doctor = serde_json::to_string(&out.verify.expect("the check ran").doctor).unwrap();
+    assert!(!doctor.contains("capabilities.missing"), "{doctor}");
+    assert!(!doctor.contains("capabilities.invalid"), "{doctor}");
+}
 
-    /// One build of the fake engine program for the whole test run: on Windows each call compiles a new stand-in, whose
-    /// bytes differ from the last, so a test that packages one and compares with another would never match.
-    fn viewer_bytes() -> Vec<u8> {
-        static BYTES: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
-        BYTES.get_or_init(fake_release_binary).clone()
-    }
-
-    const CARGO: &str = env!("CARGO");
-
-    struct Rig {
-        s: Scratch,
-        tools: TempDir,
-    }
-
-    impl Rig {
-        fn new() -> Self {
-            Self {
-                s: Scratch::new(),
-                tools: TempDir::new("setup-engine-tools"),
-            }
-        }
-
-        /// A request for a source build of the fake workspace written by `nv_rs`.
-        fn source(&self, nv_rs: &FakeNvRs) -> Request {
-            let dir = self.tools.path().join("src");
-            fs::create_dir_all(&dir).expect("source dir");
-            nv_rs.write(&dir);
-            let mut request = self.s.request();
-            request.engine = true;
-            request.engine_options = EngineOptions {
-                source: Some(dir),
-                cargo: Some(PathBuf::from(CARGO)),
-                ..EngineOptions::default()
-            };
-            request
-        }
-
-        /// A request for the packaged engine folder at the returned path, whose viewer is `binary`.
-        fn packaged(&self, binary: &[u8]) -> Request {
-            let dir = self.tools.path().join("packaged");
-            let bin = dir.join("bin");
-            fs::create_dir_all(&bin).expect("packaged dir");
-            write_executable(&bin, &nv_viewer_name(), binary);
-            let line = format!(
-                "{}  bin/{}\n",
-                nvmod_install::sha256_hex(binary),
-                nv_viewer_name()
-            );
-            fs::write(dir.join("FILES.sha256"), line).expect("checksum list");
-            let mut request = self.s.request();
-            request.engine = true;
-            request.engine_options = EngineOptions {
-                packaged: Some(dir),
-                ..EngineOptions::default()
-            };
-            request
-        }
-
-        fn nv_rs(&self) -> PathBuf {
-            self.s.instance().join("nv-rs")
-        }
-
-        fn nothing_installed(&self) {
-            assert!(!self.nv_rs().exists(), "nv-rs is not installed");
-            assert!(!self.s.instance().join(".nv-rs-staging").exists());
-        }
-    }
-
-    fn labels(events: &[Event]) -> Vec<&str> {
-        events
-            .iter()
-            .filter_map(|e| match e {
-                Event::Detail {
-                    step: Step::Engine,
-                    label,
-                    ..
-                } => Some(label.as_str()),
-                _ => None,
-            })
-            .collect()
-    }
-
-    fn failure(result: Result<Outcome, Error>) -> Error {
-        match result {
-            Err(e) => e,
-            other => panic!("expected the setup to fail, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn a_source_build_installs_checks_and_the_target_is_set() {
-        let rig = Rig::new();
-        let request = rig.source(&FakeNvRs::new());
-        let (result, events) = record(&request, &CancelToken::new());
-        let out = done(result);
-        assert_eq!(
-            ids(&out.completed),
-            [
-                "init", "profile", "engine", "target", "stage", "sort", "verify"
-            ]
-        );
-        assert_eq!(
-            labels(&events),
-            ["setup.engine.building", "setup.engine.checked"]
-        );
-        let binary = rig.nv_rs().join("bin").join(nv_viewer_name());
-        let run = raul_runner::Runner::default()
-            .run(&raul_runner::Call::new("nv-viewer", &binary, &[]))
-            .expect("run");
-        assert!(String::from_utf8_lossy(&run.stdout).contains(FAKE_BUILT_BANNER));
-        let record = fs::read_to_string(rig.nv_rs().join("install.json")).expect("record");
-        assert!(record.contains("\"method\": \"source\""), "{record}");
-        let config =
-            fs::read_to_string(rig.s.instance().join("nvmod-instance.json")).expect("instance");
-        assert!(config.contains("nv-rs"), "{config}");
-    }
-
-    #[test]
-    fn the_packaged_engine_installs_checks_and_the_target_is_set() {
-        let rig = Rig::new();
-        let request = rig.packaged(&viewer_bytes());
-        let (result, events) = record(&request, &CancelToken::new());
-        let out = done(result);
-        assert!(ids(&out.completed).contains(&"engine".to_owned()));
-        assert!(ids(&out.completed).contains(&"target".to_owned()));
-        assert_eq!(
-            labels(&events),
-            ["setup.engine.installing", "setup.engine.checked"]
-        );
-        let binary = rig.nv_rs().join("bin").join(nv_viewer_name());
-        assert_eq!(fs::read(binary).expect("binary"), viewer_bytes());
-        let record = fs::read_to_string(rig.nv_rs().join("install.json")).expect("record");
-        assert!(record.contains("\"method\": \"packaged\""), "{record}");
-    }
-
-    #[test]
-    fn no_toolchain_still_uses_the_packaged_engine_and_never_a_release() {
-        let rig = Rig::new();
-        let mut request = rig.packaged(&viewer_bytes());
-        request.engine_options.cargo = Some(rig.tools.path().join("no-such-cargo"));
-        let (result, events) = record(&request, &CancelToken::new());
-        done(result);
-        assert_eq!(
-            labels(&events),
-            ["setup.engine.installing", "setup.engine.checked"]
-        );
-    }
-
-    #[test]
-    fn a_damaged_packaged_engine_is_unverified_and_nothing_is_installed() {
-        let rig = Rig::new();
-        let request = rig.packaged(&viewer_bytes());
-        let viewer = rig.tools.path().join("packaged/bin").join(nv_viewer_name());
-        fs::write(viewer, b"tampered").expect("tamper");
-        let (result, events) = record(&request, &CancelToken::new());
-        let error = failure(result);
-        assert_eq!(error.kind, ErrorKind::Unverified);
-        assert_eq!(error.step, Step::Engine);
-        assert_eq!(error.job, "engine.install");
-        rig.nothing_installed();
-        assert!(!started(&events).contains(&"target".to_owned()));
-    }
-
-    #[test]
-    fn a_missing_packaged_engine_is_refused_with_plain_instructions_and_nothing_is_fetched() {
-        let rig = Rig::new();
-        let mut request = rig.s.request();
-        request.engine = true;
-        request.engine_options.packaged = Some(rig.tools.path().join("not-there"));
-        let error = failure(record(&request, &CancelToken::new()).0);
-        assert_eq!(error.kind, ErrorKind::Refused);
-        assert!(
-            error.summary.contains("install raul again"),
-            "{}",
-            error.summary
-        );
-        for word in ["curl", "gh", "--release", "cargo", "install-nv-rs"] {
-            assert!(!error.summary.contains(word), "{word}: {}", error.summary);
-        }
-        rig.nothing_installed();
-    }
-
-    #[test]
-    fn a_failing_check_fails_the_step_and_is_rolled_back() {
-        let rig = Rig::new();
-        let request = rig.source(&FakeNvRs::new().failing_check());
-        let (result, events) = record(&request, &CancelToken::new());
-        let error = failure(result);
-        assert_eq!(error.kind, ErrorKind::Failed);
-        assert!(
-            error.summary.contains(FAKE_CHECK_REFUSED),
-            "{}",
-            error.summary
-        );
-        rig.nothing_installed();
-        assert_eq!(labels(&events), ["setup.engine.building"]);
-    }
-
-    #[test]
-    fn a_failing_packaged_check_fails_the_step_and_is_rolled_back() {
-        let rig = Rig::new();
-        let request = rig.packaged(&fake_failing_release_binary());
-        let error = failure(record(&request, &CancelToken::new()).0);
-        assert_eq!(error.kind, ErrorKind::Failed);
-        assert!(
-            error.summary.contains(FAKE_CHECK_REFUSED),
-            "{}",
-            error.summary
-        );
-        rig.nothing_installed();
-    }
-
-    #[test]
-    fn a_failing_source_build_fails_the_step_and_installs_nothing() {
-        let rig = Rig::new();
-        let request = rig.source(&FakeNvRs::new().failing_build());
-        let error = failure(record(&request, &CancelToken::new()).0);
-        assert_eq!(error.kind, ErrorKind::Failed);
-        assert_ne!(error.summary, "");
-        rig.nothing_installed();
-    }
-
-    #[test]
-    fn a_toolchain_and_no_source_is_refused_before_anything_is_written() {
-        let rig = Rig::new();
-        let mut request = rig.s.request();
-        request.engine = true;
-        request.engine_options.cargo = Some(PathBuf::from(CARGO));
-        let error = failure(record(&request, &CancelToken::new()).0);
-        assert_eq!(error.kind, ErrorKind::Refused);
-        assert_eq!(error.step, Step::Engine);
-        rig.nothing_installed();
-    }
-
-    #[test]
-    fn an_engine_already_installed_is_refused_and_left_alone() {
-        let rig = Rig::new();
-        let request = rig.source(&FakeNvRs::new());
-        done(record(&request, &CancelToken::new()).0);
-        let mut again = request.clone();
-        again.done = vec![Step::Init, Step::Profile];
-        let error = failure(record(&again, &CancelToken::new()).0);
-        assert_eq!(error.kind, ErrorKind::Refused);
-        assert!(error.summary.contains("already installed"));
-        assert!(rig.nv_rs().join("bin").join(nv_viewer_name()).is_file());
-    }
-
-    #[test]
-    fn a_stop_asked_for_when_the_step_reports_its_work_installs_nothing() {
-        let rig = Rig::new();
-        let request = rig.source(&FakeNvRs::new());
-        let cancel = CancelToken::new();
-        let mut events = Vec::new();
-        let result = run(
-            &request,
-            &mut |e: &Event| {
-                if matches!(e, Event::Detail { label, .. } if label == "setup.engine.building") {
-                    cancel.cancel();
-                }
-                events.push(e.clone());
-            },
-            &cancel,
-        );
-        let Ok(Outcome::Cancelled(out)) = result else {
-            panic!("expected a cancelled setup, got {result:?}");
-        };
-        assert_eq!(ids(&out.completed), ["init", "profile"]);
-        assert_eq!(labels(&events), ["setup.engine.building"]);
-        assert!(!events.iter().any(|e| matches!(
-            e,
-            Event::Finished {
-                step: Step::Engine,
-                ..
-            }
-        )));
-        rig.nothing_installed();
-    }
-
-    #[test]
-    fn a_request_that_does_not_ask_for_the_engine_skips_the_step_and_installs_nothing() {
-        let rig = Rig::new();
-        let mut request = rig.source(&FakeNvRs::new());
-        request.engine = false;
-        let (result, events) = record(&request, &CancelToken::new());
-        let out = done(result);
-        assert!(!ids(&out.completed).contains(&"engine".to_owned()));
-        assert_eq!(labels(&events), [] as [&str; 0]);
-        rig.nothing_installed();
-    }
+#[test]
+fn a_setup_without_the_nv_rs_target_writes_no_capabilities() {
+    let s = Scratch::new();
+    let request = s.request();
+    done(record(&request, &CancelToken::new()).0);
+    assert!(!s.instance().join("nv-rs").exists());
 }
 
 #[test]

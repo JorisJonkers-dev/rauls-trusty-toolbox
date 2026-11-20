@@ -11,6 +11,10 @@ fn main() -> ExitCode {
         return ExitCode::from(raul_engine::play_mode(&mut std::io::stderr()));
     }
     raul_gui::enable_play_mode();
+    // The Doctor's capabilities file for an nv-rs Instance is written from the engine's own text (#398).
+    if let Some(text) = raul_engine::capabilities() {
+        raul_core::capabilities::provide(text);
+    }
     if let Some(code) = raul_cli::settle_update_at_start(&args, &mut std::io::stderr()) {
         return ExitCode::from(code);
     }

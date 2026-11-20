@@ -12,7 +12,7 @@ use raul_core::setup::{CancelToken, Line, Mode, execute, parse_words};
 
 use crate::{REFUSED, USAGE};
 
-const USAGE_LINE: &str = "usage: raul setup --base <dir> --instance <dir> --masterlist <file> [--import-mo2 <dir>] [--mod <archive>]... [--fallout3 <dir> [--package <file>]] [--profile <name>] [--answers <file>] [--catalog <file>] [--source <dir> [--cargo <path>]] [--skip-nv-rs] [--sort] [--copy] [--keep-partial] [--dry-run] [--json]\n       raul setup --resume --instance <dir> [--json]\n       raul setup --restart --instance <dir> --yes [--json]";
+const USAGE_LINE: &str = "usage: raul setup --base <dir> --instance <dir> --masterlist <file> [--import-mo2 <dir>] [--mod <archive>]... [--fallout3 <dir> [--package <file>]] [--profile <name>] [--answers <file>] [--catalog <file>] [--skip-nv-rs] [--sort] [--copy] [--keep-partial] [--dry-run] [--json]\n       raul setup --resume --instance <dir> [--json]\n       raul setup --restart --instance <dir> --yes [--json]";
 
 /// What the words ask for, or the usage error.
 fn mode_of(args: &[String]) -> Result<(Mode, bool), String> {

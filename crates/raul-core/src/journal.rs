@@ -463,14 +463,10 @@ impl Journal {
     }
 }
 
-/// The request as the journal keeps it: without its list of finished steps, and without the programs the engine step
-/// runs (`cargo` and the engine folder whose viewer it starts), so a resume never runs a program a file names; it uses
-/// the default ones.
+/// The request as the journal keeps it: without its list of finished steps.
 fn stored(request: &Request) -> Request {
     let mut kept = request.clone();
     kept.done.clear();
-    kept.engine_options.cargo = None;
-    kept.engine_options.packaged = None;
     kept
 }
 
@@ -593,14 +589,8 @@ fn nvmod_state(file: &Path, text: &str) -> Result<Option<NvmodState>, Error> {
     if state.complete {
         return Ok(None);
     }
-    // nvmod calls the engine step `nv-rs`; every other id is the one raul uses.
-    let id = |e: Entry| {
-        if e.step == "nv-rs" {
-            "engine".to_owned()
-        } else {
-            e.step
-        }
-    };
+    // nvmod's `nv-rs` step installed the engine; raul links the engine in, so that step is not part of a resumed run.
+    let kept = |e: &Entry| e.step != "nv-rs";
     // The command line the run was started with is read as `raul setup` reads one; a line that cannot be read leaves
     // the journal without a request, and a resume says so.
     let request = crate::setup::parse_words(&state.args)
@@ -609,8 +599,18 @@ fn nvmod_state(file: &Path, text: &str) -> Result<Option<NvmodState>, Error> {
     Ok(Some(NvmodState {
         request,
         version: state.nvmod_version,
-        plan: state.plan.into_iter().map(id).collect(),
-        finished: state.completed.into_iter().map(id).collect(),
+        plan: state
+            .plan
+            .into_iter()
+            .filter(kept)
+            .map(|e| e.step)
+            .collect(),
+        finished: state
+            .completed
+            .into_iter()
+            .filter(kept)
+            .map(|e| e.step)
+            .collect(),
     }))
 }
 
