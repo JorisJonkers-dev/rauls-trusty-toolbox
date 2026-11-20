@@ -104,6 +104,9 @@ impl Fixture {
             }
             (Action::Sort, _) => vec!["--instance", &instance, "--masterlist", "MASTERLIST"],
             (Action::Ttw, _) => vec!["--instance", &instance, "--dry-run"],
+            // An archive that is not there: the command understands the words and refuses it. The install of a
+            // real archive is covered by the service test with a synthetic one.
+            (Action::InstallMod, _) => vec!["missing.zip", "--instance", &instance, "--dry-run"],
             (Action::Detect, _) => vec!["--folder", "BASE"],
             // The default profile of an Instance that already has one: nothing changes.
             (Action::Profile, _) => vec!["--name", "Default", "--instance", &instance],
@@ -150,7 +153,7 @@ fn expected(command: &Command) -> i32 {
         // TTW and a run: no folder, and no engine installed in the fixture, so even a dry run is refused. The engine
         // install finds no packaged engine next to the test program.
         // The fixture's Instance has its default profile already: a second one is refused.
-        Action::InstallNvRs | Action::Ttw | Action::Run | Action::Profile => 2,
+        Action::InstallNvRs | Action::Ttw | Action::Run | Action::Profile | Action::InstallMod => 2,
         // lodwright is linked in: the fixture's plugin defines no worldspace with terrain, so the generation fails.
         Action::Lod if command.words.first() == Some(&"generate") => 4,
         Action::Doctor => 1,
