@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795182268122,
+  "lastUpdate": 1795182668824,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6663,6 +6663,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.136132,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8c30b9d6c86905465d4157d0d98b1758969fc7cf",
+          "message": "feat(gui): Stop for a running game and plain words for how it ended (#407)\n\n* feat(gui): a Stop button for the running game through the play mode's stop file, and plain words for how a game ended (#260)\n\n* fix(cli): clippy in the stop command, and the stop command in the registry fixture test (#260)",
+          "timestamp": "2026-11-20T13:49:17Z",
+          "tree_id": "a1bb25fa53f753b9efc52fd6d2c6d46b3d1feeeb",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/8c30b9d6c86905465d4157d0d98b1758969fc7cf"
+        },
+        "date": 1795182668016,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.238598,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.290741,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.216356,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.026023,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 12.911079,
             "unit": "ms"
           }
         ]
