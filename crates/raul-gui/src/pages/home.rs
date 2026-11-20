@@ -69,6 +69,8 @@ crate::texts!(TEXTS {
     OPEN = "Open";
     SET_UP = "Set up…";
     PLAY_BIG = "Play now";
+    STOP_GAME = "Stop the game";
+    STOP_ASKED_STATUS = "Asked the game to stop";
     STARTING = "Starting";
     FACT_ENGINE = "Engine";
     FACT_INSTANCE = "Instance";
@@ -123,6 +125,7 @@ enum Job {
     Verify,
     LoadOrder,
     Run,
+    Stop,
 }
 
 const BLOCKED_DIALOG: &str = "home-play-blocked";
@@ -231,6 +234,18 @@ impl Home {
                         Err(why) => Fetch::Failed(why.clone()),
                     };
                 }
+                Job::Stop => {
+                    // The game ends between two frames; Home reads its state again.
+                    if let Err(why) = &result {
+                        self.state.launch = Launch::Failed(why.clone());
+                    } else if let Ok(out) = &result
+                        && out.code != Some(0)
+                    {
+                        self.state.launch = Launch::Failed(failure_of(out));
+                    } else {
+                        cx.shell.status = Some(STOP_ASKED_STATUS.to_owned());
+                    }
+                }
                 Job::Run => {
                     self.state.launch = match &result {
                         Ok(out) if out.code == Some(0) => {
@@ -292,6 +307,17 @@ impl Home {
                 self.pending.add(Job::Run, id);
                 self.state.launch = Launch::Starting;
             }
+            Err(e) => self.state.launch = Launch::Failed(e.what.to_owned()),
+        }
+    }
+
+    /// Stop: asks the running game to end between two frames, so its save flush and shader cache are kept.
+    fn stop_game(&mut self, cx: &mut PageCx<'_>) {
+        let Some(command) = self.state.stop_command() else {
+            return;
+        };
+        match start(cx, &command) {
+            Ok(id) => self.pending.add(Job::Stop, id),
             Err(e) => self.state.launch = Launch::Failed(e.what.to_owned()),
         }
     }
@@ -516,6 +542,9 @@ impl Home {
         }
         if starting {
             icon(ui, &t, Mark::Info);
+        }
+        if self.state.launch == Launch::Started && ui.button(STOP_GAME).clicked() {
+            self.stop_game(cx);
         }
         if let Some(b) = block {
             let e = block_text(b);

@@ -330,7 +330,7 @@ impl Fixture {
 
     fn window(&self) -> Harness<'static, App> {
         let exec = self.exec().with_grace(Duration::from_secs(5));
-        let app = App::new(Jobs::new(Arc::new(exec)));
+        let app = App::new(Jobs::new(Arc::new(exec)).with_config_folder(&self.path("config")));
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {
@@ -490,4 +490,60 @@ fn cancel_stops_a_running_install_and_the_instance_stays_as_it_was() {
         .any(|w| h.query_by_label(w).is_some()),
         "the page says how it ended"
     );
+}
+
+/// Presses Tab until the button called `label` has the focus, then Enter: the flow without a pointer.
+fn press_by_keyboard(h: &mut Harness<'static, App>, label: &str) {
+    for _ in 0..80 {
+        h.run_steps(2);
+        if h.get_by_role_and_label(Role::Button, label).is_focused() {
+            h.key_press(eframe::egui::Key::Enter);
+            return;
+        }
+        h.key_press(eframe::egui::Key::Tab);
+    }
+    panic!("the button {label} never got the focus by Tab");
+}
+
+#[test]
+fn the_flow_reviews_and_installs_with_the_keyboard_only() {
+    let f = Fixture::for_window("gui-ttw-keys", &manifest());
+    let mut h = f.window();
+    for _ in 0..2 {
+        press_by_keyboard(&mut h, NEXT);
+        settle(&mut h);
+    }
+    assert!(!f.installed(), "the review writes nothing");
+    press_by_keyboard(&mut h, INSTALL);
+    settle(&mut h);
+    assert_eq!(
+        h.state_mut().shell_mut().status.as_deref(),
+        Some(INSTALLED_STATUS)
+    );
+    assert!(f.installed());
+}
+
+#[test]
+fn cancel_and_resume_are_reachable_by_keyboard_during_an_install() {
+    let f = Fixture::for_window("gui-ttw-keys-cancel", &slow_manifest());
+    let mut h = f.window();
+    for _ in 0..2 {
+        press_by_keyboard(&mut h, NEXT);
+        settle(&mut h);
+    }
+    press_by_keyboard(&mut h, INSTALL);
+    until_writing(&mut h, &f);
+    press_by_keyboard(&mut h, CANCEL);
+    settle(&mut h);
+    assert!(!f.installed(), "the Instance is as it was");
+    assert!(
+        f.work().join("out/.ttwright-journal.json").is_file(),
+        "the journal is kept for --resume"
+    );
+    // The stopped run is continued from the keyboard too: Resume, then the review's button.
+    press_by_keyboard(&mut h, RESUME);
+    settle(&mut h);
+    press_by_keyboard(&mut h, RESUME);
+    settle(&mut h);
+    assert!(f.installed(), "resumed and installed");
 }

@@ -8,11 +8,16 @@ mod detect;
 mod install_nv_rs;
 mod lod;
 mod lod_settings;
+pub mod play;
 mod printer;
 mod setup;
+mod space;
 mod ttw;
 mod update;
 mod version;
+
+pub use lod::{LodJob, generate_job as lod_generate_job, generate_job_in as lod_generate_job_in};
+pub use ttw::{TtwJob, install_job as ttw_install_job, install_job_in as ttw_install_job_in};
 
 use std::io::Write;
 
@@ -32,6 +37,7 @@ pub const USAGE: u8 = nvmod_cli::USAGE;
 pub const OWN_COMMANDS: &[&str] = &[
     "version",
     "detect",
+    "space",
     "bench",
     "update",
     "config",
@@ -66,6 +72,8 @@ const HELP: &str = "raul: Raul's tRusty Toolbox
 usage:
   raul --version | raul version [--json]
                               the Toolbox version
+  raul space --folder <dir> [--json]
+                              the free space on the storage the folder is, or would be made, on
   raul detect [--folder <dir>] [--json]
                               find Fallout: New Vegas and Fallout 3 copies (Steam, GOG, Epic), or check one folder
   raul bench [--quick] [--out <dir>]
@@ -131,6 +139,8 @@ usage:
   raul install-nv-rs --instance <dir> [--source <dir> [--cargo <path>]]
                               put the engine that ships with raul in an Instance and check it; nothing is
                               downloaded. --source builds an nv-rs workspace instead (for developers)
+  raul run --stop --instance <dir> [--profile <name>] [--json]
+                              ask the running game to stop between two frames (the play mode's stop file)
   raul <nvmod command> ...    every nvmod command (install, sort, run, profile, doctor, ...);
                               `raul nvmod-help` shows them
 ";
@@ -142,6 +152,7 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("--version" | "-V") => version::run(&[], out, err),
         Some("version") => version::run(&args[1..], out, err),
         Some("detect") => detect::run(&args[1..], out, err),
+        Some("space") => space::run(&args[1..], out, err),
         Some("bench") => bench::run(&args[1..], out, err),
         Some("update") => update::run(&args[1..], out, err),
         Some("config") => config::run(&args[1..], out, err),
@@ -149,12 +160,29 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("ttw") => ttw::run(&args[1..], out, err),
         Some("lod") => lod::run(&args[1..], out, err),
         Some("install-nv-rs") => install_nv_rs::run(&args[1..], out, err),
+        Some("run") if args.iter().any(|a| a == "--stop") => play::stop(&args[1..], out, err),
+        Some("run") if play::enabled() => run_in_play_mode(args, out, err),
         Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
         Some(_) if route(args) == Route::Own => {
             let _ = writeln!(err, "raul: {} has no handler", args[0]);
             FAILED
         }
         Some(_) => nvmod_cli::run_logged(args, out, err),
+    }
+}
+
+/// `raul run` with the game started as raul's own play mode, logged like every nvmod command.
+fn run_in_play_mode(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    match nvmod_cli::begin_run_log(args) {
+        Ok((rest, session)) => {
+            let code = play::run(&rest, out, err);
+            session.finish(code);
+            code
+        }
+        Err(why) => {
+            let _ = writeln!(err, "nvmod: {why}");
+            USAGE
+        }
     }
 }
 

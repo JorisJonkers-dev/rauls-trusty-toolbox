@@ -58,6 +58,8 @@ pub enum Action {
     Update,
     /// `raul detect`: find New Vegas and Fallout 3 copies, or check one folder.
     Detect,
+    /// `raul space`: the free space on the storage a folder is on; read only.
+    Space,
     /// `raul profile create`: the default profile of an Instance that has none. Setup makes it with its own
     /// steps; this action is the one place a screen asks for it when an Instance made another way has none.
     Profile,
@@ -65,7 +67,7 @@ pub enum Action {
 
 impl Action {
     /// Every action.
-    pub const ALL: [Action; 23] = [
+    pub const ALL: [Action; 24] = [
         Action::Setup,
         Action::ImportMo2,
         Action::InstallMod,
@@ -88,6 +90,7 @@ impl Action {
         Action::Version,
         Action::Update,
         Action::Detect,
+        Action::Space,
         Action::Profile,
     ];
 
@@ -116,6 +119,7 @@ impl Action {
             Self::Version => "version",
             Self::Update => "update",
             Self::Detect => "detect",
+            Self::Space => "space",
             Self::Profile => "profile",
         }
     }
@@ -158,6 +162,7 @@ impl Action {
             Self::Version => "Versions",
             Self::Update => "Check for updates",
             Self::Detect => "Find the games",
+            Self::Space => "Check the free space",
             Self::Profile => "Make the default profile",
         }
     }
@@ -327,6 +332,14 @@ pub const COMMANDS: &[Command] = &[
     Command {
         id: "detect",
         action: Action::Detect,
+        words: &[],
+        flags: &["--folder", "--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "space",
+        action: Action::Space,
         words: &[],
         flags: &["--folder", "--json"],
         writes: false,
@@ -556,6 +569,15 @@ pub const COMMANDS: &[Command] = &[
         // It stages the Profile before the launch and holds the Instance while it does; without --wait it returns
         // once the game has started.
         writes: true,
+        awaits: None,
+    },
+    Command {
+        id: "run-stop",
+        action: Action::Run,
+        // `run --stop`: asks the running game to stop; it creates a file in the run folder and holds no lock.
+        words: &["--stop"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: false,
         awaits: None,
     },
     Command {
