@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795185474063,
+  "lastUpdate": 1795185601664,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6810,6 +6810,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.739902,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "72dc555c395b177eaf64c6a1e89a834c9e30f325",
+          "message": "refactor(gui): raul owns the fetcher of the tool store (#392) (#397)\n\n* refactor(gui): raul owns the fetcher of the tool store (#392)\n\nThe masterlist fetch called nvmod_tools::Curl, a fetcher that starts curl inside nvmod, which is to start no\nprocess. Raul now has its own Fetcher (CurlFetcher) that starts curl through the one Runner, and the call site\nuses it. The behaviour is the same: the same arguments, timeout, size limit and failure classes. Choosing an\nin-process HTTPS client stays a later decision.\n\n* fix: fill the new extract limits in the install requests and refresh the lock file (#398)",
+          "timestamp": "2026-11-20T14:38:33Z",
+          "tree_id": "5ac05e652d38847918b6d7b960c270e1929e65a5",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/72dc555c395b177eaf64c6a1e89a834c9e30f325"
+        },
+        "date": 1795185600888,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.7027139999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.789931,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.489538999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.244877,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.770480000000001,
             "unit": "ms"
           }
         ]
