@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795214915656,
+  "lastUpdate": 1795215479051,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7888,6 +7888,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.249214,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "31d908dd2610bf8589f540c64170d198fb4eac7f",
+          "message": "fix(ttw): find the real TTW download by what it holds (#401) (#447)\n\n* fix(ttw): Find it for me and the Downloads watch take the real download by what it holds, not by a TTW_ name (#401)\n\nThe page looked for a file named TTW_*.mpi that starts with PK, and took the newest archive with ttw in its name,\nwhich is the YUPTTW patch archive next to the real download. Both now use the one rule of raul ttw: a file that\nstarts like a package, or an archive that holds exactly one; an archive without a package is skipped and the search\ngoes on. The download is saved as ttw.package as it is (accepted since #420), so nothing is unpacked by the page.\n\n* test(gui): drop the scratch folder helper the removed tests used (#401)\n\n* fix(gui): clippy map_or_else in the download search (#401)",
+          "timestamp": "2026-11-20T22:55:50Z",
+          "tree_id": "95771ca1fe8fd1266315599f5c024980338592ff",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/31d908dd2610bf8589f540c64170d198fb4eac7f"
+        },
+        "date": 1795215478522,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.268896,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.306498000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.544858,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.085025,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.272209,
             "unit": "ms"
           }
         ]
