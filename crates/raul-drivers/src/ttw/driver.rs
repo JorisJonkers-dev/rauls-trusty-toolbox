@@ -428,7 +428,24 @@ pub fn install_with_stop(req: &TtwRequest, stop: Stop<'_>, emit: &mut dyn FnMut(
             let _ = clear(&work);
             draft.result.staging = None;
             draft.result.mod_name = Some(report.r#mod);
-            draft.result.plugins_enabled = report.plugins;
+            // The install enables the new plugins by name, so a master can follow the plugin that needs it: sort
+            // right away so the load order is valid when the player first looks. A sort that cannot run leaves the
+            // Mod in place and says so.
+            draft.result.plugins_enabled = match sort_new_plugins(
+                &ready.instance,
+                &ready.profile,
+                &report.plugins,
+            ) {
+                Ok(order) => order,
+                Err(why) => {
+                    emit(Event::Warning {
+                        message: format!(
+                            "the load order was not sorted after the install ({why}); run `raul sort`"
+                        ),
+                    });
+                    report.plugins
+                }
+            };
             draft.result.files = Some(report.files.len() as u64);
             return Outcome {
                 exit_code: 0,
@@ -451,6 +468,46 @@ pub fn install_with_stop(req: &TtwRequest, stop: Stop<'_>, emit: &mut dyn FnMut(
         TtwErrorCode::AddModFailed,
         format!("adding the Mod failed and was rolled back: {why}"),
     )
+}
+
+/// Sort the load order of `profile` with loot-rs and no masterlist (masters before the plugins that need them,
+/// which is all the sort a fresh install needs and works offline), and write it. Returns `enabled` in the order the
+/// profile now has.
+///
+/// # Errors
+/// The reason, when the sort or the write failed; the lists are then as the install left them.
+fn sort_new_plugins(
+    instance: &NvmodInstance,
+    profile: &str,
+    enabled: &[String],
+) -> Result<Vec<String>, String> {
+    let describe = |e: nvmod_loadorder::Error| match e {
+        nvmod_loadorder::Error::Refused(why) | nvmod_loadorder::Error::Failed(why) => why,
+    };
+    let proposal =
+        nvmod_loadorder::propose(instance, profile, &nvmod_loadorder::empty_masterlist())
+            .map_err(describe)?;
+    if proposal.reordered() {
+        nvmod_loadorder::apply(instance, &proposal).map_err(describe)?;
+    }
+    let mut ordered: Vec<String> = proposal
+        .proposed
+        .iter()
+        .filter_map(|slot| {
+            enabled
+                .iter()
+                .find(|p| p.eq_ignore_ascii_case(&slot.name))
+                .cloned()
+        })
+        .collect();
+    // Whatever the proposal did not list keeps its place at the end.
+    let rest: Vec<String> = enabled
+        .iter()
+        .filter(|p| !ordered.iter().any(|o| o.eq_ignore_ascii_case(p)))
+        .cloned()
+        .collect();
+    ordered.extend(rest);
+    Ok(ordered)
 }
 
 #[cfg(test)]
@@ -495,5 +552,70 @@ mod unix_tests {
         write_file(dir.path(), "a/file", b"x");
         std::os::unix::fs::symlink(dir.path().join("a"), dir.path().join("a/loop")).unwrap();
         assert_eq!(count_files(dir.path()), 2);
+    }
+}
+
+#[cfg(test)]
+mod sort_tests {
+    use super::*;
+    use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, ZipBuilder};
+
+    /// A profile with the base game's master, and a TTW-like archive whose plugins sort wrongly by name.
+    fn installed() -> (TempDir, NvmodInstance, Vec<String>) {
+        let dir = TempDir::new("raul-ttw-sort");
+        let game = dir.path().join("game");
+        BaseBuilder::steam().write(&game);
+        std::fs::write(
+            game.join("Data/FalloutNV.esm"),
+            PluginBuilder::master().build(),
+        )
+        .unwrap();
+        let instance = NvmodInstance::create(&dir.path().join("inst"), &game).expect("instance");
+        instance.create_profile("Default").expect("profile");
+        let archive = dir.path().join("ttw.zip");
+        ZipBuilder::new()
+            .file(
+                "Aaa.esm",
+                &PluginBuilder::master().requires("Zzz.esm").build(),
+            )
+            .file("Zzz.esm", &PluginBuilder::master().build())
+            .file("Mid.esp", &PluginBuilder::new().requires("Aaa.esm").build())
+            .write(&archive);
+        let report = nvmod_modinstall::install(&Request {
+            instance: &instance,
+            profile: "Default",
+            archive: &archive,
+            name: Some("TTW"),
+            dry_run: false,
+            answers: None,
+            limits: Limits::default(),
+        })
+        .expect("install");
+        (dir, instance, report.plugins)
+    }
+
+    #[test]
+    fn the_new_plugins_are_in_a_valid_order_after_the_sort() {
+        let (_dir, instance, enabled) = installed();
+        let before = nvmod_loadorder::read_slots(&instance.profile_dir("Default")).unwrap();
+        let pos = |slots: &[nvmod_loadorder::Slot], n: &str| {
+            slots.iter().position(|s| s.name == n).unwrap()
+        };
+        assert!(
+            pos(&before, "Aaa.esm") < pos(&before, "Zzz.esm"),
+            "the install alone enables the master after its dependant"
+        );
+        let order = sort_new_plugins(&instance, "Default", &enabled).unwrap();
+        let after = nvmod_loadorder::read_slots(&instance.profile_dir("Default")).unwrap();
+        assert!(pos(&after, "Zzz.esm") < pos(&after, "Aaa.esm"));
+        assert!(pos(&after, "Aaa.esm") < pos(&after, "Mid.esp"));
+        assert_eq!(order, ["Zzz.esm", "Aaa.esm", "Mid.esp"]);
+    }
+
+    #[test]
+    fn a_sort_that_cannot_run_is_reported_and_leaves_the_lists_alone() {
+        let (_dir, instance, enabled) = installed();
+        let err = sort_new_plugins(&instance, "Missing", &enabled).unwrap_err();
+        assert!(err.contains("Missing"), "{err}");
     }
 }
