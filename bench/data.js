@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795197138255,
+  "lastUpdate": 1795198057831,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7251,6 +7251,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.192548,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8bc5c7120de45b36b46525dd19b1fac9d434184b",
+          "message": "fix(gui): plain window texts for the gate run findings (#426)\n\n* fix(gui): plain window texts for the gate run findings\n\nHide the unbuilt Staging tree note from the Quick check, show masterlist\nlinks as their words, print an error's detail once, point the TTW Sources\nhint to Settings, say a TTW package is unsupported in plain words (raw\ntext stays in Copy details), keep the Find hint under its button and pin\nthe TTW step tabs below the page header.\n\n* chore: refresh both lock files after merging main\n\n* chore: keep nvmod 0.14.0 and main's lock files after the merge",
+          "timestamp": "2026-11-20T18:03:06Z",
+          "tree_id": "7fee18d05865addcbc079f10d3affd4ec1ef6e0b",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/8bc5c7120de45b36b46525dd19b1fac9d434184b"
+        },
+        "date": 1795198056808,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.065631,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.612736,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.257729,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.5037880000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.173935999999999,
             "unit": "ms"
           }
         ]
