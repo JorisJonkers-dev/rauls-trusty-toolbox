@@ -157,6 +157,10 @@
           "description": "Quality: the allowed vertical error is twice this many world units.",
           "type": "number",
           "format": "float"
+        },
+        "specular_alpha": {
+          "description": "Carry specular in the alpha channel of the normal map, written as BC3 (own design, `docs/spec/textures.md`).\nOff by default and written only when set; off keeps the normal map opaque BC1.",
+          "type": "boolean"
         }
       },
       "required": [

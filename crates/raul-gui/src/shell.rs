@@ -405,6 +405,7 @@ impl App {
         ui.add_space(10.0);
         hairline(ui, &t);
         ui.add_space(14.0);
+        page.pinned(ui, &mut cx);
         egui::ScrollArea::vertical()
             .auto_shrink([false, false])
             .show(ui, |ui| page.ui(ui, &mut cx));
@@ -760,6 +761,19 @@ fn without_command(line: &str) -> &str {
 /// be read with the mouse and the keyboard and copied the same way. `what` is what was being done, `title` what
 /// went wrong, and `detail` its lines.
 pub fn error_widget(ui: &mut egui::Ui, t: &Tokens, what: &str, title: &str, detail: &str) {
+    error_widget_copying(ui, t, what, title, detail, detail);
+}
+
+/// [`error_widget`] where the text on the clipboard (`copied`) is not the text on screen (`detail`): for a raw
+/// line that is useful in a bug report but means nothing to the player.
+pub fn error_widget_copying(
+    ui: &mut egui::Ui,
+    t: &Tokens,
+    what: &str,
+    title: &str,
+    detail: &str,
+    copied: &str,
+) {
     ui.horizontal_top(|ui| {
         crate::pages::home::icon(ui, t, crate::pages::home::Mark::Problem);
         ui.vertical(|ui| {
@@ -778,7 +792,7 @@ pub fn error_widget(ui: &mut egui::Ui, t: &Tokens, what: &str, title: &str, deta
             }
             ui.add_space(4.0);
             if ui.button(msg::COPY_DETAILS).clicked() {
-                ui.ctx().copy_text(copy_text(what, title, detail));
+                ui.ctx().copy_text(copy_text(what, title, copied));
             }
         });
     });

@@ -2,8 +2,6 @@
 //! Running the plan: each step is a call in this process, with no argument vector and no command re-entered.
 
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
 
 use raul_drivers::events::Event as TtwEvent;
 use raul_drivers::events::Status;
@@ -273,56 +271,6 @@ fn execute(
                     summary: format!("the finished Instance does not pass the check: {why}"),
                 })
             }
-        }
-    }
-}
-
-/// Sets the flag when it is dropped, so the watcher thread ends even when the install panics.
-struct StopWatcher<'a>(&'a AtomicBool);
-
-impl Drop for StopWatcher<'_> {
-    fn drop(&mut self) {
-        self.0.store(true, Ordering::Relaxed);
-    }
-}
-
-/// Run `work` while a watcher thread turns a stop asked for on `cancel` into nvmod's process-wide stop request,
-/// which is what the TTW driver polls. The request is cleared again afterwards when this watcher made it and none
-/// stood before, so a
-/// later job in the same process starts clean.
-pub(super) fn with_cancel_bridge<T>(cancel: &CancelToken, work: impl FnOnce() -> T) -> T {
-    let (done, bridged) = (AtomicBool::new(false), AtomicBool::new(false));
-    // Declared first, so it drops last: the request is cleared even when `work` panics.
-    let _clear = ClearBridged {
-        already: nvmod_core::cancel::requested(),
-        bridged: &bridged,
-    };
-    std::thread::scope(|scope| {
-        let _stop = StopWatcher(&done);
-        scope.spawn(|| {
-            while !done.load(Ordering::Relaxed) {
-                if cancel.is_cancelled() {
-                    nvmod_core::cancel::request();
-                    bridged.store(true, Ordering::Relaxed);
-                    break;
-                }
-                std::thread::sleep(Duration::from_millis(50));
-            }
-        });
-        work()
-    })
-}
-
-/// Clears nvmod's process-wide stop request on drop when the watcher made it and none stood before.
-struct ClearBridged<'a> {
-    already: bool,
-    bridged: &'a AtomicBool,
-}
-
-impl Drop for ClearBridged<'_> {
-    fn drop(&mut self) {
-        if self.bridged.load(Ordering::Relaxed) && !self.already {
-            nvmod_core::cancel::reset();
         }
     }
 }

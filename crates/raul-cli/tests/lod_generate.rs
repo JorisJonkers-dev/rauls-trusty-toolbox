@@ -99,6 +99,12 @@ impl Fixture {
         self.instance().join(".raul/lod/Default/out")
     }
 
+    /// Where lodwright builds a run: the sibling of the output folder, swapped into place only on success.
+    fn staging_dir(&self) -> PathBuf {
+        self.instance()
+            .join(".raul/lod/Default/out.lodwright-staging")
+    }
+
     fn lod_mod(&self) -> PathBuf {
         self.instance().join("mods").join(MOD)
     }
@@ -735,13 +741,26 @@ fn a_stop_during_the_generation_adds_nothing_and_the_next_run_resumes() {
     assert_eq!(outcome.result.mod_name, None);
     assert!(!outcome.changed);
     assert_eq!(f.state(), before, "a stopped run changed the Instance");
-    let partial: Value =
-        serde_json::from_slice(&std::fs::read(f.out_dir().join("manifest.json")).unwrap()).unwrap();
-    // An interrupted manifest is the library's own answer to the cancel (a finished run writes a digest).
-    assert_eq!(partial["request_digest"], "", "{partial}");
     assert!(
-        partial["blocks"].as_array().is_some_and(|b| !b.is_empty()),
-        "the finished block is in the manifest: {partial}"
+        outcome
+            .result
+            .error
+            .as_ref()
+            .is_some_and(|e| e.message.contains("not touched") && e.message.contains("checkpoint")),
+        "the message says the Mod is untouched and a checkpoint is kept: {:?}",
+        outcome.result.error
+    );
+    // The output folder does not exist before a run has finished: the work is in the staging folder.
+    assert!(
+        !f.out_dir().exists(),
+        "the output is written only at the swap"
+    );
+    let checkpoint: Value =
+        serde_json::from_slice(&std::fs::read(f.staging_dir().join("checkpoint.json")).unwrap())
+            .unwrap();
+    assert!(
+        checkpoint.is_object(),
+        "the cancel kept a checkpoint in staging: {checkpoint}"
     );
 
     // The next run keeps the finished block and completes the Mod.
@@ -755,6 +774,43 @@ fn a_stop_during_the_generation_adds_nothing_and_the_next_run_resumes() {
         lodwright["blocks"]["up_to_date"].as_u64().unwrap_or(0) >= 1,
         "{lodwright}"
     );
+    assert_eq!(mod_names(&f), [MOD]);
+    assert!(f.out_dir().join("manifest.json").is_file(), "swapped in");
+    assert!(!f.staging_dir().exists(), "staging is gone after the swap");
+}
+
+#[test]
+fn a_stop_after_a_finished_mod_keeps_the_mod_and_a_different_request_drops_the_checkpoint() {
+    let f = Fixture::new("raul-lodgen-stop-again");
+    f.settings("threads = 1\n");
+    assert_eq!(f.in_process(&CancelToken::new(), &mut |_| {}).exit_code, 0);
+    let mod_before = snapshot(&f.lod_mod());
+    let out_before = snapshot(&f.out_dir());
+
+    // A changed request is built again; stopped after its first block, the Mod and its output are as they were.
+    f.settings("threads = 1\n[output]\nwater = false\n");
+    let cancel = CancelToken::new();
+    let stop = cancel.clone();
+    let outcome = f.in_process(&cancel, &mut |e: Event| {
+        if matches!(e, Event::Progress { .. }) {
+            stop.cancel();
+        }
+    });
+    assert_eq!(outcome.exit_code, 4, "{:?}", outcome.result);
+    assert!(!outcome.changed);
+    assert_eq!(snapshot(&f.lod_mod()), mod_before, "the Mod is untouched");
+    assert_eq!(
+        snapshot(&f.out_dir()),
+        out_before,
+        "the output is untouched"
+    );
+    assert!(f.staging_dir().is_dir(), "the checkpoint is kept");
+
+    // Another request again removes that checkpoint and runs clean; the Mod is replaced only now.
+    f.settings("threads = 1\n[output]\nwater = true\nobjects = false\n");
+    let outcome = f.in_process(&CancelToken::new(), &mut |_| {});
+    assert_eq!(outcome.exit_code, 0, "{:?}", outcome.result);
+    assert!(!f.staging_dir().exists());
     assert_eq!(mod_names(&f), [MOD]);
 }
 

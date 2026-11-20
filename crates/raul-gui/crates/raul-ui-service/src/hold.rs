@@ -39,7 +39,10 @@ impl Hold {
     }
 
     fn set(&self, to: State) {
-        *self.state.lock().unwrap_or_else(|e| e.into_inner()) = to;
+        *self
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = to;
         self.changed.notify_all();
     }
 
@@ -48,11 +51,14 @@ impl Hold {
     /// # Panics
     /// When it does not get there within a minute.
     pub fn wait_parked(&self) {
-        let guard = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = self
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let (guard, timeout) = self
             .changed
             .wait_timeout_while(guard, LIMIT, |s| *s == State::Armed)
-            .unwrap_or_else(|e| e.into_inner());
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         assert!(
             !timeout.timed_out() && *guard != State::Armed,
             "the job never reached the held line"
@@ -74,7 +80,10 @@ impl Hold {
         if !line.contains(self.marker) {
             return;
         }
-        let mut guard = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = self
+            .state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         if *guard != State::Armed {
             return;
         }
@@ -83,7 +92,7 @@ impl Hold {
         let (guard, timeout) = self
             .changed
             .wait_timeout_while(guard, LIMIT, |s| *s == State::Parked)
-            .unwrap_or_else(|e| e.into_inner());
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
         let after = *guard;
         drop(guard);
         assert!(!timeout.timed_out(), "the held job was never released");
