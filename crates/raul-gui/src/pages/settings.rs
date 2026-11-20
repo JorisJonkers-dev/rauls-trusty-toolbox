@@ -584,9 +584,8 @@ pub(crate) fn waiting(ui: &mut egui::Ui, t: &Tokens, what: &str, _command: &Comm
 /// An error where it occurred (UI-RULES W3, G4): what went wrong, the plain detail, and what the command said.
 /// The shared error widget draws it, so its text is selectable and it has a "Copy details" button.
 pub(crate) fn error_block(ui: &mut egui::Ui, t: &Tokens, e: &ErrorText, said: Option<&str>) {
-    let detail = said.map(|said| format!("{}\n{said}", e.detail));
-    let detail = detail.as_deref().unwrap_or(e.detail);
-    shell::error_widget(ui, t, e.detail, e.what, detail);
+    // `e.detail` is drawn once, above the headline; the lines below it are only what the command said.
+    shell::error_widget(ui, t, e.detail, e.what, said.unwrap_or_default());
 }
 
 /// The states the snapshot tests render.

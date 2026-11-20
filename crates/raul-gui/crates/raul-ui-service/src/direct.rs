@@ -224,6 +224,12 @@ impl DirectJob {
         }
     }
 
+    /// This job with its stream body replaced by `wrap(body)`; a job that is not a stream is returned as it was.
+    pub(crate) fn wrap_lines(mut self, wrap: impl FnOnce(LinesBody) -> LinesBody) -> Self {
+        self.lines = self.lines.map(wrap);
+        self
+    }
+
     /// A job that does nothing but end as a usage error with `summary`, for a request the command line would refuse
     /// before running (an unknown severity, say).
     pub fn usage(summary: impl Into<String>) -> Self {
@@ -295,6 +301,7 @@ pub fn for_command_in(
         "install-nv-rs" => {
             Some(install_nvrs_request(rest).map_or_else(DirectJob::usage, install_nvrs))
         }
+        "target" => Some(target_request(rest).map_or_else(DirectJob::usage, |r| target(&r))),
         "install" => {
             Some(install_command_request(rest).map_or_else(DirectJob::usage, |r| install_mod(&r)))
         }
@@ -848,6 +855,8 @@ pub fn install_request(
         answers: answers.map(Path::to_path_buf),
         max_extract_bytes: None,
         extract_limits: nvmod_api::install::LimitOverrides::default(),
+        fomod_answers: None,
+        on_conflict: nvmod_api::install::OnConflict::default(),
     }
 }
 
@@ -961,6 +970,23 @@ pub fn target(request: &nvmod_api::target::SetRequest) -> DirectJob {
         "target",
         move |progress, cancel| nvmod_api::target::set(&request, progress, cancel),
     )
+}
+
+/// The request of `raul target <vanilla|nv-rs> --instance <dir>` from the words after `target`.
+fn target_request(rest: &[String]) -> Result<nvmod_api::target::SetRequest, String> {
+    let target = match positional(rest, &["--instance"]) {
+        Some("vanilla") => nvmod_api::target::Target::Vanilla,
+        Some("nv-rs") => nvmod_api::target::Target::NvRs,
+        Some(other) => return Err(format!("target: `{other}` is not a target")),
+        None => return Err("target: give vanilla or nv-rs".to_owned()),
+    };
+    match value_of(rest, "--instance") {
+        "" => Err("target: give --instance".to_owned()),
+        instance => Ok(nvmod_api::target::SetRequest {
+            instance: PathBuf::from(instance),
+            target,
+        }),
+    }
 }
 
 /// The exit class of a job's error kind: the code the command line would have ended with, except that an

@@ -10,6 +10,7 @@ fn main() -> ExitCode {
     if raul_engine::is_play_mode(&args) {
         return ExitCode::from(raul_engine::play_mode(&mut std::io::stderr()));
     }
+    raul_gui::enable_play_mode();
     if let Some(code) = raul_cli::settle_update_at_start(&args, &mut std::io::stderr()) {
         return ExitCode::from(code);
     }

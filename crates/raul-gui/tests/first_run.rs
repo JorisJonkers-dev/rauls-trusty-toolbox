@@ -41,6 +41,9 @@ impl Fixture {
             "Data/FalloutNV.esm",
             &PluginBuilder::master().build(),
         );
+        // The game folder has xNVSE in it, as a copy that ran modded does: the Quick check must not judge it.
+        write_file(&base, "nvse_loader.exe", b"MZ");
+        write_file(&base, "nvse_1_4.dll", b"MZ");
         std::fs::write(f.path("masterlist.yaml"), MASTERLIST).unwrap();
         f.raul(&["config", "set", "game.newvegas", &f.s("base")]);
         f.raul(&["config", "set", "storage.root", &f.s("storage")]);
@@ -99,6 +102,13 @@ impl Fixture {
     }
 }
 
+/// The target the Instance file in `instance` names.
+fn target_of(instance: &std::path::Path) -> String {
+    let text = std::fs::read_to_string(instance.join("nvmod-instance.json")).unwrap();
+    let record: serde_json::Value = serde_json::from_str(&text).unwrap();
+    record["target"].as_str().unwrap().to_owned()
+}
+
 /// Runs frames until the jobs the window starts have ended and the pages have taken their answers.
 fn settle(h: &mut Harness<'static, App>) {
     for _ in 0..6 {
@@ -141,7 +151,6 @@ fn first_run_sorts_the_load_order_with_no_profile_action() {
     let list = f.instance().join("profiles/Default/modlist.txt");
     assert!(list.is_file(), "setup left a working default profile");
     settle(&mut h);
-
     // The engine itself comes from a release on the network, so the wizard is left here: the Instance and its
     // default profile are what the pages need, and Home is where Open the Toolbox goes.
     h.state_mut().open(raul_ui_model::pages::View::Page(
@@ -190,5 +199,44 @@ fn first_run_sorts_the_load_order_with_no_profile_action() {
     assert!(
         written.find("FalloutNV.esm").unwrap() < written.find("Other.esp").unwrap(),
         "the game's master comes first: {written}"
+    );
+}
+
+#[test]
+fn the_wizard_sets_the_target_to_the_engine_and_the_quick_check_ignores_xnvse() {
+    let f = Fixture::new();
+    // An Instance whose engine is in already (this build ships none to install), left on the target `raul init` gives.
+    f.raul(&[
+        "init",
+        "--base",
+        &f.s("base"),
+        "--instance",
+        &f.s("storage/instance"),
+    ]);
+    assert_eq!(target_of(&f.instance()), "vanilla");
+    write_file(&f.instance(), "nv-rs/install.json", b"{}");
+    let mut h = f.app();
+    h.state_mut().open(raul_ui_model::pages::View::Flow(
+        raul_ui_model::pages::Flow::Setup,
+    ));
+    settle(&mut h);
+
+    // New Vegas folder, TTW, then the Engine step notices the engine and sets the target.
+    for _ in 0..2 {
+        h.get_by_label(NEXT).click();
+        settle(&mut h);
+    }
+    assert_eq!(
+        target_of(&f.instance()),
+        "nv-rs",
+        "the wizard sets the target once the engine is in"
+    );
+
+    // The Quick check judges the engine: no word about xNVSE for the copy that has it in its folder.
+    h.get_by_label(NEXT).click();
+    settle(&mut h);
+    assert!(
+        h.query_by_label_contains("xNVSE").is_none(),
+        "the Quick check judged the xNVSE path"
     );
 }

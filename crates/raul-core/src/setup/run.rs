@@ -198,6 +198,8 @@ fn execute(
                 answers: req.answers.clone(),
                 max_extract_bytes: None,
                 extract_limits: api::install::LimitOverrides::default(),
+                fomod_answers: None,
+                on_conflict: api::install::OnConflict::default(),
             };
             let r = api::install::install(&request, &mut detail(step, progress), cancel);
             match finish(step, r)? {
@@ -341,6 +343,7 @@ fn run_ttw(
         dry_run: false,
         resume: choice.resume,
         timeout: choice.timeout.unwrap_or(ttw::DEFAULT_TIMEOUT),
+        free_space: Some(crate::space::free_bytes),
     };
     // This setup's own cancel token stops the install: no process-wide request is set, so nothing else is stopped.
     let cancelled = || cancel.is_cancelled();

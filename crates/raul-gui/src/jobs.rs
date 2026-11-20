@@ -68,6 +68,8 @@ pub struct Jobs {
     scripted: Vec<&'static str>,
     /// The folders and switches the in-process runs use; the default is the person's own.
     context: raul_core::context::Context,
+    /// A latch a test puts on the TTW install, so it stands still at a known line.
+    hold_ttw: Option<Arc<raul_ui_service::Hold>>,
 }
 
 impl std::fmt::Debug for Jobs {
@@ -95,6 +97,7 @@ impl Jobs {
             repaint: None,
             scripted: Vec::new(),
             context: raul_core::context::Context::default(),
+            hold_ttw: None,
         }
     }
 
@@ -128,12 +131,25 @@ impl Jobs {
         self
     }
 
+    /// Holds the TTW install at the line `hold` names, so a test acts while the install stands still instead of racing it.
+    #[must_use]
+    pub fn holding_ttw(mut self, hold: Arc<raul_ui_service::Hold>) -> Jobs {
+        self.hold_ttw = Some(hold);
+        self
+    }
+
     /// The in-process job that does what the registry command `id` does, if it is converted and not scripted.
     pub fn direct_job(&self, id: &str, rest: &[String]) -> Option<raul_ui_service::DirectJob> {
         if self.scripted.contains(&id) {
             return None;
         }
-        raul_ui_service::direct::for_command_in(id, rest, &self.context)
+        let job = raul_ui_service::direct::for_command_in(id, rest, &self.context)?;
+        Some(match (&self.hold_ttw, id) {
+            (Some(hold), "ttw") if !rest.iter().any(|a| a == "--dry-run") => {
+                job.held_by(Arc::clone(hold))
+            }
+            _ => job,
+        })
     }
 
     /// Jobs that run inside this process (ADR-0016): the actions with an nvmod job call it directly, and every other

@@ -82,6 +82,11 @@ pub trait Page {
         let _ = (ui, cx);
     }
 
+    /// What stays in view above the scrolling content, such as the steps of a flow; nothing by default.
+    fn pinned(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
+        let _ = (ui, cx);
+    }
+
     /// Draws the page's content.
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>);
 

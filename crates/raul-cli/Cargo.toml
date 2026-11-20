@@ -39,6 +39,8 @@ ttwright-testkit = { workspace = true }
 lodwright-api = { workspace = true }
 jsonschema = { workspace = true }
 toml = { workspace = true }
+# Builds the small 7z download the TTW tests give raul (the same version nvmod-modinstall links).
+sevenz-rust2 = { version = "=0.25.0", default-features = false, features = ["compress"] }
 
 # Installers (docs/PLAN.md, Phase 5): `cargo packager --release -p raul-cli --formats <list>` from the repository
 # root, after the release binary and the bundled Component programs are built (.github/workflows/release.yml).
