@@ -124,6 +124,7 @@ enum Job {
     Config,
     Verify,
     LoadOrder,
+    OrderErrors,
     Run,
     Stop,
 }
@@ -147,6 +148,7 @@ impl Home {
         self.state.engine = Fetch::Idle;
         self.state.instance_exists = None;
         self.state.load_order = Fetch::Idle;
+        self.state.order_errors = Fetch::Idle;
         match start(cx, &Command::config_list()) {
             Ok(id) => {
                 self.pending.add(Job::Config, id);
@@ -168,7 +170,8 @@ impl Home {
     fn settle_without_paths(&mut self, why: String) {
         self.state.instance_exists = Some(false);
         self.state.engine = Fetch::Failed(why.clone());
-        self.state.load_order = Fetch::Failed(why);
+        self.state.load_order = Fetch::Failed(why.clone());
+        self.state.order_errors = Fetch::Failed(why);
     }
 
     /// Settles the reads that run against the Instance folder: an Instance that is not there holds no engine and
@@ -177,6 +180,7 @@ impl Home {
         self.state.instance_exists = Some(false);
         self.state.engine = Fetch::Ready(Engine::missing());
         self.state.load_order = Fetch::Failed(WHY_NO_INSTANCE.to_owned());
+        self.state.order_errors = Fetch::Failed(WHY_NO_INSTANCE.to_owned());
     }
 
     /// Reads the engine once the Instance is known: an Instance that does not exist yet holds no engine.
@@ -196,6 +200,13 @@ impl Home {
                 self.state.load_order = Fetch::Loading;
             }
             Err(e) => self.state.load_order = Fetch::Failed(e.what.to_owned()),
+        }
+        match start(cx, &engine_model::doctor_command(instance)) {
+            Ok(id) => {
+                self.pending.add(Job::OrderErrors, id);
+                self.state.order_errors = Fetch::Loading;
+            }
+            Err(e) => self.state.order_errors = Fetch::Failed(e.what.to_owned()),
         }
         match start(cx, &engine_model::verify_command(instance)) {
             Ok(id) => {
@@ -224,6 +235,13 @@ impl Home {
                     self.state.load_order = match &result {
                         Ok(out) if out.code == Some(0) => Fetch::Ready(()),
                         Ok(out) => Fetch::Failed(failure_of(out)),
+                        Err(why) => Fetch::Failed(why.clone()),
+                    };
+                }
+                Job::OrderErrors => {
+                    self.state.order_errors = match &result {
+                        Ok(out) => engine_model::parse_order_errors(&out.stdout)
+                            .map_or_else(|_| Fetch::Failed(failure_of(out)), Fetch::Ready),
                         Err(why) => Fetch::Failed(why.clone()),
                     };
                 }

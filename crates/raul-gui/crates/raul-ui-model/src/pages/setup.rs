@@ -3,7 +3,7 @@
 //!
 //! The wizard writes nothing to a game folder. It saves the paths with `raul config set`, makes the Instance with
 //! `raul init` in the storage folder when there is none, puts the engine that ships with raul there with `raul install-nv-rs`
-//! (nothing is downloaded) and runs the read-only `raul doctor`. It can be skipped, and run again from Settings. TTW itself is
+//! (nothing is downloaded), sets the Instance's target to the engine with `raul target` and runs the read-only `raul doctor`. It can be skipped, and run again from Settings. TTW itself is
 //! set up in its own flow; the wizard only asks whether it is wanted and for the Fallout 3 folder.
 
 use super::settings::{Command, Config, Fetch, Field, Key, Save};
@@ -59,11 +59,20 @@ pub fn install_command(instance: &str) -> Command {
     )
 }
 
+/// `raul target nv-rs --instance <dir>`: the Instance runs on the engine from now on, so the Quick check and the
+/// Doctor judge the engine and not the game's own extender. The wizard runs it once the engine is in and checked.
+pub fn target_command(instance: &str) -> Command {
+    Command::write("target", 1, &["target", "nv-rs", "--instance", instance])
+}
+
 /// What the person reads when the engine step failed, from the last line the command wrote: the command's own prefix
 /// (its name and the kind of failure) is dropped, so the words are plain (UI-RULES: no commands, no tool names).
 pub fn engine_failure(line: &str) -> String {
     let mut rest = line.trim();
-    if let Some(after) = rest.strip_prefix("raul install-nv-rs:") {
+    if let Some(after) = ["raul install-nv-rs:", "raul target:"]
+        .iter()
+        .find_map(|prefix| rest.strip_prefix(prefix))
+    {
         rest = after.trim_start();
         for kind in [
             "refused:",
@@ -87,7 +96,7 @@ pub enum EngineStep {
     Idle,
     /// `raul init` makes the Instance.
     Initialising,
-    /// `raul install-nv-rs` runs.
+    /// `raul install-nv-rs` runs, then `raul target` sets the Instance to run on it.
     Installing,
     /// The engine is in the Instance and passed its check.
     Installed,
@@ -454,6 +463,22 @@ mod tests {
         if let Some(f) = state.field_mut(key) {
             f.saved_as(&Answer::Entries(Config::with("", &[(key, value)])));
         }
+    }
+
+    #[test]
+    fn the_target_command_sets_the_engine_on_the_instance() {
+        let c = target_command("/storage/instance");
+        assert_eq!(c.id, "target");
+        assert!(c.writes);
+        assert_eq!(
+            c.words,
+            ["target", "nv-rs", "--instance", "/storage/instance"]
+        );
+        assert_eq!(c.rest(), ["nv-rs", "--instance", "/storage/instance"]);
+        assert_eq!(
+            engine_failure("raul target: refused: the Instance is in use"),
+            "the Instance is in use"
+        );
     }
 
     #[test]
