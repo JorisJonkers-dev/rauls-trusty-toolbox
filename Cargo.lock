@@ -924,10 +924,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
 
 [[package]]
-name = "loot-rs"
-version = "0.7.0"
-source = "git+https://github.com/JorisJonkers-dev/loot-rs?tag=v0.7.0#6b7e170e3548c81b2d76fb6c83d0e4822022a875"
+name = "loot-condition-interpreter"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "658c7e8070b5d723294fed720100537640ea9fc467a2b9e15a4b58a50a2cd960"
 dependencies = [
+ "crc32fast",
+ "esplugin",
+ "nom",
+ "regex",
+ "unicase",
+]
+
+[[package]]
+name = "loot-rs"
+version = "0.8.1"
+source = "git+https://github.com/JorisJonkers-dev/loot-rs?tag=v0.8.1#4b22e6837b08a5d9edfbd6938761a1c5a77adf9e"
+dependencies = [
+ "loot-condition-interpreter",
  "regex",
  "yaml-rust2",
 ]
@@ -1167,7 +1181,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-api"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "loot-rs",
  "nvmod-backup",
@@ -1195,10 +1209,11 @@ dependencies = [
 
 [[package]]
 name = "nvmod-backup"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nvmod-core",
  "nvmod-instance",
+ "nvmod-run",
  "nvmod-stage",
  "serde",
  "serde_json",
@@ -1207,14 +1222,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-bsa"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "nvmod-catalog"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "serde",
  "toml",
@@ -1222,7 +1237,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-cli"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "ctrlc",
  "loot-rs",
@@ -1252,7 +1267,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-conflicts"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nvmod-bsa",
  "nvmod-core",
@@ -1265,7 +1280,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-core"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "schemars",
  "serde",
@@ -1274,7 +1289,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-doctor"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nvmod-catalog",
  "nvmod-conflicts",
@@ -1290,7 +1305,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-downloads"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "md-5",
  "nvmod-formats",
@@ -1302,7 +1317,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-formats"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "flate2",
  "nvmod-core",
@@ -1310,7 +1325,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-import"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nvmod-core",
  "nvmod-formats",
@@ -1321,7 +1336,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-install"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nvmod-core",
  "nvmod-instance",
@@ -1333,7 +1348,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-instance"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nvmod-core",
  "serde",
@@ -1342,7 +1357,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-loadorder"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "loot-rs",
  "nvmod-core",
@@ -1354,7 +1369,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-modinstall"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "bzip2",
  "flate2",
@@ -1375,14 +1390,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-pe"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "nvmod-plugins"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nvmod-conflicts",
  "nvmod-core",
@@ -1397,7 +1412,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-profile"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nvmod-backup",
  "nvmod-core",
@@ -1411,7 +1426,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-run"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nix",
  "nvmod-core",
@@ -1425,7 +1440,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-runlog"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -1435,7 +1450,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-runner"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nvmod-core",
  "nvmod-runlog",
@@ -1445,7 +1460,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-saves"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nvmod-backup",
  "nvmod-core",
@@ -1459,7 +1474,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-stage"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "nvmod-core",
  "nvmod-formats",
@@ -1471,14 +1486,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-testkit"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "winapi-util",
 ]
 
 [[package]]
 name = "nvmod-tools"
-version = "0.15.0"
+version = "0.15.1"
 dependencies = [
  "jsonschema",
  "nvmod-core",
