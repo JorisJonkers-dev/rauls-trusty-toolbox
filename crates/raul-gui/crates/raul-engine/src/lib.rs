@@ -157,7 +157,10 @@ mod tests {
     fn without_the_engine_the_play_mode_is_refused_in_one_plain_line() {
         let mut err = Vec::new();
         assert_eq!(play_mode(&mut err), EXIT_NO_ENGINE);
-        assert_eq!(String::from_utf8(err).unwrap(), format!("{NO_ENGINE_LINE}\n"));
+        assert_eq!(
+            String::from_utf8(err).unwrap(),
+            format!("{NO_ENGINE_LINE}\n")
+        );
     }
 
     #[test]

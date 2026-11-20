@@ -125,7 +125,7 @@ fn the_play_mode_without_the_engine_is_one_plain_refusal() {
         .output()
         .expect("run raul");
     assert_eq!(out.status.code(), Some(2));
-    assert!(out.stdout.is_empty());
+    assert_eq!(out.stdout, Vec::<u8>::new());
     assert_eq!(
         String::from_utf8_lossy(&out.stderr).trim(),
         raul_engine::NO_ENGINE_LINE
