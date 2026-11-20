@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795181368295,
+  "lastUpdate": 1795181529847,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6565,6 +6565,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.601098,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bacf1d5114512442a69d4c7445046ce67dc5ddc1",
+          "message": "test(gui): drive the TTW flow, Cancel and Resume with the keyboard only (#393)\n\n* fix(gui): apply a source re-read that finishes during a TTW job when the job ends (#156)\n\n* test(gui): drive the TTW flow, Cancel and Resume with the keyboard only (#157)",
+          "timestamp": "2026-11-20T13:30:11Z",
+          "tree_id": "cce7b4eebdc3ba505949c4045dab8e71a5ad3c46",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/bacf1d5114512442a69d4c7445046ce67dc5ddc1"
+        },
+        "date": 1795181529362,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.282639,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.449065000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.977648,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.311509,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.088154,
             "unit": "ms"
           }
         ]
