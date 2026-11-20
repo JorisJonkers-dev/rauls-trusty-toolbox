@@ -156,14 +156,15 @@ pub fn stop(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let runs = Path::new(&instance).join("run");
     let folders: Vec<PathBuf> = match value("--profile") {
         Some(profile) => vec![runs.join(profile)],
-        None => std::fs::read_dir(&runs)
-            .map(|d| {
+        None => std::fs::read_dir(&runs).map_or_else(
+            |_| Vec::new(),
+            |d| {
                 d.filter_map(Result::ok)
                     .map(|e| e.path())
                     .filter(|p| p.is_dir())
                     .collect()
-            })
-            .unwrap_or_default(),
+            },
+        ),
     };
     let mut asked = Vec::new();
     for folder in folders.iter().filter(|f| f.is_dir()) {
