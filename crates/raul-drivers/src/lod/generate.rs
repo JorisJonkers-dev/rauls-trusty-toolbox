@@ -12,7 +12,7 @@ use lodwright_contract::{Request as LodwrightRequest, Status as LodwrightStatus}
 use nvmod_instance::{NvmodInstance, find_ci};
 use nvmod_modinstall::lifecycle::{self, Action};
 use nvmod_modinstall::mods::{Change, ModsError, Place};
-use nvmod_modinstall::{InstallError, Limits, Request};
+use nvmod_modinstall::{InstallError, Limits, OnConflict, Request};
 use serde_json::Value;
 
 use super::inproc;
@@ -23,6 +23,7 @@ use super::{
     CONTRACT, LodError, LodErrorCode, LodResult, MANIFEST_FILE, SCHEMA_VERSION, SHARED_OUTPUT_DIR,
     WORK_DIR, plan, read_manifest,
 };
+use crate::Stop;
 use crate::events::{Event, Status, ToolInfo};
 use crate::ttw::driver::{clear, count_files};
 use crate::ttw::exit_code;
@@ -122,6 +123,10 @@ fn fail(
     });
     done(result, false)
 }
+
+/// What a run that stopped before the swap says about the LOD Mod: lodwright builds in a staging folder next to the
+/// output and replaces the output only when it is finished, and the Mod is replaced from the output after that.
+const MOD_UNTOUCHED: &str = "the LOD Mod in the Instance was not touched";
 
 /// The request document of a Profile as the library's typed request.
 fn typed(request: &Value) -> Result<LodwrightRequest, String> {
@@ -278,7 +283,9 @@ fn replace_mod(
         name: Some(name),
         dry_run: false,
         answers: None,
+        answers_inline: None,
         limits: Limits::default(),
+        on_conflict: OnConflict::default(),
     };
     let report = match nvmod_modinstall::install(&request) {
         Ok(report) => report,
@@ -373,15 +380,6 @@ fn drop_replaced(
     warnings
 }
 
-/// Clears the output folder after a run that failed while writing it and left no manifest. Without a manifest the next
-/// run cannot tell these files from a foreign folder and refuses with `output_not_empty`, so the folder is cleared.
-/// A folder with a manifest is kept: the next run resumes from it.
-fn discard_partial(out: &Path) {
-    if !out.join(MANIFEST_FILE).exists() {
-        let _ = clear(out);
-    }
-}
-
 /// Records what the run was built from, so a later change can show the LOD as out of date. A failure is a warning:
 /// the LOD is in place either way.
 fn keep_fingerprint(
@@ -409,12 +407,32 @@ pub fn generate(req: &LodRequest, emit: &mut dyn FnMut(Event)) -> LodOutcome {
     generate_with_cancel(req, &CancelToken::new(), emit)
 }
 
+/// [`generate`] that stops when `stop` says so and on the timeout, and not on the process-wide request: the run a
+/// window starts, whose stop belongs to that run alone.
+pub fn generate_with_stop(
+    req: &LodRequest,
+    stop: Stop<'_>,
+    emit: &mut dyn FnMut(Event),
+) -> LodOutcome {
+    generate_stopped(req, &CancelToken::new(), stop, emit)
+}
+
 /// [`generate`] with a token the caller can cancel from another thread. A cancelled run stops at its next safe point,
 /// leaves the output it finished in the work folder, and adds nothing; the next run continues from it.
 #[allow(clippy::too_many_lines)] // one flow: plan, run, read, keep
 pub fn generate_with_cancel(
     req: &LodRequest,
     cancel: &CancelToken,
+    emit: &mut dyn FnMut(Event),
+) -> LodOutcome {
+    generate_stopped(req, cancel, Stop::Process, emit)
+}
+
+#[allow(clippy::too_many_lines)] // one flow: plan, run, read, keep
+fn generate_stopped(
+    req: &LodRequest,
+    cancel: &CancelToken,
+    stop: Stop<'_>,
     emit: &mut dyn FnMut(Event),
 ) -> LodOutcome {
     let mut r = result(req);
@@ -532,9 +550,8 @@ pub fn generate_with_cancel(
         tool,
     });
 
-    let run = inproc::generate_with_events(&job, cancel, req.timeout, emit);
+    let run = inproc::generate_with_events(&job, cancel, stop, req.timeout, emit);
     if run.panicked {
-        discard_partial(&plan.output_dir);
         let why = "LOD generation stopped unexpectedly; nothing was added";
         return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
     }
@@ -542,23 +559,23 @@ pub fn generate_with_cancel(
         Ok(GenerateOutcome::Done { result }) => *result,
         Ok(GenerateOutcome::Cancelled) if run.timed_out => {
             let why = format!(
-                "LOD generation ran longer than {} seconds and was stopped; nothing was added",
+                "LOD generation ran longer than {} seconds and was stopped; {MOD_UNTOUCHED}, and the next run continues from its checkpoint",
                 req.timeout.as_secs()
             );
             return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
         }
         Ok(GenerateOutcome::Cancelled) => {
-            let why = "cancelled; nothing was added to the Instance, and the next run continues the LOD already written";
+            let why = format!(
+                "cancelled; {MOD_UNTOUCHED}, and the next run with the same settings continues from the checkpoint it kept"
+            );
             return fail(r, Status::Cancelled, LodErrorCode::Cancelled, None, why);
         }
         Err(e) => {
-            if matches!(e.code, "generate_failed" | "output_failed") {
-                discard_partial(&plan.output_dir);
-            }
             let why = match &e.detail {
                 Some(detail) => format!("{}: {detail}", e.summary),
                 None => e.summary.clone(),
             };
+            let why = format!("{why}; {MOD_UNTOUCHED}");
             return fail(
                 r,
                 Status::Failed,
@@ -579,7 +596,7 @@ pub fn generate_with_cancel(
         );
         return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
     }
-    if nvmod_core::cancel::requested() {
+    if stop.requested() {
         let why = "cancelled before the Mod was replaced; nothing was added";
         return fail(r, Status::Cancelled, LodErrorCode::Cancelled, None, why);
     }
@@ -644,7 +661,7 @@ pub fn generate_with_cancel(
             r.files = Some(files);
             done(r, true)
         }
-        Err(why) if nvmod_core::cancel::requested() => {
+        Err(why) if stop.requested() => {
             let why = format!("cancelled while the Mod was replaced; it was rolled back ({why})");
             fail(r, Status::Cancelled, LodErrorCode::Cancelled, None, why)
         }
@@ -653,28 +670,5 @@ pub fn generate_with_cancel(
                 format!("putting the LOD into the Instance failed and was rolled back: {why}");
             fail(r, Status::Failed, LodErrorCode::AddModFailed, None, why)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use nvmod_testkit::{TempDir, write_file};
-
-    #[test]
-    fn a_failed_write_without_a_manifest_is_cleared_and_one_with_a_manifest_is_kept() {
-        let dir = TempDir::new("raul-lod-partial");
-        let out = dir.path().join("out");
-        write_file(&out, "meshes/partial.nif", b"half");
-        discard_partial(&out);
-        assert!(!out.exists(), "the partial output is cleared");
-
-        write_file(&out, "meshes/done.nif", b"whole");
-        write_file(&out, MANIFEST_FILE, b"{}");
-        discard_partial(&out);
-        assert!(
-            out.join("meshes/done.nif").is_file(),
-            "a resumable folder is kept"
-        );
     }
 }

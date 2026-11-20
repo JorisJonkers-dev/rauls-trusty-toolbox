@@ -224,6 +224,12 @@ impl DirectJob {
         }
     }
 
+    /// This job with its stream body replaced by `wrap(body)`; a job that is not a stream is returned as it was.
+    pub(crate) fn wrap_lines(mut self, wrap: impl FnOnce(LinesBody) -> LinesBody) -> Self {
+        self.lines = self.lines.map(wrap);
+        self
+    }
+
     /// A job that does nothing but end as a usage error with `summary`, for a request the command line would refuse
     /// before running (an unknown severity, say).
     pub fn usage(summary: impl Into<String>) -> Self {
@@ -257,6 +263,12 @@ impl DirectJob {
 /// The direct job that does what the page's command with the registry id `id` does, from the values and flags after
 /// its words; `None` for a command that still runs as a command line. Each converted action adds one arm here.
 pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
+    for_command_in(id, rest, None)
+}
+
+/// [`for_command`] with the configuration file the runs that read `raul config` use (`None`: the person's own). A test
+/// gives its own, so nothing reaches the real one and no environment variable of the process is set.
+pub fn for_command_in(id: &str, rest: &[String], config: Option<&Path>) -> Option<DirectJob> {
     match id {
         "rollback" => Some(match value_of(rest, "--instance") {
             "" => DirectJob::reading(|_, _| -> Result<Outcome<()>, JobError> {
@@ -282,17 +294,36 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
                 })
             },
         ),
-        "install-nv-rs" => {
-            Some(install_nvrs_request(rest).map_or_else(DirectJob::usage, install_nvrs))
+        "target-nv-rs" => Some(if value_of(rest, "--instance").is_empty() {
+            DirectJob::usage("target: give --instance")
+        } else {
+            target(&nvmod_api::target::SetRequest {
+                instance: PathBuf::from(value_of(rest, "--instance")),
+                target: nvmod_api::target::Target::NvRs,
+            })
+        }),
+        "install" => {
+            Some(install_command_request(rest).map_or_else(DirectJob::usage, |r| install_mod(&r)))
         }
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
         "verify" => Some(verify_request(rest).map_or_else(DirectJob::usage, |r| verify(&r))),
         "plugins-list" => Some(plugins_list(&plugins_list_request(rest))),
+        "ttw" => Some(
+            raul_cli::ttw_install_job_in(rest, config).map_or_else(DirectJob::usage, ttw_install),
+        ),
+        "lod-generate" => Some(
+            raul_cli::lod_generate_job_in(rest, config).map_or_else(DirectJob::usage, lod_generate),
+        ),
         "mods-list" => {
             Some(mods_list_request(rest).map_or_else(DirectJob::usage, |r| mods_list(&r)))
         }
+        "mods-enable" | "mods-disable" | "mods-reorder" => {
+            Some(mods_change_request(id, rest).map_or_else(DirectJob::usage, |r| mods_change(&r)))
+        }
+        // `mods remove` has no job in `nvmod_api` yet (nvmod-rs has the command and `nvmod_modinstall` the code), so it
+        // stays a command line, run in process.
         // `--keep-order` is nvmod's other sort job (`sort_apply::keep_order`), which no page starts: it stays a
         // command line.
         "sort-preview" | "sort-apply" if has_flag(rest, "--keep-order") => None,
@@ -301,6 +332,36 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
         }
         _ => None,
     }
+}
+
+/// The Instance to hold the lock of while a run writes into it: the one the run names, when it is one.
+fn lockable(instance: Option<&Path>) -> Option<PathBuf> {
+    instance
+        .filter(|root| root.join("nvmod-instance.json").is_file())
+        .map(Path::to_path_buf)
+}
+
+/// The TTW install of `raul-drivers` (ttwright, linked in process) as a streaming job: the `raul-events` lines of
+/// `raul ttw --json`, then its result and its end. It stops at its next safe point when this job's own cancel token is
+/// set, and the job never sets the process-wide request, so its Cancel cannot reach another job. (The nvmod steps that
+/// add the Mod to the Instance still read the process-wide request until nvmod-rs#212 gives them a token.) It holds
+/// the Instance lock.
+pub fn ttw_install(job: raul_cli::TtwJob) -> DirectJob {
+    let lock = lockable(job.instance()).map(|root| (root, "ttw"));
+    DirectJob::streaming(lock, move |sink, cancel| {
+        let stop = || cancel.is_cancelled();
+        job.run_lines(raul_drivers::Stop::Run(&stop), sink)
+    })
+}
+
+/// The LOD generation of `raul-drivers` (lodwright, linked in process) as a streaming job, as [`ttw_install`] is one
+/// for the TTW install: the lines of `raul lod generate --json`, this job's own cancel token, the Instance lock.
+pub fn lod_generate(job: raul_cli::LodJob) -> DirectJob {
+    let lock = lockable(job.instance()).map(|root| (root, "lod"));
+    DirectJob::streaming(lock, move |sink, cancel| {
+        let stop = || cancel.is_cancelled();
+        job.run_lines(raul_drivers::Stop::Run(&stop), sink)
+    })
 }
 
 /// The value after `flag` in `rest` as an option: `None` when the flag is absent.
@@ -516,7 +577,8 @@ fn fetch_masterlist(
     lock: Option<&Path>,
     store: Option<&Path>,
 ) -> Result<PathBuf, JobError> {
-    use nvmod_tools::{Acquire, AcquireError, Curl, Lock, Store, Trust, builtin_lock};
+    use crate::fetch::CurlFetcher;
+    use nvmod_tools::{Acquire, AcquireError, Lock, Store, Trust, builtin_lock};
     const WHAT: &str = "loadorder.sort.fetch";
     let refused = |why: String| JobError::new(ErrorKind::Refused, WHAT, why);
     let lock = match lock {
@@ -534,9 +596,7 @@ fn fetch_masterlist(
         ))
     })?;
     let store = Store::new(store.map_or_else(Store::default_location, Path::to_path_buf));
-    let curl = Curl {
-        program: "curl".into(),
-    };
+    let curl = CurlFetcher::default();
     let trust = Trust::load(instance).map_err(refused)?;
     let acquire = Acquire {
         fetcher: &curl,
@@ -593,6 +653,7 @@ fn sort_document(output: &nvmod_api::loadorder::SortOutput) -> serde_json::Value
     serde_json::json!({
         "profile": proposal.profile,
         "reordered": proposal.reordered(),
+        "times_stale": nvmod_loadorder::times_stale(&proposal.data, &proposal.current),
         "positions": { "changed": proposal.positions_changed(), "total": proposal.proposed.len() },
         "order": order,
         "general_messages": found.general_messages.iter()
@@ -646,6 +707,51 @@ fn value_of<'a>(rest: &'a [String], flag: &str) -> &'a str {
         .map_or("", String::as_str)
 }
 
+/// The first word of `rest` that is neither a flag nor the value of one of `flags` (the options that take a value).
+fn positional<'a>(rest: &'a [String], flags: &[&str]) -> Option<&'a str> {
+    let mut words = rest.iter();
+    while let Some(w) = words.next() {
+        if flags.contains(&w.as_str()) {
+            words.next();
+        } else if !w.starts_with("--") {
+            return Some(w);
+        }
+    }
+    None
+}
+
+/// The request of `raul mods enable|disable|reorder` from the words after the subcommand, for the registry command
+/// `id`: the Mod, then `--instance`, `--profile` and, for a reorder, `--position`.
+fn mods_change_request(
+    id: &str,
+    rest: &[String],
+) -> Result<nvmod_api::mods::ChangeRequest, String> {
+    let verb = id.trim_start_matches("mods-");
+    let Some(name) = positional(rest, &["--instance", "--profile", "--position"]) else {
+        return Err(format!("mods {verb}: give the Mod"));
+    };
+    let name = name.to_owned();
+    let change = match verb {
+        "enable" => nvmod_api::mods::Change::Enable { mods: vec![name] },
+        "disable" => nvmod_api::mods::Change::Disable { mods: vec![name] },
+        _ => {
+            let position = value_of(rest, "--position")
+                .parse::<usize>()
+                .map_err(|_| "mods reorder: --position takes a number".to_owned())?;
+            nvmod_api::mods::Change::Move {
+                name,
+                to: nvmod_api::mods::Place::Position(position),
+            }
+        }
+    };
+    Ok(nvmod_api::mods::ChangeRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        change,
+        dry_run: false,
+    })
+}
+
 /// `nvmod_api::mods::change`: enables, disables or moves Mods of a profile. Its document is the report, as
 /// `raul mods enable|disable|reorder --json` prints it. A dry run only plans and takes no lock; a change holds the
 /// Instance lock while it runs.
@@ -674,63 +780,6 @@ pub fn init(request: &nvmod_api::init::CreateRequest) -> DirectJob {
     )
 }
 
-/// What `raul install-nv-rs` takes from the words after it: the Instance, and for a developer a source workspace and
-/// the `cargo` to build it with. The options that used to fetch a release are gone and are refused (#179).
-struct InstallNvRs {
-    instance: PathBuf,
-    source: Option<PathBuf>,
-    cargo: Option<PathBuf>,
-}
-
-fn install_nvrs_request(rest: &[String]) -> Result<InstallNvRs, String> {
-    if value_of(rest, "--instance").is_empty() {
-        return Err("install-nv-rs: give --instance".to_owned());
-    }
-    for gone in [
-        "--release",
-        "--release-url",
-        "--asset",
-        "--repo",
-        "--gh",
-        "--curl",
-        "--retry-delay-ms",
-    ] {
-        if has_flag(rest, gone) {
-            return Err(format!(
-                "install-nv-rs: {gone} is gone: the engine comes with raul and is never downloaded"
-            ));
-        }
-    }
-    if option_of(rest, "--cargo").is_some() && option_of(rest, "--source").is_none() {
-        return Err("install-nv-rs: --cargo only goes with --source".to_owned());
-    }
-    Ok(InstallNvRs {
-        instance: PathBuf::from(value_of(rest, "--instance")),
-        source: option_of(rest, "--source").map(PathBuf::from),
-        cargo: option_of(rest, "--cargo").map(PathBuf::from),
-    })
-}
-
-/// `raul_core::setup::packaged::job`: puts the engine that ships with raul in the Instance (or builds a developer's
-/// source), under the Instance lock. It fetches nothing.
-fn install_nvrs(request: InstallNvRs) -> DirectJob {
-    let instance = request.instance.clone();
-    DirectJob::writing(
-        request.instance,
-        "install-nv-rs",
-        move |progress, cancel| {
-            raul_core::setup::packaged::job(
-                &instance,
-                request.source.as_deref(),
-                request.cargo.as_deref(),
-                None,
-                progress,
-                cancel,
-            )
-        },
-    )
-}
-
 /// The one place an install request is made, from what the page has: the day the request grows a field, it is
 /// added here.
 pub fn install_request(
@@ -749,7 +798,28 @@ pub fn install_request(
         dry_run,
         answers: answers.map(Path::to_path_buf),
         max_extract_bytes: None,
+        extract_limits: nvmod_api::install::LimitOverrides::default(),
+        fomod_answers: None,
+        on_conflict: nvmod_api::install::OnConflict::default(),
     }
+}
+
+/// The request of `raul install` from the words after it: the archive first, then the flags; no archive is its usage
+/// message.
+fn install_command_request(rest: &[String]) -> Result<nvmod_api::install::InstallRequest, String> {
+    let archive = rest
+        .first()
+        .filter(|w| !w.starts_with("--"))
+        .ok_or_else(|| "install: give the archive".to_string())?;
+    let answers = option_of(rest, "--answers");
+    Ok(install_request(
+        Path::new(value_of(rest, "--instance")),
+        option_of(rest, "--profile").as_deref(),
+        Path::new(archive),
+        option_of(rest, "--name").as_deref(),
+        has_flag(rest, "--dry-run"),
+        answers.as_deref().map(Path::new),
+    ))
 }
 
 /// `nvmod_api::install::install`: installs a Mod, or plans to. Its document is the report, as `raul install --json`
@@ -836,13 +906,28 @@ pub fn setup(mode: raul_core::setup::Mode) -> DirectJob {
 }
 
 /// `nvmod_api::target::set`: sets what the Instance at `request.instance` runs on. The command has no `--json`, so
-/// the document is the outcome only.
+/// the document is the outcome only. Making nv-rs the target also writes the linked engine's capabilities where the
+/// Doctor reads them (#398), as `raul target nv-rs` does.
 pub fn target(request: &nvmod_api::target::SetRequest) -> DirectJob {
     let request = request.clone();
     DirectJob::writing(
         request.instance.clone(),
         "target",
-        move |progress, cancel| nvmod_api::target::set(&request, progress, cancel),
+        move |progress, cancel| {
+            let outcome = nvmod_api::target::set(&request, progress, cancel)?;
+            if matches!(outcome, Outcome::Done(_))
+                && request.target == nvmod_api::target::Target::NvRs
+            {
+                raul_core::capabilities::write_provided(&request.instance).map_err(|e| {
+                    JobError::new(
+                        ErrorKind::Failed,
+                        "target",
+                        format!("the engine's capabilities could not be written: {e}"),
+                    )
+                })?;
+            }
+            Ok(outcome)
+        },
     )
 }
 

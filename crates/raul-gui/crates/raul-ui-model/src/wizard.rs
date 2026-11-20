@@ -320,6 +320,11 @@ impl FomodWizard {
         }
     }
 
+    /// Every question.
+    pub fn questions(&self) -> &[FomodQuestion] {
+        &self.questions
+    }
+
     /// The question shown, none when there are none.
     pub fn current(&self) -> Option<&FomodQuestion> {
         self.questions.get(self.at)

@@ -1,0 +1,119 @@
+# The Windows installer's silent install, tried in a pull request (#108).
+#
+# The release workflow builds the NSIS installer only on a release or a manual run, and its silent install did not
+# finish there. This job builds the same installer with the same cargo-packager settings around the command-line
+# raul and a synthetic stand-in payload (many small files and a few large ones, no game data and no
+# engine), runs `setup.exe /S` under a time limit, and uploads the installer's own output and a process list taken
+# while it runs. A silent install that does not finish fails the job.
+name: Installer smoke
+
+on:
+  pull_request:
+    paths:
+      - "packaging/**"
+      - "crates/raul-cli/Cargo.toml"
+      - ".github/workflows/installer-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installer-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+  CARGO_PACKAGER_VERSION: 0.11.8
+
+jobs:
+  windows-nsis:
+    name: Silent install (windows-latest)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          persist-credentials: false
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: installer-smoke
+
+      - name: Cache cargo-packager
+        id: packager-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/cargo-packager.exe
+          key: cargo-packager-${{ runner.os }}-${{ runner.arch }}-${{ env.CARGO_PACKAGER_VERSION }}
+
+      - name: Install cargo-packager
+        if: ${{ steps.packager-cache.outputs.cache-hit != 'true' }}
+        run: cargo install --locked cargo-packager --version "$CARGO_PACKAGER_VERSION"
+
+      - name: Build raul and the stand-in bundle
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p raul-cli
+          # A stand-in payload of the same weight as a large package: 3000 small
+          # files in folders and three files of 80 MiB of data that does not compress.
+          eng=target/bundle/components/nv-rs
+          mkdir -p "$eng/lib"
+          for i in $(seq 1 3000); do
+            d="$eng/lib/d$((i % 60))"; mkdir -p "$d"; printf 'stand-in %s\n' "$i" > "$d/f$i.txt"
+          done
+          for i in 1 2 3; do head -c 83886080 /dev/urandom > "$eng/nv-viewer-$i.bin"; done
+          cp "$eng/nv-viewer-1.bin" "$eng/nv-viewer.exe"
+          echo "stand-in payload" > target/bundle/THIRD-PARTY-NOTICES.md
+          cp LICENSE target/bundle/LICENSE
+          cargo packager --release -p raul-cli --formats nsis
+          ls -l target/packages
+
+      - name: Silent install, with its output and a process list
+        id: silent
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          mkdir -p diag
+          setup="$(ls target/packages/*setup.exe)"
+          dest="$(cygpath -w "$RUNNER_TEMP/installed")"
+          started=$(date +%s)
+          MSYS_NO_PATHCONV=1 "$setup" /S /D="$dest" > diag/installer-output.txt 2>&1 < /dev/null &
+          pid=$!
+          for t in 10 30 60 120; do
+            while [ $(( $(date +%s) - started )) -lt "$t" ] && kill -0 "$pid" 2>/dev/null; do sleep 2; done
+            kill -0 "$pid" 2>/dev/null || break
+            powershell -NoProfile -Command "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine | Format-List" > "diag/processes-at-${t}s.txt" 2>&1
+          done
+          finished=true
+          for _ in $(seq 1 90); do kill -0 "$pid" 2>/dev/null || break; sleep 2; done
+          if kill -0 "$pid" 2>/dev/null; then finished=false; fi
+          echo "seconds: $(( $(date +%s) - started )); finished: $finished" | tee diag/result.txt
+          ls -lR "$RUNNER_TEMP/installed" > diag/installed-files.txt 2>&1 || true
+          if [ "$finished" != true ]; then
+            taskkill //F //T //IM "$(basename "$setup")" > /dev/null 2>&1 || true
+            exit 1
+          fi
+          wait "$pid"; code=$?
+          echo "exit code: $code" | tee -a diag/result.txt
+          [ "$code" -eq 0 ] && test -f "$RUNNER_TEMP/installed/raul.exe"
+
+      - name: Upload the installer's output and process lists
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: installer-smoke-diagnostics
+          path: diag
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: A silent install that does not finish fails the job
+        if: ${{ steps.silent.outcome != 'success' }}
+        run: |
+          echo "::error::the silent NSIS install did not finish or did not install raul.exe; see the diagnostics artifact"
+          exit 1

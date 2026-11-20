@@ -44,8 +44,6 @@ pub enum Action {
     Plugins,
     /// `raul config`: the game folders, the TTW package and the storage folder.
     Config,
-    /// `raul install-nv-rs`: put the engine that ships with raul in an Instance (nothing is downloaded).
-    InstallNvRs,
     /// `raul init`: an Instance skeleton for a base copy of the game.
     Init,
     /// `raul lod`: plan and generate distant land with lodwright.
@@ -58,6 +56,8 @@ pub enum Action {
     Update,
     /// `raul detect`: find New Vegas and Fallout 3 copies, or check one folder.
     Detect,
+    /// `raul space`: the free space on the storage a folder is on; read only.
+    Space,
     /// `raul profile create`: the default profile of an Instance that has none. Setup makes it with its own
     /// steps; this action is the one place a screen asks for it when an Instance made another way has none.
     Profile,
@@ -81,13 +81,13 @@ impl Action {
         Action::Tree,
         Action::Plugins,
         Action::Config,
-        Action::InstallNvRs,
         Action::Init,
         Action::Lod,
         Action::Run,
         Action::Version,
         Action::Update,
         Action::Detect,
+        Action::Space,
         Action::Profile,
     ];
 
@@ -109,28 +109,25 @@ impl Action {
             Self::Tree => "tree",
             Self::Plugins => "plugins",
             Self::Config => "config",
-            Self::InstallNvRs => "install-nv-rs",
             Self::Init => "init",
             Self::Lod => "lod",
             Self::Run => "run",
             Self::Version => "version",
             Self::Update => "update",
             Self::Detect => "detect",
+            Self::Space => "space",
             Self::Profile => "profile",
         }
     }
 
     /// Whether a run of it can be stopped from the GUI: the long ones that write.
     pub fn cancellable(self) -> bool {
-        matches!(
-            self,
-            Self::Setup | Self::Ttw | Self::InstallMod | Self::InstallNvRs | Self::Lod
-        )
+        matches!(self, Self::Setup | Self::Ttw | Self::InstallMod | Self::Lod)
     }
 
-    /// Whether the command takes `--json`. `init` and `install-nv-rs` print text only.
+    /// Whether the command takes `--json`. `init`, `profile` and `target` print text only.
     pub fn takes_json(self) -> bool {
-        !matches!(self, Self::Init | Self::InstallNvRs | Self::Profile)
+        !matches!(self, Self::Init | Self::Profile | Self::Target)
     }
 
     /// What the GUI calls it.
@@ -151,13 +148,13 @@ impl Action {
             Self::Tree => "Explore the virtual Data folder",
             Self::Plugins => "Manage the plugins",
             Self::Config => "Game folders",
-            Self::InstallNvRs => "Install the engine",
             Self::Init => "Create the Instance",
             Self::Lod => "Distant land",
             Self::Run => "Play",
             Self::Version => "Versions",
             Self::Update => "Check for updates",
             Self::Detect => "Find the games",
+            Self::Space => "Check the free space",
             Self::Profile => "Make the default profile",
         }
     }
@@ -333,6 +330,14 @@ pub const COMMANDS: &[Command] = &[
         awaits: None,
     },
     Command {
+        id: "space",
+        action: Action::Space,
+        words: &[],
+        flags: &["--folder", "--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
         id: "config-list",
         action: Action::Config,
         words: &["list"],
@@ -365,18 +370,26 @@ pub const COMMANDS: &[Command] = &[
         awaits: None,
     },
     Command {
-        id: "install-nv-rs",
-        action: Action::InstallNvRs,
-        words: &[],
-        flags: &["--instance"],
-        writes: true,
-        awaits: None,
-    },
-    Command {
         id: "init",
         action: Action::Init,
         words: &[],
         flags: &["--base", "--instance"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        // One Mod from an archive: the archive is the first value, and `--answers` names the FOMOD answers file.
+        id: "install",
+        action: Action::InstallMod,
+        words: &[],
+        flags: &[
+            "--instance",
+            "--profile",
+            "--name",
+            "--answers",
+            "--dry-run",
+            "--json",
+        ],
         writes: true,
         awaits: None,
     },
@@ -559,6 +572,15 @@ pub const COMMANDS: &[Command] = &[
         awaits: None,
     },
     Command {
+        id: "run-stop",
+        action: Action::Run,
+        // `run --stop`: asks the running game to stop; it creates a file in the run folder and holds no lock.
+        words: &["--stop"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
         id: "ttw",
         action: Action::Ttw,
         words: &[],
@@ -598,6 +620,14 @@ pub const COMMANDS: &[Command] = &[
         words: &[],
         flags: &["--instance", "--profile", "--json"],
         writes: false,
+        awaits: None,
+    },
+    Command {
+        id: "target-nv-rs",
+        action: Action::Target,
+        words: &["nv-rs"],
+        flags: &["--instance"],
+        writes: true,
         awaits: None,
     },
 ];

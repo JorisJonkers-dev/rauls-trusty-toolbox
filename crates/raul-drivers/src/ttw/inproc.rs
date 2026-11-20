@@ -3,6 +3,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
+use crate::Stop;
 use crate::events::Event;
 
 /// The result of running ttwright in process.
@@ -26,6 +27,7 @@ impl Drop for StopWatcher<'_> {
 /// Run ttwright's install in process, mapping progress to `Event`s.
 pub(crate) fn install_in_process(
     job: &ttwright_core::api::InstallJob,
+    stop: Stop<'_>,
     timeout: Duration,
     emit: &mut (dyn FnMut(Event) + Send),
 ) -> InProc {
@@ -37,7 +39,7 @@ pub(crate) fn install_in_process(
         let _stop_watcher = StopWatcher(&done);
         scope.spawn(|| {
             while !done.load(Ordering::Relaxed) {
-                if nvmod_core::cancel::requested() || started.elapsed() >= timeout {
+                if stop.requested() || started.elapsed() >= timeout {
                     cancel.cancel();
                     break;
                 }
@@ -53,25 +55,31 @@ pub(crate) fn install_in_process(
         };
         let result = ttwright_core::api::install(
             job,
-            &mut |event: &ttwright_contract::Event| match event {
-                ttwright_contract::Event::Phase { phase } => emit(Event::Phase {
-                    phase: phase_name(phase),
-                }),
-                ttwright_contract::Event::Progress {
-                    phase,
-                    done,
-                    of,
-                    message,
-                } => emit(Event::Progress {
-                    phase: phase_name(phase),
-                    done: *done,
-                    of: *of,
-                    message: Some(message.clone()),
-                }),
-                ttwright_contract::Event::Warning { message } => emit(Event::Warning {
-                    message: message.clone(),
-                }),
-                _ => {}
+            &mut |event: &ttwright_contract::Event| {
+                // A stop asked for is seen at the next event, not only at the watcher's next look.
+                if stop.requested() {
+                    cancel.cancel();
+                }
+                match event {
+                    ttwright_contract::Event::Phase { phase } => emit(Event::Phase {
+                        phase: phase_name(phase),
+                    }),
+                    ttwright_contract::Event::Progress {
+                        phase,
+                        done,
+                        of,
+                        message,
+                    } => emit(Event::Progress {
+                        phase: phase_name(phase),
+                        done: *done,
+                        of: *of,
+                        message: Some(message.clone()),
+                    }),
+                    ttwright_contract::Event::Warning { message } => emit(Event::Warning {
+                        message: message.clone(),
+                    }),
+                    _ => {}
+                }
             },
             &cancel,
         );
@@ -97,13 +105,16 @@ pub(crate) fn install_in_process(
 /// is called on the calling thread, while the install runs on another.
 pub(crate) fn install_with_events(
     job: &ttwright_core::api::InstallJob,
+    stop: Stop<'_>,
     timeout: Duration,
     emit: &mut dyn FnMut(Event),
 ) -> InProc {
-    let (tx, rx) = std::sync::mpsc::channel();
+    // A rendezvous channel: the install goes on only when `emit` has taken the event, so a caller that holds `emit`
+    // holds the install at that event, and a slow reader slows the install instead of piling events up.
+    let (tx, rx) = std::sync::mpsc::sync_channel(0);
     std::thread::scope(|scope| {
         let worker = scope.spawn(move || {
-            install_in_process(job, timeout, &mut |event| {
+            install_in_process(job, stop, timeout, &mut |event| {
                 let _ = tx.send(event);
             })
         });
@@ -154,7 +165,9 @@ mod tests {
             ..Default::default()
         };
         let mut events = Vec::new();
-        let out = install_in_process(&job, Duration::from_secs(1), &mut |e| events.push(e));
+        let out = install_in_process(&job, Stop::Process, Duration::from_secs(1), &mut |e| {
+            events.push(e);
+        });
         assert_eq!(out.exit_code, 1, "{}", out.doc);
         assert_eq!(out.doc["status"], "failed", "{}", out.doc);
         assert_eq!(out.doc["error"]["code"], "mpi_not_found", "{}", out.doc);
@@ -167,7 +180,7 @@ mod tests {
             ..Default::default()
         };
         let seen = std::cell::RefCell::new(Vec::new());
-        let out = install_with_events(&job, Duration::from_secs(1), &mut |e| {
+        let out = install_with_events(&job, Stop::Process, Duration::from_secs(1), &mut |e| {
             seen.borrow_mut().push(e);
         });
         assert_ne!(out.exit_code, 0);

@@ -12,7 +12,9 @@ mod run_lock;
 pub mod settings;
 pub mod stale;
 
-pub use generate::{LODWRIGHT, LodOutcome, LodRequest, generate, generate_with_cancel};
+pub use generate::{
+    LODWRIGHT, LodOutcome, LodRequest, generate, generate_with_cancel, generate_with_stop,
+};
 pub use marker::{LEGACY_MOD_NAME, Marker, is_generated, meta_ini, mod_name, read_marker};
 pub use mods::{
     GeneratedMod, LodMods, MODS_CONTRACT, MODS_SCHEMA_VERSION, generated_mods, mods_schema,
@@ -73,6 +75,8 @@ pub struct Settings {
     pub inclusion: Inclusion,
     /// What is written.
     pub output: Output,
+    /// What object LOD leaves out, beyond the inclusion rules.
+    pub objects: ObjectOptions,
     /// Worker threads; lodwright decides when unset.
     pub threads: Option<u32>,
     /// An advisory memory budget in MiB.
@@ -162,6 +166,8 @@ pub fn levels_of(settings: &Settings, always: bool) -> Vec<lodwright_contract::L
                 normal_size: set
                     .normal_size
                     .unwrap_or(default(level, "normal_size") as u32),
+                // The Specular in alpha row is a later change (#345); until then the request keeps the default.
+                specular_alpha: false,
             }
         })
         .collect()
@@ -181,6 +187,15 @@ pub fn request_parts(settings: &Settings) -> Value {
     }
     let o = &settings.output;
     let i = &settings.inclusion;
+    // off by default and written only when on, so a Profile that sets nothing keeps its request digest
+    let mut objects = serde_json::Map::new();
+    objects.insert("enabled".into(), o.objects.into());
+    if settings.objects.drop_under_terrain {
+        objects.insert("drop_under_terrain".into(), true.into());
+    }
+    if settings.objects.drop_under_water {
+        objects.insert("drop_under_water".into(), true.into());
+    }
     json!({
         "terrain": {
             "enabled": o.terrain,
@@ -188,7 +203,7 @@ pub fn request_parts(settings: &Settings) -> Value {
             "land_textures": o.land_textures,
             "water": o.water,
         },
-        "objects": { "enabled": o.objects },
+        "objects": objects,
         "trees": { "enabled": o.trees },
         "inclusion": {
             "exclude_plugins": i.exclude_plugins,
@@ -223,6 +238,16 @@ pub struct Inclusion {
     pub exclude_records: Vec<String>,
     /// Leave out models matching these patterns.
     pub exclude_models: Vec<String>,
+}
+
+/// What object LOD leaves out of what it builds (options the generator added after its first release).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct ObjectOptions {
+    /// Leave out faces that lie wholly under the land.
+    pub drop_under_terrain: bool,
+    /// Leave out faces that lie wholly under the water.
+    pub drop_under_water: bool,
 }
 
 /// What lodwright writes.

@@ -55,7 +55,6 @@ impl Scratch {
             import_mo2: None,
             copy: false,
             engine: false,
-            engine_options: raul_core::setup::EngineOptions::default(),
             ttw: None,
             mods: Vec::new(),
             answers: None,
@@ -246,15 +245,16 @@ fn an_unfinished_nvmod_setup_is_taken_over_once_and_resumes_at_the_same_step() {
     request.engine = true;
     request.mods = vec![PathBuf::from("/archives/Better.zip")];
     let journal = Journal::open(&instance).unwrap();
-    // nvmod's `nv-rs` is raul's `engine`; the next step is the one nvmod would run, the target.
-    assert_eq!(journal.finished(), ["init", "profile", "engine"]);
+    // nvmod's `nv-rs` step installed the engine, which raul links in: it is not carried over, and the next step is the
+    // one nvmod would run, the target.
+    assert_eq!(journal.finished(), ["init", "profile"]);
     assert_eq!(journal.next_step(&request), Some(Step::Target));
     let taken = journal.doc().taken_over.clone().unwrap();
     assert_eq!(
         (taken.from.as_str(), taken.version.as_str()),
         ("nvmod-setup", "0.9.0")
     );
-    assert_eq!(journal.doc().plan[2], "engine");
+    assert_eq!(journal.doc().plan[2], "target");
 
     // The old file is left as it was, and a copy of it is kept in raul's folder.
     assert_eq!(
@@ -268,7 +268,7 @@ fn an_unfinished_nvmod_setup_is_taken_over_once_and_resumes_at_the_same_step() {
 
     // Once: later opens read the journal, and the nvmod file changing does not matter.
     write_nvmod_state(&instance, &json!({"schema_version": 1, "completed": []}));
-    assert_eq!(Journal::open(&instance).unwrap().finished().len(), 3);
+    assert_eq!(Journal::open(&instance).unwrap().finished().len(), 2);
     // Removing the journal does not take the nvmod state over again.
     Journal::open(&instance).unwrap().remove().unwrap();
     write_nvmod_state(&instance, &state);

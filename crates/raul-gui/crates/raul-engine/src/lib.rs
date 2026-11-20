@@ -11,10 +11,59 @@ pub use {fork_api, fork_play};
 /// Whether this build links the engine's crates.
 pub const ENGINE_LINKED: bool = cfg!(feature = "engine");
 
+/// The reserved first argument that makes `raul` run the game instead of its own commands (ADR-0016): raul starts
+/// itself again as `raul --play-mode <DATA> [arguments]` so the game is a process of its own and a crash of the
+/// engine stays out of the window that started it.
+pub const PLAY_MODE_ARG: &str = "--play-mode";
+
+/// The exit code of a `raul` that was asked for the play mode but does not link the engine.
+pub const EXIT_NO_ENGINE: u8 = 2;
+
+/// Whether `args` (without the program name) ask for the play mode.
+#[must_use]
+pub fn is_play_mode(args: &[String]) -> bool {
+    args.first().is_some_and(|a| a == PLAY_MODE_ARG)
+}
+
+/// What a `raul` without the engine says when it is asked for the play mode.
+pub const NO_ENGINE_LINE: &str = "raul: this build does not include the game; use the full raul";
+
+/// Runs the game as the play mode of this process and never returns when the engine is linked. Call it first in
+/// `main`, only when [`is_play_mode`] says so; it reads the process's own arguments. Without the engine it returns
+/// the exit code after a plain line on standard error.
+#[must_use]
+pub fn play_mode(err: &mut dyn std::io::Write) -> u8 {
+    #[cfg(feature = "engine")]
+    {
+        let _ = err;
+        fork_play::play_main()
+    }
+    #[cfg(not(feature = "engine"))]
+    {
+        let _ = writeln!(err, "{NO_ENGINE_LINE}");
+        EXIT_NO_ENGINE
+    }
+}
+
 /// The version of the engine facade this build was written against (`fork_api::API_VERSION`). The adapters check it
 /// against the version they were written for.
 #[cfg(feature = "engine")]
 pub const FACADE_API_VERSION: u32 = fork_api::API_VERSION;
+
+/// The capabilities file of the engine this build links (`fork_api::CAPABILITIES`), as JSON text; `None` for a build
+/// without the engine. nvmod's Doctor reads it from `<instance>/nv-rs/capabilities.json`, which raul writes from this
+/// text when nv-rs becomes an Instance's target (#398).
+#[must_use]
+pub fn capabilities() -> Option<&'static str> {
+    #[cfg(feature = "engine")]
+    {
+        Some(fork_api::CAPABILITIES)
+    }
+    #[cfg(not(feature = "engine"))]
+    {
+        None
+    }
+}
 
 /// What the installation check found in a game folder. The engine's own words (`detail`) are kept for the copyable
 /// error and the log; a screen shows plain words from the message catalogue instead (UI-RULES W1, W3).
@@ -111,6 +160,25 @@ mod tests {
     use super::*;
 
     #[test]
+    fn only_the_reserved_first_argument_selects_the_play_mode() {
+        let a = |v: &[&str]| v.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>();
+        assert!(is_play_mode(&a(&["--play-mode", "/data"])));
+        assert!(!is_play_mode(&a(&["run", "--play-mode"])));
+        assert!(!is_play_mode(&a(&[])));
+    }
+
+    #[cfg(not(feature = "engine"))]
+    #[test]
+    fn without_the_engine_the_play_mode_is_refused_in_one_plain_line() {
+        let mut err = Vec::new();
+        assert_eq!(play_mode(&mut err), EXIT_NO_ENGINE);
+        assert_eq!(
+            String::from_utf8(err).unwrap(),
+            format!("{NO_ENGINE_LINE}\n")
+        );
+    }
+
+    #[test]
     fn linked_flag_follows_the_feature() {
         assert_eq!(ENGINE_LINKED, cfg!(feature = "engine"));
     }
@@ -122,6 +190,11 @@ mod tests {
         assert!(fork_api::CAPABILITIES.trim_start().starts_with('{'));
     }
 
+    #[test]
+    fn the_capabilities_are_there_exactly_when_the_engine_is_linked() {
+        assert_eq!(capabilities().is_some(), ENGINE_LINKED);
+        assert!(capabilities().is_none_or(|text| text.trim_start().starts_with('{')));
+    }
     #[cfg(feature = "engine")]
     /// A folder name under the system temp folder that is unique to this call and not created.
     fn temp_path(name: &str) -> std::path::PathBuf {

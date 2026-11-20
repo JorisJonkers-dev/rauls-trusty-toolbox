@@ -345,7 +345,7 @@ impl Config {
 /// Check `value` for `key` and return it as an absolute path (a relative one is taken against the working folder).
 ///
 /// - `game.newvegas` and `game.fallout3`: a folder that `raul detect --folder` accepts as that game.
-/// - `ttw.package`: an existing file.
+/// - `ttw.package`: the TTW package by content: a `.mpi` file, or an archive that holds exactly one.
 /// - `storage.root`: not an existing file (the folder is created when something is stored in it).
 ///
 /// # Errors
@@ -375,11 +375,11 @@ pub fn check(key: Key, value: &Path) -> Result<PathBuf, String> {
                 )),
             }
         }
-        Key::TtwPackage if path.is_file() => Ok(path),
-        Key::TtwPackage => Err(format!(
-            "{} is not a file; ttw.package is the TTW installer package (the .mpi file)",
-            path.display()
-        )),
+        // The one rule of `raul ttw`: the `.mpi` itself (it starts with `BSA\0`, whatever it is called), or the archive
+        // that was downloaded, which holds it.
+        Key::TtwPackage => raul_drivers::ttw::package::inspect(&path)
+            .map(|_| path)
+            .map_err(|why| why.to_string()),
         Key::StorageRoot if path.exists() && !path.is_dir() => Err(format!(
             "{} is a file; storage.root must be a folder",
             path.display()

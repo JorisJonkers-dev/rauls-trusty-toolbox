@@ -480,3 +480,19 @@ pub struct SetupReport {
     /// Whether it was a resume.
     pub resume: bool,
 }
+
+/// The FOMOD questions in what `raul install --json` printed when it ended with exit 1; `None` when that is not a
+/// questions document.
+pub fn parse_questions(stdout: &str) -> Option<Vec<FomodQuestion>> {
+    serde_json::from_str::<QuestionsDoc>(stdout)
+        .ok()
+        .map(|doc| doc.questions.into_iter().map(Into::into).collect())
+}
+
+/// The report in what `raul install --json` printed on success.
+///
+/// # Errors
+/// What is wrong with the text, when it is not a report.
+pub fn parse_install_report(stdout: &str) -> Result<InstallReport, String> {
+    serde_json::from_str(stdout).map_err(|e| e.to_string())
+}

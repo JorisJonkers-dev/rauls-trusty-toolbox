@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The atomic replacement of an install unit and its rollback (ADR-0020).
 //!
-//! A unit is a list of files, relative to the install folder (`raul`, `components/nv-rs/...`, the notices). The new
+//! A unit is a list of files, relative to the install folder (`raul`, `components/ttwright-rs/...`, the notices). The new
 //! files are staged first under `<root>/.raul-update/new/`, on the same filesystem, so no step copies. The swap writes
 //! a journal before the first rename, then moves each installed file to `<root>/.raul-update/previous/` and each new
 //! file into its place. A crash at any point is repaired by [`recover`], which puts every file back to the old
@@ -473,7 +473,7 @@ mod tests {
     use super::*;
     use nvmod_testkit::{TempDir, write_file};
 
-    const FILES: &[&str] = &["raul", "components/nv-rs/bin/nv-viewer", "NEW-IN-2"];
+    const FILES: &[&str] = &["raul", "components/ttwright-rs/bin/ttwright", "NEW-IN-2"];
 
     fn names() -> Vec<String> {
         FILES.iter().map(|f| (*f).to_owned()).collect()
@@ -483,11 +483,11 @@ mod tests {
     fn install() -> TempDir {
         let t = TempDir::new("swap");
         write_file(t.path(), "raul", b"raul 1");
-        write_file(t.path(), "components/nv-rs/bin/nv-viewer", b"viewer 1");
+        write_file(t.path(), "components/ttwright-rs/bin/ttwright", b"tool 1");
         write_file(t.path(), "UNRELATED", b"keep");
         let new = staging_dir(t.path());
         write_file(&new, "raul", b"raul 2");
-        write_file(&new, "components/nv-rs/bin/nv-viewer", b"viewer 2");
+        write_file(&new, "components/ttwright-rs/bin/ttwright", b"tool 2");
         write_file(&new, "NEW-IN-2", b"added");
         t
     }
@@ -499,8 +499,8 @@ mod tests {
     fn all_old(t: &TempDir) {
         assert_eq!(read(t, "raul").as_deref(), Some("raul 1"));
         assert_eq!(
-            read(t, "components/nv-rs/bin/nv-viewer").as_deref(),
-            Some("viewer 1")
+            read(t, "components/ttwright-rs/bin/ttwright").as_deref(),
+            Some("tool 1")
         );
         assert_eq!(read(t, "NEW-IN-2"), None);
         assert_eq!(read(t, "UNRELATED").as_deref(), Some("keep"));
@@ -509,8 +509,8 @@ mod tests {
     fn all_new(t: &TempDir) {
         assert_eq!(read(t, "raul").as_deref(), Some("raul 2"));
         assert_eq!(
-            read(t, "components/nv-rs/bin/nv-viewer").as_deref(),
-            Some("viewer 2")
+            read(t, "components/ttwright-rs/bin/ttwright").as_deref(),
+            Some("tool 2")
         );
         assert_eq!(read(t, "NEW-IN-2").as_deref(), Some("added"));
         assert_eq!(read(t, "UNRELATED").as_deref(), Some("keep"));
@@ -639,7 +639,7 @@ mod tests {
         apply(t.path(), &names(), "1.0.0", "2.0.0").unwrap();
         let new = staging_dir(t.path());
         write_file(&new, "raul", b"raul 3");
-        write_file(&new, "components/nv-rs/bin/nv-viewer", b"viewer 3");
+        write_file(&new, "components/ttwright-rs/bin/ttwright", b"tool 3");
         write_file(&new, "NEW-IN-2", b"added 3");
         apply(t.path(), &names(), "2.0.0", "3.0.0").unwrap();
         rollback(t.path()).unwrap();
@@ -650,13 +650,13 @@ mod tests {
     #[test]
     fn a_failing_rename_puts_the_files_back() {
         let t = install();
-        // `components` is a file, so the viewer cannot be moved under it: the second file's rename fails after the
+        // `components` is a file, so the tool cannot be moved under it: the second file's rename fails after the
         // first was already swapped.
         std::fs::remove_dir_all(t.path().join("components")).unwrap();
         write_file(t.path(), "components", b"in the way");
         let files = vec![
             "raul".to_owned(),
-            "components/nv-rs/bin/nv-viewer".to_owned(),
+            "components/ttwright-rs/bin/ttwright".to_owned(),
         ];
         let r = apply(t.path(), &files, "1.0.0", "2.0.0");
         assert!(matches!(r, Err(Error::Io(_))), "{r:?}");
@@ -727,7 +727,7 @@ mod tests {
         apply(t.path(), &names(), "1.0.0", "2.0.0").unwrap();
         let new = staging_dir(t.path());
         write_file(&new, "raul", b"raul 3");
-        write_file(&new, "components/nv-rs/bin/nv-viewer", b"viewer 3");
+        write_file(&new, "components/ttwright-rs/bin/ttwright", b"tool 3");
         write_file(&new, "NEW-IN-2", b"added 3");
         let _ = apply_until(t.path(), &names(), "2.0.0", "3.0.0", 2);
         recover(t.path()).unwrap();

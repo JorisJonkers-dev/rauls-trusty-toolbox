@@ -11,6 +11,7 @@ pub mod load_order;
 pub mod lod;
 pub mod lod_settings;
 pub mod mods;
+pub mod mods_install;
 pub mod settings;
 pub mod setup;
 pub mod ttw;
@@ -31,8 +32,6 @@ pub struct ShellState {
     /// The Instance folder, as `raul config get instance` derives it from the storage folder; `None` while it is
     /// not known or not set. The shell reads it once at start and again after each `raul config set` or `unset`.
     pub instance: Option<String>,
-    /// The active engine build the top bar shows, `None` when there is none (its home is Versions).
-    pub engine: Option<String>,
     /// The polite status line of the footer (UI-RULES G4).
     pub status: Option<String>,
     /// Set when the status line reports a failure: the footer then shows it as an error with a "Copy details"
@@ -78,6 +77,11 @@ pub trait Page {
 
     /// The page tools at the right of its header; at most one primary button (UI-RULES A1).
     fn tools(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
+        let _ = (ui, cx);
+    }
+
+    /// What stays in view above the scrolling content, such as the steps of a flow; nothing by default.
+    fn pinned(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let _ = (ui, cx);
     }
 

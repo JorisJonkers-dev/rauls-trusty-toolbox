@@ -104,6 +104,7 @@ fn lines(pipe: impl Read + Send + 'static, cap: usize) -> mpsc::Receiver<Piped> 
 fn signal_group(pid: u32, force: bool) {
     let signal = if force { "-KILL" } else { "-TERM" };
     // The group is the Runner's own child; signalling it is part of running it (ADR-0007).
+    crate::runner::count_started();
     #[allow(clippy::disallowed_methods)]
     let _ = Command::new("kill")
         .args([signal, "--", &format!("-{pid}")])
@@ -122,6 +123,7 @@ fn signal_group(pid: u32, force: bool) {
         args.push("/F");
     }
     // The tree is the Runner's own child; ending it is part of running it (ADR-0007).
+    crate::runner::count_started();
     #[allow(clippy::disallowed_methods)]
     let _ = Command::new("taskkill")
         .args(args)

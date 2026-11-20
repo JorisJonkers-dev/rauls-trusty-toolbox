@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! Home: what is ready, what needs a look, and the launch panel (UI-RULES G2, G3, G5).
 //!
-//! The readiness rows show the paths of Settings, the engine, TTW and the two pages of the Play group,
+//! The readiness rows show the paths of Settings, TTW and the two pages of the Play group,
 //! each one click from the page that fixes it. The chips above them list what needs attention. Play runs
 //! `raul run nv-rs`; when the setup misses a step, Play says which and its Fix opens the page that sets it up
 //! (UI-RULES G3). The panel and the header say "Ready to play" and "All set" only when readiness holds.
@@ -19,9 +19,9 @@ use crate::dialog::{Answer, Dialog};
 use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText, Stroke};
-use raul_ui_model::pages::home::{self as engine_model, Engine, EngineStatus};
 use raul_ui_model::pages::home::{
-    Block, Launch, Level, Readiness, Row, RowId, State, Step, Why, load_order_command,
+    Block, Launch, Level, Readiness, Row, RowId, State, Step, Why, doctor_command,
+    load_order_command, parse_order_errors,
 };
 use raul_ui_model::pages::settings::{Command, Config, Fetch, Key};
 use raul_ui_model::pages::{Attention, PageId, Severity, View};
@@ -37,7 +37,6 @@ crate::texts!(TEXTS {
     STEP_GAME = "set the game folder";
     STEP_STORAGE = "set the storage folder";
     STEP_INSTANCE = "set up the Instance";
-    STEP_ENGINE = "check the engine";
     STEP_LOAD_ORDER = "fix the load order";
     WHY_NO_SETTINGS = "the settings could not be read";
     WHY_NO_INSTANCE = "the Instance folder is not there yet";
@@ -46,15 +45,12 @@ crate::texts!(TEXTS {
     SECTION_LAUNCH = "Launch";
     ROW_NEW_VEGAS = "Game folder";
     ROW_STORAGE = "Storage";
-    ROW_ENGINE = "Engine";
     ROW_TTW = "TTW";
     ROW_LOAD_ORDER = "Load order";
     ROW_LOD = "LOD";
     DETAIL_GAME_NOT_SET = "Not set. Point the Toolbox at your game.";
     DETAIL_STORAGE_NOT_SET = "Not set. Pick where the Toolbox keeps its files.";
     DETAIL_CHECKING = "Checking";
-    DETAIL_ENGINE_ACTIVE = "The engine is installed and verified.";
-    DETAIL_ENGINE_MISSING = "No engine installed yet";
     DETAIL_TTW_READY = "Sources set. Ready when you are.";
     DETAIL_TTW_NEEDS = "Optional. Needs Fallout 3 and the TTW installer.";
     DETAIL_LOAD_ORDER = "Sorted and reviewed on its own page";
@@ -69,12 +65,11 @@ crate::texts!(TEXTS {
     OPEN = "Open";
     SET_UP = "Set up…";
     PLAY_BIG = "Play now";
+    STOP_GAME = "Stop the game";
+    STOP_ASKED_STATUS = "Asked the game to stop";
     STARTING = "Starting";
-    FACT_ENGINE = "Engine";
     FACT_INSTANCE = "Instance";
-    FACT_ENGINE_ACTIVE = "Installed and verified";
     FACT_NONE = "None yet";
-    FACT_UNKNOWN = "Not known";
     STARTED_STATUS = "The game was started.";
     RAUL_READY = "All set. Go on, the Mojave's waiting.";
     RAUL_WARNINGS = "Ready. A thing or two could be better.";
@@ -89,14 +84,6 @@ crate::errors!(ERRORS {
     PLAY_NO_STORAGE = (
         "No storage folder is set",
         "Set it in Settings; it holds the Instance the game runs from."
-    );
-    PLAY_NO_ENGINE = (
-        "The engine is not installed",
-        "Run the setup, then press Play again."
-    );
-    PLAY_ENGINE_CHANGED = (
-        "The engine differs from its install record",
-        "Nothing was started. Run the setup again."
     );
     RUN_FAILED = (
         "The game did not start",
@@ -120,9 +107,10 @@ pub struct Home {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Job {
     Config,
-    Verify,
     LoadOrder,
+    OrderErrors,
     Run,
+    Stop,
 }
 
 const BLOCKED_DIALOG: &str = "home-play-blocked";
@@ -141,9 +129,9 @@ impl Home {
     }
 
     fn load(&mut self, cx: &mut PageCx<'_>, first: bool) {
-        self.state.engine = Fetch::Idle;
         self.state.instance_exists = None;
         self.state.load_order = Fetch::Idle;
+        self.state.order_errors = Fetch::Idle;
         match start(cx, &Command::config_list()) {
             Ok(id) => {
                 self.pending.add(Job::Config, id);
@@ -164,20 +152,20 @@ impl Home {
     /// Settles the reads that run against the settings' paths, with the reason they were not asked for.
     fn settle_without_paths(&mut self, why: String) {
         self.state.instance_exists = Some(false);
-        self.state.engine = Fetch::Failed(why.clone());
-        self.state.load_order = Fetch::Failed(why);
+        self.state.load_order = Fetch::Failed(why.clone());
+        self.state.order_errors = Fetch::Failed(why);
     }
 
-    /// Settles the reads that run against the Instance folder: an Instance that is not there holds no engine and
-    /// has no load order to read.
+    /// Settles the reads that run against the Instance folder: an Instance that is not there has no load order to
+    /// read.
     fn settle_without_instance(&mut self) {
         self.state.instance_exists = Some(false);
-        self.state.engine = Fetch::Ready(Engine::missing());
         self.state.load_order = Fetch::Failed(WHY_NO_INSTANCE.to_owned());
+        self.state.order_errors = Fetch::Failed(WHY_NO_INSTANCE.to_owned());
     }
 
-    /// Reads the engine once the Instance is known: an Instance that does not exist yet holds no engine.
-    fn load_engine(&mut self, cx: &mut PageCx<'_>, config: &Config) {
+    /// Reads the load order once the Instance is known: an Instance that does not exist yet has none.
+    fn load_instance(&mut self, cx: &mut PageCx<'_>, config: &Config) {
         let Some(instance) = config.get(Key::Instance) else {
             self.settle_without_instance();
             return;
@@ -194,12 +182,12 @@ impl Home {
             }
             Err(e) => self.state.load_order = Fetch::Failed(e.what.to_owned()),
         }
-        match start(cx, &engine_model::verify_command(instance)) {
+        match start(cx, &doctor_command(instance)) {
             Ok(id) => {
-                self.pending.add(Job::Verify, id);
-                self.state.engine = Fetch::Loading;
+                self.pending.add(Job::OrderErrors, id);
+                self.state.order_errors = Fetch::Loading;
             }
-            Err(e) => self.state.engine = Fetch::Failed(e.what.to_owned()),
+            Err(e) => self.state.order_errors = Fetch::Failed(e.what.to_owned()),
         }
     }
 
@@ -208,7 +196,7 @@ impl Home {
             match job {
                 Job::Config => match read_config(&result) {
                     Ok(config) => {
-                        self.load_engine(cx, &config);
+                        self.load_instance(cx, &config);
                         self.state.config = Fetch::Ready(config);
                     }
                     Err(why) => {
@@ -224,12 +212,24 @@ impl Home {
                         Err(why) => Fetch::Failed(why.clone()),
                     };
                 }
-                Job::Verify => {
-                    self.state.engine = match &result {
-                        Ok(out) => engine_model::parse_verify(&out.stdout)
+                Job::OrderErrors => {
+                    self.state.order_errors = match &result {
+                        Ok(out) => parse_order_errors(&out.stdout)
                             .map_or_else(|_| Fetch::Failed(failure_of(out)), Fetch::Ready),
                         Err(why) => Fetch::Failed(why.clone()),
                     };
+                }
+                Job::Stop => {
+                    // The game ends between two frames; Home reads its state again.
+                    if let Err(why) = &result {
+                        self.state.launch = Launch::Failed(why.clone());
+                    } else if let Ok(out) = &result
+                        && out.code != Some(0)
+                    {
+                        self.state.launch = Launch::Failed(failure_of(out));
+                    } else {
+                        cx.shell.status = Some(STOP_ASKED_STATUS.to_owned());
+                    }
                 }
                 Job::Run => {
                     self.state.launch = match &result {
@@ -249,14 +249,6 @@ impl Home {
     fn share(&self, cx: &mut PageCx<'_>) {
         if let Some(config) = self.state.config.ready() {
             share_config(cx, config);
-        }
-        match &self.state.engine {
-            Fetch::Ready(engine) => {
-                cx.shell.engine = (engine.status() == EngineStatus::Active)
-                    .then(|| FACT_ENGINE_ACTIVE.to_owned());
-            }
-            Fetch::Failed(_) => cx.shell.engine = None,
-            Fetch::Idle | Fetch::Loading => {}
         }
         if !self.state.reading() {
             cx.shell.play_blocked = self.state.block().map(block_text);
@@ -296,6 +288,17 @@ impl Home {
         }
     }
 
+    /// Stop: asks the running game to end between two frames, so its save flush and shader cache are kept.
+    fn stop_game(&mut self, cx: &mut PageCx<'_>) {
+        let Some(command) = self.state.stop_command() else {
+            return;
+        };
+        match start(cx, &command) {
+            Ok(id) => self.pending.add(Job::Stop, id),
+            Err(e) => self.state.launch = Launch::Failed(e.what.to_owned()),
+        }
+    }
+
     /// The error the blocked dialog shows and copies: the blocking problem, or the one the reads hit.
     fn blocked_error(&self) -> ErrorText {
         self.state
@@ -325,7 +328,6 @@ fn step_text(step: Step) -> &'static str {
         Step::Game => STEP_GAME,
         Step::Storage => STEP_STORAGE,
         Step::Instance => STEP_INSTANCE,
-        Step::Engine => STEP_ENGINE,
         Step::LoadOrder => STEP_LOAD_ORDER,
     }
 }
@@ -336,8 +338,6 @@ pub(crate) fn block_text(block: Block) -> ErrorText {
         Block::Unreadable => PLAY_UNREADABLE,
         Block::NoGame => msg::PLAY_NO_GAME,
         Block::NoStorage => PLAY_NO_STORAGE,
-        Block::NoEngine => PLAY_NO_ENGINE,
-        Block::EngineDiffers => PLAY_ENGINE_CHANGED,
     }
 }
 
@@ -517,6 +517,9 @@ impl Home {
         if starting {
             icon(ui, &t, Mark::Info);
         }
+        if self.state.launch == Launch::Started && ui.button(STOP_GAME).clicked() {
+            self.stop_game(cx);
+        }
         if let Some(b) = block {
             let e = block_text(b);
             let fix = ui
@@ -570,12 +573,6 @@ impl Home {
             error_block(ui, &t, &RUN_FAILED, Some(why));
         }
         ui.add_space(8.0);
-        let engine = match &self.state.engine {
-            Fetch::Ready(e) if e.status() == EngineStatus::Active => FACT_ENGINE_ACTIVE,
-            Fetch::Ready(_) => FACT_NONE,
-            Fetch::Failed(_) => FACT_UNKNOWN,
-            Fetch::Idle | Fetch::Loading => DETAIL_CHECKING,
-        };
         let instance = self
             .state
             .config
@@ -587,9 +584,6 @@ impl Home {
             .num_columns(2)
             .spacing([16.0, 6.0])
             .show(ui, |ui| {
-                ui.label(RichText::new(FACT_ENGINE).color(t.muted.color()));
-                ui.label(RichText::new(engine).monospace());
-                ui.end_row();
                 ui.label(RichText::new(FACT_INSTANCE).color(t.muted.color()));
                 ui.add(egui::Label::new(RichText::new(&instance).monospace()).truncate())
                     .on_hover_text(&instance);
@@ -665,7 +659,6 @@ fn row_title(id: RowId) -> &'static str {
     match id {
         RowId::NewVegas => ROW_NEW_VEGAS,
         RowId::Storage => ROW_STORAGE,
-        RowId::Engine => ROW_ENGINE,
         RowId::Ttw => ROW_TTW,
         RowId::LoadOrder => ROW_LOAD_ORDER,
         RowId::Lod => ROW_LOD,
@@ -675,12 +668,10 @@ fn row_title(id: RowId) -> &'static str {
 fn row_detail(row: &Row) -> String {
     match &row.why {
         Why::Path(p) => p.clone(),
-        Why::Unreadable(m) | Why::EngineDiffers(m) => m.clone(),
+        Why::Unreadable(m) => m.clone(),
         Why::NotSet if row.id == RowId::Storage => DETAIL_STORAGE_NOT_SET.to_owned(),
         Why::NotSet => DETAIL_GAME_NOT_SET.to_owned(),
         Why::Checking => DETAIL_CHECKING.to_owned(),
-        Why::EngineActive => DETAIL_ENGINE_ACTIVE.to_owned(),
-        Why::EngineMissing => DETAIL_ENGINE_MISSING.to_owned(),
         Why::TtwReady => DETAIL_TTW_READY.to_owned(),
         Why::TtwNeedsSources => DETAIL_TTW_NEEDS.to_owned(),
         Why::OnItsPage if row.id == RowId::Lod => DETAIL_LOD.to_owned(),
@@ -852,35 +843,21 @@ pub fn fixtures() -> Vec<Fixture> {
             (Key::Instance, deep),
         ],
     );
-    let differs = Engine {
-        installed: true,
-        verified: false,
-        message: "nv-rs differs from the checksum recorded when it was installed".into(),
-    };
     vec![
         Fixture::new(
             "checking",
             seen(State {
                 config: Fetch::Loading,
-                engine: Fetch::Loading,
                 ..State::default()
             }),
         ),
-        Fixture::new(
-            "first-run",
-            seen(State::ready(Config::with(file, &[]), Engine::missing())),
-        ),
-        Fixture::new(
-            "no-engine",
-            seen(State::ready(all.clone(), Engine::missing())),
-        ),
-        Fixture::new("engine-differs", seen(State::ready(all.clone(), differs))),
-        Fixture::new("ready", seen(State::ready(all.clone(), Engine::active()))),
+        Fixture::new("first-run", seen(State::ready(Config::with(file, &[])))),
+        Fixture::new("ready", seen(State::ready(all.clone()))),
         Fixture::new(
             "no-instance",
             seen(State {
                 instance_exists: Some(false),
-                ..State::ready(all.clone(), Engine::active())
+                ..State::ready(all.clone())
             }),
         ),
         Fixture::new(
@@ -889,27 +866,16 @@ pub fn fixtures() -> Vec<Fixture> {
                 load_order: Fetch::Failed(
                     "the load order could not be read: there is no mod list yet".into(),
                 ),
-                ..State::ready(all.clone(), Engine::active())
+                ..State::ready(all.clone())
             }),
         ),
-        Fixture::new("ttw-ready", seen(State::ready(ttw, Engine::active()))),
-        Fixture::new(
-            "warning",
-            seen(State {
-                config: Fetch::Ready(all.clone()),
-                engine: Fetch::Failed(
-                    "the engine could not be checked: there is no mod list yet".into(),
-                ),
-                ..State::default()
-            }),
-        ),
+        Fixture::new("ttw-ready", seen(State::ready(ttw))),
         Fixture {
             name: "error",
             page: Box::new(seen(State {
                 config: Fetch::Failed(
                     "the configuration file has schema_version 2; this raul reads 1".into(),
                 ),
-                engine: Fetch::Ready(Engine::missing()),
                 ..State::default()
             })),
             shell: ShellState {
@@ -922,24 +888,24 @@ pub fn fixtures() -> Vec<Fixture> {
             "starting",
             seen(State {
                 launch: Launch::Starting,
-                ..State::ready(all.clone(), Engine::active())
+                ..State::ready(all.clone())
             }),
         ),
         Fixture::new(
             "started",
             seen(State {
                 launch: Launch::Started,
-                ..State::ready(all.clone(), Engine::active())
+                ..State::ready(all.clone())
             }),
         ),
         Fixture::new(
             "run-failed",
             seen(State {
                 launch: Launch::Failed("nvmod run: refused: the game is already running".into()),
-                ..State::ready(all, Engine::active())
+                ..State::ready(all)
             }),
         ),
-        Fixture::new("long-text", seen(State::ready(long, Engine::active()))),
+        Fixture::new("long-text", seen(State::ready(long))),
     ]
 }
 
@@ -953,14 +919,21 @@ mod tests {
     use raul_ui_service::{Exec, Output, registry};
     use std::sync::{Arc, Mutex};
 
+    const RUN_FAILED_PROBE: &str = "the game is not running";
+
     #[derive(Default)]
     struct Recording {
         calls: Mutex<Vec<Vec<String>>>,
+        /// What every call answers; `None` is a success.
+        answer: Mutex<Option<Result<Output, String>>>,
     }
 
     impl Exec for Recording {
         fn run(&self, args: &[String]) -> Result<Output, String> {
             self.calls.lock().unwrap().push(args.to_vec());
+            if let Some(answer) = self.answer.lock().unwrap().clone() {
+                return answer;
+            }
             Ok(Output {
                 code: Some(0),
                 stdout: String::new(),
@@ -1015,24 +988,73 @@ mod tests {
         }
     }
 
+    fn click_stop(name_answer: Option<Result<Output, String>>) -> (Vec<Vec<String>>, bool, bool) {
+        let exec = Arc::new(Recording::default());
+        *exec.answer.lock().unwrap() = name_answer;
+        let mut h = harness("started", exec.clone());
+        h.run();
+        h.get_by_label(STOP_GAME).click();
+        for _ in 0..100 {
+            h.run_steps(2);
+            if !exec.calls.lock().unwrap().is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        h.run_steps(10);
+        let calls = exec.calls.lock().unwrap().clone();
+        let asked = h.query_by_label(STOP_ASKED_STATUS).is_some();
+        let failed = h.query_by_label(RUN_FAILED_PROBE).is_some();
+        (calls, asked, failed)
+    }
+
+    #[test]
+    fn stop_asks_the_running_game_to_stop_through_raul_run_stop() {
+        let (calls, asked, _) = click_stop(None);
+        let waiting = registry::command("run-stop").is_some_and(|c| c.awaits.is_some());
+        if !waiting {
+            assert_eq!(
+                calls[0],
+                [
+                    "run",
+                    "--stop",
+                    "--instance",
+                    "/users/player/raul-storage/instance",
+                    "--json"
+                ]
+            );
+            assert!(asked, "the status says the game was asked to stop");
+        }
+    }
+
+    #[test]
+    fn a_refused_or_failed_stop_is_shown_as_a_failed_launch() {
+        let refused = Output {
+            code: Some(1),
+            stdout: String::new(),
+            stderr: RUN_FAILED_PROBE.to_owned(),
+        };
+        let (_, asked, _) = click_stop(Some(Ok(refused)));
+        assert!(!asked);
+        let (_, asked, _) = click_stop(Some(Err(RUN_FAILED_PROBE.to_owned())));
+        assert!(!asked);
+    }
+
     #[test]
     fn a_blocked_play_explains_and_its_fix_opens_the_owning_page() {
         let exec = Arc::new(Recording::default());
-        let mut h = harness("no-engine", exec.clone());
+        let mut h = harness("first-run", exec.clone());
         h.run();
         h.get_by_label(PLAY_BIG).click();
         h.run();
         let dialog = h.state().dialogs().current().cloned().unwrap();
-        assert_eq!(dialog.error, Some(PLAY_NO_ENGINE));
-        assert_eq!(dialog.body[0], PLAY_NO_ENGINE.detail);
+        assert_eq!(dialog.error, Some(msg::PLAY_NO_GAME));
+        assert_eq!(dialog.body[0], msg::PLAY_NO_GAME.detail);
         // The error is an error surface of its own: it can be copied from the dialog.
         assert!(h.query_all_by_label(msg::COPY_DETAILS).next().is_some());
         h.get_all_by_label(FIX).last().unwrap().click();
         h.run_steps(4);
-        assert_eq!(
-            h.state().view(),
-            View::Flow(raul_ui_model::pages::Flow::Setup)
-        );
+        assert_eq!(h.state().view(), View::Page(PageId::Settings));
         assert!(
             exec.calls.lock().unwrap().iter().all(|c| c[0] != "run"),
             "the game was not started"

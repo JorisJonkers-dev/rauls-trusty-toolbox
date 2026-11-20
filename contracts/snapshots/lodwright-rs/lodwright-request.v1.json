@@ -157,6 +157,10 @@
           "description": "Quality: the allowed vertical error is twice this many world units.",
           "type": "number",
           "format": "float"
+        },
+        "specular_alpha": {
+          "description": "Carry specular in the alpha channel of the normal map, written as BC3 (own design, `docs/spec/textures.md`).\nOff by default and written only when set; off keeps the normal map opaque BC1.",
+          "type": "boolean"
         }
       },
       "required": [
@@ -195,6 +199,14 @@
       "description": "Object LOD settings.",
       "type": "object",
       "properties": {
+        "drop_under_terrain": {
+          "description": "Leave out object faces that lie wholly under the ground (all three corners below the terrain at their\nposition). Off by default; written only when on.",
+          "type": "boolean"
+        },
+        "drop_under_water": {
+          "description": "Leave out object faces that lie wholly under the water of a cell that has water. Off by default; written\nonly when on.",
+          "type": "boolean"
+        },
         "enabled": {
           "description": "Write object LOD.",
           "type": "boolean",
@@ -222,6 +234,14 @@
           "default": [],
           "items": {
             "$ref": "#/$defs/LevelRequest"
+          }
+        },
+        "texture_scales": {
+          "description": "How often a land texture repeats across a cell quadrant in the diffuse maps, by the land texture's absolute\n`FormID` (eight hex digits); a texture not listed repeats once. Empty by default; written only when set.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "format": "float"
           }
         },
         "water": {

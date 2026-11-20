@@ -231,9 +231,15 @@ fn raul_setup_answers_the_transcripts_nvmod_recorded() {
                 .lines()
                 .map(|l| serde_json::from_str(l).unwrap())
                 .collect();
+            // nvmod's transcripts have its engine install step, `nv-rs`; the engine is linked into raul, so raul has
+            // no such step and the recorded ones are compared without it.
+            let recorded_steps: Vec<_> = shape(recorded)
+                .into_iter()
+                .filter(|(event, _, step)| !(event == "step" && step == "nv-rs"))
+                .collect();
             assert_eq!(
                 shape(&Value::Array(got.clone())),
-                shape(recorded),
+                recorded_steps,
                 "{name}: the events differ"
             );
             for (i, e) in got.iter().enumerate() {

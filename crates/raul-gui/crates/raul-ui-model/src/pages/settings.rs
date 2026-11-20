@@ -12,7 +12,7 @@ use serde::Deserialize;
 /// whether it writes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Command {
-    /// The registry id (`config-set`, `install-nv-rs`, ...).
+    /// The registry id (`config-set`, `target-nv-rs`, ...).
     pub id: &'static str,
     /// Every word after `raul`, without `--json` (the service adds it where the command takes it).
     pub words: Vec<String>,

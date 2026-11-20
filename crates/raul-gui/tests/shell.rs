@@ -107,17 +107,11 @@ fn a_sidebar_entry_opens_its_page() {
 }
 
 #[test]
-fn the_setup_strip_opens_the_home_of_each_value() {
+fn the_setup_strip_opens_the_home_of_the_game_folder() {
     let mut h = harness(1280.0, app());
     h.get_by_label_contains(msg::NEW_VEGAS).click();
     h.run_steps(8);
     assert_eq!(h.state().view(), View::Page(PageId::Settings));
-    h.get_by_label_contains(msg::ENGINE).click();
-    h.run_steps(8);
-    assert_eq!(
-        h.state().view(),
-        View::Flow(raul_ui_model::pages::Flow::Setup)
-    );
 }
 
 /// Answers `version` and records every command that ran.

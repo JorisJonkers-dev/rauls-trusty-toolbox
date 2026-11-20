@@ -19,9 +19,9 @@ use raul_ui_model::job::{JobId, JobState, Outcome};
 use raul_ui_model::pages::load_order::Problem;
 use raul_ui_model::pages::settings::{Answer, Command, Fetch, Key};
 use raul_ui_model::pages::ttw::{
-    DOWNLOAD_URL, Found, PackageInfo, Progress, Report, Settling, Sources, State, Step,
-    check_command, check_package, default_downloads, find_in, find_package, install_command,
-    is_archive_name, newest_archive, newest_candidate,
+    DOWNLOAD_URL, Found, NEEDED_BYTES, PackageInfo, Progress, Report, Settling, Sources, State,
+    Step, check_command, check_package, default_downloads, find_in, find_package, free_bytes_of,
+    install_command, is_archive_name, newest_archive, newest_candidate, space_command,
 };
 use raul_ui_model::pages::{Flow, PageId, View};
 use raul_ui_model::wizard::{Step as FlowStep, TtwNeed};
@@ -56,9 +56,9 @@ crate::texts!(TEXTS {
     FROM_INSTANCE = "From the Instance";
     NEW_VEGAS_DEFAULT = "The Instance's own copy";
     CHANGE = "Change in Settings";
-    MISSING_BOTH = "To continue, set the Fallout 3 folder in Settings, and add the TTW package below.";
+    MISSING_BOTH = "To continue, set the Fallout 3 folder in Settings, and set the TTW package in Settings.";
     MISSING_FALLOUT3 = "To continue, set the Fallout 3 folder in Settings.";
-    MISSING_PACKAGE = "To continue, add the TTW package below.";
+    MISSING_PACKAGE = "To continue, set the TTW package in Settings.";
     SECTION_PACKAGE = "The TTW package";
     PACKAGE_WHAT = "Download the Tale of Two Wastelands installer package from the TTW website. Its file name starts with TTW_ and ends in .mpi. If what you downloaded ends in .7z, unpack it first.";
     OPEN_DOWNLOAD = "Open the download page";
@@ -80,7 +80,11 @@ crate::texts!(TEXTS {
     FACT_GAMES = "Game folders";
     GAMES_UNTOUCHED = "Not changed";
     FACT_SPACE = "Space";
-    SPACE_NOTE = "Needs tens of GB free in the storage folder";
+    SPACE_READING = "Checking the free space";
+    SPACE_ENOUGH = "{free} GB free, {need} GB needed";
+    SPACE_SHORT = "Not enough: {free} GB free, {need} GB needed";
+    SPACE_UNKNOWN = "The free space could not be read. Make sure {need} GB are free.";
+    WAITS_FOR_SPACE = "To continue, free {more} GB on the drive of the storage folder.";
     CHECKING = "Checking: the package is read and both game copies are checked; nothing is written";
     SECTION_CHECKS = "Checks";
     CHECK_FALLOUT3 = "Fallout 3 checked";
@@ -128,6 +132,10 @@ crate::errors!(ERRORS {
     CHECK_FAILED = (
         "The checks did not pass",
         "Nothing changed. Fix what the line below names, then check again."
+    );
+    UNSUPPORTED_PACKAGE = (
+        "This version of the Toolbox cannot install this TTW version yet",
+        "Nothing changed, and nothing here is yours to fix. Use another TTW package, or wait for a newer Toolbox."
     );
     INSTALL_FAILED = (
         "TTW was not installed",
@@ -205,6 +213,8 @@ enum Job {
     Install,
     /// `raul config set ttw.package`, as Settings saves it.
     Save,
+    /// `raul space`: the free space where the Instance is.
+    Space,
 }
 
 impl Ttw {
@@ -244,6 +254,7 @@ impl Ttw {
         Some(match job {
             Job::Sources | Job::Refresh => Command::config_list(),
             Job::Check => check_command(i),
+            Job::Space => space_command(i),
             Job::Install => install_command(i, self.state.resuming),
             Job::Save => {
                 let file = self.state.wizard.package()?;
@@ -263,6 +274,10 @@ impl Ttw {
                 Ok(())
             }
             Job::Refresh => Ok(()),
+            Job::Space => {
+                self.state.space_loading();
+                Ok(())
+            }
             Job::Check => self.state.checking(),
             Job::Install => self.state.installing(),
             Job::Save => {
@@ -293,6 +308,10 @@ impl Ttw {
                     }
                     // The flow keeps the sources it has.
                     Job::Refresh => Ok(()),
+                    Job::Space => {
+                        self.state.space_failed(e.what.to_owned());
+                        Ok(())
+                    }
                     Job::Check => self.state.check_failed(problem(e)),
                     Job::Install => self.state.install_failed(problem(e)),
                     Job::Save => {
@@ -497,10 +516,22 @@ impl Ttw {
                     }
                     Ok(())
                 }
+                Job::Space => {
+                    match result
+                        .as_ref()
+                        .map_err(Clone::clone)
+                        .and_then(|o| free_bytes_of(&o.stdout))
+                    {
+                        Ok(free) => self.state.space_read(free),
+                        Err(why) => self.state.space_failed(why),
+                    }
+                    Ok(())
+                }
                 Job::Check => match report_of(&result) {
                     Ok(r) => {
                         let cause = r.message.clone().unwrap_or_default();
-                        self.state.checked(r, problem(&CHECK_FAILED, cause))
+                        let e = failure_of(r.status, &CHECK_FAILED);
+                        self.state.checked(r, problem(e, cause))
                     }
                     Err(why) => self.state.check_failed(problem(&CHECK_FAILED, why)),
                 },
@@ -510,7 +541,7 @@ impl Ttw {
                         Ok(r) => {
                             let e = match r.status {
                                 Status::Cancelled => &INSTALL_CANCELLED,
-                                _ => &INSTALL_FAILED,
+                                status => failure_of(status, &INSTALL_FAILED),
                             };
                             let cause = r.message.clone().unwrap_or_default();
                             if r.status == Status::Success {
@@ -584,7 +615,12 @@ impl Ttw {
             .copied()
             .unwrap_or(INSTALL_FAILED);
         let said = (!p.cause.is_empty()).then_some(p.cause.as_str());
-        error_block(ui, t, &e, said);
+        if e.id == UNSUPPORTED_PACKAGE.id {
+            // The raw line is for "Copy details" only: nothing in it is for the player to act on.
+            shell::error_widget_copying(ui, t, e.detail, e.what, "", said.unwrap_or_default());
+        } else {
+            error_block(ui, t, &e, said);
+        }
         ui.add_space(12.0);
     }
 
@@ -692,8 +728,26 @@ impl Ttw {
         ui.add_space(12.0);
     }
 
-    fn output(ui: &mut egui::Ui, t: &Tokens, instance: &str) {
+    /// The line of the Space row: what is free and what the install needs.
+    fn space_line(&self) -> String {
+        let need = gb(NEEDED_BYTES);
+        match &self.state.space {
+            Fetch::Idle | Fetch::Loading => SPACE_READING.to_owned(),
+            Fetch::Failed(_) => SPACE_UNKNOWN.replace("{need}", &need),
+            Fetch::Ready(free) => {
+                let line = if self.state.space_missing().is_some() {
+                    SPACE_SHORT
+                } else {
+                    SPACE_ENOUGH
+                };
+                line.replace("{free}", &gb(*free)).replace("{need}", &need)
+            }
+        }
+    }
+
+    fn output(&self, ui: &mut egui::Ui, t: &Tokens, instance: &str) {
         shell::section_label(ui, t, SECTION_OUTPUT, true);
+        let space = self.space_line();
         facts(
             ui,
             t,
@@ -702,7 +756,7 @@ impl Ttw {
                 (FACT_INTO, instance, true),
                 (FACT_AS, ADDED_AS, false),
                 (FACT_GAMES, GAMES_UNTOUCHED, false),
-                (FACT_SPACE, SPACE_NOTE, false),
+                (FACT_SPACE, space.as_str(), false),
             ],
         );
     }
@@ -819,10 +873,10 @@ impl Ttw {
         ui.add_space(16.0);
         shell::hairline(ui, t);
         ui.add_space(10.0);
-        let why = self.waits_for();
+        let why = self.waits_line();
         // What Next waits for gets a line of its own, so the buttons below keep their room (UI-RULES A6).
         if let Some(why) = why {
-            ui.add(egui::Label::new(RichText::new(why).color(t.muted.color())).wrap());
+            ui.add(egui::Label::new(RichText::new(why.as_str()).color(t.muted.color())).wrap());
         }
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -882,6 +936,16 @@ impl Ttw {
                 }
             });
         });
+    }
+
+    /// The line shown above the buttons: what a disabled Next waits for, and on Output the space still missing.
+    fn waits_line(&self) -> Option<String> {
+        if self.state.step == Step::Output
+            && let Some(missing) = self.state.space_missing()
+        {
+            return Some(WAITS_FOR_SPACE.replace("{more}", &gb(missing)));
+        }
+        self.waits_for().map(str::to_owned)
     }
 
     /// What a disabled Next waits for, in one line (UI-RULES G3).
@@ -944,6 +1008,15 @@ impl Page for Ttw {
             .replace("{name}", step_name(s.step))
     }
 
+    fn pinned(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
+        // The step tabs stay under the page header when the content scrolls.
+        if self.state.instance.is_some() && self.state.sources.ready().is_some() {
+            let installed = self.state.outcome() == Some(Outcome::Completed);
+            steps(ui, cx.tokens, self.state.step, installed);
+            ui.add_space(14.0);
+        }
+    }
+
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
         let back = self.visits.returned(ui.ctx());
@@ -963,6 +1036,12 @@ impl Page for Ttw {
         self.follow_install(cx);
         if self.state.needs_check() {
             self.run(cx, Job::Check);
+        }
+        if self.state.step == Step::Output
+            && self.state.space == Fetch::Idle
+            && self.state.instance.is_some()
+        {
+            self.run(cx, Job::Space);
         }
         let Some(instance) = self.state.instance.clone() else {
             ui.label(NO_INSTANCE);
@@ -987,13 +1066,10 @@ impl Page for Ttw {
             }
             Fetch::Ready(s) => s.clone(),
         };
-        let installed = self.state.outcome() == Some(Outcome::Completed);
-        steps(ui, &t, self.state.step, installed);
-        ui.add_space(14.0);
         self.problem_block(ui, &t);
         match self.state.step {
             Step::Sources => self.sources(ui, &t, cx, &sources),
-            Step::Output => Ttw::output(ui, &t, &instance),
+            Step::Output => self.output(ui, &t, &instance),
             Step::Review => self.review(ui, &t, &instance),
             Step::Install => self.install(ui, &t, &instance),
         }
@@ -1194,6 +1270,12 @@ fn source_row(
 }
 
 /// Label and value rows; a path value is monospace and truncates with the whole in a tooltip.
+/// Bytes as whole gigabytes, rounded up, so a shortage is never understated.
+fn gb(bytes: u64) -> String {
+    const GB: u64 = 1024 * 1024 * 1024;
+    bytes.div_ceil(GB).to_string()
+}
+
 fn facts(ui: &mut egui::Ui, t: &Tokens, id: &str, rows: &[(&str, &str, bool)]) {
     let width = (ui.available_width() * 0.6).clamp(120.0, 620.0);
     egui::Grid::new(id)
@@ -1258,6 +1340,19 @@ fn at(step: Step, sources: Sources) -> State {
     s
 }
 
+fn output_state() -> State {
+    at(Step::Output, sources(Some(FALLOUT3), Some(PACKAGE)))
+}
+
+/// `state` with the free space read: `Some(gigabytes)`, or unreadable.
+fn with_space(mut state: State, gigabytes: Option<u64>) -> State {
+    match gigabytes {
+        Some(g) => state.space_read(g * 1024 * 1024 * 1024),
+        None => state.space_failed("the folder could not be read".to_owned()),
+    }
+    state
+}
+
 fn reviewed() -> State {
     let mut s = at(Step::Review, sources(Some(FALLOUT3), Some(PACKAGE)));
     let _ = s.checking();
@@ -1280,6 +1375,16 @@ fn installing(done: u64, total: Option<u64>) -> State {
         total,
     });
     s
+}
+
+/// The error a run that did not succeed shows: a package the Component refuses as unsupported has its own words,
+/// every other status shows `other`.
+fn failure_of(status: Status, other: &'static ErrorText) -> &'static ErrorText {
+    if status == Status::Unsupported {
+        &UNSUPPORTED_PACKAGE
+    } else {
+        other
+    }
 }
 
 fn problem(e: &ErrorText, cause: &str) -> Problem {
@@ -1327,8 +1432,8 @@ pub fn fixtures() -> Vec<Fixture> {
             ..Report::of(Status::Unsupported, true)
         },
         problem(
-            &CHECK_FAILED,
-            "the package version is not supported by this installer",
+            failure_of(Status::Unsupported, &CHECK_FAILED),
+            "ttwright does not support this TTW package; nothing was written (unsupported_feature): the manifest uses the audio parameter `audio_param:-c`",
         ),
     );
     let mut cancelling = installing(12, Some(48));
@@ -1396,10 +1501,9 @@ pub fn fixtures() -> Vec<Fixture> {
             "long-text",
             at(Step::Sources, sources(Some(long_path), Some(PACKAGE))),
         ),
-        fixture(
-            "output",
-            at(Step::Output, sources(Some(FALLOUT3), Some(PACKAGE))),
-        ),
+        fixture("output", with_space(output_state(), Some(120))),
+        fixture("output-space-short", with_space(output_state(), Some(12))),
+        fixture("output-space-unknown", with_space(output_state(), None)),
         fixture("checking", checking),
         fixture("check-failed", check_failed),
         fixture("review", reviewed()),
@@ -1440,6 +1544,37 @@ mod tests {
         assert_eq!(r.message.as_deref(), Some("stopped"));
         assert!(report_of(&Ok(output(0, "not a stream"))).is_err());
         assert_eq!(report_of(&Err("no raul".into())).unwrap_err(), "no raul");
+    }
+
+    #[test]
+    fn an_unsupported_package_says_the_toolbox_cannot_install_it_yet() {
+        use egui_kittest::kittest::Queryable;
+        assert_eq!(
+            failure_of(Status::Unsupported, &CHECK_FAILED).id,
+            UNSUPPORTED_PACKAGE.id
+        );
+        assert_eq!(
+            failure_of(Status::Failed, &INSTALL_FAILED).id,
+            INSTALL_FAILED.id
+        );
+        let page = fixtures()
+            .into_iter()
+            .find(|f| f.name == "check-failed")
+            .expect("the unsupported package fixture");
+        let mut h = harness(page, std::sync::Arc::new(Recording::default()));
+        h.run();
+        h.get_by_label(UNSUPPORTED_PACKAGE.what);
+        // The detail shows once, and the raw line stays off the screen.
+        assert_eq!(h.query_all_by_label(UNSUPPORTED_PACKAGE.detail).count(), 1);
+        assert!(h.query_by_label_contains("audio_param").is_none());
+    }
+
+    #[test]
+    fn the_sources_hints_point_to_the_settings_not_to_something_below() {
+        for text in [MISSING_BOTH, MISSING_PACKAGE] {
+            assert!(!text.contains("below"), "{text}");
+            assert!(text.contains("Settings"), "{text}");
+        }
     }
 
     #[test]

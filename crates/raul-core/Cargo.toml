@@ -20,9 +20,9 @@ zip = { version = "=9.4.1", default-features = false, features = ["deflate"] }
 serde = { workspace = true }
 toml = { workspace = true }
 serde_json = { workspace = true }
+sysinfo = { version = "=0.39.6", default-features = false, features = ["disk"] }
 nvmod-api = { workspace = true }
 nvmod-core = { workspace = true }
-nvmod-install = { workspace = true }
 nvmod-instance = { workspace = true }
 nvmod-pe = { workspace = true }
 nvmod-run = { workspace = true }

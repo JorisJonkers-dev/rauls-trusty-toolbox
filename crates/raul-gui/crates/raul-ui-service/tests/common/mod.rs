@@ -67,6 +67,9 @@ pub fn install_plain(inst: &Instance) {
         dry_run: false,
         answers: None,
         max_extract_bytes: None,
+        extract_limits: nvmod_api::install::LimitOverrides::default(),
+        fomod_answers: None,
+        on_conflict: nvmod_api::install::OnConflict::default(),
     };
     match nvmod_api::install::install(&request, &mut NoProgress, &CancelToken::new()).unwrap() {
         Outcome::Done(InstallOutput::Installed(_)) => {}

@@ -214,6 +214,31 @@ fn target_set_as_a_direct_job_writes_the_instance_file() {
 }
 
 #[test]
+fn the_setup_wizards_target_command_is_the_direct_target_job() {
+    // The words the wizard's last engine step passes: `target nv-rs --instance <dir>` after the command word.
+    let words = |w: &[&str]| w.iter().map(|x| (*x).to_owned()).collect::<Vec<_>>();
+    let inst = Instance::new();
+    assert_eq!(instance_record(&inst)["target"], "vanilla");
+    let job = direct::for_command(
+        "target-nv-rs",
+        &words(&["nv-rs", "--instance", &s(&inst.root())]),
+    )
+    .expect("target is a direct job");
+    let spec = JobSpec::new(JobId(5), Action::Target, Vec::new()).writing();
+    let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+    assert_eq!(out.code, Some(0), "{out:?}");
+    assert_eq!(instance_record(&inst)["target"], "nv-rs");
+
+    // No Instance is a usage error that writes nothing.
+    let before = instance_record(&inst);
+    let rest = words(&["nv-rs"]);
+    let job = direct::for_command("target-nv-rs", &rest).unwrap();
+    let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+    assert_eq!(out.code, Some(5), "{rest:?}: {out:?}");
+    assert_eq!(instance_record(&inst), before);
+}
+
+#[test]
 fn a_held_instance_lock_refuses_a_target_change_and_changes_nothing() {
     let inst = Instance::new();
     let before = instance_record(&inst);
@@ -311,4 +336,79 @@ fn an_instance_without_a_profile_gets_the_default_one_and_the_action_runs_again(
         .unwrap();
     assert!(report.plugins.len() <= 1, "{report:?}");
     assert!(inst.root().join("profiles/Default/modlist.txt").is_file());
+}
+
+/// The words the Mods page passes for `id` (the registry command), after the subcommand.
+fn page_words(name: &str, root: &str, position: Option<&str>) -> Vec<String> {
+    let mut rest = vec![name.to_owned()];
+    if let Some(position) = position {
+        rest.extend(["--position".to_owned(), position.to_owned()]);
+    }
+    rest.extend(["--instance".to_owned(), root.to_owned()]);
+    rest
+}
+
+#[test]
+fn the_mods_page_commands_are_direct_jobs_that_write_what_the_command_line_writes() {
+    for (id, verb, position) in [
+        ("mods-disable", "disable", None),
+        ("mods-enable", "enable", None),
+        ("mods-reorder", "reorder", Some("1")),
+    ] {
+        let (direct_inst, cli_inst) = (Instance::new(), Instance::new());
+        for inst in [&direct_inst, &cli_inst] {
+            install_plain(inst);
+        }
+        // Start from a disabled Mod so every verb has something to do in a way the file shows.
+        for inst in [&direct_inst, &cli_inst] {
+            let root = s(&inst.root());
+            let out = InProcessExec::new()
+                .run(&[
+                    "mods".into(),
+                    "disable".into(),
+                    "Plain Mod".into(),
+                    "--instance".into(),
+                    root,
+                ])
+                .unwrap();
+            assert_eq!(out.code, Some(0), "{out:?}");
+        }
+        let words = page_words("Plain Mod", &s(&direct_inst.root()), position);
+        let job = direct::for_command(id, &words).unwrap_or_else(|| panic!("{id} is not direct"));
+        let spec = JobSpec::new(JobId(3), Action::Mods, Vec::new()).writing();
+        let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+        assert_eq!(out.code, Some(0), "{id}: {out:?}");
+
+        let mut cli_words = vec!["mods".to_owned(), verb.to_owned()];
+        cli_words.extend(page_words("Plain Mod", &s(&cli_inst.root()), position));
+        cli_words.push("--json".to_owned());
+        let cli = InProcessExec::new().run(&cli_words).unwrap();
+        assert_eq!(cli.code, Some(0), "{id}: {cli:?}");
+        assert_eq!(
+            std::fs::read_to_string(modlist(&direct_inst)).unwrap(),
+            std::fs::read_to_string(modlist(&cli_inst)).unwrap(),
+            "{id}: the direct job leaves the modlist the command leaves"
+        );
+    }
+}
+
+#[test]
+fn a_mods_page_command_without_its_mod_or_position_ends_as_a_usage_error_and_a_remove_stays_a_command()
+ {
+    let words = |w: &[&str]| w.iter().map(|x| (*x).to_owned()).collect::<Vec<_>>();
+    let spec = JobSpec::new(JobId(4), Action::Mods, Vec::new());
+    for (id, rest) in [
+        ("mods-enable", words(&["--instance", "/i"])),
+        (
+            "mods-reorder",
+            words(&["Plain Mod", "--position", "x", "--instance", "/i"]),
+        ),
+    ] {
+        let job = direct::for_command(id, &rest).unwrap();
+        let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+        assert_eq!(out.code, Some(5), "{id}: {out:?}");
+    }
+    assert!(
+        direct::for_command("mods-remove", &words(&["Plain Mod", "--instance", "/i"])).is_none()
+    );
 }

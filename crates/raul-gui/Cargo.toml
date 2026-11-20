@@ -77,6 +77,7 @@ fork-play = { path = "../../components/nv-rs/crates/fork-play" }
 raul-cli = { path = "../raul-cli" }
 raul-runner = { path = "../raul-runner" }
 nvmod-api = { path = "../../components/nvmod-rs/crates/nvmod-api" }
+nvmod-loadorder = { path = "../../components/nvmod-rs/crates/nvmod-loadorder" }
 raul-core = { path = "../raul-core" }
 raul-drivers = { path = "../raul-drivers" }
 nvmod-core = { path = "../../components/nvmod-rs/crates/nvmod-core" }
@@ -85,6 +86,7 @@ nvmod-modinstall = { path = "../../components/nvmod-rs/crates/nvmod-modinstall" 
 nvmod-backup = { path = "../../components/nvmod-rs/crates/nvmod-backup" }
 nvmod-instance = { path = "../../components/nvmod-rs/crates/nvmod-instance" }
 nvmod-tools = { path = "../../components/nvmod-rs/crates/nvmod-tools" }
+nvmod-run = { path = "../../components/nvmod-rs/crates/nvmod-run" }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"
 # The toolkit (ADR-0012): glow renders with OpenGL, which software rendering covers on a machine with no GPU.

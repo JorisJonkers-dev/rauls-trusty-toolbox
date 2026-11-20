@@ -119,7 +119,7 @@ fn set_then_get_and_list_show_the_paths_and_the_derived_instance() {
     new_vegas(&nv);
     fallout3(&fo3);
     let package = env.home.path().join("TTW.mpi");
-    std::fs::write(&package, b"synthetic").unwrap();
+    std::fs::write(&package, b"BSA\0 synthetic").unwrap();
     let storage = env.home.path().join("storage");
     for (key, value) in [
         ("game.newvegas", &nv),
@@ -216,7 +216,7 @@ fn a_relative_path_is_stored_as_an_absolute_one() {
     let env = Env::new("raul-config-relative");
     let work = env.home.path().join("work");
     std::fs::create_dir_all(work.join("pkg")).unwrap();
-    std::fs::write(work.join("pkg/TTW.mpi"), b"x").unwrap();
+    std::fs::write(work.join("pkg/TTW.mpi"), b"BSA\0 x").unwrap();
     let out = Command::new(env!("CARGO_BIN_EXE_raul"))
         .args(["config", "set", "ttw.package", "pkg/TTW.mpi", "--json"])
         .current_dir(&work)
@@ -344,4 +344,70 @@ fn config_is_the_toolboxs_own_command_and_never_reaches_nvmod() {
     // The same check notices nvmod when it does run.
     assert!(env.raul(&["catalog", "--json"]).status.success());
     assert!(env.state().join("logs").exists());
+}
+
+/// A 7z archive of `files` at `path`.
+fn make_7z(path: &Path, files: &[(&str, &[u8])]) {
+    let mut writer = sevenz_rust2::ArchiveWriter::create(path).unwrap();
+    for (name, data) in files {
+        writer
+            .push_archive_entry(sevenz_rust2::ArchiveEntry::new_file(name), Some(*data))
+            .unwrap();
+    }
+    writer.finish().unwrap();
+}
+
+#[test]
+fn the_ttw_package_is_judged_by_content_not_by_name() {
+    let env = Env::new("raul-config-package");
+    let dir = env.home.path();
+    // The package starts with `BSA\0`, whatever it is called; the download that holds it is accepted too.
+    let mpi = dir.join("Tale of Two Wastelands 3.4.mpi");
+    std::fs::write(&mpi, b"BSA\0 made up").unwrap();
+    let renamed = dir.join("anything.bin");
+    std::fs::write(&renamed, b"BSA\0 made up").unwrap();
+    let download = dir.join("Tale of Two Wastelands 3.4-133-3.4.0-[mod.pub].7z");
+    make_7z(
+        &download,
+        &[
+            ("Tale of Two Wastelands 3.4.mpi", b"BSA\0 made up"),
+            ("installer.exe", b"MZ"),
+        ],
+    );
+    for accepted in [&mpi, &renamed, &download] {
+        let (code, v) = env.json(&["config", "set", "ttw.package", s(accepted), "--json"]);
+        assert_eq!(code, Some(0), "{accepted:?} {v}");
+        assert_eq!(v["entries"][0]["value"], s(accepted));
+    }
+    let stored = std::fs::read(env.file()).unwrap();
+
+    // A patch archive, a file that is neither, and an `.mpi` by name that does not start with `BSA\0` are refused: the
+    // stored value does not change.
+    let patch = dir.join("YUPTTW 13.9.1-133-3.4.0-2026.05.09-[mod.pub].7z");
+    make_7z(
+        &patch,
+        &[
+            ("YUPTTW.esm", b"TES4"),
+            ("Fallout - Meshes.bsa", b"BSA\0 of a Mod"),
+            ("YUPTTW.esm.override", b""),
+        ],
+    );
+    let text = dir.join("notes.txt");
+    std::fs::write(&text, b"not a package").unwrap();
+    let fake = dir.join("TTW_3.4.0.mpi");
+    std::fs::write(&fake, b"PK\x03\x04 a zip, not a BSA").unwrap();
+    for refused in [&patch, &text, &fake] {
+        let (code, v) = env.json(&["config", "set", "ttw.package", s(refused), "--json"]);
+        assert_eq!(code, Some(2), "{refused:?} {v}");
+        assert_valid(&v);
+        assert_eq!(v["error"]["code"], "invalid_value");
+        assert_eq!(v["error"]["key"], "ttw.package");
+        assert!(
+            v["error"]["message"]
+                .as_str()
+                .is_some_and(|m| m.contains("Tale of Two Wastelands <version>.mpi")),
+            "{v}"
+        );
+        assert_eq!(std::fs::read(env.file()).unwrap(), stored, "{refused:?}");
+    }
 }

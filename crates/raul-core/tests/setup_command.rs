@@ -152,12 +152,12 @@ fn a_dry_run_plans_and_writes_nothing() {
 }
 
 #[test]
-fn an_engine_step_is_named_nv_rs_in_the_stream() {
+fn the_nv_rs_target_is_a_step_of_the_stream_when_asked_for() {
     let s = Scratch::new();
     let mut request = s.request();
     request.engine = true;
     let (_, lines) = run(&fresh(request, true, false));
-    assert!(steps_with(&lines, "planned").contains(&"nv-rs".to_owned()));
+    assert!(steps_with(&lines, "planned").contains(&"target".to_owned()));
 }
 
 #[test]
@@ -366,28 +366,6 @@ fn an_unfinished_nvmod_setup_resumes_from_raul_at_the_same_next_step() {
         steps_with(&lines, "done"),
         ["mod:Better.zip", "stage", "sort", "verify"]
     );
-}
-
-#[test]
-fn the_journal_keeps_no_program_the_engine_step_would_run() {
-    let s = Scratch::new();
-    let mut request = s.request();
-    request.engine_options.packaged = Some(PathBuf::from("/somewhere/nv-rs"));
-    request.engine_options.cargo = Some(PathBuf::from("/somewhere/cargo"));
-    let cancel = CancelToken::new();
-    let mut stop = |l: raul_core::setup::Line| {
-        if l.json["event"] == "step" && l.json["status"] == "done" && l.json["step"] == "init" {
-            cancel.cancel();
-        }
-    };
-    execute(&fresh(request, false, true), &mut stop, &cancel);
-    let kept = Journal::open(&s.instance())
-        .unwrap()
-        .request()
-        .unwrap()
-        .unwrap();
-    assert_eq!(kept.engine_options.packaged, None);
-    assert_eq!(kept.engine_options.cargo, None);
 }
 
 #[test]

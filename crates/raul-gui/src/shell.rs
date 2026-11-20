@@ -162,7 +162,7 @@ impl App {
             .inner_margin(egui::Margin::symmetric(if narrow { 14 } else { 20 }, 8));
         egui::Panel::top("top")
             .frame(bar)
-            .show(ui, |ui| self.top_bar(ui, narrow));
+            .show(ui, |ui| self.top_bar(ui));
         egui::Panel::bottom("foot")
             .frame(bar.inner_margin(egui::Margin::symmetric(20, 6)))
             .show(ui, |ui| self.footer(ui));
@@ -282,7 +282,7 @@ impl App {
         }
     }
 
-    fn top_bar(&mut self, ui: &mut egui::Ui, narrow: bool) {
+    fn top_bar(&mut self, ui: &mut egui::Ui) {
         let t = self.tokens;
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing.x = 12.0;
@@ -294,13 +294,6 @@ impl App {
             let nv = self.shell.new_vegas.clone();
             if setup_entry(ui, &t, msg::NEW_VEGAS, nv.as_deref()).clicked() {
                 self.view = View::Page(PageId::Settings);
-            }
-            if !narrow {
-                ui.add(egui::Separator::default().vertical().spacing(4.0));
-            }
-            let engine = self.shell.engine.clone();
-            if setup_entry(ui, &t, msg::ENGINE, engine.as_deref()).clicked() {
-                self.view = View::Flow(raul_ui_model::pages::Flow::Setup);
             }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let blocked = self.play_block();
@@ -412,6 +405,7 @@ impl App {
         ui.add_space(10.0);
         hairline(ui, &t);
         ui.add_space(14.0);
+        page.pinned(ui, &mut cx);
         egui::ScrollArea::vertical()
             .auto_shrink([false, false])
             .show(ui, |ui| page.ui(ui, &mut cx));
@@ -767,6 +761,19 @@ fn without_command(line: &str) -> &str {
 /// be read with the mouse and the keyboard and copied the same way. `what` is what was being done, `title` what
 /// went wrong, and `detail` its lines.
 pub fn error_widget(ui: &mut egui::Ui, t: &Tokens, what: &str, title: &str, detail: &str) {
+    error_widget_copying(ui, t, what, title, detail, detail);
+}
+
+/// [`error_widget`] where the text on the clipboard (`copied`) is not the text on screen (`detail`): for a raw
+/// line that is useful in a bug report but means nothing to the player.
+pub fn error_widget_copying(
+    ui: &mut egui::Ui,
+    t: &Tokens,
+    what: &str,
+    title: &str,
+    detail: &str,
+    copied: &str,
+) {
     ui.horizontal_top(|ui| {
         crate::pages::home::icon(ui, t, crate::pages::home::Mark::Problem);
         ui.vertical(|ui| {
@@ -785,7 +792,7 @@ pub fn error_widget(ui: &mut egui::Ui, t: &Tokens, what: &str, title: &str, deta
             }
             ui.add_space(4.0);
             if ui.button(msg::COPY_DETAILS).clicked() {
-                ui.ctx().copy_text(copy_text(what, title, detail));
+                ui.ctx().copy_text(copy_text(what, title, copied));
             }
         });
     });

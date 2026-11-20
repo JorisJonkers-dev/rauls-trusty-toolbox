@@ -2,26 +2,20 @@
 //! Running the plan: each step is a call in this process, with no argument vector and no command re-entered.
 
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
 
 use raul_drivers::events::Event as TtwEvent;
 use raul_drivers::events::Status;
 use raul_drivers::ttw::{self, TtwRequest};
 
-use super::{
-    CancelToken, Error, ErrorKind, Event, Outcome, Output, Progress, Request, Step, engine, plan,
-};
+use super::{CancelToken, Error, ErrorKind, Event, Outcome, Output, Progress, Request, Step, plan};
 
 /// Run the setup `request` asks for: report the plan, then run each planned step in order, reporting it as a
 /// progress step. A step the plan skips is reported as skipped. The run ends at the first failing step with its
 /// typed [`Error`]; a stop asked for through `cancel` ends it before the next step, or inside a step that checks
 /// the token, as [`Outcome::Cancelled`].
 ///
-/// The engine step installs and checks nv-rs through the engine install library (`engine.rs`). Mod archives are
-/// read in process (`zip`, `7z` and compressed `tar`; a `rar` or another format nvmod cannot read is refused with its
-/// message). No step starts a process of its own except the engine install, which runs `cargo` for a source build
-/// and `curl` and `gh` to fetch and verify the release.
+/// Mod archives are read in process (`zip`, `7z` and compressed `tar`; a `rar` or another format nvmod cannot read
+/// is refused with its message). No step starts a process of its own.
 ///
 /// # Errors
 /// An [`Error`] naming the step, the job and the reason; the Instance is as that step left it (each job puts
@@ -178,14 +172,23 @@ fn execute(
             let r = api::profile::create(&request, &mut detail(step, progress), cancel);
             Ok(finish(step, r)?.is_some())
         }
-        Step::Engine => engine::run(req, step, progress, cancel),
         Step::Target => {
             let request = api::target::SetRequest {
                 instance,
                 target: api::target::Target::NvRs,
             };
             let r = api::target::set(&request, &mut detail(step, progress), cancel);
-            Ok(finish(step, r)?.is_some())
+            let done = finish(step, r)?.is_some();
+            if done {
+                // The engine is linked in: its capabilities come from it, for the Doctor (#398).
+                crate::capabilities::write_provided(&req.instance).map_err(|e| Error {
+                    kind: ErrorKind::Failed,
+                    step: step.clone(),
+                    job: "target.capabilities",
+                    summary: format!("the engine's capabilities could not be written: {e}"),
+                })?;
+            }
+            Ok(done)
         }
         Step::Ttw => run_ttw(req, step, progress, cancel),
         Step::Mod(archive) => {
@@ -197,6 +200,9 @@ fn execute(
                 dry_run: false,
                 answers: req.answers.clone(),
                 max_extract_bytes: None,
+                extract_limits: api::install::LimitOverrides::default(),
+                fomod_answers: None,
+                on_conflict: api::install::OnConflict::default(),
             };
             let r = api::install::install(&request, &mut detail(step, progress), cancel);
             match finish(step, r)? {
@@ -271,56 +277,6 @@ fn execute(
     }
 }
 
-/// Sets the flag when it is dropped, so the watcher thread ends even when the install panics.
-struct StopWatcher<'a>(&'a AtomicBool);
-
-impl Drop for StopWatcher<'_> {
-    fn drop(&mut self) {
-        self.0.store(true, Ordering::Relaxed);
-    }
-}
-
-/// Run `work` while a watcher thread turns a stop asked for on `cancel` into nvmod's process-wide stop request,
-/// which is what the TTW driver polls. The request is cleared again afterwards when this watcher made it and none
-/// stood before, so a
-/// later job in the same process starts clean.
-pub(super) fn with_cancel_bridge<T>(cancel: &CancelToken, work: impl FnOnce() -> T) -> T {
-    let (done, bridged) = (AtomicBool::new(false), AtomicBool::new(false));
-    // Declared first, so it drops last: the request is cleared even when `work` panics.
-    let _clear = ClearBridged {
-        already: nvmod_core::cancel::requested(),
-        bridged: &bridged,
-    };
-    std::thread::scope(|scope| {
-        let _stop = StopWatcher(&done);
-        scope.spawn(|| {
-            while !done.load(Ordering::Relaxed) {
-                if cancel.is_cancelled() {
-                    nvmod_core::cancel::request();
-                    bridged.store(true, Ordering::Relaxed);
-                    break;
-                }
-                std::thread::sleep(Duration::from_millis(50));
-            }
-        });
-        work()
-    })
-}
-
-/// Clears nvmod's process-wide stop request on drop when the watcher made it and none stood before.
-struct ClearBridged<'a> {
-    already: bool,
-    bridged: &'a AtomicBool,
-}
-
-impl Drop for ClearBridged<'_> {
-    fn drop(&mut self) {
-        if self.bridged.load(Ordering::Relaxed) && !self.already {
-            nvmod_core::cancel::reset();
-        }
-    }
-}
-
 /// The TTW step: raul's own in-process ttwright driver, never nvmod's TTW job.
 fn run_ttw(
     req: &Request,
@@ -340,24 +296,31 @@ fn run_ttw(
         dry_run: false,
         resume: choice.resume,
         timeout: choice.timeout.unwrap_or(ttw::DEFAULT_TIMEOUT),
+        free_space: Some(crate::space::free_bytes),
     };
-    let outcome = with_cancel_bridge(cancel, || {
-        ttw::install(&request, &mut |event| {
-            let (label, done, total) = match event {
-                TtwEvent::Phase { phase } => (format!("ttw.{phase}"), None, None),
-                TtwEvent::Progress {
-                    phase, done, of, ..
-                } => (format!("ttw.{phase}"), Some(done), (of > 0).then_some(of)),
-                _ => return,
-            };
-            progress.report(&Event::Detail {
-                step: step.clone(),
-                label,
-                done,
-                total,
-            });
-        })
-    });
+    // This setup's own cancel token stops the install: no process-wide request is set, so nothing else is stopped.
+    let cancelled = || cancel.is_cancelled();
+    let outcome = {
+        ttw::install_with_stop(
+            &request,
+            raul_drivers::Stop::Run(&cancelled),
+            &mut |event| {
+                let (label, done, total) = match event {
+                    TtwEvent::Phase { phase } => (format!("ttw.{phase}"), None, None),
+                    TtwEvent::Progress {
+                        phase, done, of, ..
+                    } => (format!("ttw.{phase}"), Some(done), (of > 0).then_some(of)),
+                    _ => return,
+                };
+                progress.report(&Event::Detail {
+                    step: step.clone(),
+                    label,
+                    done,
+                    total,
+                });
+            },
+        )
+    };
     let kind = match outcome.result.status {
         Status::Success => return Ok(true),
         Status::Cancelled => return Ok(false),
