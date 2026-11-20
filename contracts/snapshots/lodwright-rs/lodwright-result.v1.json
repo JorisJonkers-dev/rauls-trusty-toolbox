@@ -31,6 +31,17 @@
       "type": "string",
       "const": "lodwright-result"
     },
+    "dropped_faces": {
+      "description": "Object faces left out by `objects.drop_under_terrain` and `objects.drop_under_water`; omitted when neither\noption is on.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DroppedFaces"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "inputs_digest": {
       "description": "SHA-256 over the plugins' sizes and contents; omitted when they were not read.",
       "type": [
@@ -125,6 +136,28 @@
       "required": [
         "generated",
         "up_to_date"
+      ]
+    },
+    "DroppedFaces": {
+      "description": "Object faces left out, per kind.",
+      "type": "object",
+      "properties": {
+        "under_terrain": {
+          "description": "Faces wholly under the ground.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "under_water": {
+          "description": "Faces wholly under a cell's water (and not under the ground).",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "under_terrain",
+        "under_water"
       ]
     },
     "Status": {

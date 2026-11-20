@@ -18,6 +18,7 @@ use serde_json::Value;
 use super::inproc;
 use super::marker::{self, LEGACY_MOD_NAME, META_FILE, Marker, mod_name};
 use super::run_lock::RunLock;
+use super::stale::{self, Fingerprint};
 use super::{
     CONTRACT, LodError, LodErrorCode, LodResult, MANIFEST_FILE, SCHEMA_VERSION, SHARED_OUTPUT_DIR,
     WORK_DIR, plan, read_manifest,
@@ -381,6 +382,27 @@ fn discard_partial(out: &Path) {
     }
 }
 
+/// Records what the run was built from, so a later change can show the LOD as out of date. A failure is a warning:
+/// the LOD is in place either way.
+fn keep_fingerprint(
+    instance: &NvmodInstance,
+    profile: &str,
+    plan: &super::Plan,
+    manifest: &Value,
+    emit: &mut dyn FnMut(Event),
+) {
+    let digest = manifest["request_digest"].as_str().unwrap_or_default();
+    let kept = Fingerprint::capture(plan, digest)
+        .and_then(|f| stale::record(&instance.root, profile, &f).map_err(|e| e.to_string()));
+    if let Err(why) = kept {
+        emit(Event::Warning {
+            message: format!(
+                "the LOD is in place, but what it was built from could not be recorded, so it will not show as out of date: {why}"
+            ),
+        });
+    }
+}
+
 /// Generate LOD as `req` says, emitting [`Event`]s while it runs (not `finished`). It runs until it is done, failed or
 /// stopped by a stop request or the timeout.
 pub fn generate(req: &LodRequest, emit: &mut dyn FnMut(Event)) -> LodOutcome {
@@ -580,6 +602,7 @@ pub fn generate_with_cancel(
         && let Some(dir) = find_ci(&mods, &name)
     {
         r.up_to_date = true;
+        keep_fingerprint(&instance, &profile, &plan, &manifest, emit);
         r.mod_name = Some(name);
         r.files = Some(count_files(&dir) - u64::from(find_ci(&dir, META_FILE).is_some()));
         return done(r, false);
@@ -616,6 +639,7 @@ pub fn generate_with_cancel(
             for message in warnings {
                 emit(Event::Warning { message });
             }
+            keep_fingerprint(&instance, &profile, &plan, &manifest, emit);
             r.mod_name = Some(name);
             r.files = Some(files);
             done(r, true)
