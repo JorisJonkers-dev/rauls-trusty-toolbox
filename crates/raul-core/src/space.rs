@@ -47,7 +47,7 @@ pub fn free_space(folder: &Path) -> Result<Space, SpaceError> {
         .ancestors()
         .find(|p| !p.as_os_str().is_empty() && p.exists())
         .ok_or(SpaceError::NoFolder)?;
-    let real = existing.canonicalize().map_err(|_| SpaceError::NoFolder)?;
+    let real = plain(existing.canonicalize().map_err(|_| SpaceError::NoFolder)?);
     let disks = Disks::new_with_refreshed_list();
     let best = disks
         .list()
@@ -60,6 +60,14 @@ pub fn free_space(folder: &Path) -> Result<Space, SpaceError> {
         free_bytes: best.available_space(),
         total_bytes: best.total_space(),
     })
+}
+
+/// A Windows path without the verbatim prefix `canonicalize` adds, because the system lists its drives as `C:\`.
+fn plain(path: PathBuf) -> PathBuf {
+    match path.to_str().and_then(|p| p.strip_prefix(r"\\?\")) {
+        Some(rest) if !rest.starts_with("UNC") => PathBuf::from(rest),
+        _ => path,
+    }
 }
 
 #[cfg(test)]
@@ -82,6 +90,17 @@ mod tests {
         let s = free_space(&dir).unwrap();
         assert_eq!(s.folder, dir);
         assert!(s.total_bytes > 0);
+    }
+
+    #[test]
+    fn the_verbatim_prefix_of_a_windows_path_is_dropped() {
+        assert_eq!(
+            plain(PathBuf::from(r"\\?\C:\a\b")),
+            PathBuf::from(r"C:\a\b")
+        );
+        assert_eq!(plain(PathBuf::from("/a/b")), PathBuf::from("/a/b"));
+        let unc = PathBuf::from(r"\\?\UNC\host\share");
+        assert_eq!(plain(unc.clone()), unc);
     }
 
     #[test]
