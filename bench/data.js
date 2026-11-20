@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795203993306,
+  "lastUpdate": 1795204557917,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7643,6 +7643,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.261151,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e916aa8b10d52bbe04be40f50e47a4f3b56ab490",
+          "message": "test(lod): a killed run leaves the existing LOD Mod and its place alone and the next run finishes (#342) (#446)",
+          "timestamp": "2026-11-20T19:54:10Z",
+          "tree_id": "1c704e0fb301e901b3dd8997b2a9a5cc1e4e531b",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e916aa8b10d52bbe04be40f50e47a4f3b56ab490"
+        },
+        "date": 1795204557015,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.06765,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.670611,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.251308,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.500095,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.190843,
             "unit": "ms"
           }
         ]
