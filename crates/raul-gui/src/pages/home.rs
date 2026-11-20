@@ -1154,7 +1154,9 @@ mod tests {
         });
         home.visits.loaded = true;
         home.stop_asked = stop_asked;
-        let ago = std::time::Instant::now() - GRACE - std::time::Duration::from_secs(1);
+        let ago = std::time::Instant::now()
+            .checked_sub(GRACE + std::time::Duration::from_secs(1))
+            .unwrap();
         home.watching = Some(Watch {
             started: ago,
             last: None,
@@ -1193,14 +1195,8 @@ mod tests {
     #[test]
     fn home_leaves_the_running_state_when_the_game_has_ended() {
         let dir = scratch("ended");
-        // A process that is gone: a child that was started and waited for.
-        let mut child = std::process::Command::new(std::env::current_exe().unwrap())
-            .arg("--list")
-            .stdout(std::process::Stdio::null())
-            .spawn()
-            .unwrap();
-        let gone = child.id();
-        child.wait().unwrap();
+        // A process id above any the system hands out is never a running process.
+        let gone = i32::MAX as u32;
         lock(&dir, gone, "run nv-rs");
         let mut h = show(running_in(&dir, false));
         h.run();
