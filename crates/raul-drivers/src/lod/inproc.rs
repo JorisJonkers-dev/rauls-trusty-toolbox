@@ -17,6 +17,7 @@ use lodwright_api::{
     CancelToken, Error, GenerateOutcome, GenerateRequest, ProgressEvent, Step, generate,
 };
 
+use crate::Stop;
 use crate::events::Event;
 
 /// Nothing has stopped the call yet.
@@ -81,6 +82,7 @@ fn map(event: &ProgressEvent) -> Event {
 pub(crate) fn generate_with_events(
     job: &GenerateRequest,
     cancel: &CancelToken,
+    stop: Stop<'_>,
     timeout: Duration,
     emit: &mut dyn FnMut(Event),
 ) -> Run {
@@ -97,7 +99,7 @@ pub(crate) fn generate_with_events(
         scope.spawn(|| {
             while !done.load(Ordering::SeqCst) {
                 // The stop request is read first, then the clock; the first reason seen wins.
-                let reason = if nvmod_core::cancel::requested() {
+                let reason = if stop.requested() {
                     STOPPED
                 } else if started.elapsed() >= timeout {
                     TIMED_OUT
@@ -263,9 +265,13 @@ mod tests {
         let watched = cancel.clone();
         let started = Instant::now();
         let caught = std::panic::catch_unwind(AssertUnwindSafe(|| {
-            generate_with_events(&job, &cancel, Duration::from_secs(600), &mut |_| {
-                panic!("the caller's emit fails")
-            });
+            generate_with_events(
+                &job,
+                &cancel,
+                Stop::Process,
+                Duration::from_secs(600),
+                &mut |_| panic!("the caller's emit fails"),
+            );
         }));
         assert!(caught.is_err(), "the panic reaches the caller");
         assert!(watched.is_cancelled(), "the call was not cancelled");
