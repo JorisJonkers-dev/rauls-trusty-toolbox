@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795177695507,
+  "lastUpdate": 1795178297338,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6369,6 +6369,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 11.178645,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "17d4fac77fc3040fcf32ac392811ddd769af1b3f",
+          "message": "chore(deps): bump lodwright-rs to 0.6.0 (#381)\n\n* chore(deps): bump lodwright-rs to 0.6.0\n\n* test(contracts): take the lodwright 0.6.0 request and result schemas as the snapshots\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-20T12:35:00Z",
+          "tree_id": "4c502893577694691a1bc0f0c5f486a6aa366cd2",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/17d4fac77fc3040fcf32ac392811ddd769af1b3f"
+        },
+        "date": 1795178296607,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.535386,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.027731,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 29.879521999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.279568,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.306636,
             "unit": "ms"
           }
         ]
