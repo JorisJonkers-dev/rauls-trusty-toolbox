@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795202271780,
+  "lastUpdate": 1795203268464,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7496,6 +7496,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.9908030000000005,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "60ed29492098f9da373c46e8cc69151169e76261",
+          "message": "ci: Pipeline Complete waits for the GUI workspace job and fails with it (#440) (#441)\n\ngui.yml becomes a reusable workflow that ci.yml always calls; it no longer has its own path-filtered triggers.\nPipeline Complete needs it and its last step requires success, so a red or missing GUI run cannot merge.",
+          "timestamp": "2026-11-20T19:30:57Z",
+          "tree_id": "c70dcb3a280b43932f4a72202755d42bfbc5c2cc",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/60ed29492098f9da373c46e8cc69151169e76261"
+        },
+        "date": 1795203268074,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.059168,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.604083999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.4723,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.503725,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.120185,
             "unit": "ms"
           }
         ]
