@@ -2,7 +2,7 @@
 
 One product that takes a player's own copy of Fallout: New Vegas (and, for Tale of Two Wastelands, Fallout 3) to a
 modded game running natively on nv-rs, built from separately developed Components. This glossary is the canonical
-one for the product; the `nv-linux` workshop repository points here.
+one for the product; the owner's private workshop points here.
 
 ## Language
 

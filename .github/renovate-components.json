@@ -24,7 +24,7 @@
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
   "branchPrefix": "renovate-components/",
-  "rebaseWhen": "conflicted",
+  "rebaseWhen": "behind-base-branch",
   "automerge": true,
   "automergeType": "pr",
   "platformAutomerge": true,
