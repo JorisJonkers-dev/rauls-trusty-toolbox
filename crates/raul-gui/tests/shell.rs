@@ -168,6 +168,14 @@ fn the_update_button_sits_beside_the_version_and_starts_the_check() {
             .any(|c| c[0] == "update" && c.get(1).is_some_and(|w| w != "status")),
         "nothing reaches the network before a click (the status is read from this machine only)"
     );
+    // The call is made before its answer is drawn: give the page the frames to show it.
+    for _ in 0..200 {
+        h.run_steps(2);
+        if h.query_by_label("0.2.0").is_some() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
     assert!(
         h.query_by_label(TOOLBOX_LABEL).is_some() && h.query_by_label("0.2.0").is_some(),
         "the Toolbox's own version is plain text"
