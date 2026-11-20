@@ -241,39 +241,6 @@ jobs:
           # lodwright-rs and ttwright-rs are linked into raul (ADR-0016): no program of theirs is built or bundled.
           ls -l target/release/raul*
 
-      # nv-rs is not built here: its own release assets for the shipped version are verified against its
-      # checksum files and added: the Linux tarball, the Windows ZIP and the macOS universal tarball. On macOS
-      # cargo-packager puts components/ under the bundle's Resources.
-      - name: Add the nv-rs release the submodule pins
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          nvrs="$(scripts/component-version.sh nv-rs)"
-          case "$RUNNER_OS" in
-            Linux) pattern='nv-rs-linux-x86_64-*.tar.gz' ;;
-            Windows) pattern='nv-rs-preview-*-windows-x64.zip' ;;
-            macOS) pattern='nv-rs-macos-universal-dev.tar.gz' ;;
-          esac
-          dir="$RUNNER_TEMP/nv-rs"; mkdir -p "$dir"
-          # nv-rs lists its Windows files in SHA256SUMS-windows, its macOS ones in SHA256SUMS-macos and the rest in SHA256SUMS.
-          gh release download "$nvrs" --repo JorisJonkers-dev/nv-rs --pattern "$pattern" --pattern 'SHA256SUMS*' --dir "$dir"
-          # macOS's find has no -printf and its shasum stands in for sha256sum.
-          hasher() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$@"; else shasum -a 256 "$@"; fi; }
-          asset="$(cd "$dir" && find . -maxdepth 1 -name "$pattern" | sed 's|^\./||' | head -1)"
-          [ -n "$asset" ] || { echo "::error::nv-rs $nvrs has no asset $pattern"; exit 1; }
-          (cd "$dir" && cat SHA256SUMS* | grep -E "[ *]$asset\$" | hasher -c -)
-          mkdir -p target/bundle/components/nv-rs
-          case "$RUNNER_OS" in
-            Linux|macOS) tar -xzf "$dir/$asset" -C target/bundle/components/nv-rs ;;
-            Windows) unzip -q "$dir/$asset" -d target/bundle/components/nv-rs ;;
-          esac
-          # The checksum list raul checks the engine against before it puts it in an Instance (#179). The archive was
-          # verified against nv-rs's own checksum file above; this lists the files it unpacked to.
-          (cd target/bundle/components/nv-rs && find . -type f | sed 's|^\./||' | LC_ALL=C sort | while IFS= read -r f; do hasher "$f"; done > "$RUNNER_TEMP/FILES.sha256")
-          mv "$RUNNER_TEMP/FILES.sha256" target/bundle/components/nv-rs/FILES.sha256
-          grep -q 'nv-viewer' target/bundle/components/nv-rs/FILES.sha256
-
       - name: Third-party notices
         run: |
           set -euo pipefail
@@ -281,8 +248,8 @@ jobs:
             echo "# Third-party notices"
             echo
             echo "Raul's tRusty Toolbox is GPL-3.0-only. It includes the Components below, each under its own licence"
-            echo "(see their repositories at the versions pinned as submodules): all but nv-rs are linked into raul, and nv-rs"
-            echo "is its packaged engine build. The Rust crates are listed after them. No game files are included."
+            echo "(see their repositories at the versions pinned as submodules): all are linked into raul. The Rust"
+            echo "crates are listed after them. No game files are included."
             echo
             echo "| Component | Licence |"
             echo "| --- | --- |"
@@ -386,16 +353,12 @@ jobs:
             local out; out="$(RAUL_GUI_SMOKE=1 LIBGL_ALWAYS_SOFTWARE=1 timeout 120 xvfb-run -a "$@")"; echo "$out"
             [ "$out" = "raul: the window opened and closed" ]
           }
-          # lodwright-rs and ttwright-rs are linked into raul (ADR-0016): no package may hold a program of theirs.
+          # The Components are linked into raul (ADR-0016), the engine included: no package may hold a program of theirs,
+          # an engine viewer, or an engine folder (the game starts as raul's own play mode).
           no_component_programs() {
-            local found; found="$(find "$@" -type f \( -iname 'lodwright*' -o -iname 'ttwright*' \))"
-            if [ -n "$found" ]; then echo "::error::Component programs in the package:"; echo "$found"; return 1; fi
-          }
-          # The packaged engine and its checksum list must be in every package (macOS: the bundle's Resources); raul
-          # reads them from beside itself and never fetches an engine (#179).
-          engine_shipped() {
-            local found; found="$(find "$@" -type f -path '*components/nv-rs/FILES.sha256')"
-            if [ -z "$found" ]; then echo "::error::no packaged engine checksum list in the package"; return 1; fi
+            local found
+            found="$(find "$@" \( -type f \( -iname 'lodwright*' -o -iname 'ttwright*' -o -iname 'nv-viewer*' \) -o -path '*components/nv-rs' \))"
+            if [ -n "$found" ]; then echo "::error::Component programs or an engine in the package:"; echo "$found"; return 1; fi
           }
           case "$RUNNER_OS" in
             Linux)
@@ -410,16 +373,16 @@ jobs:
               window "$RUNNER_TEMP/raul-$VERSION-linux-x64/raul"
               grep -q "SIL Open Font License" "$RUNNER_TEMP/raul-$VERSION-linux-x64/THIRD-PARTY-NOTICES.md"
               no_component_programs "$RUNNER_TEMP/squashfs-root" "$RUNNER_TEMP/deb" "$RUNNER_TEMP/raul-$VERSION-linux-x64"
-              engine_shipped "$RUNNER_TEMP/squashfs-root"; engine_shipped "$RUNNER_TEMP/deb"; engine_shipped "$RUNNER_TEMP/raul-$VERSION-linux-x64" ;;
+              ;;
             Windows)
               7z x -bso0 -o"$RUNNER_TEMP/zip" target/packages/*-portable.zip
               check "$RUNNER_TEMP/zip/raul-$VERSION-windows-x64/raul.exe"
               scripts/installed-files.sh check "$RUNNER_TEMP/zip/raul-$VERSION-windows-x64"
-              no_component_programs "$RUNNER_TEMP/zip"; engine_shipped "$RUNNER_TEMP/zip"
+              no_component_programs "$RUNNER_TEMP/zip"
               setup="$(ls target/packages/*.setup.exe)"
               # The installer must hold the same raul.exe: 7z unpacks an NSIS installer without running it.
               7z x -bso0 -o"$RUNNER_TEMP/nsis" "$setup"; check "$(find "$RUNNER_TEMP/nsis" -iname raul.exe -print -quit)"
-              no_component_programs "$RUNNER_TEMP/nsis"; engine_shipped "$RUNNER_TEMP/nsis"
+              no_component_programs "$RUNNER_TEMP/nsis"
               # A silent install is tried under a time limit; it hung in CI before (#108): Git Bash rewrote /S into S:/, so
               # the installer opened its window and waited. MSYS_NO_PATHCONV keeps the argument. A hang is a warning.
               if MSYS_NO_PATHCONV=1 timeout 180 "$setup" /S /D="$(cygpath -w "$RUNNER_TEMP/installed")"; then
@@ -437,15 +400,9 @@ jobs:
               archs="$(lipo -archs "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/MacOS/raul")"; echo "$archs"
               grep -qw arm64 <<<"$archs"; grep -qw x86_64 <<<"$archs"
               no_component_programs "$RUNNER_TEMP/dmg"
-              engine_shipped "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/Resources"
-              # The engine's viewer is universal too, as raul is.
-              viewer="$(find "$RUNNER_TEMP/dmg/Raul's tRusty Toolbox.app/Contents/Resources/components/nv-rs" -type f -name nv-viewer | head -1)"
-              [ -n "$viewer" ] || { echo "::error::no nv-viewer in the bundle's Resources"; exit 1; }
-              archs="$(lipo -archs "$viewer")"; echo "nv-viewer: $archs"
-              grep -qw arm64 <<<"$archs"; grep -qw x86_64 <<<"$archs"
               mkdir -p "$RUNNER_TEMP/mac" && tar -xzf target/packages/*.tar.gz -C "$RUNNER_TEMP/mac"
               scripts/installed-files.sh check "$RUNNER_TEMP/mac/raul-$VERSION-${{ matrix.name }}"
-              engine_shipped "$RUNNER_TEMP/mac/raul-$VERSION-${{ matrix.name }}"
+              no_component_programs "$RUNNER_TEMP/mac"
               hdiutil detach "$RUNNER_TEMP/dmg" ;;
           esac
 
