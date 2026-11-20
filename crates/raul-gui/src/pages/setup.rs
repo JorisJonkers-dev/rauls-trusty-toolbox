@@ -13,12 +13,12 @@ use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText, Stroke};
 use raul_ui_model::pages::settings::{Answer, Command, Config, Fetch, Field, Key, Save};
-use raul_ui_model::pages::setup::install_command;
 use raul_ui_model::pages::setup::{
     Checks, EngineStep, Finding, Missing, State, Step, detect_command, doctor_command,
     engine_failure, init_and_profile_command, init_and_profile_commands, parse_detect,
     parse_doctor, suggest_storage,
 };
+use raul_ui_model::pages::setup::{install_command, target_command};
 use raul_ui_model::pages::{Flow, PageId, View};
 
 crate::texts!(TEXTS {
@@ -141,6 +141,7 @@ enum Job {
     Find(Key, Step),
     Init,
     Install,
+    Target,
     Doctor,
 }
 
@@ -216,6 +217,20 @@ impl Setup {
             Ok(id) => {
                 self.pending.add(job, id);
                 self.state.engine = step;
+            }
+            Err(e) => self.state.engine = EngineStep::Failed(e.what.to_owned()),
+        }
+    }
+
+    /// `raul target nv-rs`: the last part of the engine step, run once the engine is in the Instance.
+    fn set_target(&mut self, cx: &mut PageCx<'_>) {
+        let Some(instance) = self.state.instance() else {
+            return;
+        };
+        match start(cx, &target_command(&instance)) {
+            Ok(id) => {
+                self.pending.add(Job::Target, id);
+                self.state.engine = EngineStep::Installing;
             }
             Err(e) => self.state.engine = EngineStep::Failed(e.what.to_owned()),
         }
@@ -303,7 +318,16 @@ impl Setup {
                     Ok(out) => self.state.engine = EngineStep::Failed(failure_of(out)),
                     Err(why) => self.state.engine = EngineStep::Failed(why.clone()),
                 },
-                Job::Install => {
+                Job::Install => match &result {
+                    // The engine is in and checked: the Instance runs on it from now on, so the Quick check
+                    // judges the engine and not the game's own extender.
+                    Ok(out) if out.code == Some(0) => self.set_target(cx),
+                    Ok(out) => {
+                        self.state.engine = EngineStep::Failed(engine_failure(&failure_of(out)));
+                    }
+                    Err(why) => self.state.engine = EngineStep::Failed(why.clone()),
+                },
+                Job::Target => {
                     self.state.engine = match &result {
                         Ok(out) if out.code == Some(0) => {
                             cx.shell.engine = Some(super::home::FACT_ENGINE_ACTIVE.to_owned());
@@ -361,8 +385,13 @@ impl Setup {
                     .instance()
                     .map(|i| std::path::Path::new(&i).join("nv-rs").join("install.json"));
                 if record.is_some_and(|r| r.exists()) {
-                    self.state.engine = EngineStep::Installed;
-                    cx.shell.engine = Some(super::home::FACT_ENGINE_ACTIVE.to_owned());
+                    // An engine put in by an earlier run may have left the Instance on the game's own extender.
+                    if self.state.instance().is_some_and(|i| !runs_on_engine(&i)) {
+                        self.set_target(cx);
+                    } else {
+                        self.state.engine = EngineStep::Installed;
+                        cx.shell.engine = Some(super::home::FACT_ENGINE_ACTIVE.to_owned());
+                    }
                 }
             }
             Step::Check if self.state.checks == Fetch::Idle => self.run_checks(cx),
@@ -743,6 +772,14 @@ impl Setup {
     }
 }
 
+/// Whether the Instance in `instance` is set to run on the engine. An Instance file that cannot be read says no.
+fn runs_on_engine(instance: &str) -> bool {
+    std::fs::read_to_string(std::path::Path::new(instance).join("nvmod-instance.json"))
+        .ok()
+        .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+        .is_some_and(|record| record["target"] == "nv-rs")
+}
+
 fn rail(ui: &mut egui::Ui, t: &Tokens, current: Step) {
     for step in Step::ALL {
         let (name, sub) = match step {
@@ -1117,7 +1154,7 @@ mod tests {
         let exec = Arc::new(Script::default());
         let app = App::fixture(
             Fixture::new("flow", Setup::with(state)),
-            Jobs::new(exec.clone()).scripted(&["init", "install-nv-rs"]),
+            Jobs::new(exec.clone()).scripted(&["init", "install-nv-rs", "target"]),
         );
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
@@ -1134,7 +1171,7 @@ mod tests {
         h.run_steps(2);
         h.get_by_label(INSTALL).click();
         let calls = exec.clone();
-        wait_for(&mut h, move |_| calls.calls.lock().unwrap().len() >= 3);
+        wait_for(&mut h, move |_| calls.calls.lock().unwrap().len() >= 4);
         std::thread::sleep(std::time::Duration::from_millis(50));
         h.run_steps(4);
         h.get_by_label(NEXT).click();
@@ -1199,9 +1236,65 @@ mod tests {
             ]
         );
         assert_eq!(calls[2], ["install-nv-rs", "--instance", instance.as_str()]);
+        // Once the engine is in and checked, the Instance is set to run on it, before the Quick check reads it.
+        assert_eq!(
+            calls[3],
+            ["target", "nv-rs", "--instance", instance.as_str()]
+        );
         assert!(
             !calls.iter().any(|c| c[0] == "doctor"),
             "the Doctor is not a command line: {calls:?}"
+        );
+    }
+
+    #[test]
+    fn an_engine_left_on_the_games_own_extender_is_set_to_the_engine() {
+        // A storage folder whose Instance has the engine in it, written by a run that never set the target.
+        let storage = nvmod_testkit::TempDir::new("gui-setup-vanilla-engine");
+        let instance = storage.path().join("instance");
+        std::fs::create_dir_all(instance.join("nv-rs")).unwrap();
+        std::fs::write(instance.join("nv-rs/install.json"), "{}").unwrap();
+        std::fs::write(
+            instance.join("nvmod-instance.json"),
+            r#"{"schema_version":2,"base":"/games/nv","storefront":"steam","target":"vanilla"}"#,
+        )
+        .unwrap();
+        let storage = storage.path().to_string_lossy().into_owned();
+        let state = State::opened(
+            Config::with(
+                "/c",
+                &[(Key::NewVegas, "/games/nv"), (Key::StorageRoot, &storage)],
+            ),
+            None,
+        );
+        let exec = Arc::new(Script::default());
+        let app = App::fixture(
+            Fixture::new("flow", Setup::with(state)),
+            Jobs::new(exec.clone()).scripted(&["init", "install-nv-rs", "target"]),
+        );
+        let mut h = Harness::builder()
+            .with_size([1280.0, 800.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            });
+        h.run();
+        for _ in 0..2 {
+            h.get_by_label(NEXT).click();
+            wait_for(&mut h, |_| true);
+        }
+        let calls = exec.clone();
+        wait_for(&mut h, move |_| !calls.calls.lock().unwrap().is_empty());
+        let calls = exec.calls.lock().unwrap();
+        assert_eq!(
+            calls.as_slice(),
+            [[
+                "target",
+                "nv-rs",
+                "--instance",
+                &format!("{storage}/instance")
+            ]],
+            "only the target is set: the engine is in already"
         );
     }
 }

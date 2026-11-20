@@ -93,6 +93,8 @@ impl Fixture {
                 vec!["--instance", &instance]
             }
             (Action::Init, _) => vec!["--base", "BASE", "--instance", "NEW"],
+            // The target the fixture's Instance has already: nothing changes.
+            (Action::Target, _) => vec!["vanilla", "--instance", &instance],
             (Action::Sort, _) if command.flags.contains(&"--apply") && command.writes => {
                 vec![
                     "--instance",

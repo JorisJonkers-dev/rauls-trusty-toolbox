@@ -132,9 +132,12 @@ impl Action {
         )
     }
 
-    /// Whether the command takes `--json`. `init` and `install-nv-rs` print text only.
+    /// Whether the command takes `--json`. `init`, `install-nv-rs` and `target` print text only.
     pub fn takes_json(self) -> bool {
-        !matches!(self, Self::Init | Self::InstallNvRs | Self::Profile)
+        !matches!(
+            self,
+            Self::Init | Self::InstallNvRs | Self::Profile | Self::Target
+        )
     }
 
     /// What the GUI calls it.
@@ -374,6 +377,15 @@ pub const COMMANDS: &[Command] = &[
         action: Action::Config,
         words: &["unset"],
         flags: &["--json"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        // nvmod's `target <vanilla|nv-rs>`: the target is the first value a page passes; the setup wizard passes `nv-rs`.
+        id: "target",
+        action: Action::Target,
+        words: &[],
+        flags: &["--instance"],
         writes: true,
         awaits: None,
     },

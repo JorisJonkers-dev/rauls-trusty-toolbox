@@ -282,9 +282,12 @@ fn count_files(dir: &Path) -> usize {
         .sum()
 }
 
-/// The files ttwright has written under `dir`: all of them but its journal, which comes before the first asset.
+/// The assets ttwright has written under `dir`: not its journal, and not the package's own files it unpacks into
+/// `.mpi_package` before the first asset (that folder and the journal both come before any asset).
 fn written_assets(dir: &Path) -> usize {
-    count_files(dir).saturating_sub(usize::from(dir.join(".ttwright-journal.json").is_file()))
+    count_files(dir)
+        .saturating_sub(count_files(&dir.join(".mpi_package")))
+        .saturating_sub(usize::from(dir.join(".ttwright-journal.json").is_file()))
 }
 
 fn read(p: &Path) -> String {

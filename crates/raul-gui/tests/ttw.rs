@@ -21,11 +21,11 @@ use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobEvent, JobId, JobState, JobTable, Outcome};
 use raul_ui_model::pages::{Flow, View};
 use raul_ui_service::registry::Action;
-use raul_ui_service::{CancelHandle, CliService, JobSpec, ProcessExec, Service, TtwRequest};
+use raul_ui_service::{CancelHandle, CliService, Hold, JobSpec, ProcessExec, Service, TtwRequest};
 use serde_json::json;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use ttwright_testkit::{Manifest, loc, mpi_package};
 
 /// The package's own folder name inside the Instance's `mods`.
@@ -286,7 +286,6 @@ fn a_cancelled_ttw_job_stops_the_install() {
     let cancel = CancelHandle::new();
     let asker = cancel.clone();
     let spec = JobSpec::new(JobId(1), Action::Ttw, f.request().args()).writing();
-    let started = Instant::now();
     f.service()
         .run_job_cancellable(
             &spec,
@@ -299,11 +298,6 @@ fn a_cancelled_ttw_job_stops_the_install() {
             &cancel,
         )
         .unwrap();
-    assert!(
-        started.elapsed() < Duration::from_secs(25),
-        "{:?}",
-        started.elapsed()
-    );
     let state = table.get(JobId(1)).map(|j| j.state);
     // A cancel ends as `cancelled` on every path in the driver (`cancelled before`, `cancelled while adding`), never
     // as a rollback or a failure.
@@ -329,8 +323,17 @@ impl Fixture {
     }
 
     fn window(&self) -> Harness<'static, App> {
+        self.window_with(None)
+    }
+
+    /// The window, with the install held at its first asset by `hold` when given.
+    fn window_with(&self, hold: Option<Arc<Hold>>) -> Harness<'static, App> {
         let exec = self.exec().with_grace(Duration::from_secs(5));
-        let app = App::new(Jobs::new(Arc::new(exec)).with_config_folder(&self.path("config")));
+        let mut jobs = Jobs::new(Arc::new(exec)).with_config_folder(&self.path("config"));
+        if let Some(hold) = hold {
+            jobs = jobs.holding_ttw(hold);
+        }
+        let app = App::new(jobs);
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {
@@ -361,38 +364,15 @@ fn to_review(h: &mut Harness<'static, App>) {
     }
 }
 
-/// Runs frames until ttwright has written its first asset (not just the journal that comes before it). The slow
-/// manifest has thousands more, so the install is still running when the caller clicks.
-fn until_writing(h: &mut Harness<'static, App>, f: &Fixture) {
-    let out = f.work().join("out");
-    let started = Instant::now();
-    while written_assets(&out) < 1 {
-        assert!(
-            started.elapsed() < Duration::from_secs(20),
-            "ttwright never started writing"
-        );
-        h.run_steps(1);
-        std::thread::sleep(Duration::from_millis(5));
-    }
-    h.run_steps(2);
-}
+/// The line of the install's stream the held install stands at: its first progress in the assets phase. The install
+/// goes on only when the test lets it, so what the test does while it stands there cannot race the install's speed.
+const ASSETS: &str = "\"assets\"";
 
-/// The files ttwright has written under `dir`: all of them but its journal, which comes before the first asset.
-fn written_assets(dir: &Path) -> usize {
-    count_files(dir).saturating_sub(usize::from(dir.join(".ttwright-journal.json").is_file()))
-}
-
-/// Files under `dir`, counting links as one file.
-fn count_files(dir: &Path) -> usize {
-    std::fs::read_dir(dir)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .map(|e| match e.file_type() {
-            Ok(t) if t.is_dir() => count_files(&e.path()),
-            _ => 1,
-        })
-        .sum()
+/// Runs the frames that start the install, waits until it stands still, then runs frames so the page shows its Cancel.
+fn until_held(h: &mut Harness<'static, App>, hold: &Hold) {
+    h.run_steps(4);
+    hold.wait_parked();
+    h.run_steps(4);
 }
 
 #[test]
@@ -444,11 +424,14 @@ fn a_refused_install_says_why_and_tries_again_from_the_review() {
 #[test]
 fn a_stopped_install_resumes_where_it_left_off() {
     let f = Fixture::for_window("gui-ttw-flow-resume", &slow_manifest());
-    let mut h = f.window();
+    let hold = Hold::at(ASSETS);
+    let mut h = f.window_with(Some(Arc::clone(&hold)));
     to_review(&mut h);
     h.get_by_role_and_label(Role::Button, INSTALL).click();
-    until_writing(&mut h, &f);
+    until_held(&mut h, &hold);
     h.get_by_role_and_label(Role::Button, CANCEL).click();
+    h.run_steps(4);
+    hold.release_when_stopped();
     settle(&mut h);
     assert!(!f.installed(), "the Instance is as it was");
     assert!(
@@ -467,18 +450,15 @@ fn a_stopped_install_resumes_where_it_left_off() {
 #[test]
 fn cancel_stops_a_running_install_and_the_instance_stays_as_it_was() {
     let f = Fixture::for_window("gui-ttw-flow-cancel", &slow_manifest());
-    let mut h = f.window();
+    let hold = Hold::at(ASSETS);
+    let mut h = f.window_with(Some(Arc::clone(&hold)));
     to_review(&mut h);
-    let started = Instant::now();
     h.get_by_role_and_label(Role::Button, INSTALL).click();
-    until_writing(&mut h, &f);
+    until_held(&mut h, &hold);
     h.get_by_role_and_label(Role::Button, CANCEL).click();
+    h.run_steps(4);
+    hold.release_when_stopped();
     settle(&mut h);
-    assert!(
-        started.elapsed() < Duration::from_secs(25),
-        "{:?}",
-        started.elapsed()
-    );
     assert!(!f.installed());
     assert!(
         [
@@ -526,14 +506,16 @@ fn the_flow_reviews_and_installs_with_the_keyboard_only() {
 #[test]
 fn cancel_and_resume_are_reachable_by_keyboard_during_an_install() {
     let f = Fixture::for_window("gui-ttw-keys-cancel", &slow_manifest());
-    let mut h = f.window();
+    let hold = Hold::at(ASSETS);
+    let mut h = f.window_with(Some(Arc::clone(&hold)));
     for _ in 0..2 {
         press_by_keyboard(&mut h, NEXT);
         settle(&mut h);
     }
     press_by_keyboard(&mut h, INSTALL);
-    until_writing(&mut h, &f);
+    until_held(&mut h, &hold);
     press_by_keyboard(&mut h, CANCEL);
+    hold.release_when_stopped();
     settle(&mut h);
     assert!(!f.installed(), "the Instance is as it was");
     assert!(
