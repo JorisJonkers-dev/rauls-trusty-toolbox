@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795212885511,
+  "lastUpdate": 1795214582367,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7790,6 +7790,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.109886,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "806207ba51bf9fc4bbf253819a7042bd9df6bcf0",
+          "message": "feat(ttw): the TTW page says how many files the installer put in _ttwright_game_root, and lists them in Copy details (#429) (#451)",
+          "timestamp": "2026-11-20T22:38:22Z",
+          "tree_id": "3d44409b90d3159a97f17d10b3402d5fb9f11420",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/806207ba51bf9fc4bbf253819a7042bd9df6bcf0"
+        },
+        "date": 1795214581629,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.390793,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.1934499999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.399735,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.0874650000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.848696,
             "unit": "ms"
           }
         ]
