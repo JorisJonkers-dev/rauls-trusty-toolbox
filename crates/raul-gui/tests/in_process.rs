@@ -216,35 +216,41 @@ fn no_action_the_window_offers_starts_a_program() {
         }
         args
     };
-    let actions: Vec<(Action, Vec<String>, bool)> = vec![
-        (Action::Doctor, with(&[]), false),
-        (Action::Conflicts, with(&[]), false),
-        (Action::Tree, with(&[]), false),
-        (Action::Plugins, with(&["list"]), false),
-        (Action::Mods, with(&["list"]), false),
-        (Action::Mods, with(&["disable", "Other"]), true),
-        (Action::Mods, with(&["enable", "Other"]), true),
-        (Action::Sort, sort(false), false),
-        (Action::Sort, sort(true), true),
-        (Action::Lod, with(&["plan"]), false),
-        (Action::Lod, with(&["mods"]), false),
-        // No package is configured, so the install is refused before it starts: the path to ttwright is still taken.
-        (Action::Ttw, with(&["--dry-run"]), true),
-        (Action::Rollback, with(&[]), true),
+    // The exit code each action must end with: `Some(0)`, or `None` where the fixture does not decide it.
+    let actions: Vec<(Action, Vec<String>, bool, Option<i64>)> = vec![
+        (Action::Doctor, with(&[]), false, None),
+        (Action::Conflicts, with(&[]), false, Some(0)),
+        (Action::Tree, with(&[]), false, Some(0)),
+        (Action::Plugins, with(&["list"]), false, Some(0)),
+        (Action::Mods, with(&["list"]), false, Some(0)),
+        (Action::Mods, with(&["disable", "Other"]), true, Some(0)),
+        (Action::Mods, with(&["enable", "Other"]), true, Some(0)),
+        (Action::Sort, sort(false), false, Some(0)),
+        (Action::Sort, sort(true), true, Some(0)),
+        (Action::Lod, with(&["plan"]), false, Some(0)),
+        (Action::Lod, with(&["mods"]), false, Some(0)),
+        // No package is configured, so the install is refused before ttwright starts: this covers the dispatch and the
+        // refusal, not the install (`direct_streams.rs` covers that). The doctor may find something on this fixture, and
+        // an undo with nothing to undo is refused: both end with a code of their own.
+        (Action::Ttw, with(&["--dry-run"]), true, None),
+        (Action::Rollback, with(&[]), true, None),
     ];
     let before = raul_runner::programs_started();
     let mut jobs = Jobs::real();
-    for (action, args, writes) in actions {
+    for (action, args, writes, expected) in actions {
         let id = jobs.start(action, args.clone(), writes).unwrap();
         assert!(
             jobs.wait_all(JOB_TIMEOUT),
             "{action:?} {args:?} did not end within {JOB_TIMEOUT:?}"
         );
         jobs.poll();
-        assert!(
-            jobs.output(id).is_some(),
-            "{action:?} {args:?} ended without an answer"
-        );
+        let out = jobs
+            .output(id)
+            .unwrap_or_else(|| panic!("{action:?} {args:?} ended without an answer"));
+        assert!(out.code.is_some(), "{action:?} {args:?}: {}", out.stderr);
+        if let Some(code) = expected {
+            assert_eq!(out.code, Some(code), "{action:?} {args:?}: {}", out.stderr);
+        }
     }
     assert_eq!(
         raul_runner::programs_started(),
