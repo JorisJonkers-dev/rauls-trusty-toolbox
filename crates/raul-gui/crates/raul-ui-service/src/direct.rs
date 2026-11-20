@@ -516,7 +516,8 @@ fn fetch_masterlist(
     lock: Option<&Path>,
     store: Option<&Path>,
 ) -> Result<PathBuf, JobError> {
-    use nvmod_tools::{Acquire, AcquireError, Curl, Lock, Store, Trust, builtin_lock};
+    use crate::fetch::CurlFetcher;
+    use nvmod_tools::{Acquire, AcquireError, Lock, Store, Trust, builtin_lock};
     const WHAT: &str = "loadorder.sort.fetch";
     let refused = |why: String| JobError::new(ErrorKind::Refused, WHAT, why);
     let lock = match lock {
@@ -534,9 +535,7 @@ fn fetch_masterlist(
         ))
     })?;
     let store = Store::new(store.map_or_else(Store::default_location, Path::to_path_buf));
-    let curl = Curl {
-        program: "curl".into(),
-    };
+    let curl = CurlFetcher::default();
     let trust = Trust::load(instance).map_err(refused)?;
     let acquire = Acquire {
         fetcher: &curl,
