@@ -20,8 +20,8 @@ use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText, Stroke};
 use raul_ui_model::pages::home::{
-    Block, Launch, Level, Readiness, Row, RowId, State, Step, Why, doctor_command, load_order_command,
-    parse_order_errors,
+    Block, Launch, Level, Readiness, Row, RowId, State, Step, Why, doctor_command,
+    load_order_command, parse_order_errors,
 };
 use raul_ui_model::pages::settings::{Command, Config, Fetch, Key};
 use raul_ui_model::pages::{Attention, PageId, Severity, View};
