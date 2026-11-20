@@ -60,9 +60,14 @@ jobs:
         if: ${{ !cancelled() }}
         run: cargo test --workspace --doc --locked
 
+  # The GUI workspace (crates/raul-gui) has its own lock file; gui.yml runs it, as a reusable workflow so that
+  # Pipeline Complete can wait for it and fail with it (#440).
+  gui:
+    uses: ./.github/workflows/gui.yml
+
   pipeline-complete:
     name: Pipeline Complete
-    needs: [quarantine, platforms]
+    needs: [quarantine, platforms, gui]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -160,6 +165,8 @@ jobs:
         env:
           QUARANTINE: ${{ needs.quarantine.result }}
           PLATFORMS: ${{ needs.platforms.result }}
+          GUI: ${{ needs.gui.result }}
         run: |
           test "$QUARANTINE" = success
           test "$PLATFORMS" = success
+          test "$GUI" = success
