@@ -422,14 +422,16 @@ fn the_shell_reads_the_instance_at_start_and_after_a_config_change() {
     });
     let mut h = harness(1280.0, App::new(Jobs::new(exec.clone())));
     let settle = |h: &mut Harness<'static, App>| {
+        // A finishing job asks for a repaint, so how many frames it takes to settle varies with timing; run a fixed
+        // number instead of asserting that the page settles within four.
         for _ in 0..3 {
-            h.run();
+            h.run_steps(6);
             assert!(
                 h.state_mut()
                     .wait_for_jobs(std::time::Duration::from_secs(10))
             );
         }
-        h.run();
+        h.run_steps(6);
     };
     settle(&mut h);
     assert_eq!(
