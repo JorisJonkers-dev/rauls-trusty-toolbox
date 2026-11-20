@@ -55,8 +55,13 @@ fn manifest() -> Manifest {
 
 /// The same package with many small copies, so an install runs long enough to be stopped while it works.
 fn slow_manifest() -> Manifest {
+    slow_manifest_of(4000)
+}
+
+/// A package of `assets` loose files: the install is still writing while a keyboard walk to Cancel takes its frames.
+fn slow_manifest_of(assets: usize) -> Manifest {
     let mut m = ttwright_testkit::Fixture::manifest();
-    for i in 0..4000 {
+    for i in 0..assets {
         m.asset(
             0,
             "",
@@ -525,7 +530,7 @@ fn the_flow_reviews_and_installs_with_the_keyboard_only() {
 
 #[test]
 fn cancel_and_resume_are_reachable_by_keyboard_during_an_install() {
-    let f = Fixture::for_window("gui-ttw-keys-cancel", &slow_manifest());
+    let f = Fixture::for_window("gui-ttw-keys-cancel", &slow_manifest_of(16000));
     let mut h = f.window();
     for _ in 0..2 {
         press_by_keyboard(&mut h, NEXT);
