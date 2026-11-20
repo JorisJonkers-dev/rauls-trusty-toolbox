@@ -6,6 +6,11 @@
 //! A changed picture fails the test and leaves `<name>.new.png` and `<name>.diff.png` next to the snapshot. After a
 //! look at them, `UPDATE_SNAPSHOTS=1 cargo test --test snapshots` accepts the change, and the pull request shows the
 //! new picture for review.
+//!
+//! The pictures are compared on Linux only: the software renderers of Windows and macOS rasterise glyph edges a few
+//! pixels differently (1 to 15 pixels on most pages, a full text line on the Versions pages), so a picture made on
+//! Linux cannot match there. Every other GUI test runs on all three systems (decision recorded in issue 434).
+#![cfg(target_os = "linux")]
 
 use egui_kittest::kittest::Queryable;
 use egui_kittest::{Harness, SnapshotOptions, SnapshotResults};
