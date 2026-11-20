@@ -959,25 +959,6 @@ mod tests {
         assert_eq!(Step::ALL.map(Step::number), [1, 2, 3, 4]);
     }
 
-    /// A folder of its own for one test, removed when it ends.
-    struct Scratch(PathBuf);
-
-    impl Scratch {
-        fn new(label: &str) -> Scratch {
-            let root =
-                std::env::temp_dir().join(format!("raul-ttw-{label}-{}", std::process::id()));
-            let _ = std::fs::remove_dir_all(&root);
-            std::fs::create_dir_all(&root).unwrap();
-            Scratch(root)
-        }
-    }
-
-    impl Drop for Scratch {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.0);
-        }
-    }
-
     #[test]
     fn the_usual_folders_are_downloads_then_desktop_then_the_settings_ones() {
         let home = Path::new("/home/person");
