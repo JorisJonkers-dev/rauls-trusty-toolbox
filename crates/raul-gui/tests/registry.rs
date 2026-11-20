@@ -107,7 +107,7 @@ impl Fixture {
             // An archive that is not there: the command understands the words and refuses it. The install of a
             // real archive is covered by the service test with a synthetic one.
             (Action::InstallMod, _) => vec!["missing.zip", "--instance", &instance, "--dry-run"],
-            (Action::Detect, _) => vec!["--folder", "BASE"],
+            (Action::Detect | Action::Space, _) => vec!["--folder", "BASE"],
             // The default profile of an Instance that already has one: nothing changes.
             (Action::Profile, _) => vec!["--name", "Default", "--instance", &instance],
             // A dry run: the launch plan is printed and nothing is started.
