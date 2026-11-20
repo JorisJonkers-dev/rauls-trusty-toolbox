@@ -66,7 +66,11 @@ fn the_update_check_is_a_command_of_the_release_build() {
     // The GUI's Check for updates runs exactly this; it reads the release list and downloads nothing (ADR-0005).
     let out = Command::new(env!("CARGO_BIN_EXE_raul"))
         .args(["update", "check", "--json"])
-        .env("RAUL_CONFIG_DIR", "/nonexistent/raul-config")
+        // An absolute folder on every system (a bare "/nonexistent" has no drive on Windows, so it is not absolute).
+        .env(
+            "RAUL_CONFIG_DIR",
+            std::env::temp_dir().join("raul-config-nonexistent"),
+        )
         .output()
         .expect("run raul");
     let stdout = String::from_utf8_lossy(&out.stdout);
@@ -88,6 +92,8 @@ fn portable_copy(dir: &std::path::Path) -> std::path::PathBuf {
     exe
 }
 
+// macOS does not update itself (the update layout is `NotHere(Mac)`), so there is nothing to settle there.
+#[cfg(not(target_os = "macos"))]
 #[test]
 fn a_new_version_that_fails_its_check_at_start_goes_back_to_the_old_one() {
     // The folder holds a finished, unconfirmed update whose list names a file that is not there: the new version's own
