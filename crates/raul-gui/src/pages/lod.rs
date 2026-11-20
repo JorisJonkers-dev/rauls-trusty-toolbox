@@ -21,6 +21,7 @@ use raul_ui_model::pages::lod::{
     BlockStatus, Outcome, Phase, Plan, Problem, Progress, State, Written, generate_command,
     parse_plan, plan_command, read_result,
 };
+use raul_ui_model::pages::mods::{GeneratedRow, generated_command, parse_generated};
 use raul_ui_model::pages::settings::Command;
 use raul_ui_model::pages::{Attention, Flow, PageId, Severity, View};
 use raul_ui_service::Output;
@@ -55,6 +56,11 @@ crate::texts!(TEXTS {
     KIND_TREES = "Trees";
     KIND_NONE = "Nothing: every kind is switched off in the LOD settings";
     KEEPS = "Keeps it as";
+    EXISTING = "In your mod list";
+    EXISTING_CURRENT = "Generated with LOD generator {v}. Nothing has changed since: it is current.";
+    EXISTING_MAY = "Generated with LOD generator {v}. Something changed since that may show in the LOD.";
+    EXISTING_MUST = "Generated with LOD generator {v}. Something changed since that shows in the LOD: generate again.";
+    EXISTING_UNKNOWN = "Generated with LOD generator {v}. Whether it is still current is not known.";
     KEEPS_VALUE = "One Mod in your mod list. A new run replaces it and keeps its place and whether it is on.";
     WORK_FOLDER = "Work folder";
     COL_BLOCK = "Block";
@@ -111,6 +117,22 @@ crate::errors!(ERRORS {
 
 const GENERATE_DIALOG: &str = "lod-generate";
 
+/// What the mod list says about the generated LOD Mod: the generator that made it and whether it is current.
+fn existing_line(row: &GeneratedRow) -> String {
+    let text = match row.stale.as_ref().map(|s| s.state.as_str()) {
+        Some("current") => EXISTING_CURRENT,
+        Some("may") => EXISTING_MAY,
+        Some("must") => EXISTING_MUST,
+        _ => EXISTING_UNKNOWN,
+    };
+    text.replace(
+        "{v}",
+        row.lodwright_version
+            .as_deref()
+            .unwrap_or("of an earlier release"),
+    )
+}
+
 /// The LOD page.
 #[derive(Debug, Default)]
 pub struct Lod {
@@ -121,12 +143,15 @@ pub struct Lod {
     generate: Option<JobId>,
     /// The Instance the open Generate dialog names.
     asked: Option<String>,
+    /// The Profile's own generated LOD Mod as the mod list has it, read with each plan.
+    existing: Option<GeneratedRow>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Job {
     Plan,
     Generate,
+    Existing,
 }
 
 impl Lod {
@@ -143,6 +168,7 @@ impl Lod {
         match job {
             Job::Plan => i.map(plan_command),
             Job::Generate => i.map(generate_command),
+            Job::Existing => i.map(generated_command),
         }
     }
 
@@ -157,6 +183,14 @@ impl Lod {
         match job {
             Job::Plan => self.state.planning(),
             Job::Generate => self.state.generating(),
+            Job::Existing => {}
+        }
+        if job == Job::Existing {
+            // A read for the page's note: when it cannot be made the note is simply not shown.
+            if let Ok(id) = start(cx, &command) {
+                self.pending.add(job, id);
+            }
+            return;
         }
         match start(cx, &command) {
             Ok(id) => {
@@ -215,6 +249,7 @@ impl Lod {
             ..State::default()
         };
         self.run(cx, Job::Plan);
+        self.run(cx, Job::Existing);
     }
 
     fn track_progress(&mut self, cx: &PageCx<'_>) {
@@ -234,6 +269,18 @@ impl Lod {
         for (job, result) in self.pending.finished(cx.jobs) {
             let command = self.command(job).map(|c| c.shown());
             match job {
+                Job::Existing => {
+                    if let Ok(out) = &result
+                        && let Ok(list) = parse_generated(&out.stdout)
+                    {
+                        self.existing = list
+                            .mods
+                            .iter()
+                            .find(|m| m.own)
+                            .or_else(|| list.mods.first())
+                            .cloned();
+                    }
+                }
                 Job::Plan => match plan_answer(&result) {
                     Ok(plan) => self.state.planned(plan),
                     Err(cause) => self.state.failed(Problem {
@@ -255,6 +302,7 @@ impl Lod {
                         }),
                         Err(why) => Err(why.clone()),
                     };
+                    self.run(cx, Job::Existing);
                     match outcome {
                         Ok(o) => self.finished(cx, o, command),
                         Err(cause) => {
@@ -311,7 +359,13 @@ impl Lod {
         }
     }
 
-    fn plan_section(ui: &mut egui::Ui, t: &Tokens, plan: &Plan, mod_name: Option<&str>) {
+    fn plan_section(
+        ui: &mut egui::Ui,
+        t: &Tokens,
+        plan: &Plan,
+        mod_name: Option<&str>,
+        existing: Option<&GeneratedRow>,
+    ) {
         shell::section_label(ui, t, SECTION_PLAN, true);
         let kinds: Vec<&str> = [
             (plan.terrain, KIND_TERRAIN),
@@ -355,6 +409,11 @@ impl Lod {
                     ui.label(RichText::new(KEEPS_VALUE).color(t.muted.color()));
                 });
                 ui.end_row();
+                if let Some(e) = existing {
+                    label(ui, EXISTING);
+                    ui.add(egui::Label::new(existing_line(e)).wrap());
+                    ui.end_row();
+                }
                 label(ui, WORK_FOLDER);
                 path(ui, t, &plan.output_dir);
                 ui.end_row();
@@ -510,6 +569,7 @@ impl Page for Lod {
         self.follow_instance(cx);
         if back && self.state.phase == Phase::Planned {
             self.run(cx, Job::Plan);
+            self.run(cx, Job::Existing);
         }
         self.take_answers(cx);
         // The answer counts only for the Instance the dialog named, and only while nothing runs.
@@ -583,8 +643,13 @@ impl Page for Lod {
         }
         ui.add_space(12.0);
         if let Some(plan) = self.state.plan.clone() {
-            let mod_name = self.state.outcome.as_ref().and_then(|o| o.mod_name.clone());
-            Self::plan_section(ui, &t, &plan, mod_name.as_deref());
+            let mod_name = self
+                .state
+                .outcome
+                .as_ref()
+                .and_then(|o| o.mod_name.clone())
+                .or_else(|| self.existing.as_ref().map(|e| e.name.clone()));
+            Self::plan_section(ui, &t, &plan, mod_name.as_deref(), self.existing.as_ref());
             ui.add_space(16.0);
             self.blocks(ui, &t);
             ui.add_space(14.0);
@@ -777,6 +842,26 @@ pub fn fixtures() -> Vec<Fixture> {
             },
         ),
         fixture("planned", planned(&[])),
+        {
+            let mut f = fixture("existing-mod", planned(&["NorthRidge"]));
+            f.page = Box::new(Lod {
+                existing: Some(GeneratedRow {
+                    name: FIXTURE_MOD.to_owned(),
+                    own: true,
+                    legacy: false,
+                    lodwright_version: Some("0.8.0".to_owned()),
+                    stale: Some(raul_ui_model::pages::mods::StaleRow {
+                        state: "may".to_owned(),
+                        reason: "the load order changed".to_owned(),
+                    }),
+                }),
+                ..Lod::with(State {
+                    instance: Some(INSTANCE.to_owned()),
+                    ..planned(&["NorthRidge"])
+                })
+            });
+            f
+        },
         fixture("generating", generating),
         fixture("generating-objects", objects),
         fixture("generated", built),
@@ -862,5 +947,24 @@ mod tests {
             stderr: "raul lod plan: refused: no Instance\n".into(),
         });
         assert!(plan_answer(&refused).unwrap_err().contains("no Instance"));
+    }
+
+    #[test]
+    fn the_note_about_the_existing_mod_says_how_current_it_is() {
+        let row = |state: Option<&str>, version: Option<&str>| GeneratedRow {
+            name: FIXTURE_MOD.to_owned(),
+            own: true,
+            legacy: false,
+            lodwright_version: version.map(str::to_owned),
+            stale: state.map(|s| raul_ui_model::pages::mods::StaleRow {
+                state: s.to_owned(),
+                reason: String::new(),
+            }),
+        };
+        assert!(existing_line(&row(Some("current"), Some("0.8.0"))).contains("it is current"));
+        assert!(existing_line(&row(Some("may"), Some("0.8.0"))).contains("may show"));
+        assert!(existing_line(&row(Some("must"), Some("0.8.0"))).contains("generate again"));
+        let unknown = existing_line(&row(None, None));
+        assert!(unknown.contains("not known") && unknown.contains("an earlier release"));
     }
 }
