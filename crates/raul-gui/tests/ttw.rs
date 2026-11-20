@@ -330,7 +330,7 @@ impl Fixture {
 
     fn window(&self) -> Harness<'static, App> {
         let exec = self.exec().with_grace(Duration::from_secs(5));
-        let app = App::new(Jobs::new(Arc::new(exec)));
+        let app = App::new(Jobs::new(Arc::new(exec)).with_config_folder(&self.path("config")));
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {

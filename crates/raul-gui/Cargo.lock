@@ -4617,6 +4617,7 @@ dependencies = [
 name = "raul-ui-service"
 version = "0.0.0"
 dependencies = [
+ "lodwright-testkit",
  "nvmod-api",
  "nvmod-backup",
  "nvmod-core",
@@ -4625,10 +4626,12 @@ dependencies = [
  "nvmod-tools",
  "raul-cli",
  "raul-core",
+ "raul-drivers",
  "raul-runner",
  "raul-ui-model",
  "serde",
  "serde_json",
+ "ttwright-testkit",
 ]
 
 [[package]]

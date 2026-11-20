@@ -10,6 +10,7 @@ use nvmod_instance::{NvmodInstance, find_ci};
 use nvmod_modinstall::{InstallError, Limits, Request};
 
 use super::{CONTRACT, MOD_NAME, SCHEMA_VERSION, TtwError, TtwErrorCode, TtwResult};
+use crate::Stop;
 use crate::events::{Event, Status, ToolInfo};
 
 /// The `ttwright-events` version this build reads.
@@ -255,8 +256,14 @@ pub(crate) fn clear(path: &Path) -> std::io::Result<()> {
 
 /// Install TTW as `req` says, emitting [`Event`]s while it runs (not `finished`: the caller emits
 /// [`Outcome::finished`] after the `result`).
-#[allow(clippy::too_many_lines)] // one flow: check, run, read, add
 pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
+    install_with_stop(req, Stop::Process, emit)
+}
+
+/// [`install`] that stops when `stop` says so and on the timeout, and not on the process-wide request: the run a
+/// window starts, whose stop belongs to that run alone.
+#[allow(clippy::too_many_lines)] // one flow: check, run, read, add
+pub fn install_with_stop(req: &TtwRequest, stop: Stop<'_>, emit: &mut dyn FnMut(Event)) -> Outcome {
     let mut draft = Draft::new(req);
     let ready = match prepare(req, &mut draft.result.profile) {
         Ok(r) => r,
@@ -312,7 +319,7 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         resume: req.resume,
         ..ttwright_core::api::InstallJob::default()
     };
-    let done = super::inproc::install_with_events(&job, req.timeout, emit);
+    let done = super::inproc::install_with_events(&job, stop, req.timeout, emit);
     let journal = dest.join(".ttwright-journal.json").is_file();
     let (exit_code, doc) = (done.exit_code, done.doc);
     if let Some(tool) = &mut draft.result.tool {
@@ -376,7 +383,7 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         );
     }
     // A stop asked for while ttwright was finishing: its work is kept and nothing is added.
-    if nvmod_core::cancel::requested() {
+    if stop.requested() {
         draft.result.resumable = true;
         return draft.fail(
             Status::Cancelled,
@@ -432,7 +439,7 @@ pub fn install(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         Err(InstallError::Refused(why) | InstallError::Failed(why)) => why,
         Err(InstallError::Questions(_)) => "the output holds a FOMOD that needs answers".to_owned(),
     };
-    if nvmod_core::cancel::requested() {
+    if stop.requested() {
         return draft.fail(
             Status::Cancelled,
             TtwErrorCode::Cancelled,

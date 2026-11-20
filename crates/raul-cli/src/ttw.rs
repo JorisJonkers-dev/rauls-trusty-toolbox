@@ -75,67 +75,142 @@ fn parse(args: &[String]) -> Result<Flags, String> {
     })
 }
 
-pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+/// A `raul ttw` run, read from its command line and `raul config`, not yet started.
+pub struct TtwJob {
+    request: TtwRequest,
+    instance: Option<PathBuf>,
+    json: bool,
+    config_warning: Option<String>,
+}
+
+impl TtwJob {
+    /// The Instance the run writes to, when the flags or `raul config` name one: the folder whose lock the caller holds.
+    #[must_use]
+    pub fn instance(&self) -> Option<&Path> {
+        self.instance.as_deref()
+    }
+
+    /// Runs it as a stream of `raul-events` lines, handing each to `sink` as it is made, stopping when `stop` says so.
+    /// Returns the exit code and, when the run failed or was stopped, the reason in one line.
+    pub fn run_lines(
+        self,
+        stop: raul_drivers::Stop<'_>,
+        sink: &mut dyn FnMut(&str),
+    ) -> (u8, Option<String>) {
+        let mut out = crate::printer::LineSink::new(sink);
+        let mut err = Vec::new();
+        let job = Self { json: true, ..self };
+        let (code, note) = job.run_to(stop, &mut out, &mut err);
+        out.finish();
+        (code, note)
+    }
+
+    fn run_to(
+        self,
+        stop: raul_drivers::Stop<'_>,
+        out: &mut dyn Write,
+        err: &mut dyn Write,
+    ) -> (u8, Option<String>) {
+        let Self {
+            mut request,
+            instance,
+            json,
+            config_warning,
+        } = self;
+        if let Some(warning) = config_warning {
+            let _ = writeln!(err, "raul ttw: the configuration is not used: {warning}");
+        }
+        let mut printer = Printer {
+            command: "ttw",
+            out,
+            err,
+            json,
+            seq: 0,
+            last_percent: None,
+        };
+        let outcome = match instance {
+            Some(dir) => {
+                request.instance = dir;
+                ttw::install_with_stop(&request, stop, &mut |e| printer.emit(e))
+            }
+            None => ttw::refused(
+                &request,
+                TtwErrorCode::InstanceInvalid,
+                "no Instance: pass --instance <dir> or run `raul config set storage.root <dir>`",
+            ),
+        };
+        let finished = outcome.finished();
+        if json {
+            printer.emit(Event::Result {
+                result: serde_json::to_value(&outcome.result).unwrap_or_default(),
+            });
+            printer.emit(finished);
+        } else {
+            report(printer.out, printer.err, &outcome);
+        }
+        let note = outcome.result.error.as_ref().map(|e| e.message.clone());
+        (outcome.exit_code, note)
+    }
+}
+
+/// Reads a `raul ttw` command line (the words after `ttw`) and what `raul config` leaves open, without starting it.
+///
+/// # Errors
+/// The usage message when the command line cannot be understood.
+pub fn install_job(args: &[String]) -> Result<TtwJob, String> {
+    install_job_in(args, None)
+}
+
+/// [`install_job`] reading the configuration from `config` (a `config.toml`) instead of the person's own: how a test
+/// points a run at a configuration of its own without touching the environment of the process.
+///
+/// # Errors
+/// The usage message when the command line cannot be understood.
+pub fn install_job_in(args: &[String], config: Option<&Path>) -> Result<TtwJob, String> {
     let Flags {
         mut req,
         instance,
         json,
-    } = match parse(args) {
-        Ok(f) => f,
-        Err(why) => return crate::usage(err, &format!("{why}\n{USAGE_LINE}")),
-    };
-    // A stop request (Ctrl+C, SIGTERM, the GUI's cancel) stops ttwright; its journal lets `--resume` continue.
-    let _ = ctrlc::set_handler(nvmod_core::cancel::request);
+    } = parse(args).map_err(|why| format!("{why}\n{USAGE_LINE}"))?;
 
     // What the flags leave open comes from `raul config`; a configuration that cannot be read is named, not fatal.
-    let config = raul_core::config::default_file().map(|f| Config::load(&f));
-    let config = match config {
-        Some(Ok(c)) => Some(c),
-        Some(Err(e)) => {
-            let _ = writeln!(err, "raul ttw: the configuration is not used: {e}");
-            None
-        }
-        None => None,
+    let config = config
+        .map(Path::to_path_buf)
+        .or_else(raul_core::config::default_file)
+        .map(|f| Config::load(&f));
+    let (config, config_warning) = match config {
+        Some(Ok(c)) => (Some(c), None),
+        Some(Err(e)) => (None, Some(e.to_string())),
+        None => (None, None),
     };
     let from_config = |key| config.as_ref().and_then(|c: &Config| c.get(key));
     req.fallout3 = req.fallout3.or_else(|| from_config(Key::GameFallout3));
     req.newvegas = req.newvegas.or_else(|| from_config(Key::GameNewVegas));
     req.package = req.package.or_else(|| from_config(Key::TtwPackage));
-
-    let mut printer = Printer {
-        command: "ttw",
-        out,
-        err,
-        json,
-        seq: 0,
-        last_percent: None,
-    };
     // Paths in the result are absolute, whatever the working folder was.
     let absolute = |p: PathBuf| std::path::absolute(&p).unwrap_or(p);
     for path in [&mut req.fallout3, &mut req.newvegas, &mut req.package] {
         *path = path.take().map(absolute);
     }
-    let outcome = match instance.or_else(|| from_config(Key::Instance)) {
-        Some(dir) => {
-            req.instance = absolute(dir);
-            ttw::install(&req, &mut |e| printer.emit(e))
-        }
-        None => ttw::refused(
-            &req,
-            TtwErrorCode::InstanceInvalid,
-            "no Instance: pass --instance <dir> or run `raul config set storage.root <dir>`",
-        ),
+    let instance = instance
+        .or_else(|| from_config(Key::Instance))
+        .map(absolute);
+    Ok(TtwJob {
+        request: req,
+        instance,
+        json,
+        config_warning,
+    })
+}
+
+pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    let job = match install_job(args) {
+        Ok(job) => job,
+        Err(why) => return crate::usage(err, &why),
     };
-    let finished = outcome.finished();
-    if json {
-        printer.emit(Event::Result {
-            result: serde_json::to_value(&outcome.result).unwrap_or_default(),
-        });
-        printer.emit(finished);
-    } else {
-        report(printer.out, printer.err, &outcome);
-    }
-    outcome.exit_code
+    // A stop request (Ctrl+C, SIGTERM, the GUI's cancel) stops ttwright; its journal lets `--resume` continue.
+    let _ = ctrlc::set_handler(nvmod_core::cancel::request);
+    job.run_to(raul_drivers::Stop::Process, out, err).0
 }
 
 fn report(out: &mut dyn Write, err: &mut dyn Write, outcome: &ttw::Outcome) {

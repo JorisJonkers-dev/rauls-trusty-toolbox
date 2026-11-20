@@ -156,7 +156,13 @@ fn mods(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
 
 /// The Instance from `raul config`, when the flags name none.
 pub(crate) fn configured_instance() -> Option<PathBuf> {
-    raul_core::config::default_file()
+    configured_instance_in(None)
+}
+
+fn configured_instance_in(config: Option<&std::path::Path>) -> Option<PathBuf> {
+    config
+        .map(std::path::Path::to_path_buf)
+        .or_else(raul_core::config::default_file)
         .and_then(|f| Config::load(&f).ok())
         .and_then(|c| c.get(Key::Instance))
 }
@@ -213,59 +219,124 @@ fn plan(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     crate::write_or_fail(out, err, &text)
 }
 
+/// A `raul lod generate` run, read from its command line and `raul config`, not yet started.
+pub struct LodJob {
+    request: LodRequest,
+    json: bool,
+}
+
+impl LodJob {
+    /// The Instance the run writes to, when the flags or `raul config` name one: the folder whose lock the caller holds.
+    #[must_use]
+    pub fn instance(&self) -> Option<&std::path::Path> {
+        Some(self.request.instance.as_path()).filter(|p| !p.as_os_str().is_empty())
+    }
+
+    /// Runs it as a stream of `raul-events` lines, handing each to `sink` as it is made, stopping when `stop` says so.
+    /// Returns the exit code and, when the run failed or was stopped, the reason in one line.
+    pub fn run_lines(
+        self,
+        stop: raul_drivers::Stop<'_>,
+        sink: &mut dyn FnMut(&str),
+    ) -> (u8, Option<String>) {
+        let mut out = crate::printer::LineSink::new(sink);
+        let mut err = Vec::new();
+        let job = Self { json: true, ..self };
+        let ended = job.run_to(stop, &mut out, &mut err);
+        out.finish();
+        ended
+    }
+
+    fn run_to(
+        self,
+        stop: raul_drivers::Stop<'_>,
+        out: &mut dyn Write,
+        err: &mut dyn Write,
+    ) -> (u8, Option<String>) {
+        let Self { request: req, json } = self;
+        let mut printer = Printer {
+            command: "lod",
+            out,
+            err,
+            json,
+            seq: 0,
+            last_percent: None,
+        };
+        let outcome = lod::generate_with_stop(&req, stop, &mut |e| printer.emit(e));
+        if json {
+            printer.emit(Event::Result {
+                result: serde_json::to_value(&outcome.result).unwrap_or_default(),
+            });
+            printer.emit(outcome.finished());
+        } else if let Some(e) = &outcome.result.error {
+            let _ = writeln!(printer.err, "raul lod generate: {}", e.message);
+        } else {
+            let r = &outcome.result;
+            let text = if r.dry_run {
+                "raul lod generate: dry run passed; the request is valid and nothing was written\n"
+                    .to_owned()
+            } else if r.up_to_date {
+                format!(
+                    "raul lod generate: `{}` is up to date; nothing was written\n",
+                    r.mod_name.as_deref().unwrap_or_default()
+                )
+            } else {
+                format!(
+                    "raul lod generate: wrote `{}` ({} files) into profile `{}`\n",
+                    r.mod_name.as_deref().unwrap_or_default(),
+                    r.files.unwrap_or(0),
+                    r.profile
+                )
+            };
+            let _ = printer.out.write_all(text.as_bytes());
+        }
+        let note = outcome.result.error.as_ref().map(|e| e.message.clone());
+        (outcome.exit_code, note)
+    }
+}
+
+/// Reads a `raul lod generate` command line (the words after `lod generate`) and what `raul config` leaves open,
+/// without starting it.
+///
+/// # Errors
+/// The usage message when the command line cannot be understood.
+pub fn generate_job(args: &[String]) -> Result<LodJob, String> {
+    generate_job_in(args, None)
+}
+
+/// [`generate_job`] reading the configuration from `config` (a `config.toml`) instead of the person's own.
+///
+/// # Errors
+/// The usage message when the command line cannot be understood.
+pub fn generate_job_in(
+    args: &[String],
+    config: Option<&std::path::Path>,
+) -> Result<LodJob, String> {
+    let flags = parse(args, true).map_err(|why| format!("{why}\n{USAGE_LINE}"))?;
+    let absolute = |p: PathBuf| std::path::absolute(&p).unwrap_or(p);
+    let instance = flags
+        .instance
+        .or_else(|| configured_instance_in(config))
+        .map(absolute);
+    Ok(LodJob {
+        request: LodRequest {
+            instance: instance.unwrap_or_default(),
+            profile: flags.profile,
+            worlds: flags.worlds,
+            dry_run: flags.dry_run,
+            allow_in_repo: flags.allow_in_repo,
+            timeout: flags.timeout,
+        },
+        json: flags.json,
+    })
+}
+
 fn generate(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    let flags = match parse(args, true) {
-        Ok(f) => f,
-        Err(why) => return crate::usage(err, &format!("{why}\n{USAGE_LINE}")),
+    let job = match generate_job(args) {
+        Ok(job) => job,
+        Err(why) => return crate::usage(err, &why),
     };
     // A stop request (Ctrl+C, SIGTERM, the GUI's cancel) stops the generation; the Instance stays as it was.
     let _ = ctrlc::set_handler(nvmod_core::cancel::request);
-    let absolute = |p: PathBuf| std::path::absolute(&p).unwrap_or(p);
-    let instance = flags.instance.or_else(configured_instance).map(absolute);
-    let req = LodRequest {
-        instance: instance.clone().unwrap_or_default(),
-        profile: flags.profile,
-        worlds: flags.worlds,
-        dry_run: flags.dry_run,
-        allow_in_repo: flags.allow_in_repo,
-        timeout: flags.timeout,
-    };
-    let json = flags.json;
-    let mut printer = Printer {
-        command: "lod",
-        out,
-        err,
-        json,
-        seq: 0,
-        last_percent: None,
-    };
-    let outcome = lod::generate(&req, &mut |e| printer.emit(e));
-    if json {
-        printer.emit(Event::Result {
-            result: serde_json::to_value(&outcome.result).unwrap_or_default(),
-        });
-        printer.emit(outcome.finished());
-    } else if let Some(e) = &outcome.result.error {
-        let _ = writeln!(printer.err, "raul lod generate: {}", e.message);
-    } else {
-        let r = &outcome.result;
-        let text = if r.dry_run {
-            "raul lod generate: dry run passed; the request is valid and nothing was written\n"
-                .to_owned()
-        } else if r.up_to_date {
-            format!(
-                "raul lod generate: `{}` is up to date; nothing was written\n",
-                r.mod_name.as_deref().unwrap_or_default()
-            )
-        } else {
-            format!(
-                "raul lod generate: wrote `{}` ({} files) into profile `{}`\n",
-                r.mod_name.as_deref().unwrap_or_default(),
-                r.files.unwrap_or(0),
-                r.profile
-            )
-        };
-        let _ = printer.out.write_all(text.as_bytes());
-    }
-    outcome.exit_code
+    job.run_to(raul_drivers::Stop::Process, out, err).0
 }
