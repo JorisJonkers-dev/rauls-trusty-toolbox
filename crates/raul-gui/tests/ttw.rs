@@ -11,6 +11,7 @@ use eframe::egui::accesskit::Role;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use nvmod_testkit::{BaseBuilder, TempDir};
+use raul_core::context::Context;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::ttw::{
     CANCEL, INSTALL, INSTALL_CANCELLED, INSTALL_FAILED, INSTALL_UNKNOWN, INSTALLED_STATUS, NEXT,
@@ -21,10 +22,9 @@ use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobEvent, JobId, JobState, JobTable, Outcome};
 use raul_ui_model::pages::{Flow, View};
 use raul_ui_service::registry::Action;
-use raul_ui_service::{CancelHandle, CliService, JobSpec, ProcessExec, Service, TtwRequest};
+use raul_ui_service::{CancelHandle, CliService, InProcessExec, JobSpec, Service, TtwRequest};
 use serde_json::json;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 use ttwright_testkit::{Manifest, loc, mpi_package};
 
@@ -109,11 +109,16 @@ impl Fixture {
         f
     }
 
-    /// `raul` with this fixture's own configuration and state, so nothing reaches the real home.
-    fn exec(&self) -> ProcessExec {
-        ProcessExec::new(env!("CARGO_BIN_EXE_raul"))
-            .with_env("RAUL_CONFIG_DIR", &self.s("config"))
-            .with_env("NVMOD_STATE_DIR", &self.s("state"))
+    /// The folders this fixture's runs use: its own configuration, and no run log, so nothing reaches the real home.
+    fn context(&self) -> Context {
+        Context::new()
+            .with_config_folder(self.path("config"))
+            .without_run_log()
+    }
+
+    /// The command line run in this process with this fixture's folders.
+    fn exec(&self) -> InProcessExec {
+        InProcessExec::with_context(self.context())
     }
 
     fn path(&self, p: &str) -> PathBuf {
@@ -131,8 +136,8 @@ impl Fixture {
         assert_eq!(out.code, Some(0), "{args:?}: {}", out.stderr);
     }
 
-    fn service(&self) -> CliService<ProcessExec> {
-        CliService::new(self.exec().with_grace(Duration::from_secs(5)))
+    fn service(&self) -> CliService<InProcessExec> {
+        CliService::new(self.exec())
     }
 
     /// A request with every input given.
@@ -329,8 +334,7 @@ impl Fixture {
     }
 
     fn window(&self) -> Harness<'static, App> {
-        let exec = self.exec().with_grace(Duration::from_secs(5));
-        let app = App::new(Jobs::new(Arc::new(exec)).with_config_folder(&self.path("config")));
+        let app = App::new(Jobs::in_context(self.context()));
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {

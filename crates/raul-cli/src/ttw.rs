@@ -158,15 +158,18 @@ impl TtwJob {
 /// # Errors
 /// The usage message when the command line cannot be understood.
 pub fn install_job(args: &[String]) -> Result<TtwJob, String> {
-    install_job_in(args, None)
+    install_job_in(args, &raul_core::context::Context::default())
 }
 
-/// [`install_job`] reading the configuration from `config` (a `config.toml`) instead of the person's own: how a test
-/// points a run at a configuration of its own without touching the environment of the process.
+/// [`install_job`] reading the configuration from the folders of `ctx` instead of the person's own: how a test points a
+/// run at a configuration of its own without touching the environment of the process.
 ///
 /// # Errors
 /// The usage message when the command line cannot be understood.
-pub fn install_job_in(args: &[String], config: Option<&Path>) -> Result<TtwJob, String> {
+pub fn install_job_in(
+    args: &[String],
+    ctx: &raul_core::context::Context,
+) -> Result<TtwJob, String> {
     let Flags {
         mut req,
         instance,
@@ -174,10 +177,7 @@ pub fn install_job_in(args: &[String], config: Option<&Path>) -> Result<TtwJob, 
     } = parse(args).map_err(|why| format!("{why}\n{USAGE_LINE}"))?;
 
     // What the flags leave open comes from `raul config`; a configuration that cannot be read is named, not fatal.
-    let config = config
-        .map(Path::to_path_buf)
-        .or_else(raul_core::config::default_file)
-        .map(|f| Config::load(&f));
+    let config = ctx.config_file().map(|f| Config::load(&f));
     let (config, config_warning) = match config {
         Some(Ok(c)) => (Some(c), None),
         Some(Err(e)) => (None, Some(e.to_string())),
@@ -203,8 +203,13 @@ pub fn install_job_in(args: &[String], config: Option<&Path>) -> Result<TtwJob, 
     })
 }
 
-pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    let job = match install_job(args) {
+pub(crate) fn run(
+    ctx: &raul_core::context::Context,
+    args: &[String],
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> u8 {
+    let job = match install_job_in(args, ctx) {
         Ok(job) => job,
         Err(why) => return crate::usage(err, &why),
     };

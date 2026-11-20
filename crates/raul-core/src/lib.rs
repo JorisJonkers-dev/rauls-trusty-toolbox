@@ -2,6 +2,7 @@
 //! Orchestration of Raul's tRusty Toolbox. Terms follow the repository's `GLOSSARY.md`.
 
 pub mod config;
+pub mod context;
 pub mod contracts;
 pub mod detect;
 pub mod instance_lock;

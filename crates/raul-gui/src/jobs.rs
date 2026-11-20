@@ -66,8 +66,8 @@ pub struct Jobs {
     repaint: Option<egui::Context>,
     /// Registry ids that a test scripts as command lines through the runner instead of running them in process.
     scripted: Vec<&'static str>,
-    /// The configuration file the in-process runs that read `raul config` use; `None` is the person's own.
-    config_file: Option<std::path::PathBuf>,
+    /// The folders and switches the in-process runs use; the default is the person's own.
+    context: raul_core::context::Context,
 }
 
 impl std::fmt::Debug for Jobs {
@@ -94,16 +94,29 @@ impl Jobs {
             writer: None,
             repaint: None,
             scripted: Vec::new(),
-            config_file: None,
+            context: raul_core::context::Context::default(),
         }
     }
 
-    /// Reads `raul config` from `folder` (its `config.toml`) in the runs that happen in this process, instead of the
-    /// person's own folder: how a test keeps a run away from the real configuration.
+    /// Jobs that run in this process with the folders and switches of `context` instead of the person's own: every
+    /// command line goes through `raul_cli::run_in` with it, and so does every typed job that reads `raul config`. How
+    /// a test gives a window a configuration of its own without an environment variable and without a `raul` program.
+    pub fn in_context(context: raul_core::context::Context) -> Jobs {
+        let exec = raul_ui_service::InProcessExec::with_context(context.clone());
+        Jobs::new(Arc::new(exec)).with_context(context)
+    }
+
+    /// Reads `raul config` and the settings from `context` in the typed jobs; the `exec` the jobs were made with decides
+    /// where the command lines run (give it the same context).
     #[must_use]
-    pub fn with_config_folder(mut self, folder: &std::path::Path) -> Jobs {
-        self.config_file = Some(folder.join(raul_core::config::FILE_NAME));
+    pub fn with_context(mut self, context: raul_core::context::Context) -> Jobs {
+        self.context = context;
         self
+    }
+
+    /// The context the in-process runs use.
+    pub fn context(&self) -> &raul_core::context::Context {
+        &self.context
     }
 
     /// Lets a test script the registry commands `ids` as command lines through the runner, where they would run in
@@ -120,7 +133,7 @@ impl Jobs {
         if self.scripted.contains(&id) {
             return None;
         }
-        raul_ui_service::direct::for_command_in(id, rest, self.config_file.as_deref())
+        raul_ui_service::direct::for_command_in(id, rest, &self.context)
     }
 
     /// Jobs that run inside this process (ADR-0016): the actions with an nvmod job call it directly, and every other

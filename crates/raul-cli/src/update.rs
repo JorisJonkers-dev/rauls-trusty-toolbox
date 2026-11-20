@@ -23,7 +23,12 @@ fn layout_here() -> Layout {
     layout::detect(&exe, appimage.as_deref(), Os::current())
 }
 
-pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+pub(crate) fn run(
+    ctx: &raul_core::context::Context,
+    args: &[String],
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> u8 {
     let words: Vec<&str> = args.iter().map(String::as_str).collect();
     // The commands that need no configuration folder.
     match words.as_slice() {
@@ -40,7 +45,7 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
         ["download", rest @ ..] => return download(rest, out, err),
         _ => {}
     }
-    let Some(path) = Settings::default_path() else {
+    let Some(path) = ctx.settings_file() else {
         let _ = writeln!(
             err,
             "raul update: no configuration folder (HOME, XDG_CONFIG_HOME or APPDATA is not set)"
