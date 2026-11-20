@@ -11,8 +11,7 @@ Original status: **Phase 0 reviewed; decisions recorded 2026-11-16** (section 9,
 merged, in the order of section 8.
 
 Findings were read on 2026-11-16 from the component repositories (`origin` default branches and
-release pages) and from the proposed ADRs and architecture review in `JorisJonkers-dev/nv-linux`
-(`docs/adr/0003` to `0013`, `docs/architecture/estate-review.md`). Where a statement comes from a
+release pages) and from the owner's proposed ADRs and architecture review in the private workshop. Where a statement comes from a
 document rather than from code, it says so.
 
 ## 1. Summary
@@ -47,7 +46,7 @@ document rather than from code, it says so.
   `[registry] global-min-publish-age = "7 days"` in `.cargo/config.toml`, stable since Cargo 1.100.
   The toolbox and ttwright-rs use it from their first commit; the four older components are on
   1.99.1 and get the bump as their own pull requests.
-- Several requests in the brief conflict with proposed nv-linux ADRs. Section 5 lists each one with
+- Several requests in the brief conflict with the proposed workshop ADRs. Section 5 lists each one with
   the decision taken; none is overridden silently.
 
 ## 2. Findings per component
@@ -83,11 +82,11 @@ Other facts that shape the plan:
 - **nv-rs fork rules.** Only the paths in `.fork/overlay-paths` may differ from upstream, and
   `scripts/fork/verify-sync.sh` checks it. The toolbox must never ask nv-rs to change an
   upstream file (for example its `rust-version`) except as a pull request to upstream.
-- **nv-linux already has the umbrella machinery:** submodules under `projects/`,
+- **The workshop already has the umbrella machinery:** submodules under `projects/`,
   `compat/matrix.toml` (known-good sets with contract versions), `compat/release_gate.py`,
   `e2e/run.py` and `release-gate.yml`. The brief's `compat.toml` is the same idea; here it is `known-good.toml`.
-- **The current nv-linux submodule pointers are stale** (nv-rs at `v0.1.0~7`, lodwright at
-  `v0.1.0~3`), so the first toolbox pin is a fresh known-good set, not a copy of nv-linux's.
+- **The workshop's submodule pointers are stale** (nv-rs at `v0.1.0~7`, lodwright at
+  `v0.1.0~3`), so the first toolbox pin is a fresh known-good set, not a copy of the workshop's.
 
 ## 3. Licences
 
@@ -135,7 +134,7 @@ rauls-trusty-toolbox/
 │   │                      release `raul` = same CLI + GUI (ADR-0004)
 │   └── raul-bench/        `raul bench`: suite runner and JSON + Markdown report
 ├── packaging/             cargo-packager config, icons, .desktop, Info.plist, NSIS/WiX
-├── known-good.toml        the chain of Known-good sets (schema of nv-linux compat/matrix.toml)
+├── known-good.toml        the chain of Known-good sets (schema of the workshop's earlier compatibility matrix)
 ├── rust-toolchain.toml    1.100.0 (+ .cargo/config.toml: 7-day registry cooldown)
 └── Cargo.toml             workspace of crates/* (raul-gui excluded, see 4.4)
 ```
@@ -157,7 +156,7 @@ raul-core ──(process + versioned contract)──► lodwright, nv-rs, ttwrig
 - ttwright runs as a process like lodwright, through nvmod's existing TTW adapter
   (`nvmod-tools/src/ttw.rs`): a TTW install runs for a long time over untrusted archives, so crash
   isolation and resume belong at the process boundary. The rewrite adds a versioned result
-  contract (`ttw-installer-result`, already named in nv-linux `compat/matrix.toml`) and progress
+  contract (`ttw-installer-result`, already named in the workshop's earlier compatibility matrix) and progress
   events on stdout.
 - If `raul-core` turns out to be only re-exports, it is dropped and `raul-cli` wraps `nvmod-cli`.
   Do not grow a second copy of nvmod's logic here.
@@ -185,8 +184,8 @@ raul-core ──(process + versioned contract)──► lodwright, nv-rs, ttwrig
 
 ### 4.4 GUI
 
-Decided (ADR-0003): GPUI, the framework already chosen and measured in nv-linux's
-`docs/research/gui-toolkit-spike.md`, with the egui canary still painting the same view model.
+Decided (ADR-0003): GPUI, the framework already chosen and measured in the workshop's
+GUI toolkit spike, with the egui canary still painting the same view model.
 The trade-offs that were weighed:
 
 | | GPUI (current) | egui (current canary) | Slint / iced |
@@ -220,7 +219,7 @@ message; setup, mods, sorting and LOD still work.
   itself is a Windows game, so the user points at Windows game files copied or downloaded through
   Steam's or GOG's own tools. No CrossOver or Wine.
 
-## 5. Conflicts with the proposed nv-linux ADRs
+## 5. Conflicts with the proposed workshop ADRs
 
 | Brief asks | ADR says (proposed) | Decided (2026-11-16) |
 |---|---|---|
@@ -229,18 +228,18 @@ message; setup, mods, sorting and LOD still work.
 | Components as path dependencies | ADR-0003/0005: tools meet over contracts and pinned releases, one runner for subprocesses | Link only nvmod and loot-rs; run nv-rs, lodwright-rs and ttwright-rs as processes (ADR-0002) |
 | Ship nv-rs and lodwright in the installer | ADR-0009: tools are never bundled, fetched by lock | Bundle the Known-good set; opt-in fetch of newer known-good sets between releases (ADR-0005) |
 | macOS universal DMG | ADR-0009: macOS not supported | Superseded by ADR-0006 |
-| `compat.toml` in the umbrella | `compat/matrix.toml` in nv-linux | `known-good.toml` here; `compat/`, `e2e/` and `release-gate.yml` move here; nv-linux stays the workshop (ADR-0001) |
+| `compat.toml` in the umbrella | the compatibility matrix in the workshop | `known-good.toml` here; `compat/`, `e2e/` and `release-gate.yml` move here; the workshop stays private (ADR-0001) |
 | Shared crate for duplicated parsing | ADR-0004: no shared format crate yet; golden vectors by copy | Agree with ADR-0004 for now (section 6) |
 | Built-in update check | ADR-0010: pull-only, explicit, no identifier | Follow ADR-0010: opt-in, GitHub Releases API, no identifier sent |
 
-The superseding decisions are ADRs 0001 to 0006 here; a pull request to nv-linux marks its 0004,
-0007 and 0009 superseded (coordinated with the nv-linux ticket move, section 8).
+The superseding decisions are ADRs 0001 to 0006 here; the workshop marks its earlier decisions on the GUI home, the user-facing release and
+packaging superseded (coordinated with the ticket move, section 8).
 
 ## 6. Overlap and dependency alignment
 
 | Concern | Where it exists | Plan |
 |---|---|---|
-| Plugin header (TES4) reading | `loot-rs/src/plugin.rs` (MIT, from fnvorder), `lodwright-plugin-meta`, nv-rs `crates/esm`, `nvmod-formats/plugins.rs`, nv-linux `tools/fnvorder` | No shared crate yet (ADR-0004). Phase 4 adds the golden vectors to a check here. If extracted later: a leaf crate, MIT OR Apache-2.0, no code from loot-rs or nv-rs, in its own repository |
+| Plugin header (TES4) reading | `loot-rs/src/plugin.rs` (MIT, from fnvorder), `lodwright-plugin-meta`, nv-rs `crates/esm`, `nvmod-formats/plugins.rs`, the workshop's `fnvorder` tool | No shared crate yet (ADR-0004). Phase 4 adds the golden vectors to a check here. If extracted later: a leaf crate, MIT OR Apache-2.0, no code from loot-rs or nv-rs, in its own repository |
 | BSA reading | nv-rs `crates/bsa`, `nvmod-bsa`, `lodwright-assets/bsa.rs` | same |
 | Executable version | `nvmod-pe`, `loot-rs/src/exe_version.rs` | same |
 | Edition | nv-rs 2021, rest 2024 | leave nv-rs (upstream's) |
@@ -294,7 +293,7 @@ Each step is one pull request with one concern. Steps in a component repository 
    and `CONTRIBUTING.md`'s submodule workflow.
 2. Add the root `Cargo.toml` with an empty `raul-cli` printing `--version` plus the component
    versions; prove no "multiple workspace roots" error; add the loot-rs `[patch]`.
-3. Add `known-good.toml` with the first known-good set and its check (ported from nv-linux `compat/`).
+3. Add `known-good.toml` with the first known-good set and its check (ported from the workshop's compatibility check).
 4. *(nvmod-rs, loot-rs, lodwright-rs, nv-rs)* Rust 1.100.0 and the 7-day registry cooldown, one
    pull request each.
 5. *(ttwright-rs)* Restructure into a workspace (`ttwright-core`, `ttwright-cli`, `ttwright-contract`,
@@ -337,7 +336,7 @@ launch step and in-engine benchmarks.
 - **nv-rs and lodwright-rs** (toolchain, `divan` benches): only after their 0.5.0 and 0.3.0 Release
   tests. In nv-rs, every change to an upstream-owned file needs an allowed-divergence entry and a
   `DIVERGENCE.md` row, or Verify sync fails; the default branch is `fork`.
-- **nv-linux moves** (`compat/`, `e2e/`, release gate, glossary pointer, superseding ADRs): agreed
+- **Workshop moves** (`compat/`, `e2e/`, release gate, glossary pointer, superseding ADRs): agreed
   with the coordinator first, because its ticket-move pull request rewrites the same documents.
 - **loot-rs** is owned by the owner's own agent: the toolchain step and the `[patch]` to
   `components/loot-rs` wait for the owner.
@@ -347,9 +346,9 @@ launch step and in-engine benchmarks.
   `Data/NVRS/Extensions/<id>/nvext.toml`); the coverage gate is 70% of
   changed lines on fork-owned crates.
 
-### Policy from nv-linux ADR 0014, points 17 to 33 (2026-11-16)
+### Policy from the workshop's engineering ADR, points 17 to 33 (2026-11-16)
 
-The engineering policy of the stack is kept in nv-linux `docs/adr/0014-fork-positioning-and-engineering-policy.md`.
+The engineering policy of the stack is kept in the workshop's ADR on fork positioning and engineering policy.
 The points that bear on the Toolbox:
 
 | Point | What the Toolbox follows |
@@ -358,15 +357,15 @@ The points that bear on the Toolbox:
 | 18 | nv-rs blocks merges below 70% coverage of changed lines in fork-owned crates (nv-rs#194) |
 | 21 to 23 | Shader packs: one reviewed seam line in nv-rs, vkd3d-shader loaded at run time; the shader-hash profile never leaves the owner's machine |
 | 24 to 27 | nv-rs performance work (draw thread, render thread A/B, prepared bench saves, fog and reflections) stays in nv-rs; `raul bench` frame-time capture waits for it |
-| 28 | The Nexus milestone comes before the Windows GUI job (nv-linux #328), which moves here with the GUI |
+| 28 | The Nexus milestone comes before the Windows GUI job (a workshop ticket), which moves here with the GUI |
 | 29, 30 | "Engine extension" for native code in nv-rs, template `nv-rs-extension-template`, manifests at `Data/NVRS/Extensions/<id>/nvext.toml`; opcode blocks are fork-only |
 | 31 | Discord presence is nv-rs's, opt-in, through the games' existing applications (nv-rs#187) |
-| 32 | The hardware checklist (nv-linux #302) is the owner's to run |
+| 32 | The hardware checklist (a workshop ticket) is the owner's to run |
 | 33 | "Component" means a pinned project; the nv-rs CI split unit is a "CI unit" (as in `GLOSSARY.md`) |
 
 The lodwright result and event Contracts gained `up_to_date` per block (lodwright-rs #84, after v0.2.0); the GUI's
 LOD progress reads it once a set with that release is known-good. Extender readiness shown in the GUI comes from
-nvmod's readiness report (nv-linux #265) and opcode scan (#97).
+nvmod's readiness report and opcode scan.
 
 ## 9. Decisions
 
@@ -376,13 +375,13 @@ Settled with the owner on 2026-11-16. The ones that are hard to reverse are ADRs
 |---|---|---|
 | 1 | `raul` links nvmod and loot-rs; nv-rs, lodwright-rs, ttwright-rs run as processes | ADR-0002 |
 | 2 | The GUI moves from nvmod-rs into the Toolbox; nvmod-rs keeps `nvmod-ui-model` and `nvmod-ui-service` | ADR-0003 |
-| 3 | `compat/`, `e2e/` and the release gate move here; nv-linux stays the private workshop | ADR-0001 |
+| 3 | `compat/`, `e2e/` and the release gate move here; the workshop stays private | ADR-0001 |
 | 4 | Installers bundle the Known-good set | ADR-0005 |
 | 5 | Licence GPL-3.0-only | `LICENSE`, ADR-0002 |
 | 6 | GPUI with the egui canary; Linux smoke test under xvfb + lavapipe, egui as fallback | ADR-0003 |
 | 7 | Hybrid service seam: reads in process, risky writes as a `raul` subprocess | ADR-0003 |
 | 8 | Unsigned for now with a clear note; apply to SignPath Foundation; Apple later | ADR-0006 |
-| 9 | Decisions and glossary live in the Toolbox; nv-linux 0004, 0007, 0009 marked superseded | ADR-0001 |
+| 9 | Decisions and glossary live in the Toolbox; the workshop's earlier GUI home, release and packaging decisions marked superseded | ADR-0001 |
 | 10 | Newer sets between releases: opt-in, known-good only, verified; nv-rs Rolling channel kept | ADR-0005 |
 | 11 | Launch only where nv-rs is native; no Proton, Wine or CrossOver | ADR-0006 |
 | 12 | Benchmark history: `github-action-benchmark` on `gh-pages`, warnings only | section 7 |

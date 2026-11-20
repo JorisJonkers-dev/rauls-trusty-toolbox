@@ -8,7 +8,7 @@ The Toolbox and nv-rs run natively on all three: macOS 13 or later as a universa
 10 22H2 or 11 on x64, and Linux with glibc 2.35 or later on Wayland and X11 (Steam Deck included). The Toolbox never
 starts the game through Proton, Wine or CrossOver. Until nv-rs runs natively on a platform, Launch is disabled there
 with a plain message; setup, mods, sorting and LOD still work. Proton prefixes remain a place to find the player's
-game files, nothing more. This supersedes nv-linux ADR-0009's "macOS is not supported".
+game files, nothing more. This supersedes the earlier workshop decision that macOS is not supported.
 
 ## Consequences
 

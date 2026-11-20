@@ -291,6 +291,9 @@ pub fn for_command_in(id: &str, rest: &[String], config: Option<&Path>) -> Optio
         "install-nv-rs" => {
             Some(install_nvrs_request(rest).map_or_else(DirectJob::usage, install_nvrs))
         }
+        "install" => {
+            Some(install_command_request(rest).map_or_else(DirectJob::usage, |r| install_mod(&r)))
+        }
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
@@ -563,7 +566,8 @@ fn fetch_masterlist(
     lock: Option<&Path>,
     store: Option<&Path>,
 ) -> Result<PathBuf, JobError> {
-    use nvmod_tools::{Acquire, AcquireError, Curl, Lock, Store, Trust, builtin_lock};
+    use crate::fetch::CurlFetcher;
+    use nvmod_tools::{Acquire, AcquireError, Lock, Store, Trust, builtin_lock};
     const WHAT: &str = "loadorder.sort.fetch";
     let refused = |why: String| JobError::new(ErrorKind::Refused, WHAT, why);
     let lock = match lock {
@@ -581,9 +585,7 @@ fn fetch_masterlist(
         ))
     })?;
     let store = Store::new(store.map_or_else(Store::default_location, Path::to_path_buf));
-    let curl = Curl {
-        program: "curl".into(),
-    };
+    let curl = CurlFetcher::default();
     let trust = Trust::load(instance).map_err(refused)?;
     let acquire = Acquire {
         fetcher: &curl,
@@ -842,6 +844,24 @@ pub fn install_request(
         answers: answers.map(Path::to_path_buf),
         max_extract_bytes: None,
     }
+}
+
+/// The request of `raul install` from the words after it: the archive first, then the flags; no archive is its usage
+/// message.
+fn install_command_request(rest: &[String]) -> Result<nvmod_api::install::InstallRequest, String> {
+    let archive = rest
+        .first()
+        .filter(|w| !w.starts_with("--"))
+        .ok_or_else(|| "install: give the archive".to_string())?;
+    let answers = option_of(rest, "--answers");
+    Ok(install_request(
+        Path::new(value_of(rest, "--instance")),
+        option_of(rest, "--profile").as_deref(),
+        Path::new(archive),
+        option_of(rest, "--name").as_deref(),
+        has_flag(rest, "--dry-run"),
+        answers.as_deref().map(Path::new),
+    ))
 }
 
 /// `nvmod_api::install::install`: installs a Mod, or plans to. Its document is the report, as `raul install --json`
