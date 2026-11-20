@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795186158534,
+  "lastUpdate": 1795186800627,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6957,6 +6957,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.139694,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "89b915ae99e3a1003bd0cb06a630e33e89d6a3af",
+          "message": "fix(setup): the packaged engine install copies capabilities.json wherever the archive keeps it (#405)\n\n* fix(setup): the packaged engine install copies capabilities.json wherever the archive keeps it (#398)\n\nThe Linux release asset holds the file in <top folder>/share/nv-rs, but verify took it\nonly at the top of the package, so a fresh Instance had no capabilities.json and Doctor\nwarned about missing coverage. It is now taken wherever the list names it; two files of\nthat name make the package unverified. The test uses the real Linux layout.\n\n* chore(deps): bump nvmod-rs for the plain-words capabilities advice (#398)\n\n* chore(deps): take nvmod-rs at the plain-words capabilities advice (#398)\n\n* fix: fill the new extract limits in the install requests and refresh the lock file (#398)\n\n* fix: name the default extract limits so clippy is clean (#398)",
+          "timestamp": "2026-11-20T14:58:12Z",
+          "tree_id": "b21cb166d75f27451fc267b876cfaab6b403cb01",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/89b915ae99e3a1003bd0cb06a630e33e89d6a3af"
+        },
+        "date": 1795186800141,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.315637,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.504739,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.531578,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.118026,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.970862,
             "unit": "ms"
           }
         ]
