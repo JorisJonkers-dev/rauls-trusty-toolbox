@@ -31,8 +31,7 @@ fn worth_a_look(path: &Path) -> bool {
     }
     let name = path
         .file_name()
-        .map(|n| n.to_string_lossy().to_lowercase())
-        .unwrap_or_default();
+        .map_or_else(String::new, |n| n.to_string_lossy().to_lowercase());
     name.contains("ttw") || name.contains("tale of two wastelands")
 }
 
