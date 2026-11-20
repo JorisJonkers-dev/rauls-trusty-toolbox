@@ -9,6 +9,7 @@ use nvmod_instance::{NvmodInstance, find_ci};
 use serde::{Deserialize, Serialize};
 
 use super::marker::{LEGACY_MOD_NAME, mod_name, read_marker};
+use super::stale::{self, Staleness};
 
 /// The Contract name of `raul lod mods --json`.
 pub const MODS_CONTRACT: &str = "raul-lod-mods";
@@ -56,6 +57,8 @@ pub struct GeneratedMod {
     pub request_digest: Option<String>,
     /// The lodwright version that built it; `null` without a marker.
     pub lodwright_version: Option<String>,
+    /// How out of date it is: only this Profile's own Mod has it, and `null` for the others.
+    pub stale: Option<Staleness>,
 }
 
 /// The generated LOD Mods `profile` of `instance` lists, highest priority first.
@@ -73,8 +76,10 @@ pub fn generated_mods(instance: &NvmodInstance, profile: &str) -> LodMods {
             if marker.is_none() && !legacy {
                 return None;
             }
+            let own = r.name.eq_ignore_ascii_case(&own_name);
             Some(GeneratedMod {
-                own: r.name.eq_ignore_ascii_case(&own_name),
+                stale: (own && marker.is_some()).then(|| stale::check(instance, profile)),
+                own,
                 enabled: r.state == "enabled",
                 position: r.position,
                 legacy,
