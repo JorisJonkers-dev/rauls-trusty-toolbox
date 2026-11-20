@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795188259983,
+  "lastUpdate": 1795188832033,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7104,6 +7104,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.249699,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d4f9930bde9fd099f04f11f1a195775dd84af289",
+          "message": "The setup wizard sets the Instance target to the engine (#428)\n\n* Set the Instance target to the engine in the setup wizard\n\nThe wizard installed the engine but left the Instance on the target vanilla, so\nthe Quick check and the Doctor judged the xNVSE path. After the engine is in\n(or when an earlier run left it in), the Engine step now runs `raul target nv-rs`.\n`target` is a direct job in the GUI service.\n\nCloses #408\n\n* Run the target command in the registry fixture test",
+          "timestamp": "2026-11-20T15:31:43Z",
+          "tree_id": "98c3d8bb9b4859f6080454b4e7bb4cdaf92011a0",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d4f9930bde9fd099f04f11f1a195775dd84af289"
+        },
+        "date": 1795188831039,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.2937510000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.493974999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.875467,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.121681000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.043717999999998,
             "unit": "ms"
           }
         ]
