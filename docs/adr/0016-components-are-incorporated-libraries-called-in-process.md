@@ -76,6 +76,19 @@ action starts a process other than the game.
 - A Component release reaches the person only in the next `raul` release.
 - Licences are unchanged: `raul` is GPL-3.0-only, and MPL-2.0 lodwright-rs may be linked into it (ADR-0002).
 
+## What is not bundled, and why
+
+The installer holds everything we build. A few things cannot ship in it for a licence or ownership reason, so each has
+its own guided step and nothing is fetched silently:
+
+| Item | Why it is not bundled | Guided step |
+|---|---|---|
+| Fallout 3 and Fallout: New Vegas game files | The person's own copy; never redistributed | The Game step asks for the game folder and only reads it |
+| The TTW package (`.mpi`) | TTW data, not redistributable (docs/PLAN.md section 3) | The TTW step asks for the file and says where to get it |
+| xNVSE and JIP LN DLLs | Third-party binaries, not ours to redistribute | Offered as Mods the person chooses to install |
+| The LOOT masterlist | Data, fetched at run time (CC0) | Fetched when a load order is sorted, with the reason shown |
+| Mod archives | Owned by their authors and the Nexus terms | The Mods page, one archive at a time |
+
 ## Considered options
 
 - Keep the Runner and start Components as commands: rejected, it shows commands, parses text for every screen, and
