@@ -180,14 +180,22 @@ fn the_update_button_sits_beside_the_version_and_starts_the_check() {
     }
     let button = h.get_by_role_and_label(egui::accesskit::Role::Button, CHECK_UPDATES);
     button.click();
-    assert!(seen(&mut h, "update"), "the button starts the update check");
+    // Wait for the check itself: other `update` words (the install's status) may be read first, and the call is made
+    // on a worker thread, so on a slow machine it can arrive after the first one.
+    let check = vec!["update".to_owned(), "check".to_owned(), "--json".to_owned()];
+    let mut started = false;
+    for _ in 0..300 {
+        h.run_steps(2);
+        if exec.calls.lock().unwrap().contains(&check) {
+            started = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
     assert!(
-        exec.calls.lock().unwrap().contains(&vec![
-            "update".to_owned(),
-            "check".to_owned(),
-            "--json".to_owned()
-        ]),
-        "Check for updates runs `raul update check`"
+        started,
+        "Check for updates runs `raul update check`: {:?}",
+        exec.calls.lock().unwrap()
     );
 }
 
