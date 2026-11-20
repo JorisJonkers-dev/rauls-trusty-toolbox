@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795181529847,
+  "lastUpdate": 1795182268122,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6614,6 +6614,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 13.088154,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6cd9c6286e96b1d6fe2ba6e382904b5437080029",
+          "message": "test(gui): prove no GUI action starts a program, by counting what the runner starts (#390)\n\n* test(gui): count the programs the runner starts and prove no GUI action starts one (#168)\n\nraul-runner counts every program it starts (Runner and start_program). A GUI test runs the doctor, conflicts, tree, plugins, mods list and change, sort preview and apply, LOD plan and mods, a TTW install and an undo through the real jobs and fails when the count moves, which a scan of the sources cannot show.\n\n* test(gui): count the stop signals too and assert what each action ends with (#168)\n\nsignal_group starts kill or taskkill when a stopped run is signalled, so it counts as a started program. The new test asserted only that each job had an output; it now asserts exit code 0 where the fixture decides it and a code at all elsewhere, and its comments say what the TTW and undo cases cover.",
+          "timestamp": "2026-11-20T13:39:41Z",
+          "tree_id": "a937cba051f655a4a11e53c8d9606cf873d3f413",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6cd9c6286e96b1d6fe2ba6e382904b5437080029"
+        },
+        "date": 1795182267651,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.3309960000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.547142000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.63953,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.240551000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 13.136132,
             "unit": "ms"
           }
         ]
