@@ -590,7 +590,13 @@ fn the_download_archive_is_accepted_and_its_package_is_unpacked_into_the_work_fo
     let (result, finished) = check_stream(code, &lines);
     assert_eq!(result["mod"], MOD);
     assert_eq!(finished["changed"], true);
-    assert!(f.instance().join("mods").join(MOD).join("Example.esm").is_file());
+    assert!(
+        f.instance()
+            .join("mods")
+            .join(MOD)
+            .join("Example.esm")
+            .is_file()
+    );
     assert!(!f.work().exists(), "the unpacked package is removed");
 }
 
@@ -607,7 +613,10 @@ fn an_interrupted_install_from_the_download_keeps_the_unpacked_package_for_resum
     let out_dir = f.work().join("out");
     let start = Instant::now();
     while written_assets(&out_dir) < 1 {
-        assert!(start.elapsed() < Duration::from_secs(60), "ttwright never started");
+        assert!(
+            start.elapsed() < Duration::from_secs(60),
+            "ttwright never started"
+        );
         std::thread::sleep(Duration::from_millis(5));
     }
     assert!(
@@ -618,7 +627,12 @@ fn an_interrupted_install_from_the_download_keeps_the_unpacked_package_for_resum
             .success()
     );
     let out = child.wait_with_output().unwrap();
-    assert_eq!(out.status.code(), Some(4), "{}", String::from_utf8_lossy(&out.stderr));
+    assert_eq!(
+        out.status.code(),
+        Some(4),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let kept = f.work().join("package/Tale of Two Wastelands 3.4.mpi");
     assert!(kept.is_file(), "the unpacked package is kept for --resume");
     // Resuming does not unpack again: the package is taken from the work folder, and the run ends with it removed.
@@ -639,7 +653,10 @@ fn a_patch_archive_is_refused_with_exit_2_before_anything_is_written() {
         &patch,
         &[
             ("YUPTTW.esm", b"TES4 made up"),
-            ("Fallout - Meshes.bsa", b"BSA\0 a Mod's archive, not a package"),
+            (
+                "Fallout - Meshes.bsa",
+                b"BSA\0 a Mod's archive, not a package",
+            ),
             ("YUPTTW.esm.override", b""),
         ],
     );
@@ -652,7 +669,10 @@ fn a_patch_archive_is_refused_with_exit_2_before_anything_is_written() {
     assert_eq!(finished["status"], "refused");
     assert_eq!(lines.len(), 2, "refused before anything ran: {lines:?}");
     let message = result["error"]["message"].as_str().unwrap();
-    assert!(message.contains("Tale of Two Wastelands <version>.mpi"), "{message}");
+    assert!(
+        message.contains("Tale of Two Wastelands <version>.mpi"),
+        "{message}"
+    );
     assert_eq!(f.state(), before);
     assert!(!f.work().exists());
 }
@@ -667,7 +687,10 @@ fn a_file_that_is_neither_a_package_nor_an_archive_is_refused_with_exit_2() {
     assert_eq!(code, Some(2), "{lines:?}");
     let (result, _) = check_stream(code, &lines);
     let message = result["error"]["message"].as_str().unwrap();
-    assert!(message.contains("`BSA\\0`") && message.contains(".7z"), "{message}");
+    assert!(
+        message.contains("`BSA\\0`") && message.contains(".7z"),
+        "{message}"
+    );
     assert!(!f.work().exists());
 }
 
@@ -687,7 +710,46 @@ fn a_failed_dry_run_leaves_no_work_folder_and_the_text_has_no_empty_checksum() {
     let out = f.raul(&args);
     let stderr = String::from_utf8_lossy(&out.stderr);
     assert_eq!(out.status.code(), Some(4), "{stderr}");
-    assert!(!f.work().exists(), "a dry run leaves nothing behind: {stderr}");
+    assert!(
+        !f.work().exists(),
+        "a dry run leaves nothing behind: {stderr}"
+    );
     assert!(!stderr.contains("SHA-256"), "{stderr}");
     assert!(stderr.contains("running ttwright inside"), "{stderr}");
+}
+
+/// One asset that cannot be copied (its source is unreadable) fails the install: plain `raul ttw` names it and the file
+/// in the state folder that holds the details, so nobody has to repeat a run with `--json` to learn why.
+#[test]
+fn a_failed_asset_is_named_in_the_plain_output_and_in_a_file_in_the_state_folder() {
+    use std::os::unix::fs::PermissionsExt;
+    let mut m = manifest();
+    m.asset(
+        0,
+        "",
+        loc::GAME_DATA,
+        loc::DEST,
+        "unreadable-marker.txt",
+        Some("unreadable-marker.txt"),
+    );
+    let f = Fixture::with_manifest("raul-ttw-asset-failed", &m);
+    let source = f.fallout3().join("Data/unreadable-marker.txt");
+    std::fs::write(&source, b"made up").unwrap();
+    std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o000)).unwrap();
+    if std::fs::read(&source).is_ok() {
+        // Running as a user that reads everything (root): the asset cannot be made to fail this way.
+        return;
+    }
+    let args: Vec<String> = f.ttw_args().into_iter().filter(|a| a != "--json").collect();
+    let out = f.raul(&args);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(out.status.code(), Some(4), "{stderr}");
+    assert!(stderr.contains("unreadable-marker.txt"), "{stderr}");
+    let log = f.path("state/logs/ttw-last-failure.txt");
+    assert!(
+        stderr.contains(&log.display().to_string()),
+        "the file is named: {stderr}"
+    );
+    let kept = std::fs::read_to_string(&log).unwrap();
+    assert!(kept.contains("unreadable-marker.txt"), "{kept}");
 }

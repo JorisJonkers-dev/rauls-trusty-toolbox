@@ -1736,6 +1736,7 @@ dependencies = [
  "nvmod-instance",
  "nvmod-loadorder",
  "nvmod-modinstall",
+ "nvmod-runlog",
  "nvmod-testkit",
  "schemars",
  "serde",

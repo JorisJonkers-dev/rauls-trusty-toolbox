@@ -340,7 +340,7 @@ fn run_ttw(
         dry_run: false,
         resume: choice.resume,
         timeout: choice.timeout.unwrap_or(ttw::DEFAULT_TIMEOUT),
-        free_space: None,
+        free_space: Some(crate::space::free_bytes),
     };
     let outcome = with_cancel_bridge(cancel, || {
         ttw::install(&request, &mut |event| {

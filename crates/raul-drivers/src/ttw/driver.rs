@@ -3,6 +3,7 @@
 //! its progress to [`Event`]s while it runs, reads the `ttwright-result` it returns, and adds the output to the
 //! Instance as one Mod with nvmod's mod-install library. Every outcome but success leaves the Instance as it was.
 
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -295,7 +296,10 @@ fn mpi_for(
                 if install == 0 {
                     String::new()
                 } else {
-                    format!(", and the install about {} more", package::size_text(install))
+                    format!(
+                        ", and the install about {} more",
+                        package::size_text(install)
+                    )
                 },
                 package::size_text(free),
                 package::size_text(need - free),
@@ -306,6 +310,49 @@ fn mpi_for(
         phase: "unpack".to_owned(),
     });
     package::unpack(package, &into).map_err(|why| why.to_string())
+}
+
+/// How many of ttwright's messages (one per failed asset) the text of a failure shows; the file holds all of them.
+const SHOWN_MESSAGES: usize = 10;
+
+/// The file in raul's state folder, next to the run logs, that holds the details of the last TTW failure.
+pub const FAILURE_LOG: &str = "ttw-last-failure.txt";
+
+/// `headline` followed by the reason of each failed asset ttwright named (the first few, and how many more there are),
+/// and the file that holds them all. The reasons are only in ttwright's `result`, which a plain run does not print.
+fn with_details(headline: &str, messages: &serde_json::Value, logs: &Path) -> String {
+    let messages: Vec<&str> = messages
+        .as_array()
+        .map_or_default(|all| all.iter().filter_map(|m| m.as_str()).collect());
+    if messages.is_empty() {
+        return headline.to_owned();
+    }
+    let mut text = headline.to_owned();
+    for message in messages.iter().take(SHOWN_MESSAGES) {
+        text.push_str("\n  ");
+        text.push_str(message);
+    }
+    if messages.len() > SHOWN_MESSAGES {
+        let _ = write!(text, "\n  and {} more", messages.len() - SHOWN_MESSAGES);
+    }
+    if let Some(file) = write_failure_log(logs, headline, &messages) {
+        let _ = write!(text, "\nAll of them are in {}", file.display());
+    }
+    text
+}
+
+/// Write the failure to [`FAILURE_LOG`] in the logs folder of the state folder; `None` when it cannot be written (a
+/// log that cannot be written is not a reason to fail the command).
+fn write_failure_log(folder: &Path, headline: &str, messages: &[&str]) -> Option<PathBuf> {
+    std::fs::create_dir_all(folder).ok()?;
+    let file = folder.join(FAILURE_LOG);
+    let mut text = format!("{headline}\n");
+    for message in messages {
+        text.push_str(message);
+        text.push('\n');
+    }
+    std::fs::write(&file, text).ok()?;
+    Some(file)
 }
 
 /// Install TTW as `req` says, emitting [`Event`]s while it runs (not `finished`: the caller emits
@@ -412,11 +459,17 @@ fn run(req: &TtwRequest, emit: &mut dyn FnMut(Event)) -> Outcome {
         0 => {}
         1 | 2 => {
             draft.result.resumable = journal;
+            let headline = because("ttwright failed");
+            let message = with_details(
+                &headline,
+                &doc["messages"],
+                &nvmod_runlog::logs_dir(&nvmod_runlog::state_dir()),
+            );
             return draft.fail_ttwright(
                 Status::Failed,
                 TtwErrorCode::TtwrightFailed,
                 ttwright_code.clone(),
-                because("ttwright failed"),
+                message,
             );
         }
         3 => {
@@ -542,6 +595,216 @@ mod tests {
         ] {
             assert_eq!(exit_code(status), code, "{status:?}");
         }
+    }
+}
+
+#[cfg(test)]
+mod details_tests {
+    use super::*;
+    use nvmod_testkit::TempDir;
+
+    #[test]
+    fn a_failure_without_messages_is_its_headline_and_many_messages_are_counted_and_kept() {
+        let dir = TempDir::new("raul-details");
+        let logs = dir.path().join("logs");
+        assert_eq!(
+            with_details("ttwright failed", &serde_json::json!([]), &logs),
+            "ttwright failed"
+        );
+        assert_eq!(
+            with_details("ttwright failed", &serde_json::Value::Null, &logs),
+            "ttwright failed"
+        );
+        assert!(!logs.exists(), "nothing to keep, nothing written");
+        let many: Vec<String> = (0..14)
+            .map(|i| format!("asset{i}.dll (op=1): denied"))
+            .collect();
+        let text = with_details("ttwright failed", &serde_json::json!(many), &logs);
+        assert!(
+            text.starts_with("ttwright failed\n  asset0.dll (op=1): denied\n"),
+            "{text}"
+        );
+        assert!(
+            text.contains("asset9.dll") && !text.contains("asset10.dll"),
+            "{text}"
+        );
+        assert!(text.contains("\n  and 4 more"), "{text}");
+        let file = logs.join(FAILURE_LOG);
+        assert!(text.contains(&file.display().to_string()), "{text}");
+        let kept = std::fs::read_to_string(&file).unwrap();
+        assert!(kept.contains("asset13.dll") && kept.starts_with("ttwright failed\n"));
+    }
+
+    #[test]
+    fn a_log_that_cannot_be_written_does_not_change_the_text() {
+        let dir = TempDir::new("raul-details-blocked");
+        let blocker = dir.path().join("logs");
+        std::fs::write(&blocker, b"a file where the folder should be").unwrap();
+        let text = with_details("head", &serde_json::json!(["a.dll: denied"]), &blocker);
+        assert_eq!(text, "head\n  a.dll: denied");
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::unnecessary_wraps)] // the stand-ins for `FreeSpace`, whose type returns an Option
+mod unpack_tests {
+    use super::*;
+    use nvmod_testkit::TempDir;
+
+    fn request(free_space: Option<FreeSpace>, dry_run: bool, resume: bool) -> TtwRequest {
+        TtwRequest {
+            instance: PathBuf::new(),
+            profile: None,
+            fallout3: None,
+            newvegas: None,
+            package: None,
+            dry_run,
+            resume,
+            timeout: DEFAULT_TIMEOUT,
+            free_space,
+        }
+    }
+
+    /// A download made small: the package (`BSA\0` and made-up bytes) next to a made-up installer program.
+    fn download(dir: &TempDir) -> Package {
+        let path = dir.path().join("Tale of Two Wastelands 3.4.7z");
+        let mut writer = sevenz_rust2::ArchiveWriter::create(&path).unwrap();
+        for (name, data) in [
+            (
+                "Tale of Two Wastelands 3.4.mpi",
+                &b"BSA\0 made-up package"[..],
+            ),
+            ("installer.exe", &b"MZ made-up"[..]),
+        ] {
+            writer
+                .push_archive_entry(sevenz_rust2::ArchiveEntry::new_file(name), Some(data))
+                .unwrap();
+        }
+        writer.finish().unwrap();
+        package::inspect(&path).unwrap()
+    }
+
+    fn phases(events: &[Event]) -> Vec<&str> {
+        events
+            .iter()
+            .filter_map(|e| match e {
+                Event::Phase { phase } => Some(phase.as_str()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn little(_: &Path) -> Option<u64> {
+        Some(1_000)
+    }
+    fn some(_: &Path) -> Option<u64> {
+        Some(10 * 1024 * 1024 * 1024)
+    }
+    fn plenty(_: &Path) -> Option<u64> {
+        Some(u64::MAX / 2)
+    }
+    fn unknown(_: &Path) -> Option<u64> {
+        None
+    }
+
+    #[test]
+    fn too_little_space_refuses_before_anything_is_unpacked_and_says_how_much_is_missing() {
+        let dir = TempDir::new("raul-unpack-space");
+        let package = download(&dir);
+        let work = dir.path().join("work");
+        let mut events = Vec::new();
+        let why = mpi_for(
+            &request(Some(little), false, false),
+            &package,
+            &work,
+            &mut |e| {
+                events.push(e);
+            },
+        )
+        .unwrap_err();
+        assert!(why.contains("not enough free space"), "{why}");
+        assert!(why.contains("1 MB is free"), "{why}");
+        assert!(why.contains("43.0 GB") || why.contains("42."), "{why}");
+        assert!(events.is_empty(), "nothing was unpacked: {events:?}");
+        assert!(!work.exists());
+    }
+
+    #[test]
+    fn the_install_need_counts_on_top_of_the_package_but_a_dry_run_only_needs_the_package() {
+        let dir = TempDir::new("raul-unpack-dry");
+        let package = download(&dir);
+        let work = dir.path().join("work");
+        let real = mpi_for(
+            &request(Some(some), false, false),
+            &package,
+            &work,
+            &mut |_| {},
+        );
+        assert!(real.is_err(), "10 GiB is less than the install needs");
+        let mut events = Vec::new();
+        let dry = mpi_for(
+            &request(Some(some), true, false),
+            &package,
+            &work,
+            &mut |e| {
+                events.push(e);
+            },
+        )
+        .unwrap();
+        assert_eq!(dry, work.join("package/Tale of Two Wastelands 3.4.mpi"));
+        assert_eq!(phases(&events), ["unpack"]);
+        assert!(package::is_mpi(&dry));
+    }
+
+    #[test]
+    fn an_unknown_amount_of_space_does_not_block_and_a_resume_keeps_what_was_unpacked() {
+        let dir = TempDir::new("raul-unpack-resume");
+        let package = download(&dir);
+        let work = dir.path().join("work");
+        let first = mpi_for(
+            &request(Some(unknown), false, false),
+            &package,
+            &work,
+            &mut |_| {},
+        )
+        .unwrap();
+        let mut events = Vec::new();
+        // Even with no room left, a resumed run uses the package it already has.
+        let again = mpi_for(
+            &request(Some(little), false, true),
+            &package,
+            &work,
+            &mut |e| {
+                events.push(e);
+            },
+        )
+        .unwrap();
+        assert_eq!(first, again);
+        assert!(events.is_empty(), "no second unpack: {events:?}");
+        // Without --resume it is unpacked again, and a plain package is passed through as it is.
+        let fresh = mpi_for(
+            &request(Some(plenty), false, false),
+            &package,
+            &work,
+            &mut |e| {
+                events.push(e);
+            },
+        )
+        .unwrap();
+        assert_eq!(phases(&events), ["unpack"]);
+        assert_eq!(fresh, first);
+        let mpi = Package::Mpi {
+            path: dir.path().join("x.mpi"),
+        };
+        assert_eq!(
+            mpi_for(
+                &request(Some(little), false, false),
+                &mpi,
+                &work,
+                &mut |_| {}
+            ),
+            Ok(dir.path().join("x.mpi"))
+        );
     }
 }
 

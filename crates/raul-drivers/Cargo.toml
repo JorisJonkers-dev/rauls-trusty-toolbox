@@ -14,6 +14,7 @@ nvmod-formats = { workspace = true }
 nvmod-instance = { workspace = true }
 nvmod-loadorder = { workspace = true }
 nvmod-modinstall = { workspace = true }
+nvmod-runlog = { workspace = true }
 ttwright-core = { workspace = true }
 ttwright-contract = { workspace = true }
 lodwright-api = { workspace = true }

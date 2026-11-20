@@ -126,7 +126,9 @@ impl Problem {
             Problem::SeveralInside { .. } => {
                 "The archive holds more than one package: unpack it and choose the right one."
             }
-            Problem::Unreadable { .. } => "The archive cannot be read: the download may not be complete.",
+            Problem::Unreadable { .. } => {
+                "The archive cannot be read: the download may not be complete."
+            }
             Problem::NotAPackage { .. } => "The file in the archive is not a TTW package.",
             Problem::Unpack { .. } => "The archive could not be unpacked.",
         }
@@ -272,7 +274,11 @@ pub fn inspect(path: &Path) -> Result<Package, Problem> {
     let mut packages: Vec<String> = list
         .into_iter()
         .map(|(name, _)| name)
-        .filter(|name| name.rsplit(['/', '\\']).next().is_some_and(has_mpi_extension))
+        .filter(|name| {
+            name.rsplit(['/', '\\'])
+                .next()
+                .is_some_and(has_mpi_extension)
+        })
         .collect();
     match packages.len() {
         0 => Err(Problem::NoPackageInside {
@@ -315,8 +321,9 @@ fn list_7z(path: &Path) -> Result<Vec<(String, u64)>, String> {
 
 /// The files of a zip archive with their unpacked sizes, read from its central directory.
 fn list_zip(path: &Path) -> Result<Vec<(String, u64)>, String> {
-    let mut zip = zip::ZipArchive::new(BufReader::new(File::open(path).map_err(|e| e.to_string())?))
-        .map_err(|e| e.to_string())?;
+    let mut zip =
+        zip::ZipArchive::new(BufReader::new(File::open(path).map_err(|e| e.to_string())?))
+            .map_err(|e| e.to_string())?;
     let mut files = Vec::new();
     for i in 0..zip.len() {
         let entry = zip.by_index_raw(i).map_err(|e| e.to_string())?;
@@ -349,7 +356,8 @@ pub fn unpack(package: &Package, into: &Path) -> Result<PathBuf, Problem> {
     };
     let scratch = into.with_file_name(format!(
         "{}.unpacking",
-        into.file_name().map_or_else(|| "package".into(), |n| n.to_string_lossy())
+        into.file_name()
+            .map_or_else(|| "package".into(), |n| n.to_string_lossy())
     ));
     let cleanup = |dir: &Path| {
         let _ = fs::remove_dir_all(dir);
@@ -368,7 +376,11 @@ pub fn unpack(package: &Package, into: &Path) -> Result<PathBuf, Problem> {
         let relative = entry.replace('\\', "/");
         let mut file = scratch.clone();
         for part in relative.split('/').filter(|p| !p.is_empty() && *p != ".") {
-            if part == ".." || Path::new(part).components().any(|c| !matches!(c, Component::Normal(_))) {
+            if part == ".."
+                || Path::new(part)
+                    .components()
+                    .any(|c| !matches!(c, Component::Normal(_)))
+            {
                 return None;
             }
             file.push(part);
@@ -377,7 +389,9 @@ pub fn unpack(package: &Package, into: &Path) -> Result<PathBuf, Problem> {
     })();
     let Some(file) = found else {
         cleanup(&scratch);
-        return Err(fail("the package is not where the archive says it is".to_owned()));
+        return Err(fail(
+            "the package is not where the archive says it is".to_owned(),
+        ));
     };
     if !is_mpi(&file) {
         cleanup(&scratch);
@@ -449,7 +463,9 @@ mod tests {
 
     /// The download of the real package, made small: the package next to the installer program and a library.
     fn download(dir: &TempDir) -> PathBuf {
-        let path = dir.path().join("Tale of Two Wastelands 3.4-133-[mod.pub].7z");
+        let path = dir
+            .path()
+            .join("Tale of Two Wastelands 3.4-133-[mod.pub].7z");
         make_7z(
             &path,
             &[
@@ -503,7 +519,10 @@ mod tests {
         let why = inspect(&path).unwrap_err();
         assert_eq!(why, Problem::NoPackageInside { path: path.clone() });
         let text = why.to_string();
-        assert!(text.contains("Tale of Two Wastelands <version>.mpi"), "{text}");
+        assert!(
+            text.contains("Tale of Two Wastelands <version>.mpi"),
+            "{text}"
+        );
         assert!(text.contains(DOWNLOAD_FROM), "{text}");
     }
 
@@ -531,7 +550,12 @@ mod tests {
         zip.start_file("installer.exe", options).unwrap();
         zip.write_all(b"MZ").unwrap();
         zip.finish().unwrap();
-        let Ok(Package::Archive { entry, unpacked_bytes, .. }) = inspect(&path) else {
+        let Ok(Package::Archive {
+            entry,
+            unpacked_bytes,
+            ..
+        }) = inspect(&path)
+        else {
             panic!("a zip with a package is accepted");
         };
         assert_eq!(entry, "TTW 3.4.mpi");
@@ -547,21 +571,33 @@ mod tests {
         let text = dir.path().join("notes.txt");
         std::fs::write(&text, "not a package").unwrap();
         let why = inspect(&text).unwrap_err();
-        assert_eq!(why, Problem::Neither { path: text, kind: None });
+        assert_eq!(
+            why,
+            Problem::Neither {
+                path: text,
+                kind: None
+            }
+        );
         let said = why.to_string();
-        assert!(said.contains("Tale of Two Wastelands <version>.mpi"), "{said}");
+        assert!(
+            said.contains("Tale of Two Wastelands <version>.mpi"),
+            "{said}"
+        );
         assert!(said.contains(".7z"), "{said}");
 
         let rar = dir.path().join("download.rar");
         std::fs::write(&rar, b"Rar!\x1a\x07\x01\x00 made up").unwrap();
         let why = inspect(&rar).unwrap_err();
-        assert_eq!(why, Problem::Neither { path: rar, kind: Some("rar") });
+        assert_eq!(
+            why,
+            Problem::Neither {
+                path: rar,
+                kind: Some("rar")
+            }
+        );
         assert!(why.to_string().contains("Unpack it"), "{why}");
 
-        assert!(matches!(
-            inspect(dir.path()),
-            Err(Problem::NotAFile { .. })
-        ));
+        assert!(matches!(inspect(dir.path()), Err(Problem::NotAFile { .. })));
         assert!(matches!(
             inspect(&dir.path().join("missing.7z")),
             Err(Problem::NotAFile { .. })
@@ -603,14 +639,20 @@ mod tests {
     fn an_entry_that_is_not_a_package_by_content_is_refused_and_nothing_is_left() {
         let dir = TempDir::new("pkg-fake");
         let path = dir.path().join("fake.7z");
-        make_7z(&path, &[("Tale of Two Wastelands 3.4.mpi", b"PK\x03\x04 not a bsa")]);
+        make_7z(
+            &path,
+            &[("Tale of Two Wastelands 3.4.mpi", b"PK\x03\x04 not a bsa")],
+        );
         let package = inspect(&path).unwrap();
         let into = dir.path().join("work/package");
         let why = unpack(&package, &into).unwrap_err();
         assert!(matches!(why, Problem::NotAPackage { .. }), "{why:?}");
         assert!(why.to_string().contains("BSA"), "{why}");
         assert!(!into.exists());
-        assert_eq!(std::fs::read_dir(dir.path().join("work")).unwrap().count(), 0);
+        assert_eq!(
+            std::fs::read_dir(dir.path().join("work")).unwrap().count(),
+            0
+        );
     }
 
     #[test]
