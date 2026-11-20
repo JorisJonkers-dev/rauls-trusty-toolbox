@@ -116,3 +116,18 @@ fn a_new_version_that_fails_its_check_at_start_goes_back_to_the_old_one() {
     assert_eq!(again.status.code(), Some(0));
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[cfg(not(feature = "engine"))]
+#[test]
+fn the_play_mode_without_the_engine_is_one_plain_refusal() {
+    let out = Command::new(env!("CARGO_BIN_EXE_raul"))
+        .args(["--play-mode", "/nowhere"])
+        .output()
+        .expect("run raul");
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(out.stdout, Vec::<u8>::new());
+    assert_eq!(
+        String::from_utf8_lossy(&out.stderr).trim(),
+        raul_engine::NO_ENGINE_LINE
+    );
+}
