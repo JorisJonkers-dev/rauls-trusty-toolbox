@@ -12,8 +12,9 @@ both kinds. ghcr.io needs no new service and takes each repository's own token. 
 
 ## Programs
 
-- **What**: the nv-rs engine package for each target (the only package `raul` installs), and the CLI of nvmod,
-  lodwright-rs, ttwright-rs and loot-rs for standalone use. `raul` does not read the CLIs.
+- **What**: the nv-rs engine package for each target, for people who run the engine without `raul`, and the CLI of
+  nvmod, lodwright-rs, ttwright-rs and loot-rs for standalone use. `raul` reads none of them (amended 2026-11-20: the
+  engine program and its pin in `raul` are removed; the engine is linked, ADR-0016).
 - **Name and version**: `ghcr.io/jorisjonkers-dev/<repo>:<version>-<target>`, named after the repository (for example
   `ghcr.io/jorisjonkers-dev/ttwright-rs`; amended 2026-11-18, the first releases used `<repo>-<program>`), where `<version>` is the
   Component's release tag and `<target>` a Rust target triple. One version per Component release, no other tags. Each
