@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795174426833,
+  "lastUpdate": 1795176815074,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -6271,6 +6271,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.52057,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a9d8662be956af65e5a43ecee28f8257f6cbd426",
+          "message": "feat(gui): list the Mods by calling nvmod's mods job directly (#269) (#379)\n\nThe Mods page read its list through the command line in process. It now calls\nnvmod_api::mods::list with a typed request, and the document it answers with is\nthe one the command prints, checked against it for the plain and the\nprofile-and-category forms.",
+          "timestamp": "2026-11-20T12:11:52Z",
+          "tree_id": "6d964cc640f3f0f71cc0ee7d65e8609b8afa258a",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a9d8662be956af65e5a43ecee28f8257f6cbd426"
+        },
+        "date": 1795176814630,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.918491,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.72873,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 37.109363,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.229364,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 36.051014,
             "unit": "ms"
           }
         ]
