@@ -25,6 +25,7 @@ raul-drivers = { workspace = true }
 nvmod-api = { workspace = true }
 nvmod-core = { workspace = true }
 nvmod-instance = { workspace = true }
+nvmod-run = { workspace = true }
 serde_json = { workspace = true }
 ctrlc = { version = "=3.5.2", features = ["termination"] }
 
