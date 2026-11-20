@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795204557917,
+  "lastUpdate": 1795212605546,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7692,6 +7692,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.190843,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c875f7fc8638b2e9d1ba5eebf770c77cd2c693ea",
+          "message": "feat(gui): give a run its own folders as a value, so the page tests need no raul program (#168) (#433)\n\nraul_core::context::Context carries the configuration folder (and whether nvmod's run log is written) from the entry point down: raul_cli::run_in takes it, InProcessExec and the window's Jobs hold one, and the typed jobs that read raul config take it. The default is the person's own folders, so the command line is unchanged. The page tests for the load order, the LOD page, the mods page, the first run and TTW run the command line in process with a context of their own instead of starting the built raul with RAUL_CONFIG_DIR and NVMOD_STATE_DIR, and the process exec is removed from the service crate.",
+          "timestamp": "2026-11-20T22:08:00Z",
+          "tree_id": "090a19234390970e1206a0d1b0061f1e6c05076e",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/c875f7fc8638b2e9d1ba5eebf770c77cd2c693ea"
+        },
+        "date": 1795212604421,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.888308,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.717921,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.985834000000004,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.1709570000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.6332379999999995,
             "unit": "ms"
           }
         ]
