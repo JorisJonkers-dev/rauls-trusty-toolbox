@@ -196,6 +196,11 @@ pub enum Launch {
     Starting,
     /// `raul run` started the game and returned.
     Started,
+    /// The game that was started has ended; `stopped` says the person asked it to stop first.
+    Ended {
+        /// Whether Stop was pressed before it ended.
+        stopped: bool,
+    },
     /// It refused or failed; what it said.
     Failed(String),
 }
