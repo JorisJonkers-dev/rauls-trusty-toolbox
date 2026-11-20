@@ -105,6 +105,10 @@ crate::texts!(TEXTS {
     HELP_DIFFUSE_SIZE = opt::DIFFUSE_SIZE_HELP;
     LABEL_NORMAL_SIZE = opt::NORMAL_SIZE;
     HELP_NORMAL_SIZE = opt::NORMAL_SIZE_HELP;
+    LABEL_DROP_UNDER_TERRAIN = opt::DROP_UNDER_TERRAIN;
+    HELP_DROP_UNDER_TERRAIN = opt::DROP_UNDER_TERRAIN_HELP;
+    LABEL_DROP_UNDER_WATER = opt::DROP_UNDER_WATER;
+    HELP_DROP_UNDER_WATER = opt::DROP_UNDER_WATER_HELP;
 });
 
 crate::errors!(ERRORS {
@@ -427,6 +431,7 @@ impl Page for LodSettings {
 }
 
 impl LodSettings {
+    #[allow(clippy::too_many_lines)] // one page of sections, in the order they are drawn
     fn form(
         &mut self,
         ui: &mut egui::Ui,
@@ -510,10 +515,16 @@ impl LodSettings {
             if !open {
                 ui.label(RichText::new(LOCKED).color(t.muted.color()));
             }
-            if let Some(i) = self.index("allow_in_repo")
-                && field(ui, t, &mut self.state.fields[i], open, busy)
-            {
-                leave = Some(i);
+            for key in [
+                "allow_in_repo",
+                "objects.drop_under_terrain",
+                "objects.drop_under_water",
+            ] {
+                if let Some(i) = self.index(key)
+                    && field(ui, t, &mut self.state.fields[i], open, busy)
+                {
+                    leave = Some(i);
+                }
             }
             for n in raul_drivers::lod::settings::LEVELS {
                 ui.add_space(6.0);
