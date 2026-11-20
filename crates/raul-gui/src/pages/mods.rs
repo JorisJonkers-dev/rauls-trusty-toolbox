@@ -15,9 +15,9 @@ use crate::shell;
 use crate::theme::Tokens;
 use eframe::egui::{self, RichText};
 use raul_ui_model::pages::mods::{
-    Filter, GeneratedList, GeneratedRow, ModEntry, Phase, Problem, State, disable_command,
-    enable_command, generated_command, list_command, move_command, parse_generated, parse_list,
-    remove_command,
+    Filter, GeneratedList, GeneratedRow, ModEntry, Phase, Problem, StaleRow, Staleness, State,
+    disable_command, enable_command, generated_command, list_command, move_command,
+    parse_generated, parse_list, remove_command,
 };
 use raul_ui_model::pages::settings::Command;
 use raul_ui_model::pages::{PageId, View};
@@ -67,6 +67,14 @@ crate::texts!(TEXTS {
     REGENERATE = "Regenerate…";
     REGENERATE_HOVER = "Opens the LOD page, where a new run replaces this Mod.";
     OPEN_LOD = "Open the LOD page";
+    STALE_MUST = "LOD out of date";
+    STALE_MAY = "LOD may be out of date";
+    STALE_ADVICE = "Regenerate it to bring it up to date.";
+    GENERATED_OFF = "It is off. A new run keeps it off.";
+    DELETE = "Delete…";
+    DELETE_TITLE = "Delete the generated LOD?";
+    DELETE_COST = "{name} leaves your mod list: its files move to the Instance's trash. The next LOD run makes it again, on top of the list and on.";
+    DELETE_ACTION = "Delete";
     ENABLED_STATUS = "Mod enabled.";
     DISABLED_STATUS = "Mod disabled.";
     MOVED_STATUS = "Mod moved.";
@@ -243,17 +251,17 @@ impl Mods {
         }
     }
 
-    fn ask_remove(&mut self, cx: &mut PageCx<'_>, instance: &str, name: &str) {
+    fn ask_remove(&mut self, cx: &mut PageCx<'_>, instance: &str, name: &str, generated: bool) {
         self.asked = Some(name.to_owned());
+        let (title, cost, action) = if generated {
+            (DELETE_TITLE, DELETE_COST, DELETE_ACTION)
+        } else {
+            (REMOVE_TITLE, REMOVE_COST, REMOVE_ACTION)
+        };
         cx.dialogs.open(
-            Dialog::confirm(
-                REMOVE_DIALOG,
-                REMOVE_TITLE,
-                REMOVE_COST.replace("{name}", name),
-                REMOVE_ACTION,
-            )
-            .with_command(remove_command(instance, name).shown())
-            .danger(),
+            Dialog::confirm(REMOVE_DIALOG, title, cost.replace("{name}", name), action)
+                .with_command(remove_command(instance, name).shown())
+                .danger(),
         );
     }
 
@@ -348,6 +356,7 @@ impl Mods {
     }
 
     /// What can be done with the selected Mod.
+    #[allow(clippy::too_many_lines)] // one panel: the Mod's facts, its changes, and the generated treatment
     fn detail(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>, t: &Tokens, instance: &str) {
         shell::section_label(ui, t, SECTION_SELECTED, true);
         let Some(m) = self.state.selected().cloned() else {
@@ -396,7 +405,20 @@ impl Mods {
         ui.add_space(8.0);
         match &m.generated {
             Some(g) => {
-                // The staleness chip of raul#66 goes here, beside Regenerate, once `g.stale` is filled.
+                if let Some(stale) = g.stale {
+                    ui.horizontal_wrapped(|ui| {
+                        let (mark, word) = match stale {
+                            Staleness::Must => (Mark::Problem, STALE_MUST),
+                            Staleness::May => (Mark::Warning, STALE_MAY),
+                        };
+                        super::home::mark(ui, t, mark, word);
+                        if let Some(why) = &g.stale_reason {
+                            ui.label(RichText::new(why).color(t.muted.color()));
+                        }
+                    });
+                    ui.label(RichText::new(STALE_ADVICE).color(t.muted.color()));
+                    ui.add_space(4.0);
+                }
                 ui.horizontal_top(|ui| {
                     icon(ui, t, Mark::Info);
                     ui.add(
@@ -411,6 +433,9 @@ impl Mods {
                         .wrap(),
                     );
                 });
+                if !m.enabled {
+                    ui.label(RichText::new(GENERATED_OFF).color(t.muted.color()));
+                }
                 if let Some(v) = &g.version {
                     ui.label(
                         RichText::new(GENERATED_VERSION.replace("{v}", v)).color(t.muted.color()),
@@ -426,6 +451,12 @@ impl Mods {
                     if regenerate || link {
                         cx.shell.go_to = Some(View::Page(PageId::Lod));
                     }
+                    if ui
+                        .add_enabled(!busy, shell::danger_button(t, DELETE))
+                        .clicked()
+                    {
+                        self.ask_remove(cx, instance, &m.name, true);
+                    }
                 });
             }
             None => {
@@ -433,7 +464,7 @@ impl Mods {
                     .add_enabled(!busy, shell::danger_button(t, REMOVE))
                     .clicked()
                 {
-                    self.ask_remove(cx, instance, &m.name);
+                    self.ask_remove(cx, instance, &m.name, false);
                 }
             }
         }
@@ -621,8 +652,21 @@ fn listed() -> State {
             own: true,
             legacy: false,
             lodwright_version: Some("0.3.0".to_owned()),
+            stale: None,
         }],
     });
+    s
+}
+
+/// [`listed`] with the generated Mod marked out of date for `state` (`may` or `must`) because of `reason`.
+fn out_of_date(state: &str, reason: &str) -> State {
+    let mut s = listed();
+    let mut g = s.lod.clone();
+    g.mods[0].stale = Some(StaleRow {
+        state: state.to_owned(),
+        reason: reason.to_owned(),
+    });
+    s.mark_generated(g);
     s
 }
 
@@ -634,6 +678,13 @@ pub fn fixtures() -> Vec<Fixture> {
     selected.select("Sample Weapons");
     let mut generated = listed();
     generated.select("Generated LOD (Default)");
+    let mut stale = out_of_date("must", "The LOD settings changed since the last run.");
+    stale.select("Generated LOD (Default)");
+    let mut maybe = out_of_date("may", "The Load order changed since the last run.");
+    maybe.select("Generated LOD (Default)");
+    let mut off = listed();
+    off.mods[1].enabled = false;
+    off.select("Generated LOD (Default)");
     let mut filtered = listed();
     filtered.filter = Filter::Enabled;
     "sample".clone_into(&mut filtered.query);
@@ -673,6 +724,9 @@ pub fn fixtures() -> Vec<Fixture> {
         fixture("empty", empty),
         fixture("listed", selected),
         fixture("generated", generated),
+        fixture("generated-stale", stale),
+        fixture("generated-maybe-stale", maybe),
+        fixture("generated-off", off),
         fixture("filtered", filtered),
         fixture("changing", changing),
         fixture("error", failed),
