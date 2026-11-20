@@ -121,6 +121,41 @@ fn plugins_list_prints_what_the_command_line_prints() {
 }
 
 #[test]
+fn mods_list_prints_what_the_command_line_prints() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    let root = s(&inst.root());
+    assert_same(
+        &direct_output("mods-list", &["--instance", &root]),
+        &cli_output(&["mods", "list", "--instance", &root, "--json"]),
+    );
+    assert_same(
+        &direct_output(
+            "mods-list",
+            &[
+                "--instance",
+                &root,
+                "--profile",
+                "Default",
+                "--category",
+                "1",
+            ],
+        ),
+        &cli_output(&[
+            "mods",
+            "list",
+            "--instance",
+            &root,
+            "--profile",
+            "Default",
+            "--category",
+            "1",
+            "--json",
+        ]),
+    );
+}
+
+#[test]
 fn tree_prints_what_the_command_line_prints() {
     let inst = Instance::new();
     install_plain(&inst);
