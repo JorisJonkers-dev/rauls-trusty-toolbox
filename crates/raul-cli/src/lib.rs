@@ -21,6 +21,8 @@ pub use ttw::{TtwJob, install_job as ttw_install_job, install_job_in as ttw_inst
 
 use std::io::Write;
 
+pub use raul_core::context::Context;
+
 /// Exit code for success.
 pub const OK: u8 = nvmod_cli::OK;
 /// Exit code for a check that ran and found a problem.
@@ -145,6 +147,12 @@ usage:
 
 /// Runs one command line (without the program name) and returns the exit code.
 pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    run_in(&Context::default(), args, out, err)
+}
+
+/// [`run`] with the folders and switches of `ctx` instead of the person's own: how the window and the tests run a
+/// command without touching the environment of the process.
+pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     match args.first().map(String::as_str) {
         None | Some("help" | "--help" | "-h") => write_or_fail(out, err, HELP),
         Some("--version" | "-V") => version::run(&[], out, err),
@@ -152,21 +160,30 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("detect") => detect::run(&args[1..], out, err),
         Some("space") => space::run(&args[1..], out, err),
         Some("bench") => bench::run(&args[1..], out, err),
-        Some("update") => update::run(&args[1..], out, err),
-        Some("config") => config::run(&args[1..], out, err),
+        Some("update") => update::run(ctx, &args[1..], out, err),
+        Some("config") => config::run(ctx, &args[1..], out, err),
         Some("setup") => setup::run(&args[1..], out, err),
-        Some("ttw") => ttw::run(&args[1..], out, err),
-        Some("lod") => lod::run(&args[1..], out, err),
+        Some("ttw") => ttw::run(ctx, &args[1..], out, err),
+        Some("lod") => lod::run(ctx, &args[1..], out, err),
         Some("install-nv-rs") => gone_install_nv_rs(err),
         Some("target") => target::run(args, out, err),
         Some("run") if args.iter().any(|a| a == "--stop") => play::stop(&args[1..], out, err),
         Some("run") if play::enabled() => run_in_play_mode(args, out, err),
-        Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
+        Some("nvmod-help") => nvmod(ctx, &["--help".to_string()], out, err),
         Some(_) if route(args) == Route::Own => {
             let _ = writeln!(err, "raul: {} has no handler", args[0]);
             FAILED
         }
-        Some(_) => nvmod_cli::run_logged(args, out, err),
+        Some(_) => nvmod(ctx, args, out, err),
+    }
+}
+
+/// An nvmod command, with its run log unless the context says none.
+fn nvmod(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    if ctx.run_log() {
+        nvmod_cli::run_logged(args, out, err)
+    } else {
+        nvmod_cli::run(args, out, err)
     }
 }
 

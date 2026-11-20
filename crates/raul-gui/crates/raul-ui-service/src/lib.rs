@@ -2,7 +2,7 @@
 //! The service seam of the Toolbox GUI (ADR-0003, ADR-0007), moved from nvmod-rs with its history.
 //!
 //! * [`Service`]: what screens and wizards ask of the world. [`CliService`] answers by running the `raul`
-//!   command line through the streaming Runner and reading its `--json` output, [`FakeService`] from a script.
+//!   command line in this process and reading its `--json` output, [`FakeService`] from a script.
 //! * [`jobs`]: runs a command line as a job whose events go into the job table of `raul-ui-model`.
 //! * [`direct`]: a Component's typed job called in this process as a job of the same table, under the Instance lock.
 //! * [`inproc`]: the same command line run in this process, for tests and for a build with no `raul` beside it.
@@ -33,7 +33,7 @@ pub use conflicts::{
     ConflictsReport, ConflictsRequest, PluginsReport, PluginsRequest, TreeReport, TreeRequest,
 };
 pub use direct::{DirectJob, Reply, run_direct};
-pub use exec::{CancelHandle, Exec, Output, ProcessExec};
+pub use exec::{CancelHandle, Exec, Output};
 pub use fake::{FakeService, ScriptedExec};
 pub use fetch::CurlFetcher;
 pub use hold::Hold;

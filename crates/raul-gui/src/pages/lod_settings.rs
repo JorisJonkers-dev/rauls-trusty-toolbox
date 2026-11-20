@@ -280,20 +280,20 @@ impl LodSettings {
         cx.dialogs.open(dialog);
     }
 
-    fn read_prefs(&mut self) {
+    fn read_prefs(&mut self, cx: &PageCx<'_>) {
         if self.prefs_read {
             return;
         }
         self.prefs_read = true;
-        if let Some(path) = raul_core::update::Settings::default_path() {
+        if let Some(path) = cx.jobs.context().settings_file() {
             self.state.understood |=
                 raul_core::update::Settings::load(&path).lod_advanced_understood;
         }
     }
 
-    fn understood_now(&mut self) {
+    fn understood_now(&mut self, cx: &PageCx<'_>) {
         self.state.understood = true;
-        if let Some(path) = raul_core::update::Settings::default_path() {
+        if let Some(path) = cx.jobs.context().settings_file() {
             let mut prefs = raul_core::update::Settings::load(&path);
             prefs.lod_advanced_understood = true;
             // The box stays ticked for this visit even when the preference cannot be written.
@@ -366,7 +366,7 @@ impl Page for LodSettings {
 
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
-        self.read_prefs();
+        self.read_prefs(cx);
         // The disclosure is closed on every visit, and the options are read again.
         if self.visits.returned(ui.ctx()) {
             self.state.advanced_open = false;
@@ -509,7 +509,7 @@ impl LodSettings {
                 .changed()
                 && understood
             {
-                self.understood_now();
+                self.understood_now(cx);
             }
             let open = self.state.understood;
             if !open {

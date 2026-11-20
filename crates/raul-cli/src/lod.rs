@@ -16,6 +16,7 @@ use raul_drivers::events::Event;
 use raul_drivers::lod::{self, LodRequest};
 
 use crate::printer::Printer;
+use raul_core::context::Context;
 
 const USAGE_LINE: &str = "lod takes `plan [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] \
      [--json]`, `generate [--instance <dir>] [--profile <name>] [--world <name>]... [--allow-in-repo] [--dry-run] \
@@ -81,12 +82,12 @@ fn parse(args: &[String], generate: bool) -> Result<Flags, String> {
     Ok(f)
 }
 
-pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+pub(crate) fn run(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     match args.first().map(String::as_str) {
-        Some("plan") => plan(&args[1..], out, err),
-        Some("generate") => generate(&args[1..], out, err),
-        Some("mods") => mods(&args[1..], out, err),
-        Some("settings") => crate::lod_settings::run(&args[1..], out, err),
+        Some("plan") => plan(ctx, &args[1..], out, err),
+        Some("generate") => generate(ctx, &args[1..], out, err),
+        Some("mods") => mods(ctx, &args[1..], out, err),
+        Some("settings") => crate::lod_settings::run(ctx, &args[1..], out, err),
         _ => crate::usage(err, USAGE_LINE),
     }
 }
@@ -101,7 +102,7 @@ fn refused_as(err: &mut dyn Write, verb: &str, why: &str) -> u8 {
 }
 
 /// `raul lod mods`: the generated LOD Mods the Profile lists, highest priority first.
-fn mods(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+fn mods(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let flags = match parse(args, false) {
         Ok(f) if f.worlds.is_empty() => f,
         Ok(_) => {
@@ -112,7 +113,7 @@ fn mods(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         }
         Err(why) => return crate::usage(err, &format!("{why}\n{USAGE_LINE}")),
     };
-    let Some(root) = flags.instance.or_else(configured_instance) else {
+    let Some(root) = flags.instance.or_else(|| configured_instance(ctx)) else {
         return refused_as(
             err,
             "mods",
@@ -155,24 +156,18 @@ fn mods(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
 }
 
 /// The Instance from `raul config`, when the flags name none.
-pub(crate) fn configured_instance() -> Option<PathBuf> {
-    configured_instance_in(None)
-}
-
-fn configured_instance_in(config: Option<&std::path::Path>) -> Option<PathBuf> {
-    config
-        .map(std::path::Path::to_path_buf)
-        .or_else(raul_core::config::default_file)
+pub(crate) fn configured_instance(ctx: &Context) -> Option<PathBuf> {
+    ctx.config_file()
         .and_then(|f| Config::load(&f).ok())
         .and_then(|c| c.get(Key::Instance))
 }
 
-fn plan(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+fn plan(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let flags = match parse(args, false) {
         Ok(f) => f,
         Err(why) => return crate::usage(err, &format!("{why}\n{USAGE_LINE}")),
     };
-    let Some(root) = flags.instance.or_else(configured_instance) else {
+    let Some(root) = flags.instance.or_else(|| configured_instance(ctx)) else {
         return refused(
             err,
             "no Instance: pass --instance <dir> or run `raul config set storage.root <dir>`",
@@ -301,22 +296,19 @@ impl LodJob {
 /// # Errors
 /// The usage message when the command line cannot be understood.
 pub fn generate_job(args: &[String]) -> Result<LodJob, String> {
-    generate_job_in(args, None)
+    generate_job_in(args, &Context::default())
 }
 
-/// [`generate_job`] reading the configuration from `config` (a `config.toml`) instead of the person's own.
+/// [`generate_job`] reading the configuration from the folders of `ctx` instead of the person's own.
 ///
 /// # Errors
 /// The usage message when the command line cannot be understood.
-pub fn generate_job_in(
-    args: &[String],
-    config: Option<&std::path::Path>,
-) -> Result<LodJob, String> {
+pub fn generate_job_in(args: &[String], ctx: &Context) -> Result<LodJob, String> {
     let flags = parse(args, true).map_err(|why| format!("{why}\n{USAGE_LINE}"))?;
     let absolute = |p: PathBuf| std::path::absolute(&p).unwrap_or(p);
     let instance = flags
         .instance
-        .or_else(|| configured_instance_in(config))
+        .or_else(|| configured_instance(ctx))
         .map(absolute);
     Ok(LodJob {
         request: LodRequest {
@@ -331,8 +323,8 @@ pub fn generate_job_in(
     })
 }
 
-fn generate(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    let job = match generate_job(args) {
+fn generate(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    let job = match generate_job_in(args, ctx) {
         Ok(job) => job,
         Err(why) => return crate::usage(err, &why),
     };
@@ -354,8 +346,8 @@ mod tests {
     fn a_run_with_no_instance_streams_its_refusal_and_its_end() {
         let dir = std::env::temp_dir().join(format!("raul-lod-job-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        let config = dir.join("config.toml");
-        let job = generate_job_in(&words(&["--dry-run"]), Some(&config)).unwrap();
+        let ctx = Context::default().with_config_folder(&dir);
+        let job = generate_job_in(&words(&["--dry-run"]), &ctx).unwrap();
         assert!(job.instance().is_none());
         let mut lines = Vec::new();
         let (code, note) = job.run_lines(Stop::Process, &mut |l| lines.push(l.to_owned()));

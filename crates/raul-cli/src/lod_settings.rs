@@ -50,7 +50,12 @@ fn parse(args: &[String], dry_run: bool) -> Result<Flags, String> {
     Ok(f)
 }
 
-pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+pub(crate) fn run(
+    ctx: &raul_core::context::Context,
+    args: &[String],
+    out: &mut dyn Write,
+    err: &mut dyn Write,
+) -> u8 {
     let verb = args.first().map(String::as_str);
     let Some(verb @ ("show" | "set" | "unset" | "reset" | "undo")) = verb else {
         return crate::usage(err, USAGE_LINE);
@@ -70,7 +75,7 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
     let Some(root) = flags
         .instance
         .clone()
-        .or_else(crate::lod::configured_instance)
+        .or_else(|| crate::lod::configured_instance(ctx))
     else {
         let refusal = settings::instance_invalid(
             "no Instance: pass --instance <dir> or set storage.root with raul config".to_owned(),

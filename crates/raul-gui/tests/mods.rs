@@ -7,6 +7,7 @@
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, write_file};
+use raul_core::context::Context;
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::mods::{
@@ -15,7 +16,7 @@ use raul_gui::pages::mods::{
 };
 use raul_gui::shell::App;
 use raul_ui_model::pages::{PageId, View};
-use raul_ui_service::{Exec, ProcessExec};
+use raul_ui_service::{Exec, InProcessExec};
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -80,11 +81,16 @@ impl Fixture {
         f
     }
 
-    /// `raul` with this fixture's own configuration and state, so nothing reaches the real home.
-    fn exec(&self) -> ProcessExec {
-        ProcessExec::new(env!("CARGO_BIN_EXE_raul"))
-            .with_env("RAUL_CONFIG_DIR", &self.s("config"))
-            .with_env("NVMOD_STATE_DIR", &self.s("state"))
+    /// The folders this fixture's runs use: its own configuration, and no run log, so nothing reaches the real home.
+    fn context(&self) -> Context {
+        Context::new()
+            .with_config_folder(self.path("config"))
+            .without_run_log()
+    }
+
+    /// The command line run in this process with this fixture's folders.
+    fn exec(&self) -> InProcessExec {
+        InProcessExec::with_context(self.context())
     }
 
     fn path(&self, p: &str) -> PathBuf {
@@ -112,8 +118,8 @@ impl Fixture {
     }
 
     fn app(&self) -> Harness<'static, App> {
-        let exec = self.exec().with_grace(Duration::from_secs(5));
-        let app = App::new(Jobs::new(Arc::new(exec)));
+        let exec = self.exec();
+        let app = App::new(Jobs::new(Arc::new(exec)).with_context(self.context()));
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {
