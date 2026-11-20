@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795214582367,
+  "lastUpdate": 1795214915656,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7839,6 +7839,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.848696,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "842bec761f88cc19f78975d7dc953362c83ce1c0",
+          "message": "ci(release): the notices file is also a release asset of its own (#72) (#452)",
+          "timestamp": "2026-11-20T22:46:58Z",
+          "tree_id": "62ddb74d900172cce0bdf025d92833e4baa78a5f",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/842bec761f88cc19f78975d7dc953362c83ce1c0"
+        },
+        "date": 1795214914565,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.0092020000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.431348,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 19.924946,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.448008,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.249214,
             "unit": "ms"
           }
         ]
