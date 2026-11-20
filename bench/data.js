@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795186800627,
+  "lastUpdate": 1795187295292,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7006,6 +7006,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.970862,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e6ee004f5da7d6c4210432f03aeb5c4905ed4d47",
+          "message": "ci: rebuild a Component bump branch whenever main moves, so its lock files match the tree it merges into (#403) (#421)",
+          "timestamp": "2026-11-20T15:06:13Z",
+          "tree_id": "bd51e9ab3575894944fd9050986bce3acb53d04a",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e6ee004f5da7d6c4210432f03aeb5c4905ed4d47"
+        },
+        "date": 1795187294179,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.396768,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.324337,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.278157,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.168349,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.364808,
             "unit": "ms"
           }
         ]
