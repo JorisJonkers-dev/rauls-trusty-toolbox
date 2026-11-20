@@ -23,6 +23,7 @@ use super::{
     CONTRACT, LodError, LodErrorCode, LodResult, MANIFEST_FILE, SCHEMA_VERSION, SHARED_OUTPUT_DIR,
     WORK_DIR, plan, read_manifest,
 };
+use crate::Stop;
 use crate::events::{Event, Status, ToolInfo};
 use crate::ttw::driver::{clear, count_files};
 use crate::ttw::exit_code;
@@ -409,12 +410,32 @@ pub fn generate(req: &LodRequest, emit: &mut dyn FnMut(Event)) -> LodOutcome {
     generate_with_cancel(req, &CancelToken::new(), emit)
 }
 
+/// [`generate`] that stops when `stop` says so and on the timeout, and not on the process-wide request: the run a
+/// window starts, whose stop belongs to that run alone.
+pub fn generate_with_stop(
+    req: &LodRequest,
+    stop: Stop<'_>,
+    emit: &mut dyn FnMut(Event),
+) -> LodOutcome {
+    generate_stopped(req, &CancelToken::new(), stop, emit)
+}
+
 /// [`generate`] with a token the caller can cancel from another thread. A cancelled run stops at its next safe point,
 /// leaves the output it finished in the work folder, and adds nothing; the next run continues from it.
 #[allow(clippy::too_many_lines)] // one flow: plan, run, read, keep
 pub fn generate_with_cancel(
     req: &LodRequest,
     cancel: &CancelToken,
+    emit: &mut dyn FnMut(Event),
+) -> LodOutcome {
+    generate_stopped(req, cancel, Stop::Process, emit)
+}
+
+#[allow(clippy::too_many_lines)] // one flow: plan, run, read, keep
+fn generate_stopped(
+    req: &LodRequest,
+    cancel: &CancelToken,
+    stop: Stop<'_>,
     emit: &mut dyn FnMut(Event),
 ) -> LodOutcome {
     let mut r = result(req);
@@ -532,7 +553,7 @@ pub fn generate_with_cancel(
         tool,
     });
 
-    let run = inproc::generate_with_events(&job, cancel, req.timeout, emit);
+    let run = inproc::generate_with_events(&job, cancel, stop, req.timeout, emit);
     if run.panicked {
         discard_partial(&plan.output_dir);
         let why = "LOD generation stopped unexpectedly; nothing was added";
@@ -579,7 +600,7 @@ pub fn generate_with_cancel(
         );
         return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
     }
-    if nvmod_core::cancel::requested() {
+    if stop.requested() {
         let why = "cancelled before the Mod was replaced; nothing was added";
         return fail(r, Status::Cancelled, LodErrorCode::Cancelled, None, why);
     }
@@ -644,7 +665,7 @@ pub fn generate_with_cancel(
             r.files = Some(files);
             done(r, true)
         }
-        Err(why) if nvmod_core::cancel::requested() => {
+        Err(why) if stop.requested() => {
             let why = format!("cancelled while the Mod was replaced; it was rolled back ({why})");
             fail(r, Status::Cancelled, LodErrorCode::Cancelled, None, why)
         }
