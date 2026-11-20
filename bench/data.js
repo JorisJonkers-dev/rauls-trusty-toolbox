@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795188832033,
+  "lastUpdate": 1795189112693,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7153,6 +7153,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.043717999999998,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "37def83c1044f253ac850dcfe778babb80e116b0",
+          "message": "chore(deps): bump ttwright-rs to 0.5.0 (#425)\n\n* chore(deps): bump ttwright-rs to 0.5.0\n\n* test(contracts): take the ttwright-rs 0.5.0 result and events schemas\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-20T15:36:29Z",
+          "tree_id": "6148884cbe4212594b8ae388596a8e616978e9c9",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/37def83c1044f253ac850dcfe778babb80e116b0"
+        },
+        "date": 1795189112332,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.0463639999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.636389,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.388507,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.487193,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 4.950149,
             "unit": "ms"
           }
         ]
