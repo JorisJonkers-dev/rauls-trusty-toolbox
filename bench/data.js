@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795215479051,
+  "lastUpdate": 1795216484084,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7937,6 +7937,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.272209,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "24310bb532e73b7ded3068549a76c8908222aca5",
+          "message": "fix(gui): Load order preview: every changed place is a move, all messages readable (#414) (#453)\n\n* fix(gui): the Load order preview counts and shows every plugin whose place changes, and wraps all messages (#414)\n\nThe Move column showed a dash for plugins that only shift because another moved past them, and the header and the\nApply button counted fewer than raul sort prints. A move is now every plugin whose place differs, so the column,\nthe header, the button and raul sort agree. Every message of a plugin is shown in its column, wrapped, instead of\nthe first one cut off at the window edge.\n\n* fix(gui): a narrow window keeps one line per message; the load order test counts the swap as two moves (#414)",
+          "timestamp": "2026-11-20T23:10:58Z",
+          "tree_id": "2515f3a6bd03dce6e02c07e25a1bf30600ddf6d9",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/24310bb532e73b7ded3068549a76c8908222aca5"
+        },
+        "date": 1795216483186,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.0837970000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.599874000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.558363,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.496771,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.138694,
             "unit": "ms"
           }
         ]
