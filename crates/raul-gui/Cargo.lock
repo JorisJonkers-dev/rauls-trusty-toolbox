@@ -4425,6 +4425,7 @@ dependencies = [
  "raul-ui-model",
  "serde",
  "serde_json",
+ "sevenz-rust2",
  "ttwright-testkit",
 ]
 

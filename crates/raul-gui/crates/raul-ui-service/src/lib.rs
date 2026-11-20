@@ -17,6 +17,7 @@
 
 pub mod conflicts;
 pub mod direct;
+pub mod download;
 pub mod dto;
 pub mod exec;
 pub mod fake;
