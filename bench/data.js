@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795203636206,
+  "lastUpdate": 1795203993306,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7594,6 +7594,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.369403,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3b55f1fdf9bfede6851229992b71079ef010f88d",
+          "message": "chore(deps): bump nvmod to 0.15.1 (#443)\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-20T19:44:14Z",
+          "tree_id": "6856ccb36b764c18999e7139da3507babc81ab67",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3b55f1fdf9bfede6851229992b71079ef010f88d"
+        },
+        "date": 1795203992398,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.4329780000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 11.095464,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.928456,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 6.397833,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.261151,
             "unit": "ms"
           }
         ]
