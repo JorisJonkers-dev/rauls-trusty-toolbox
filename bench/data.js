@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795198057831,
+  "lastUpdate": 1795199123802,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7300,6 +7300,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.173935999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "53011edd5b328acde46ec5d2963b3272599dc53b",
+          "message": "test(gui): refresh the Mods error snapshots for the new texts (#426) (#437)",
+          "timestamp": "2026-11-20T18:23:01Z",
+          "tree_id": "7abbb9b405fed8eb38f122e8e169f10c110da672",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/53011edd5b328acde46ec5d2963b3272599dc53b"
+        },
+        "date": 1795199123125,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.394981,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.096591,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.076373,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.086061,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.672707,
             "unit": "ms"
           }
         ]
