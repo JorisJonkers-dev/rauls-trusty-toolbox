@@ -845,7 +845,7 @@ dependencies = [
 
 [[package]]
 name = "lodwright-api"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "fs4",
  "lodwright-contract",
@@ -858,14 +858,14 @@ dependencies = [
 
 [[package]]
 name = "lodwright-assets"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "miniz_oxide",
 ]
 
 [[package]]
 name = "lodwright-contract"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "schemars",
  "serde",
@@ -875,14 +875,14 @@ dependencies = [
 
 [[package]]
 name = "lodwright-core"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "miniz_oxide",
 ]
 
 [[package]]
 name = "lodwright-dds"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "ddsfile",
  "texpresso",
@@ -890,7 +890,7 @@ dependencies = [
 
 [[package]]
 name = "lodwright-gen"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "lodwright-assets",
  "lodwright-contract",
@@ -901,18 +901,18 @@ dependencies = [
 
 [[package]]
 name = "lodwright-nif"
-version = "0.7.0"
+version = "0.8.0"
 
 [[package]]
 name = "lodwright-plugin-meta"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "esplugin",
 ]
 
 [[package]]
 name = "lodwright-testkit"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "miniz_oxide",
 ]
@@ -1963,7 +1963,7 @@ version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5e76742e5294153d4dde1207dbec5bdd81eef6fabdc0d2118babadabfd858aa"
 dependencies = [
- "bitflags 2.13.2",
+ "bitflags",
  "errno",
  "libc",
  "linux-raw-sys",
