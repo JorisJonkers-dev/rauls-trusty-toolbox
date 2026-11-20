@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795216484084,
+  "lastUpdate": 1795217093108,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -7986,6 +7986,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.138694,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ab0006c6484ce79d81923ce751cc02cced42310b",
+          "message": "fix(gui): Home's TTW, Load order and LOD rows follow the Instance, not the session (#415) (#454)\n\nHome reads the Instance's mod list and the generated LOD Mods each time it loads and each time the person returns\nto it: a Tale of Two Wastelands Mod in the list makes the TTW row Installed, a generated LOD Mod makes the LOD row OK,\nand a load order that reads with no Doctor error makes the Load order row OK.",
+          "timestamp": "2026-11-20T23:23:07Z",
+          "tree_id": "af9dada53e8c2e8c474d0e8ed63df103c4fd7b0d",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ab0006c6484ce79d81923ce751cc02cced42310b"
+        },
+        "date": 1795217092277,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.2313960000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 5.221741000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 24.565772,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.667147,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.187497,
             "unit": "ms"
           }
         ]
