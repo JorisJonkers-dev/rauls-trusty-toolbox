@@ -280,7 +280,9 @@ fn doctor_findings_are_a_report_not_an_error() {
 
 #[test]
 fn a_process_that_cannot_start_is_an_internal_error() {
-    let svc = CliService::new(raul_ui_service::ProcessExec::new("/no/such/nvmod"));
+    let exec = raul_ui_service::fake::ScriptedExec::new();
+    exec.on_start_failure("could not start raul");
+    let svc = CliService::new(exec);
     let err = svc.tools_list(&ToolsRequest::default()).unwrap_err();
     assert_eq!(err.view_error().exit, ExitClass::Internal);
 }

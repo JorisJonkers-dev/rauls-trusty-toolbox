@@ -75,6 +75,7 @@ pub fn start_program(
             command.process_group(0);
         }
     }
+    crate::runner::count_started();
     command
         .spawn()
         .map(Started)
