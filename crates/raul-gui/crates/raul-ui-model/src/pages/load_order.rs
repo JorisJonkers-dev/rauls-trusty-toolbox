@@ -225,6 +225,19 @@ impl State {
     /// The plugin list arrived.
     pub fn listed(&mut self, profile: String, plugins: Vec<Plugin>) {
         self.profile = Some(profile);
+        let mut plugins = plugins;
+        // After an applied sort the list is read again, and `raul plugins list` carries no group or messages: the
+        // ones of the sort stay on their plugins until the sort is undone.
+        if self.journal.is_some() {
+            let known: HashMap<&str, &Plugin> =
+                self.current.iter().map(|p| (p.name.as_str(), p)).collect();
+            for p in &mut plugins {
+                if let Some(old) = known.get(p.name.as_str()) {
+                    p.group.clone_from(&old.group);
+                    p.messages.clone_from(&old.messages);
+                }
+            }
+        }
         self.current = plugins;
         self.proposed.clear();
         self.phase = self.resting();
@@ -422,6 +435,11 @@ mod tests {
         s.loading();
         s.listed("Default".into(), list(&["A", "C", "B"]));
         assert_eq!(s.phase, Phase::Applied, "Undo stays offered after a reload");
+        assert_eq!(
+            s.flagged(),
+            1,
+            "the messages of the sort stay visible after Apply and a reload"
+        );
         s.undoing();
         s.undone();
         assert_eq!((s.phase, s.journal.clone()), (Phase::Loading, None));
