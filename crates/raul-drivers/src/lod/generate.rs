@@ -550,7 +550,7 @@ fn generate_stopped(
 
     let run = inproc::generate_with_events(&job, cancel, stop, req.timeout, emit);
     if run.panicked {
-        let why = format!("LOD generation stopped unexpectedly; {MOD_UNTOUCHED}");
+        let why = "LOD generation stopped unexpectedly; nothing was added";
         return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
     }
     let doc = match run.answer {
@@ -588,11 +588,14 @@ fn generate_stopped(
     }
     r.lodwright = serde_json::to_value(&doc).ok();
     if doc.status != LodwrightStatus::Ok {
-        let why = format!("LOD generation reported {:?}; {MOD_UNTOUCHED}", doc.status);
+        let why = format!(
+            "LOD generation reported {:?}; nothing was added",
+            doc.status
+        );
         return fail(r, Status::Failed, LodErrorCode::ToolFailed, None, why);
     }
     if stop.requested() {
-        let why = format!("cancelled before the Mod was replaced; {MOD_UNTOUCHED}");
+        let why = "cancelled before the Mod was replaced; nothing was added";
         return fail(r, Status::Cancelled, LodErrorCode::Cancelled, None, why);
     }
     let manifest = match read_manifest(&plan.output_dir) {
