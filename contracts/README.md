@@ -279,3 +279,11 @@ every Profile shared before, `LOD (lodwright)` (`legacy: true`, and `profile`, `
 Profile may also list another Profile's LOD Mod. `position` counts separators, as `raul mods list` does, and starts
 at 1. An Instance that cannot be opened, or a Profile it does not have, is refused (exit code 2) with one line on
 standard error and no document; a Profile whose mod list is empty or unreadable lists no Mods.
+
+`stale` is set for the Profile's own Mod and `null` for the others. Each successful run records what it was built from
+(the settings and worlds, and each active plugin in Load order: its size, a digest of its first and last megabyte and
+whether it has a top-level world group) in `.raul/lod/<Profile>/fingerprint.json`. `state` is `current` when nothing
+that shows in the LOD changed, `may` when plugins were reordered or a plugin without a world was turned on or off or
+changed, `must` when the settings or worlds changed or a plugin with a world was turned on or off or changed, and
+`unknown` when no run of this build is recorded or the current state cannot be read. `reason` says what changed in one
+line.

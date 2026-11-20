@@ -290,6 +290,9 @@ pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
         "verify" => Some(verify_request(rest).map_or_else(DirectJob::usage, |r| verify(&r))),
         "plugins-list" => Some(plugins_list(&plugins_list_request(rest))),
+        "mods-list" => {
+            Some(mods_list_request(rest).map_or_else(DirectJob::usage, |r| mods_list(&r)))
+        }
         // `--keep-order` is nvmod's other sort job (`sort_apply::keep_order`), which no page starts: it stays a
         // command line.
         "sort-preview" | "sort-apply" if has_flag(rest, "--keep-order") => None,
@@ -433,6 +436,28 @@ fn plugins_list_request(rest: &[String]) -> nvmod_api::plugins::ListRequest {
 pub fn plugins_list(request: &nvmod_api::plugins::ListRequest) -> DirectJob {
     let request = request.clone();
     DirectJob::reading(move |progress, cancel| nvmod_api::plugins::list(&request, progress, cancel))
+}
+
+/// The request of `raul mods list` from the words after it; a category that is not a number is its usage message.
+fn mods_list_request(rest: &[String]) -> Result<nvmod_api::mods::ListRequest, String> {
+    let category = match option_of(rest, "--category") {
+        None => None,
+        Some(word) => Some(
+            word.parse::<u32>()
+                .map_err(|_| "mods list: --category takes a number".to_string())?,
+        ),
+    };
+    Ok(nvmod_api::mods::ListRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        category,
+    })
+}
+
+/// `nvmod_api::mods::list`: reads only. Its document is the list, as `raul mods list --json` prints it.
+pub fn mods_list(request: &nvmod_api::mods::ListRequest) -> DirectJob {
+    let request = request.clone();
+    DirectJob::reading(move |progress, cancel| nvmod_api::mods::list(&request, progress, cancel))
 }
 
 /// Where the masterlist of a sort comes from.

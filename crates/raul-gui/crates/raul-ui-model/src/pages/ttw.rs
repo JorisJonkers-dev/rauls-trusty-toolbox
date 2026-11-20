@@ -523,6 +523,8 @@ pub struct State {
     pub found: Found,
     /// The free bytes where the Instance is, read from `raul space` when Output is shown.
     pub space: Fetch<u64>,
+    /// Sources read again while a command ran, applied by [`State::settle`] when it ends.
+    pub deferred: Option<Sources>,
 }
 
 impl State {
@@ -635,7 +637,12 @@ impl State {
     /// starts over from Sources with them; when they did not, or while a command runs or after the install ended,
     /// the flow stays where it is.
     pub fn refreshed(&mut self, sources: Sources) {
-        if self.busy() || self.done() || self.sources.ready() == Some(&sources) {
+        if self.busy() {
+            self.deferred = Some(sources);
+            return;
+        }
+        self.deferred = None;
+        if self.done() || self.sources.ready() == Some(&sources) {
             return;
         }
         *self = State {
@@ -643,6 +650,16 @@ impl State {
             ..State::new(self.instance.take())
         };
         self.sources_read(sources);
+    }
+
+    /// Applies the sources that were read again while a command ran, once no command runs. A running command is
+    /// never restarted or cut off by them.
+    pub fn settle(&mut self) {
+        if !self.busy()
+            && let Some(sources) = self.deferred.take()
+        {
+            self.refreshed(sources);
+        }
     }
 
     /// What is still missing before the flow can go past Sources; nothing is known missing before the read.
@@ -983,6 +1000,26 @@ mod tests {
     }
 
     #[test]
+    fn a_re_read_that_finishes_during_a_job_is_applied_when_the_job_ends() {
+        let mut s = ready();
+        s.next();
+        s.step = Step::Review;
+        s.checking().unwrap();
+        let changed = Sources {
+            package: Some("/new.mpi".into()),
+            ..s.sources.ready().cloned().unwrap()
+        };
+        s.refreshed(changed);
+        s.settle();
+        assert!(s.busy(), "the running job is not cancelled");
+        s.checked(success(true), problem()).unwrap();
+        assert!(s.deferred.is_some());
+        s.settle();
+        assert_eq!(s.wizard.package(), Some("/new.mpi"));
+        assert!(s.deferred.is_none() && s.step == Step::Sources);
+    }
+
+    #[test]
     fn sources_read_again_start_over_only_when_they_changed() {
         let mut s = ready();
         s.next();
@@ -997,6 +1034,17 @@ mod tests {
         s.checking().unwrap();
         s.refreshed(changed.clone());
         assert_eq!(s.step, Step::Review, "a running check is not cut off");
+        s.checked(success(true), problem()).unwrap();
+        s.settle();
+        assert_eq!(
+            s.step,
+            Step::Sources,
+            "the answer that came during the check is applied when it ends"
+        );
+        let mut s = ready();
+        s.next();
+        s.step = Step::Review;
+        s.checking().unwrap();
         s.checked(success(true), problem()).unwrap();
         s.refreshed(changed.clone());
         assert_eq!(s.step, Step::Sources);

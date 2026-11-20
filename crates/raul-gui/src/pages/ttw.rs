@@ -566,6 +566,7 @@ impl Ttw {
                 },
             };
         }
+        self.state.settle();
     }
 
     /// Takes the install job's progress from the job table.

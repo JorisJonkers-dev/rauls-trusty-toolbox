@@ -617,7 +617,7 @@ checksum = "626d4928326b646e70f65ed36fc7cf9f206bdb68a0019ee7c6b4709da4e084c4"
 dependencies = [
  "crc32fast",
  "libz-sys",
- "miniz_oxide 0.9.1",
+ "miniz_oxide",
  "zlib-rs",
 ]
 
@@ -1083,7 +1083,7 @@ dependencies = [
 
 [[package]]
 name = "lodwright-api"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "lodwright-contract",
  "lodwright-core",
@@ -1095,31 +1095,31 @@ dependencies = [
 
 [[package]]
 name = "lodwright-assets"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
- "miniz_oxide 0.8.9",
+ "miniz_oxide",
 ]
 
 [[package]]
 name = "lodwright-contract"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "sha2 0.10.9",
+ "sha2 0.11.1",
 ]
 
 [[package]]
 name = "lodwright-core"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
- "miniz_oxide 0.8.9",
+ "miniz_oxide",
 ]
 
 [[package]]
 name = "lodwright-dds"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "ddsfile",
  "texpresso",
@@ -1127,7 +1127,7 @@ dependencies = [
 
 [[package]]
 name = "lodwright-gen"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "lodwright-assets",
  "lodwright-contract",
@@ -1138,20 +1138,20 @@ dependencies = [
 
 [[package]]
 name = "lodwright-nif"
-version = "0.5.0"
+version = "0.6.0"
 
 [[package]]
 name = "lodwright-plugin-meta"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "esplugin",
 ]
 
 [[package]]
 name = "lodwright-testkit"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
- "miniz_oxide 0.8.9",
+ "miniz_oxide",
 ]
 
 [[package]]
@@ -1235,15 +1235,6 @@ name = "micromap"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a86d3146ed3995b5913c414f6664344b9617457320782e64f0bb44afd49d74"
-
-[[package]]
-name = "miniz_oxide"
-version = "0.8.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
-dependencies = [
- "adler2",
-]
 
 [[package]]
 name = "miniz_oxide"
