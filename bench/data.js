@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795244081301,
+  "lastUpdate": 1795247394787,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9652,6 +9652,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.364804,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8e73ac3672b52e77f71a25eb1ca7c5a73a01262f",
+          "message": "fix(release): a release without installers fails loudly; the .deb is named raul, has a Maintainer and declares its libraries (#505, #506) (#507)\n\n#505: v0.5.0 was published with no assets because the macOS build job failed, the publish job was skipped and nothing\nreported the empty release. The publish job now fails before attaching anything when an installer is missing (a dry run\nincluded), checks the release's asset list after the upload, and a new job fails a release that ended without its\ninstallers and says which run completes it.\n\n#506: the .deb is named raul, carries a Maintainer and a Depends line for the libraries the window and the engine open\nat run time. The release workflow installs it in clean Debian and Ubuntu containers and starts raul --version and the\nwindow there. The README lists the libraries the AppImage and the tar.gz need.",
+          "timestamp": "2026-11-21T07:46:37Z",
+          "tree_id": "ead05c9d8a91346fe11ab5e1613fdf9f9afa4903",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/8e73ac3672b52e77f71a25eb1ca7c5a73a01262f"
+        },
+        "date": 1795247394053,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.525916,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.0116950000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.010928,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.017909,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.271887,
             "unit": "ms"
           }
         ]
