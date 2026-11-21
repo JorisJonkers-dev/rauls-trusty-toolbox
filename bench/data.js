@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795294406875,
+  "lastUpdate": 1795294849671,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10534,6 +10534,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.985432999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d4da3b2c8cb955ccee1aa92cc3b3ee50e29ee916",
+          "message": "fix(lod): the LOD page header says when the LOD Mod is out of date instead of All blocks up to date (#535) (#539)\n\nThe header counts blocks; a setting that rebuilds none (packing) left it saying all is current while the existing-Mod line said generate again. It now follows that line. Checked: unit test over current, unknown, may and must; page snapshots and fits-window unchanged; clippy.",
+          "timestamp": "2026-11-21T21:59:11+01:00",
+          "tree_id": "674793a1d4812f75113fc159dcacb6490155d2ed",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d4da3b2c8cb955ccee1aa92cc3b3ee50e29ee916"
+        },
+        "date": 1795294849078,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.898293,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.653005,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.68923,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.006211,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.72868,
             "unit": "ms"
           }
         ]
