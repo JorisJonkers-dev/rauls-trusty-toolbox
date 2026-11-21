@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795274896489,
+  "lastUpdate": 1795275841141,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10191,6 +10191,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.19017,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c11e3f7a1b3b0f0d38c8c70554f494ced6e04fa2",
+          "message": "chore(deps): bump nvmod to 0.17.0 (#525)\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-21T15:39:06Z",
+          "tree_id": "b755bb4dd4f206d7dd23a28eb7615b5021fba002",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/c11e3f7a1b3b0f0d38c8c70554f494ced6e04fa2"
+        },
+        "date": 1795275840009,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.307677,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.551725,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.744561,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.205806,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.518742999999999,
             "unit": "ms"
           }
         ]
