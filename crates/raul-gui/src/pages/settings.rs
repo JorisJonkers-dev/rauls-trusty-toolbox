@@ -723,13 +723,13 @@ mod tests {
                 crate::set_up(&cc.egui_ctx);
                 app
             });
-        h.run();
+        h.run_steps(8);
         h.get_by_label(LABEL_FALLOUT3).click();
-        h.run();
+        h.run_steps(8);
         h.get_by_label(LABEL_FALLOUT3).type_text("/g/fo3");
-        h.run();
+        h.run_steps(8);
         h.key_press(egui::Key::Enter);
-        h.run();
+        h.run_steps(8);
         for _ in 0..50 {
             if !exec.calls.lock().unwrap().is_empty() {
                 break;

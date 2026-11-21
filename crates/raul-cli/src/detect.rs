@@ -82,7 +82,7 @@ mod tests {
     fn a_folder_without_a_game_has_no_copies() {
         let dir = std::env::temp_dir().join(format!("raul-detect-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
-        assert!(super::copies(Some(&dir)).is_empty());
+        assert_eq!(super::copies(Some(&dir)), Vec::new());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }
