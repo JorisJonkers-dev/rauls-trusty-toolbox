@@ -12,8 +12,8 @@ use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::mods::{
     DELETE, DELETE_ACTION, DISABLE, DISABLED_STATUS, ENABLE, ENABLED_STATUS, GENERATED_NOTE,
-    MOVE_UP, MOVED_STATUS, REGENERATE, REMOVE, REMOVE_ACTION, REMOVED_STATUS, TAG_GENERATED, UNDO,
-    UNDO_ENABLED, UNDO_NOTHING, UNDONE_STATUS,
+    MOVE_UP, MOVED_STATUS, REGENERATE, REMOVE, REMOVE_ACTION, REMOVED_STATUS,
+    REMOVED_WITH_LOD_STATUS, TAG_GENERATED, UNDO, UNDO_ENABLED, UNDO_NOTHING, UNDONE_STATUS,
 };
 use raul_gui::shell::App;
 use raul_ui_model::pages::{PageId, View};
@@ -249,4 +249,126 @@ fn the_page_lists_changes_and_removes_mods_and_leaves_the_generated_lod_mod_to_t
     assert_eq!(status(&mut h).as_deref(), Some(REMOVED_STATUS));
     assert_eq!(f.modlist(), ["+Beta".to_owned()]);
     assert!(!f.path(&format!("storage/instance/mods/{LOD}")).exists());
+}
+
+/// The Profile of a packed LOD: the Mod `Tale of Two Wastelands` holds the game's first master, and the stub Plugin
+/// of the generated LOD names it as its master.
+fn packed_lod(f: &Fixture) {
+    let instance = f.path("storage/instance");
+    write_file(
+        &instance,
+        "mods/Tale of Two Wastelands/FalloutNV.esm",
+        &PluginBuilder::master().build(),
+    );
+    write_file(
+        &instance,
+        &format!("mods/{LOD}/Lodwright LOD.esp"),
+        &PluginBuilder::new().requires("FalloutNV.esm").build(),
+    );
+    let list = |name: &str, lines: &[&str]| {
+        let mut text = HEADER.to_owned();
+        for l in lines {
+            text.push_str(l);
+            text.push_str("\r\n");
+        }
+        write_file(
+            &instance,
+            &format!("profiles/Default/{name}"),
+            text.as_bytes(),
+        );
+    };
+    list(
+        "modlist.txt",
+        &["+Alpha", &format!("+{LOD}"), "+Tale of Two Wastelands"],
+    );
+    list("plugins.txt", &["FalloutNV.esm", "Lodwright LOD.esp"]);
+    list("loadorder.txt", &["FalloutNV.esm", "Lodwright LOD.esp"]);
+    f.raul(&["stage", "--instance", &f.s("storage/instance")]);
+}
+
+#[test]
+fn removing_the_mod_that_the_packed_lod_needs_takes_the_generated_lod_out_with_it_and_undo_brings_the_mod_back()
+ {
+    let f = Fixture::new();
+    packed_lod(&f);
+    let mut h = f.app();
+    h.get_by_label("Tale of Two Wastelands").click();
+    h.run_steps(4);
+    h.get_by_label(REMOVE).click();
+    h.run_steps(4);
+    h.get_all_by_label(REMOVE_ACTION).last().unwrap().click();
+    settle(&mut h);
+    assert_eq!(status(&mut h).as_deref(), Some(REMOVED_WITH_LOD_STATUS));
+    assert_eq!(f.modlist(), ["+Alpha".to_owned()], "both Mods are gone");
+    assert!(
+        !f.path("storage/instance/mods/Tale of Two Wastelands")
+            .exists()
+    );
+    assert!(!f.path(&format!("storage/instance/mods/{LOD}")).exists());
+    assert!(
+        h.query_all_by_label_contains("--force").next().is_none(),
+        "no command-line flag in the window"
+    );
+    // Undo takes the last change back: the Mod is there again.
+    h.get_by_label(UNDO).click();
+    settle(&mut h);
+    assert_eq!(status(&mut h).as_deref(), Some(UNDONE_STATUS));
+    assert!(f.modlist().contains(&"+Tale of Two Wastelands".to_owned()));
+    assert!(
+        f.path("storage/instance/mods/Tale of Two Wastelands/FalloutNV.esm")
+            .is_file()
+    );
+}
+
+#[test]
+fn removing_a_mod_that_a_plain_mod_needs_is_refused_in_plain_words_with_no_flag() {
+    let f = Fixture::new();
+    packed_lod(&f);
+    // A Mod of the player's own needs the same master: the generated LOD is not the only one in the way.
+    let instance = f.path("storage/instance");
+    write_file(
+        &instance,
+        "mods/Patch/Patch.esp",
+        &PluginBuilder::new().requires("FalloutNV.esm").build(),
+    );
+    for name in ["plugins.txt", "loadorder.txt"] {
+        let path = instance.join("profiles/Default").join(name);
+        let mut text = std::fs::read_to_string(&path).unwrap();
+        text.push_str("Patch.esp\r\n");
+        std::fs::write(path, text).unwrap();
+    }
+    let path = instance.join("profiles/Default/modlist.txt");
+    let mut text = std::fs::read_to_string(&path).unwrap();
+    text.push_str("+Patch\r\n");
+    std::fs::write(path, text).unwrap();
+    f.raul(&["stage", "--instance", &f.s("storage/instance")]);
+    let mut h = f.app();
+    h.get_by_label("Tale of Two Wastelands").click();
+    h.run_steps(4);
+    h.get_by_label(REMOVE).click();
+    h.run_steps(4);
+    h.get_all_by_label(REMOVE_ACTION).last().unwrap().click();
+    settle(&mut h);
+    assert!(
+        f.path("storage/instance/mods/Tale of Two Wastelands")
+            .is_dir(),
+        "nothing was removed"
+    );
+    assert!(
+        f.path(&format!("storage/instance/mods/{LOD}")).is_dir(),
+        "the generated LOD stays"
+    );
+    assert!(
+        h.query_all_by_label_contains("Patch.esp").next().is_some(),
+        "the window names what is in the way"
+    );
+    assert!(
+        h.query_all_by_label_contains("--force").next().is_none(),
+        "no flag in the text"
+    );
+    assert!(
+        h.query_all_by_label_contains("Turn those Mods off or remove them first")
+            .next()
+            .is_some()
+    );
 }
