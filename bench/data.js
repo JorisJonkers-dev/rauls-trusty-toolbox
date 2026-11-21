@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795224997221,
+  "lastUpdate": 1795225191443,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8525,6 +8525,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 30.020398,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "27c168ace189332ef2c62148ff736174913964f5",
+          "message": "ci(components): install Renovate from a committed lock instead of resolving it at run time (#472) (#473)",
+          "timestamp": "2026-11-21T01:38:00Z",
+          "tree_id": "00320eb1399384f5026f071cbc2a641ce6bee57e",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/27c168ace189332ef2c62148ff736174913964f5"
+        },
+        "date": 1795225190937,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.883885,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.645536,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.852622000000004,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.003078,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.630188,
             "unit": "ms"
           }
         ]
