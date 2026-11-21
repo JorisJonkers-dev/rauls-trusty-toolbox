@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795234959307,
+  "lastUpdate": 1795235335819,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9064,6 +9064,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.44637,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "658a79936ec8b70853c507ea36bb90156c71c354",
+          "message": "ci: start the GUI on Windows and macOS (#69); fix: the TTW page follows the Instance (#484) (#489)\n\n* ci: start the GUI and close it again on Windows and macOS (#69)\n\n* ci: the GUI start has no timeout program on macOS, and a runner without OpenGL 2.0 is a reported skip (#69)\n\n* ci: print the exit code of the GUI start (#69)\n\n* ci: the GUI start keeps its exit code under the runner's bash -e (#69)",
+          "timestamp": "2026-11-21T04:27:09Z",
+          "tree_id": "70020adfa2329d71573b05e299b7fcd155e2fb6a",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/658a79936ec8b70853c507ea36bb90156c71c354"
+        },
+        "date": 1795235334744,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.893823,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.576298,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.463952,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.956033000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.7712650000000005,
             "unit": "ms"
           }
         ]
