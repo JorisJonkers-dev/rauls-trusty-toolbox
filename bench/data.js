@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795263199609,
+  "lastUpdate": 1795267926908,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9946,6 +9946,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.315302,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "57f846513474640a5d4df5c5d7fb0512503ac613",
+          "message": "chore(deps): bump lodwright-rs to 0.15.0 (#513)\n\n* chore(deps): bump lodwright-rs to 0.15.0\n\n* fix(deps): re-vendor the lodwright request schema for 0.15.0\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-21T13:30:10Z",
+          "tree_id": "9a61f8ec1a942e4e3d777aa8c0cc492b65080fb7",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/57f846513474640a5d4df5c5d7fb0512503ac613"
+        },
+        "date": 1795267926286,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.2494009999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.341033,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.666724,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.100912,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.550331,
             "unit": "ms"
           }
         ]
