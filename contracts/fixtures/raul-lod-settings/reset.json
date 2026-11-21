@@ -226,6 +226,17 @@
       "value": 256
     },
     {
+      "default": false,
+      "key": "levels.4.specular_alpha",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
+    },
+    {
       "default": 15.0,
       "key": "levels.8.quality",
       "kind": "number",
@@ -268,6 +279,17 @@
       "restores": true,
       "tier": 2,
       "value": 256
+    },
+    {
+      "default": false,
+      "key": "levels.8.specular_alpha",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
     },
     {
       "default": 20.0,
@@ -314,6 +336,17 @@
       "value": 256
     },
     {
+      "default": false,
+      "key": "levels.16.specular_alpha",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
+    },
+    {
       "default": 25.0,
       "key": "levels.32.quality",
       "kind": "number",
@@ -356,6 +389,17 @@
       "restores": true,
       "tier": 2,
       "value": 256
+    },
+    {
+      "default": false,
+      "key": "levels.32.specular_alpha",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
     }
   ],
   "profile": "Default",

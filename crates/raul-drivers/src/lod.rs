@@ -134,6 +134,8 @@ pub struct Level {
     pub diffuse_size: Option<u32>,
     /// Normal texture edge in pixels, a power of two from 4 to 4096.
     pub normal_size: Option<u32>,
+    /// Write the land textures' specular into the alpha of the normal maps (off unless set).
+    pub specular_alpha: Option<bool>,
 }
 
 /// The terrain levels of the request: none (the generator's defaults) when the settings change no level and not
@@ -167,8 +169,11 @@ pub fn levels_of(settings: &Settings, always: bool) -> Vec<lodwright_contract::L
                 normal_size: set
                     .normal_size
                     .unwrap_or(default(level, "normal_size") as u32),
-                // The Specular in alpha row is a later change (#345); until then the request keeps the default.
-                specular_alpha: false,
+                specular_alpha: set.specular_alpha.unwrap_or_else(|| {
+                    settings::default_value(&format!("levels.{level}.specular_alpha"))
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or_default()
+                }),
             }
         })
         .collect()
