@@ -66,6 +66,9 @@ pub fn output_dir(root: &Path, profile: &str) -> PathBuf {
 /// The output folder every Profile shared before each had its own.
 pub const SHARED_OUTPUT_DIR: &str = ".raul/lod/out";
 
+/// The stub Plugin lodwright writes with a packed LOD (`output.pack`): the base name of the archive is fixed.
+pub const PACKED_PLUGIN: &str = "Lodwright LOD.esp";
+
 /// The LOD settings of a Profile. [`settings`] reads and changes them option by option.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -236,7 +239,7 @@ pub fn request_parts(settings: &Settings) -> Value {
     if !settings.terrain.texture_scales.is_empty() {
         terrain["texture_scales"] = json!(settings.terrain.texture_scales);
     }
-    json!({
+    let mut request = json!({
         "terrain": terrain,
         "objects": objects,
         "trees": { "enabled": o.trees },
@@ -247,7 +250,12 @@ pub fn request_parts(settings: &Settings) -> Value {
             "exclude_models": i.exclude_models,
         },
         "limits": limits,
-    })
+    });
+    // off by default and written only when on, like the switches above (lodwright leaves it out of the request digest)
+    if o.pack {
+        request["output"] = json!({ "pack": true });
+    }
+    request
 }
 
 /// The `request_digest` lodwright gives `request`: equal digests mean an output folder stays up to date.
@@ -317,6 +325,9 @@ pub struct Output {
     pub objects: bool,
     /// Tree LOD.
     pub trees: bool,
+    /// Experimental: pack the generated files into one archive with a stub Plugin instead of leaving them loose (off
+    /// unless set). Read when the LOD is generated.
+    pub pack: bool,
 }
 
 impl Default for Output {
@@ -327,6 +338,7 @@ impl Default for Output {
             water: true,
             objects: true,
             trees: true,
+            pack: false,
         }
     }
 }
@@ -422,7 +434,7 @@ pub fn plan(
         worlds.to_vec()
     };
     let parts = request_parts(&settings);
-    let request = json!({
+    let mut request = json!({
         "schema_version": REQUEST_VERSION,
         "contract": REQUEST_CONTRACT,
         "data_folder": data_folder.display().to_string(),
@@ -435,6 +447,9 @@ pub fn plan(
         "inclusion": parts["inclusion"],
         "limits": parts["limits"],
     });
+    if !parts["output"].is_null() {
+        request["output"] = parts["output"].clone();
+    }
     check_request(&request)?;
     Ok(Plan {
         plugins,
@@ -453,6 +468,9 @@ fn inputs(instance: &NvmodInstance, profile: &str) -> Result<(Vec<String>, PathB
         .into_iter()
         .filter(|s| s.active)
         .map(|s| s.name)
+        // The stub of a packed LOD Mod is the generator's own output, not something it is built from: left in, the
+        // request (and the fingerprint) would change by the run's own result.
+        .filter(|n| !n.eq_ignore_ascii_case(PACKED_PLUGIN))
         .collect();
     if plugins.is_empty() {
         return Err(format!("profile `{profile}` has no active plugin"));
