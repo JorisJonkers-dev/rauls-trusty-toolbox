@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795267926908,
+  "lastUpdate": 1795268562305,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9995,6 +9995,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.550331,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f335397243f34247c0e64d456cca3e76da981063",
+          "message": "feat(lod): a row to pack the generated LOD into one archive, off by default and experimental (#347) (#518)",
+          "timestamp": "2026-11-21T13:40:43Z",
+          "tree_id": "20d29dd94f560b32177c9bba3c53a7445404c55b",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f335397243f34247c0e64d456cca3e76da981063"
+        },
+        "date": 1795268561727,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.343429,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.862758,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 47.813431,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.141633,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.704782999999999,
             "unit": "ms"
           }
         ]
