@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795238746560,
+  "lastUpdate": 1795240511682,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9358,6 +9358,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.158661,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5107f2ffa485fd78b81169e1184d6131506245b4",
+          "message": "chore(deps): bump lodwright-rs to 0.13.0 (#497)\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-21T05:53:15Z",
+          "tree_id": "0312b494f7813d5fe7a62d52399d089a33a4e03f",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/5107f2ffa485fd78b81169e1184d6131506245b4"
+        },
+        "date": 1795240510614,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.434645,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 11.172368,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 47.552986999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 6.552734999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.356122999999998,
             "unit": "ms"
           }
         ]
