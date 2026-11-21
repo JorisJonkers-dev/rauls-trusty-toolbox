@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795229010233,
+  "lastUpdate": 1795229635160,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8868,6 +8868,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.529027,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "07e4a7cd5e62e50273505de2a888b8d284e030c5",
+          "message": "feat(lod): a row for the tiling scale of land textures (#345) (#483)",
+          "timestamp": "2026-11-21T02:51:47Z",
+          "tree_id": "4f22992c7bf7a6e6b7e96bb35fe66f678f250981",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/07e4a7cd5e62e50273505de2a888b8d284e030c5"
+        },
+        "date": 1795229634215,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.245208,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.256401,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 44.811175,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.0122,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.950725,
             "unit": "ms"
           }
         ]
