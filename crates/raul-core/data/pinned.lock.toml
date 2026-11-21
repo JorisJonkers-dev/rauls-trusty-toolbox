@@ -1,0 +1,17 @@
+# The data file the Toolbox fetches and checks itself: the LOOT masterlist behind `raul sort --fetch-masterlist`.
+# One entry, in the format of nvmod-rs's tools.lock.toml, so that `--lock <file>` takes either. A test keeps the
+# entry equal to the one nvmod-rs pins for as long as that file has it. Bump the commit and the checksum together.
+schema_version = 1
+
+# The LOOT masterlist of Fallout: New Vegas, a data file that `raul sort --fetch-masterlist` fetches (checked
+# 2026-11-14). The URL names a commit of branch v0.29 of github.com/loot/falloutnv (CC0-1.0), not the branch, so the
+# bytes never change under the checksum. The file is published without an attestation, so only the checksum is
+# checked. It has the platform key `any`. Bump the commit and the checksum together.
+[[tool]]
+name = "loot-masterlist-falloutnv"
+version = "v0.29-79b2bb6"
+kind = "third-party"
+
+[tool.assets.any]
+url = "https://raw.githubusercontent.com/loot/falloutnv/79b2bb6db4ce560e8ecd80f66b375618d3e33405/masterlist.yaml"
+sha256 = "ec2d9f340f1ad308aef4fa8e4190408a9ddf0a2148131945fdd95ffd38064ad4"

@@ -21,7 +21,6 @@ pub mod download;
 pub mod dto;
 pub mod exec;
 pub mod fake;
-pub mod fetch;
 pub mod hold;
 pub mod inproc;
 pub mod jobs;
@@ -36,7 +35,6 @@ pub use conflicts::{
 pub use direct::{DirectJob, Reply, run_direct};
 pub use exec::{CancelHandle, Exec, Output};
 pub use fake::{FakeService, ScriptedExec};
-pub use fetch::CurlFetcher;
 pub use hold::Hold;
 pub use inproc::InProcessExec;
 pub use jobs::{JobSpec, cancel_job};

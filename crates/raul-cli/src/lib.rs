@@ -11,6 +11,7 @@ pub mod play;
 mod printer;
 mod program_name;
 mod setup;
+mod sort;
 mod space;
 mod target;
 mod ttw;
@@ -178,6 +179,15 @@ pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn
             let mut err = program_name::Renamed::new(err);
             play::run_plain(args, ctx.run_log(), &mut out, &mut err)
         }
+        Some("sort") => match sort::prepare(&args[1..], err) {
+            Ok(None) => nvmod(ctx, args, out, err),
+            Ok(Some(rest)) => {
+                let mut words = vec!["sort".to_owned()];
+                words.extend(rest);
+                nvmod(ctx, &words, out, err)
+            }
+            Err(code) => code,
+        },
         Some("nvmod-help") => nvmod(ctx, &["--help".to_string()], out, err),
         Some(_) if route(args) == Route::Own => {
             let _ = writeln!(err, "raul: {} has no handler", args[0]);

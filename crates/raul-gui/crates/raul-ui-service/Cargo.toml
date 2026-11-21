@@ -14,7 +14,6 @@ nvmod-loadorder = { workspace = true }
 nvmod-backup = { workspace = true }
 nvmod-core = { workspace = true }
 nvmod-instance = { workspace = true }
-nvmod-tools = { workspace = true }
 raul-core = { workspace = true }
 raul-drivers = { workspace = true }
 raul-cli = { workspace = true }

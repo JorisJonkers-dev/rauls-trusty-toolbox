@@ -571,61 +571,39 @@ fn sort_request(
     Ok((request, source))
 }
 
-/// The tool of `tools.lock.toml` that pins the masterlist.
-const MASTERLIST_TOOL: &str = "loot-masterlist-falloutnv";
-
-/// The pinned masterlist, fetched into the tool store when it is not there yet. Fetching is not a job of nvmod's
-/// API (its sort takes the file, "the caller fetches and verifies it"), so it is done here with the same pieces the
-/// command line uses.
+/// The pinned masterlist, fetched into the store when it is not there yet. Fetching is not a job of nvmod's API (its
+/// sort takes the file, "the caller fetches and verifies it"); raul-core does it, as `raul sort --fetch-masterlist`.
 fn fetch_masterlist(
     instance: &Path,
     lock: Option<&Path>,
     store: Option<&Path>,
 ) -> Result<PathBuf, JobError> {
-    use crate::fetch::CurlFetcher;
-    use nvmod_tools::{Acquire, AcquireError, Lock, Store, Trust, builtin_lock};
+    use raul_core::pinned::{MasterlistPin, masterlist};
+    let pin = MasterlistPin {
+        lock: lock.map(Path::to_path_buf),
+        store: store.map(Path::to_path_buf),
+        ..MasterlistPin::default()
+    };
+    masterlist(instance, &pin).map_err(pinned_error)
+}
+
+/// How a failed fetch of the pinned masterlist is told to the caller.
+fn pinned_error(e: raul_core::pinned::PinnedError) -> JobError {
+    use raul_core::pinned::PinnedError;
     const WHAT: &str = "loadorder.sort.fetch";
-    let refused = |why: String| JobError::new(ErrorKind::Refused, WHAT, why);
-    let lock = match lock {
-        None => builtin_lock(),
-        Some(path) => {
-            let text = std::fs::read_to_string(path)
-                .map_err(|e| refused(format!("{}: {e}", path.display())))?;
-            Lock::parse(&text).map_err(refused)?
-        }
-    };
-    let entry = lock.tool(MASTERLIST_TOOL).ok_or_else(|| {
-        refused(format!(
-            "the lock file pins no tool called `{MASTERLIST_TOOL}`, so no masterlist source is pinned: \
-             give a masterlist file instead"
-        ))
-    })?;
-    let store = Store::new(store.map_or_else(Store::default_location, Path::to_path_buf));
-    let curl = CurlFetcher::default();
-    let trust = Trust::load(instance).map_err(refused)?;
-    let acquire = Acquire {
-        fetcher: &curl,
-        gh: Path::new("gh"),
-        retry_delay: Duration::from_millis(1000),
-        store: &store,
-        trust: Some(&trust),
-    };
-    acquire
-        .fetch(entry)
-        .map(|done| done.path)
-        .map_err(|e| match e {
-            AcquireError::Refused(why) => refused(why),
-            AcquireError::Verification(why) => JobError::new(
-                ErrorKind::Corrupt,
-                WHAT,
-                format!("verification failed: {why}"),
-            ),
-            AcquireError::Failed(why) => JobError::new(
-                ErrorKind::Failed,
-                WHAT,
-                format!("the masterlist could not be fetched: {why}"),
-            ),
-        })
+    match e {
+        PinnedError::Refused(why) => JobError::new(ErrorKind::Refused, WHAT, why),
+        PinnedError::Verification(why) => JobError::new(
+            ErrorKind::Corrupt,
+            WHAT,
+            format!("verification failed: {why}"),
+        ),
+        PinnedError::Failed(why) => JobError::new(
+            ErrorKind::Failed,
+            WHAT,
+            format!("the masterlist could not be fetched: {why}"),
+        ),
+    }
 }
 
 /// The document of `raul sort --json`, from the proposal and what was applied.
@@ -1256,4 +1234,24 @@ fn finish(
         exit: class,
     });
     output
+}
+
+#[cfg(test)]
+mod pinned_tests {
+    use super::*;
+    use raul_core::pinned::PinnedError;
+
+    /// Each way the pinned masterlist can fail is its own class, with the reason in the words.
+    #[test]
+    fn a_failed_fetch_keeps_its_class_and_its_reason() {
+        let e = pinned_error(PinnedError::Refused("no pin".into()));
+        assert_eq!((e.kind, e.summary.as_str()), (ErrorKind::Refused, "no pin"));
+        let e = pinned_error(PinnedError::Verification("bad sum".into()));
+        assert_eq!(e.kind, ErrorKind::Corrupt);
+        assert_eq!(e.summary, "verification failed: bad sum");
+        let e = pinned_error(PinnedError::Failed("offline".into()));
+        assert_eq!(e.kind, ErrorKind::Failed);
+        assert_eq!(e.summary, "the masterlist could not be fetched: offline");
+        assert_eq!(e.job, "loadorder.sort.fetch");
+    }
 }
