@@ -283,22 +283,29 @@ impl Lod {
         }
     }
 
+    /// What the mod list says about the generated LOD Mod: the Mod itself, or that it is gone.
+    fn read_existing(&mut self, result: &Result<Output, String>) {
+        if let Ok(out) = result
+            && let Ok(list) = parse_generated(&out.stdout)
+        {
+            self.existing = list
+                .mods
+                .iter()
+                .find(|m| m.own)
+                .or_else(|| list.mods.first())
+                .cloned();
+            // A Mod deleted on the Mods page takes the result of this session's run with it.
+            if self.existing.is_none() {
+                self.state.mod_gone();
+            }
+        }
+    }
+
     fn take_answers(&mut self, cx: &mut PageCx<'_>) {
         for (job, result) in self.pending.finished(cx.jobs) {
             let command = self.command(job).map(|c| c.shown());
             match job {
-                Job::Existing => {
-                    if let Ok(out) = &result
-                        && let Ok(list) = parse_generated(&out.stdout)
-                    {
-                        self.existing = list
-                            .mods
-                            .iter()
-                            .find(|m| m.own)
-                            .or_else(|| list.mods.first())
-                            .cloned();
-                    }
-                }
+                Job::Existing => self.read_existing(&result),
                 Job::Plan => match plan_answer(&result) {
                     Ok(plan) => self.state.planned(plan),
                     Err(cause) => self.state.failed(Problem {
@@ -896,6 +903,36 @@ pub fn fixtures() -> Vec<Fixture> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_mod_list_without_the_generated_mod_clears_the_result_of_the_run() {
+        let list = |mods: &str| {
+            Ok(Output {
+                code: Some(0),
+                stdout: format!(
+                    r#"{{"contract":"raul-lod-mods","schema_version":1,"own_name":"Generated LOD (Default)","mods":[{mods}]}}"#
+                ),
+                stderr: String::new(),
+            })
+        };
+        let mut s = planned(&["A"]);
+        s.generated(outcome(Status::Success, false, &["A"]));
+        let mut page = Lod::with(s);
+        let mod_row = r#"{"name":"Generated LOD (Default)","own":true,"legacy":false,"lodwright_version":"0.8.0"}"#;
+        page.read_existing(&list(mod_row));
+        assert!(page.existing.is_some() && page.state.outcome.is_some());
+        page.read_existing(&Err("no answer".to_owned()));
+        assert!(
+            page.state.outcome.is_some(),
+            "an unreadable answer changes nothing"
+        );
+        page.read_existing(&list(""));
+        assert!(page.existing.is_none() && page.state.outcome.is_none());
+        assert_eq!(
+            page.state_line(),
+            "1 of 1 blocks not generated this session"
+        );
+    }
 
     #[test]
     fn each_phase_of_a_run_has_its_words_and_an_unknown_one_is_a_step_not_an_error() {
