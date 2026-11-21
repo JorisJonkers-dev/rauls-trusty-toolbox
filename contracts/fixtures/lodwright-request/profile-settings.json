@@ -14,5 +14,6 @@
     "exclude_records": [],
     "exclude_models": ["clutter/*"]
   },
-  "limits": { "threads": 2 }
+  "limits": { "threads": 2 },
+  "output": { "pack": true }
 }

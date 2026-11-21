@@ -233,7 +233,7 @@
       "value": {}
     },
     {
-      "default": false,
+      "default": true,
       "key": "output.pack",
       "kind": "switch",
       "max": null,
@@ -241,7 +241,7 @@
       "overridden": false,
       "restores": true,
       "tier": 3,
-      "value": false
+      "value": true
     },
     {
       "default": 10.0,
