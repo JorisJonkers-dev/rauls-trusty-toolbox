@@ -279,6 +279,15 @@ impl Progress {
     }
 }
 
+/// A time taken in plain words: `42 s`, `3 min 5 s`, `1 h 2 min`.
+pub fn elapsed_words(seconds: u64) -> String {
+    match seconds {
+        0..60 => format!("{seconds} s"),
+        60..3600 => format!("{} min {} s", seconds / 60, seconds % 60),
+        _ => format!("{} h {} min", seconds / 3600, seconds % 3600 / 60),
+    }
+}
+
 /// The state of the LOD page.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct State {
@@ -583,5 +592,15 @@ mod tests {
             "raul lod generate --instance /i"
         );
         assert!(generate_command("/i").writes && !plan_command("/i").writes);
+    }
+
+    #[test]
+    fn a_time_taken_is_said_in_plain_words() {
+        assert_eq!(elapsed_words(0), "0 s");
+        assert_eq!(elapsed_words(59), "59 s");
+        assert_eq!(elapsed_words(60), "1 min 0 s");
+        assert_eq!(elapsed_words(75), "1 min 15 s");
+        assert_eq!(elapsed_words(3599), "59 min 59 s");
+        assert_eq!(elapsed_words(3720), "1 h 2 min");
     }
 }
