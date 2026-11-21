@@ -18,6 +18,7 @@ mod ttw;
 mod update;
 mod version;
 
+pub use config::json_answer as config_answer;
 pub use detect::copies as detect_copies;
 pub use lod::{LodJob, generate_job as lod_generate_job, generate_job_in as lod_generate_job_in};
 pub use ttw::{TtwJob, install_job as ttw_install_job, install_job_in as ttw_install_job_in};

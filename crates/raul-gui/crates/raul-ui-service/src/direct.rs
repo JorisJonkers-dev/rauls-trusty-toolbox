@@ -311,6 +311,7 @@ pub fn for_command_in(
         }
         "version" => Some(version()),
         "detect" => Some(detect(rest)),
+        "config-list" | "config-get" | "config-set" | "config-unset" => Some(config(id, rest, ctx)),
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
@@ -364,6 +365,43 @@ pub fn detect(rest: &[String]) -> DirectJob {
                     0
                 },
             })
+        },
+    )
+}
+
+/// `raul config list|get|set|unset`: the file of `ctx`, read or written in process. Like the command, it takes no
+/// Instance lock (the file is the person's own, not an Instance's); the answer is the `raul-config` document, and a
+/// refusal is that document too, with the command's exit code.
+pub fn config(id: &str, rest: &[String], ctx: &raul_core::context::Context) -> DirectJob {
+    let word = id.strip_prefix("config-").unwrap_or(id).to_owned();
+    let mut words = vec![word];
+    words.extend(rest.iter().filter(|w| *w != "--json").cloned());
+    if words.len()
+        != if id == "config-list" {
+            1
+        } else if id == "config-set" {
+            3
+        } else {
+            2
+        }
+    {
+        return DirectJob::usage(format!("{}: wrong number of words", words[0]));
+    }
+    let ctx = ctx.clone();
+    DirectJob::reading_as(
+        move |_, _| -> Result<Outcome<Option<(serde_json::Value, u8)>>, JobError> {
+            let refs: Vec<&str> = words.iter().map(String::as_str).collect();
+            Ok(Outcome::Done(raul_cli::config_answer(&ctx, &refs)))
+        },
+        |answer: &Option<(serde_json::Value, u8)>| match answer {
+            Some((json, exit)) => Ok(Reply {
+                json: json.clone(),
+                exit: *exit,
+            }),
+            None => Ok(Reply {
+                json: serde_json::Value::Null,
+                exit: raul_cli::USAGE,
+            }),
         },
     )
 }

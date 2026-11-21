@@ -52,7 +52,15 @@ fn every_page_fixture_matches_its_snapshot() {
     for fixture in pages::fixtures() {
         let slug = fixture.page.view().slug();
         let name = format!("{slug}-{}", fixture.name);
-        let mut h = harness(App::fixture(fixture, Jobs::new(Arc::new(Quiet))));
+        let mut h = harness(App::fixture(
+            fixture,
+            Jobs::new(Arc::new(Quiet)).scripted(&[
+                "config-list",
+                "config-get",
+                "config-set",
+                "config-unset",
+            ]),
+        ));
         h.run();
         h.snapshot_options(&name, &options(slug));
         results.extend_harness(&mut h);
@@ -67,7 +75,12 @@ fn the_shell_dialogs_match_their_snapshots() {
         (msg::ABOUT, "shell-about"),
         (msg::PLAY, "shell-play-blocked"),
     ] {
-        let mut h = harness(App::new(Jobs::new(Arc::new(Quiet))));
+        let mut h = harness(App::new(Jobs::new(Arc::new(Quiet)).scripted(&[
+            "config-list",
+            "config-get",
+            "config-set",
+            "config-unset",
+        ])));
         h.run();
         // The Instance lookup at start ends before the picture, so the footer shows no running job.
         assert!(
