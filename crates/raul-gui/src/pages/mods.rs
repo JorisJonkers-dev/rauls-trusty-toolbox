@@ -83,6 +83,8 @@ crate::texts!(TEXTS {
     DISABLED_STATUS = "Mod disabled.";
     MOVED_STATUS = "Mod moved.";
     REMOVED_STATUS = "Mod removed.";
+    REMOVED_WITH_LOD_STATUS = "Mod removed. The generated LOD used a Plugin from it and was removed too: generate it again on the LOD page.";
+    UNDO_REMOVED_WITH_LOD = "Undo brings {name} back from the trash. The generated LOD stays removed: generate it again on the LOD page.";
     UNDO = "Undo";
     UNDO_HOVER = "Takes back the last change to the mod list.";
     UNDO_NOTHING = "Nothing to undo.";
@@ -123,6 +125,40 @@ crate::errors!(ERRORS {
 
 const REMOVE_DIALOG: &str = "mods-remove";
 
+/// What a refused Remove names as the active plugins that need a plugin of the Mod: the list after the Mod's name, up
+/// to the hint, as nvmod words it (need a plugin of `X`: A.esp, B.esp; pass --force to remove it anyway).
+fn dependants_of(cause: &str) -> Vec<&str> {
+    let Some((_, rest)) = cause.split_once("need a plugin of `") else {
+        return Vec::new();
+    };
+    let Some((_, list)) = rest.split_once("`: ") else {
+        return Vec::new();
+    };
+    let list = list.split_once(';').map_or(list, |(l, _)| l);
+    list.split(',')
+        .map(str::trim)
+        .filter(|n| !n.is_empty())
+        .collect()
+}
+
+/// Whether the refusal names no plugin but the stub of a packed generated LOD.
+fn only_the_packed_stub(cause: &str) -> bool {
+    let names = dependants_of(cause);
+    !names.is_empty()
+        && names
+            .iter()
+            .all(|n| n.eq_ignore_ascii_case(raul_drivers::lod::PACKED_PLUGIN))
+}
+
+/// A refusal as the window shows it: nvmod's hint to pass a flag is a command-line thing, so it is replaced by what a
+/// person can do here.
+fn plain_refusal(cause: &str) -> String {
+    cause.replace(
+        "; pass --force to remove it anyway",
+        ". Turn those Mods off or remove them first.",
+    )
+}
+
 /// The width from which the selected Mod shows beside the list instead of under it (UI-RULES A3).
 const TWO_PANES: f32 = 860.0;
 
@@ -137,6 +173,11 @@ pub struct Mods {
     asked: Option<String>,
     /// The Mod the running change is for, and the place a move takes it to.
     target: Option<(String, usize)>,
+    /// A Remove was refused only because the stub of the packed generated LOD needs a Plugin of the Mod: the Mod
+    /// to remove once the generated LOD Mod is gone.
+    after_lod: Option<String>,
+    /// The Remove that is running took the generated LOD Mod out first.
+    with_lod: bool,
     /// Installing a Mod from an archive.
     install: Panel,
 }
@@ -256,7 +297,8 @@ impl Mods {
                     Ok(r) => {
                         self.state.undone();
                         self.read(cx);
-                        if r.kind == "mods" {
+                        // A Remove is journalled as a lifecycle change, the other changes of this page as mods.
+                        if matches!(r.kind.as_str(), "mods" | "lifecycle") {
                             cx.shell.status = Some(UNDONE_STATUS.to_owned());
                         } else {
                             self.state.problem = Some(problem(&UNDO_OTHER, r.kind));
@@ -271,12 +313,21 @@ impl Mods {
                         &CHANGE_FAILED
                     };
                     match answer(&result) {
+                        // The generated LOD Mod is gone: now the Mod that its stub needed.
+                        Ok(_) if job == Job::Remove && self.after_lod.is_some() => {
+                            let name = self.after_lod.take().unwrap_or_default();
+                            self.with_lod = true;
+                            self.target = Some((name, 0));
+                            self.run(cx, Job::Remove);
+                        }
                         Ok(_) => {
+                            let with_lod = std::mem::take(&mut self.with_lod);
                             cx.shell.status = Some(
                                 match job {
                                     Job::Enable => ENABLED_STATUS,
                                     Job::Disable => DISABLED_STATUS,
                                     Job::Move => MOVED_STATUS,
+                                    _ if with_lod => REMOVED_WITH_LOD_STATUS,
                                     _ => REMOVED_STATUS,
                                 }
                                 .to_owned(),
@@ -286,6 +337,7 @@ impl Mods {
                                     Job::Enable => UNDO_ENABLED,
                                     Job::Disable => UNDO_DISABLED,
                                     Job::Move => UNDO_MOVED,
+                                    _ if with_lod => UNDO_REMOVED_WITH_LOD,
                                     _ => UNDO_REMOVED,
                                 }
                                 .replace("{name}", name);
@@ -297,11 +349,38 @@ impl Mods {
                             }
                             self.read(cx);
                         }
-                        Err(why) => self.state.failed(problem(failed, why)),
+                        // Refused only for the stub of the packed generated LOD: that Mod is raul's own and can be made
+                        // again, so it goes first, instead of asking for a command-line flag.
+                        Err(why)
+                            if job == Job::Remove
+                                && self.after_lod.is_none()
+                                && !self.with_lod
+                                && only_the_packed_stub(&why)
+                                && let Some(lod) = self.generated_mod()
+                                && let Some((name, _)) = self.target.clone() =>
+                        {
+                            self.after_lod = Some(name);
+                            self.target = Some((lod, 0));
+                            self.run(cx, Job::Remove);
+                        }
+                        Err(why) => {
+                            self.after_lod = None;
+                            self.with_lod = false;
+                            self.state.failed(problem(failed, plain_refusal(&why)));
+                        }
                     }
                 }
             }
         }
+    }
+
+    /// The name of the generated LOD Mod of the Profile, when the list has one.
+    fn generated_mod(&self) -> Option<String> {
+        self.state
+            .mods
+            .iter()
+            .find(|m| m.generated.is_some())
+            .map(|m| m.name.clone())
     }
 
     fn ask_remove(&mut self, cx: &mut PageCx<'_>, instance: &str, name: &str, generated: bool) {
@@ -938,5 +1017,35 @@ mod tests {
         });
         assert!(answer(&refused).unwrap_err().contains("needed by others"));
         assert_eq!(answer(&Err("no raul".into())).unwrap_err(), "no raul");
+    }
+
+    const REFUSAL: &str = "refused: active plugin(s) of other Mods need a plugin of `Tale of Two Wastelands`: Lodwright LOD.esp; pass --force to remove it anyway";
+
+    #[test]
+    fn a_refusal_that_names_only_the_stub_of_the_packed_lod_is_told_apart() {
+        assert_eq!(dependants_of(REFUSAL), ["Lodwright LOD.esp"]);
+        assert!(only_the_packed_stub(REFUSAL));
+        assert!(only_the_packed_stub(
+            &REFUSAL.replace("Lodwright LOD.esp", "lodwright lod.ESP")
+        ));
+        let other = REFUSAL.replace("Lodwright LOD.esp", "Lodwright LOD.esp, Patch.esp");
+        assert_eq!(dependants_of(&other), ["Lodwright LOD.esp", "Patch.esp"]);
+        assert!(
+            !only_the_packed_stub(&other),
+            "another Mod's plugin needs it too"
+        );
+        assert!(!only_the_packed_stub("refused: not in the list"));
+        assert_eq!(dependants_of("need a plugin of `X` no list").len(), 0);
+    }
+
+    #[test]
+    fn a_refusal_shown_in_the_window_has_no_command_line_flag() {
+        let shown = plain_refusal(REFUSAL);
+        assert!(!shown.contains("--"), "{shown}");
+        assert!(
+            shown.ends_with("Turn those Mods off or remove them first."),
+            "{shown}"
+        );
+        assert_eq!(plain_refusal("another text"), "another text");
     }
 }
