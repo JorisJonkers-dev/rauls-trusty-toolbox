@@ -73,6 +73,20 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: crates/raul-gui
         run: mise exec -- cargo nextest run --workspace --locked
+      # The headless start gui.yml makes on Linux (#69): `raul` with no arguments opens the window and RAUL_GUI_SMOKE closes
+      # it after its first frames. The window opens on the runner's own desktop session; nothing is uploaded.
+      - name: Start the GUI and close it again
+        if: ${{ !cancelled() }}
+        shell: bash
+        working-directory: crates/raul-gui
+        env:
+          RAUL_GUI_SMOKE: "1"
+        run: |
+          set -euo pipefail
+          cargo build --locked --bin raul
+          out=$(timeout 120 target/debug/raul)
+          echo "$out"
+          test "$out" = "raul: the window opened and closed"
 
   # The GUI workspace (crates/raul-gui) has its own lock file; gui.yml runs it, as a reusable workflow so that
   # Pipeline Complete can wait for it and fail with it (#440).
