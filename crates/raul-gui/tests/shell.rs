@@ -144,7 +144,7 @@ fn the_update_button_sits_beside_the_version_and_starts_the_check() {
     let exec = Arc::new(Versions {
         calls: Mutex::new(Vec::new()),
     });
-    let mut app = App::new(Jobs::new(exec.clone()));
+    let mut app = App::new(Jobs::new(exec.clone()).scripted(&["version"]));
     app.open(View::Page(PageId::Versions));
     let mut h = harness(1280.0, app);
     // The version is read once, and nothing reaches the network before a click.
@@ -428,7 +428,10 @@ fn the_shell_reads_the_instance_at_start_and_after_a_config_change() {
         instance: std::sync::Mutex::new(Some("/synthetic/instance".into())),
         calls: std::sync::Mutex::new(Vec::new()),
     });
-    let mut h = harness(1280.0, App::new(Jobs::new(exec.clone())));
+    let mut h = harness(
+        1280.0,
+        App::new(Jobs::new(exec.clone()).scripted(&["version"])),
+    );
     let settle = |h: &mut Harness<'static, App>| {
         // A finishing job asks for a repaint, so how many frames it takes to settle varies with timing; run a fixed
         // number instead of asserting that the page settles within four.

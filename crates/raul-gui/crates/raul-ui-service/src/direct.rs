@@ -309,6 +309,8 @@ pub fn for_command_in(
         "install" => {
             Some(install_command_request(rest).map_or_else(DirectJob::usage, |r| install_mod(&r)))
         }
+        "version" => Some(version()),
+        "detect" => Some(detect(rest)),
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
@@ -336,6 +338,34 @@ pub fn for_command_in(
         }
         _ => None,
     }
+}
+
+/// `raul version`: the Toolbox version of this build, as the command prints it with `--json`.
+pub fn version() -> DirectJob {
+    DirectJob::reading(|_, _| -> Result<Outcome<serde_json::Value>, JobError> {
+        Ok(Outcome::Done(raul_cli::version_document()))
+    })
+}
+
+/// `raul detect [--folder <dir>]`: the game copies on this machine, or the one in the folder. Its document is the list
+/// of copies; the exit code is [`raul_cli::FOUND`] when there is none, as the command ends.
+pub fn detect(rest: &[String]) -> DirectJob {
+    let folder = option_of(rest, "--folder").map(PathBuf::from);
+    DirectJob::reading_as(
+        move |_, _| -> Result<Outcome<Vec<raul_core::detect::GameCopy>>, JobError> {
+            Ok(Outcome::Done(raul_cli::detect_copies(folder.as_deref())))
+        },
+        |copies: &Vec<raul_core::detect::GameCopy>| {
+            serde_json::to_value(copies).map(|json| Reply {
+                json,
+                exit: if copies.is_empty() {
+                    raul_cli::FOUND
+                } else {
+                    0
+                },
+            })
+        },
+    )
 }
 
 /// The Instance to hold the lock of while a run writes into it: the one the run names, when it is one.
