@@ -935,6 +935,7 @@ impl<E: Exec> Service for CliService<E> {
             profile: r.profile.clone(),
             masterlist: PathBuf::from(&r.masterlist),
             apply: r.apply,
+            mode: nvmod_api::loadorder::SortMode::Full,
         };
         let out = self.direct_with_profile(Action::Sort, &r.instance, || {
             crate::direct::sort(&request, &crate::direct::MasterlistSource::File)
