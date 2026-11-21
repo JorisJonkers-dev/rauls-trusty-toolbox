@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795287871492,
+  "lastUpdate": 1795288611258,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10436,6 +10436,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.552013,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1a066ad691d794aef7540710140570b696fc47ca",
+          "message": "feat(lod): the generated LOD is packed into one archive by default (#534)\n\n* feat(lod): the generated LOD is packed into one archive by default\n\nOutput.pack defaults to on and its row is no longer experimental; the plan refuses with a plain sentence when no plugin slot is left for the stub; request and settings fixtures regenerated; tests cover a loose Mod from before (kept until the next generate, which packs), the packed and loose forms either way, and the refusal.\n\n* fix(lod): the packing test builds its plugin list without a clippy lint; README no longer calls packing experimental",
+          "timestamp": "2026-11-21T20:14:43+01:00",
+          "tree_id": "7123c065c0e6b92f20573f4d67caa57c387a5402",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/1a066ad691d794aef7540710140570b696fc47ca"
+        },
+        "date": 1795288610556,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.306983,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.568273,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 47.873461999999996,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.2781,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.130774,
             "unit": "ms"
           }
         ]
