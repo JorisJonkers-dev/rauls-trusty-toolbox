@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795228097787,
+  "lastUpdate": 1795228617859,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8721,6 +8721,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.243105,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "78fb6e4b36aa7479120842cde699c39d9ac3a834",
+          "message": "feat(lod): rows for skirts at the borders of a level's blocks and for dropping land faces deep under water (#346) (#480)",
+          "timestamp": "2026-11-21T02:34:58Z",
+          "tree_id": "b5832488d71a7e792f6a3ef23f16c6cd541bea51",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/78fb6e4b36aa7479120842cde699c39d9ac3a834"
+        },
+        "date": 1795228617355,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.273666,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.362361,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.342747,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.161695,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.169089,
             "unit": "ms"
           }
         ]
