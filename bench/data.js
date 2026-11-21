@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795288611258,
+  "lastUpdate": 1795294406875,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10485,6 +10485,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.130774,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "562b91cb16598330eeae365787f5420bb7b219f2",
+          "message": "feat(gui): a switch for each plugin on the Load order page, and the stub of a packed LOD asks before it is turned off (#532)\n\n* feat(gui): a switch for each plugin on the Load order page, and the stub of a packed LOD asks before it is turned off (#531)\n\nplugins-enable and plugins-disable are registry commands and direct jobs (nvmod_api::plugins::change). Turning a plugin on or off is the last change of the Instance, so the sort's Undo is not offered after it. Checked: page end-to-end test on a synthetic Instance (off, on, stub asks, Cancel writes nothing), direct job test, model tests, clippy, snapshots regenerated with the snapshot tool.\n\n* test(gui): the registry test knows the two plugin switch commands",
+          "timestamp": "2026-11-21T21:51:21+01:00",
+          "tree_id": "e4d2c3c1b00f1a35b73f2028c27d48bd1339dd0c",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/562b91cb16598330eeae365787f5420bb7b219f2"
+        },
+        "date": 1795294405840,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.283022,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.431051,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.67217,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.074485999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.985432999999999,
             "unit": "ms"
           }
         ]
