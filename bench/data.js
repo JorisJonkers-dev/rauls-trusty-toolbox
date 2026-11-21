@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795228896678,
+  "lastUpdate": 1795229010233,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8819,6 +8819,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.05307,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e0d3ceb95b91216316297ca6efe6a2701db8e595",
+          "message": "test(gui): the settings save test steps a fixed number of frames (#481) (#482)",
+          "timestamp": "2026-11-21T02:41:45Z",
+          "tree_id": "e76de1c800748342ec4b3243987c293ddbb76a31",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e0d3ceb95b91216316297ca6efe6a2701db8e595"
+        },
+        "date": 1795229009404,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.904575,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.632197,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.268750000000004,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.083291999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.529027,
             "unit": "ms"
           }
         ]
