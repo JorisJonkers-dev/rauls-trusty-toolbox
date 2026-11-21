@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795222971222,
+  "lastUpdate": 1795223582193,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8427,6 +8427,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.741952,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5d127022db0d4c84302ef03918b468d3bdba3125",
+          "message": "chore(deps): bump nvmod to 0.16.0 (#465)\n\n* chore(deps): bump nvmod to 0.16.0\n\n* test(gui): the stage request of the streaming test carries the new field\n\n* fix(gui): the direct sort document carries the sort mode like nvmod 0.16.0's",
+          "timestamp": "2026-11-21T01:11:02Z",
+          "tree_id": "071dd1c44b4aed3ab19658898f3363d3c971f282",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/5d127022db0d4c84302ef03918b468d3bdba3125"
+        },
+        "date": 1795223581109,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.4851809999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.431081,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.137962,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.359572,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.137422,
             "unit": "ms"
           }
         ]
