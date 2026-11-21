@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795221632899,
+  "lastUpdate": 1795221754005,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8280,6 +8280,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.380911000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4b0245c4ab4e85d9a25130191bc265be71e7b170",
+          "message": "feat(lod): a Shine in the shading texture row for each terrain level (#461)\n\n* feat(lod): a Shine in the shading texture row for each terrain level (#345)\n\n* test(lod): compare the empty level list with assert_eq",
+          "timestamp": "2026-11-21T00:40:46Z",
+          "tree_id": "f614f02e420cb140f9b60d1ed7ab3e904b68bd81",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/4b0245c4ab4e85d9a25130191bc265be71e7b170"
+        },
+        "date": 1795221753225,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.066422,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.688742,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.395294,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.509156,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.156766,
             "unit": "ms"
           }
         ]
