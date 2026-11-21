@@ -172,8 +172,23 @@ pub fn sync(
     fallout_ini: &Path,
     default_ini: Option<&Path>,
 ) -> Result<Outcome, String> {
+    sync_with(plugins_txt, fallout_ini, default_ini, true)
+}
+
+/// [`sync`] where `master_provided` says whether the staged `Data` folder holds the master. A Profile is a Tale of Two
+/// Wastelands one only when `plugins.txt` lists the master and a Mod provides it: disabling the Tale of Two Wastelands
+/// Mod leaves the master listed, and the values still go back (#442).
+///
+/// # Errors
+/// As [`sync`].
+pub fn sync_with(
+    plugins_txt: &Path,
+    fallout_ini: &Path,
+    default_ini: Option<&Path>,
+    master_provided: bool,
+) -> Result<Outcome, String> {
     let plugins = std::fs::read_to_string(plugins_txt).unwrap_or_default();
-    let ttw = lists_ttw(&plugins);
+    let ttw = master_provided && lists_ttw(&plugins);
     let read = |p: &Path| std::fs::read_to_string(p).map_err(|e| format!("{}: {e}", p.display()));
     let before = if fallout_ini.is_file() {
         read(fallout_ini)?
@@ -231,7 +246,16 @@ pub fn sync_run_folder(run_dir: &Path) -> Result<Outcome, String> {
     };
     let plugins = instance.join("profiles").join(profile).join("plugins.txt");
     let ini = nvmod_run::my_games(&run_dir.join("userdata")).join("Fallout.ini");
-    sync(&plugins, &ini, Some(&run_dir.join("Fallout_default.ini")))
+    // The run folder's `Data` is the staged tree: when it exists, the master has to be in it. A folder that is not
+    // staged (yet) says nothing, so the list alone decides.
+    let data = run_dir.join("Data");
+    let provided = !data.is_dir() || nvmod_instance::find_ci(&data, TTW_MASTER).is_some();
+    sync_with(
+        &plugins,
+        &ini,
+        Some(&run_dir.join("Fallout_default.ini")),
+        provided,
+    )
 }
 
 #[cfg(test)]
@@ -275,6 +299,59 @@ mod tests {
         assert!(lists_ttw("FalloutNV.esm\n*taleoftwowastelands.ESM\n"));
         assert!(lists_ttw("TaleOfTwoWastelands.esm\n"));
         assert!(!lists_ttw("FalloutNV.esm\nTaleOfTwoWastelands.esp\n"));
+    }
+
+    #[test]
+    fn a_master_no_enabled_mod_provides_does_not_make_a_ttw_profile() {
+        let dir = scratch("provided");
+        let (plugins, ini, default) = (
+            dir.join("plugins.txt"),
+            dir.join("My Games/Fallout.ini"),
+            dir.join("Fallout_default.ini"),
+        );
+        std::fs::write(&default, DEFAULTS).unwrap();
+        std::fs::write(&plugins, "FalloutNV.esm\n*TaleOfTwoWastelands.esm\n").unwrap();
+        assert!(matches!(
+            sync_with(&plugins, &ini, Some(&default), true).unwrap(),
+            Outcome::Changed(_)
+        ));
+        // The Mod is disabled: the master stays listed, nothing provides it, the values go back.
+        assert!(matches!(
+            sync_with(&plugins, &ini, Some(&default), false).unwrap(),
+            Outcome::Changed(_)
+        ));
+        assert_eq!(std::fs::read_to_string(&ini).unwrap(), DEFAULTS);
+    }
+
+    #[test]
+    fn the_run_folder_decides_by_the_master_in_its_staged_data() {
+        let root = scratch("runfolder");
+        let run = root.join("run/Default");
+        std::fs::create_dir_all(run.join("Data")).unwrap();
+        std::fs::create_dir_all(root.join("profiles/Default")).unwrap();
+        std::fs::write(
+            root.join("profiles/Default/plugins.txt"),
+            "*TaleOfTwoWastelands.esm\n",
+        )
+        .unwrap();
+        std::fs::write(run.join("Fallout_default.ini"), DEFAULTS).unwrap();
+        let ini = nvmod_run::my_games(&run.join("userdata")).join("Fallout.ini");
+        // Staged without the master (the Mod is disabled): a plain Profile, no file made.
+        assert_eq!(sync_run_folder(&run).unwrap(), Outcome::Unchanged);
+        assert!(!ini.exists());
+        // The master is staged: the values are set.
+        std::fs::write(run.join("Data/taleoftwowastelands.ESM"), b"x").unwrap();
+        assert!(matches!(
+            sync_run_folder(&run).unwrap(),
+            Outcome::Changed(_)
+        ));
+        // Disabled again: the values go back.
+        std::fs::remove_file(run.join("Data/taleoftwowastelands.ESM")).unwrap();
+        assert!(matches!(
+            sync_run_folder(&run).unwrap(),
+            Outcome::Changed(_)
+        ));
+        assert_eq!(std::fs::read_to_string(&ini).unwrap(), DEFAULTS);
     }
 
     #[test]
