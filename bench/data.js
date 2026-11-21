@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795240933884,
+  "lastUpdate": 1795241706213,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9456,6 +9456,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.512807,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cf02b15b1881fa912f0f8132210f70074967dfde",
+          "message": "fix(runner): a timeout, the output cap or a cancel ends the programs a tool started too (#53) (#499)",
+          "timestamp": "2026-11-21T06:12:59Z",
+          "tree_id": "05e803f719ee28ef040217854911690dc83d3279",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/cf02b15b1881fa912f0f8132210f70074967dfde"
+        },
+        "date": 1795241705189,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.314328,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.659503,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 47.333923999999996,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.282984999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.661356,
             "unit": "ms"
           }
         ]
