@@ -51,6 +51,8 @@ description = "Installer, setup wizard and mod manager for Fallout: New Vegas"
 long-description = "One all-Rust installer, setup wizard and mod manager for Fallout: New Vegas, built on nv-rs, nvmod, loot-rs, lodwright-rs and ttwright-rs. You need your own copy of the game; no game files are included."
 homepage = "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox"
 publisher = "JorisJonkers-dev"
+# The .deb's Maintainer field: the maintainer's address from SECURITY.md (dpkg warns on every call without one, #506).
+authors = ["Joris Jonkers <security@jorisjonkers.dev>"]
 copyright = "Copyright (c) Joris Jonkers and the authors of the Components"
 category = "Game"
 license-file = "../../LICENSE"
@@ -68,3 +70,32 @@ minimum-system-version = "13.0"
 
 [package.metadata.packager.deb]
 section = "games"
+# The package is `raul`, as the program is (cargo-packager would make it `raul-s-t-rusty-toolbox` from the product name).
+package-name = "raul"
+# What the window and the engine load at run time (checked with `objdump -p` and the library names inside the binary;
+# scripts/check-deb-install.sh installs the package on plain Debian and Ubuntu and starts the window). Only libc, libm,
+# libgcc_s and libstdc++ are linked; the rest is opened by name: X11 and the window toolkit (libX11, libX11-xcb, libxcb,
+# libXcursor, libXi, libXrender, libxkbcommon, libxkbcommon-x11, libwayland-client, libwayland-egl), the
+# graphics (libGL, libEGL, libvulkan, and a Mesa driver for them) and PulseAudio (libpulse, the game's sound).
+# libvkd3d-shader1, the engine's shader compiler, is left out: Ubuntu 22.04 (the glibc baseline of ADR-0006) has no such package.
+depends = [
+  "libc6 (>= 2.35)",
+  "libgcc-s1",
+  "libstdc++6",
+  "libx11-6",
+  "libx11-xcb1",
+  "libxcb1",
+  "libxcursor1",
+  "libxi6",
+  "libxrandr2", # named by no library string of the current binary; the v0.4.0 window needed it (#506), kept as cheap insurance
+  "libxrender1",
+  "libxkbcommon0",
+  "libxkbcommon-x11-0",
+  "libwayland-client0",
+  "libwayland-egl1",
+  "libegl1",
+  "libgl1",
+  "libvulkan1",
+  "libpulse0",
+  "libgl1-mesa-dri | mesa-vulkan-drivers",
+]

@@ -22,9 +22,15 @@ Download the package for your system from the
 
 | System | Package | Notes |
 | --- | --- | --- |
-| Linux (x64, glibc 2.35+, Steam Deck) | `.AppImage`, `.deb` or `.tar.gz` | `chmod +x` the AppImage and run it |
+| Linux (x64, glibc 2.35+, Steam Deck) | `.AppImage`, `.deb` or `.tar.gz` | `chmod +x` the AppImage and run it; or `sudo apt install ./raul-*.deb` (package `raul`, its libraries come with it) |
 | Windows 10 22H2 / 11 (x64) | `-setup.exe` or `-portable.zip` | installs for your user only; unsigned for now, so SmartScreen may warn |
 | macOS 13+ (Apple silicon and Intel) | `.dmg` | unsigned until signing is set up: allow it under System Settings, Privacy & Security |
+
+The `.deb` pulls in the libraries the window needs. The AppImage and the `.tar.gz` do not carry them: on a plain
+Debian or Ubuntu install `libx11-6 libx11-xcb1 libxcb1 libxcursor1 libxi6 libxrandr2 libxrender1 libxkbcommon0
+libxkbcommon-x11-0 libwayland-client0 libwayland-egl1 libegl1 libgl1 libvulkan1 libpulse0 mesa-vulkan-drivers` first
+(other distributions: the same libraries under their own names). To play, the engine's shader compiler `libvkd3d-shader1`
+is also needed where your distribution has it.
 
 ### From source
 
