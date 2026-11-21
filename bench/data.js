@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795268562305,
+  "lastUpdate": 1795269367530,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10044,6 +10044,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.704782999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3bf921275d9a47c235b9d8e250b1b7bcfbf8c4e2",
+          "message": "docs: README status after v0.6.0, and what the attestation check needs (#514, #515) (#522)",
+          "timestamp": "2026-11-21T13:54:03Z",
+          "tree_id": "512ef94c988626dbbe7264954cf9e4db04251dc4",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3bf921275d9a47c235b9d8e250b1b7bcfbf8c4e2"
+        },
+        "date": 1795269366686,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.68771,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.8427180000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 32.725257,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.403913,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.720453,
             "unit": "ms"
           }
         ]
