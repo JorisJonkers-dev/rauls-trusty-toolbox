@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795237622926,
+  "lastUpdate": 1795238611772,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9260,6 +9260,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.389031,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1e5cfea46b5cfce420d74cd9bad3e9e2c061e2ef",
+          "message": "chore(deps): bump lodwright-rs to 0.12.0 (#493)",
+          "timestamp": "2026-11-21T05:21:36Z",
+          "tree_id": "343fa7c5bb698081b29872a7da25ad969d66bfb2",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/1e5cfea46b5cfce420d74cd9bad3e9e2c061e2ef"
+        },
+        "date": 1795238611233,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.281981,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.459123,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.737118,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.154112,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.127154,
             "unit": "ms"
           }
         ]
