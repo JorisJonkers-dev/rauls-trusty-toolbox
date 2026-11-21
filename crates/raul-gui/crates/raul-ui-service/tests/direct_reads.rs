@@ -346,3 +346,27 @@ fn a_config_action_with_the_wrong_words_is_a_usage_error() {
     let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
     assert_ne!(out.code, Some(0));
 }
+
+#[test]
+fn lod_mods_and_lod_plan_print_what_the_command_line_prints() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    let root = s(&inst.root());
+    assert_same(
+        &direct_output("lod-mods", &["--instance", &root]),
+        &cli_output(&["lod", "mods", "--instance", &root, "--json"]),
+    );
+    // A plan of an Instance with no plugin that carries a world is the command's refusal, word for word and with its
+    // code, or the same request document.
+    let direct = direct_output("lod-plan", &["--instance", &root]);
+    let cli = cli_output(&["lod", "plan", "--instance", &root, "--json"]);
+    assert_eq!(direct.code, cli.code, "{direct:?} / {cli:?}");
+    if cli.code == Some(0) {
+        assert_same(&direct, &cli);
+    } else {
+        assert!(
+            direct.stderr.contains("refused"),
+            "the refusal is shown: {direct:?}"
+        );
+    }
+}

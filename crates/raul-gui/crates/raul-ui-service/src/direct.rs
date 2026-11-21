@@ -309,6 +309,8 @@ pub fn for_command_in(
         "install" => {
             Some(install_command_request(rest).map_or_else(DirectJob::usage, |r| install_mod(&r)))
         }
+        "lod-plan" => Some(lod_read(rest, ctx, raul_cli::lod_plan_document)),
+        "lod-mods" => Some(lod_read(rest, ctx, raul_cli::lod_mods_document)),
         "version" => Some(version()),
         "detect" => Some(detect(rest)),
         "config-list" | "config-get" | "config-set" | "config-unset" => Some(config(id, rest, ctx)),
@@ -364,6 +366,28 @@ pub fn detect(rest: &[String]) -> DirectJob {
                 } else {
                     0
                 },
+            })
+        },
+    )
+}
+
+/// `raul lod plan` and `raul lod mods`: the read-only LOD documents, from the command's own functions. A usage error or
+/// refusal is a refusal here, with the command's words.
+pub fn lod_read(
+    rest: &[String],
+    ctx: &raul_core::context::Context,
+    document: fn(
+        &raul_core::context::Context,
+        &[String],
+    ) -> Result<serde_json::Value, raul_cli::LodRefusal>,
+) -> DirectJob {
+    let rest: Vec<String> = rest.iter().filter(|w| *w != "--json").cloned().collect();
+    let ctx = ctx.clone();
+    DirectJob::reading(
+        move |_, _| -> Result<Outcome<serde_json::Value>, JobError> {
+            document(&ctx, &rest).map(Outcome::Done).map_err(|r| {
+                let (line, _) = r.render();
+                JobError::new(ErrorKind::Refused, "lod.read", line)
             })
         },
     )

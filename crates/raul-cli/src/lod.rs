@@ -92,44 +92,97 @@ pub(crate) fn run(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut
     }
 }
 
-fn refused(err: &mut dyn Write, why: &str) -> u8 {
-    refused_as(err, "plan", why)
+/// Why a read-only `raul lod` command did not answer: a usage error or a refusal, with the words it ends with.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Refusal {
+    /// The command line cannot be understood (exit code 5).
+    Usage(String),
+    /// The command was refused (exit code 2): `raul lod <verb>: refused: <why>`.
+    Refused {
+        /// The subcommand: `plan` or `mods`.
+        verb: &'static str,
+        /// Why, in words.
+        why: String,
+    },
 }
 
-fn refused_as(err: &mut dyn Write, verb: &str, why: &str) -> u8 {
-    let _ = writeln!(err, "raul lod {verb}: refused: {why}");
-    crate::REFUSED
+impl Refusal {
+    /// The line the command prints on standard error, and the exit code it ends with.
+    #[must_use]
+    pub fn render(&self) -> (String, u8) {
+        match self {
+            Refusal::Usage(message) => {
+                (format!("raul: {message}\n\n{}", crate::HELP), crate::USAGE)
+            }
+            Refusal::Refused { verb, why } => {
+                (format!("raul lod {verb}: refused: {why}"), crate::REFUSED)
+            }
+        }
+    }
+}
+
+fn print_refusal(err: &mut dyn Write, r: &Refusal) -> u8 {
+    let (line, code) = r.render();
+    let _ = writeln!(err, "{line}");
+    code
+}
+
+/// The Instance and the Profile a read-only `raul lod` command looks at.
+fn open_for(
+    ctx: &Context,
+    verb: &'static str,
+    instance: Option<PathBuf>,
+    profile: Option<&str>,
+) -> Result<(NvmodInstance, String), Refusal> {
+    let refused = |why: String| Refusal::Refused { verb, why };
+    let Some(root) = instance.or_else(|| configured_instance(ctx)) else {
+        return Err(refused(
+            "no Instance: pass --instance <dir> or run `raul config set storage.root <dir>`".into(),
+        ));
+    };
+    let instance = NvmodInstance::open_read_only(&root)
+        .map_err(|e| refused(format!("{}: {e}", root.display())))?;
+    let profile = instance
+        .resolve_profile(profile)
+        .map_err(|e| refused(e.to_string()))?;
+    Ok((instance, profile))
+}
+
+/// The generated LOD Mods of a Profile, as `raul lod mods` reads them from its command line.
+fn mods_of(ctx: &Context, args: &[String]) -> Result<(bool, String, lod::LodMods), Refusal> {
+    let flags = match parse(args, false) {
+        Ok(f) if f.worlds.is_empty() => f,
+        Ok(_) => {
+            return Err(Refusal::Usage(format!(
+                "--world is not an option of mods\n{USAGE_LINE}"
+            )));
+        }
+        Err(why) => return Err(Refusal::Usage(format!("{why}\n{USAGE_LINE}"))),
+    };
+    let (instance, profile) = open_for(ctx, "mods", flags.instance, flags.profile.as_deref())?;
+    let doc = lod::generated_mods(&instance, &profile);
+    Ok((flags.json, profile, doc))
+}
+
+/// The document `raul lod mods --json` prints, for the window's direct job.
+///
+/// # Errors
+/// The usage error or refusal the command ends with.
+pub fn mods_document(ctx: &Context, args: &[String]) -> Result<serde_json::Value, Refusal> {
+    let (_, _, doc) = mods_of(ctx, args)?;
+    serde_json::to_value(&doc).map_err(|e| Refusal::Refused {
+        verb: "mods",
+        why: e.to_string(),
+    })
 }
 
 /// `raul lod mods`: the generated LOD Mods the Profile lists, highest priority first.
 fn mods(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    let flags = match parse(args, false) {
-        Ok(f) if f.worlds.is_empty() => f,
-        Ok(_) => {
-            return crate::usage(
-                err,
-                &format!("--world is not an option of mods\n{USAGE_LINE}"),
-            );
-        }
-        Err(why) => return crate::usage(err, &format!("{why}\n{USAGE_LINE}")),
+    let (json, profile, doc) = match mods_of(ctx, args) {
+        Ok(x) => x,
+        Err(r) => return print_refusal(err, &r),
     };
-    let Some(root) = flags.instance.or_else(|| configured_instance(ctx)) else {
-        return refused_as(
-            err,
-            "mods",
-            "no Instance: pass --instance <dir> or run `raul config set storage.root <dir>`",
-        );
-    };
-    let instance = match NvmodInstance::open_read_only(&root) {
-        Ok(i) => i,
-        Err(e) => return refused_as(err, "mods", &format!("{}: {e}", root.display())),
-    };
-    let profile = match instance.resolve_profile(flags.profile.as_deref()) {
-        Ok(p) => p,
-        Err(e) => return refused_as(err, "mods", &e.to_string()),
-    };
-    let doc = lod::generated_mods(&instance, &profile);
-    let text = if flags.json {
+    let text = if json {
         format!(
             "{}\n",
             serde_json::to_string_pretty(&doc).unwrap_or_default()
@@ -172,30 +225,33 @@ pub(crate) fn configured_instance(ctx: &Context) -> Option<PathBuf> {
         .and_then(|c| c.get(Key::Instance))
 }
 
-fn plan(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+/// The plan of a run, as `raul lod plan` reads it from its command line: whether `--json` was given, the Profile and
+/// the plan.
+fn plan_of(ctx: &Context, args: &[String]) -> Result<(bool, String, lod::Plan), Refusal> {
     let flags = match parse(args, false) {
         Ok(f) => f,
-        Err(why) => return crate::usage(err, &format!("{why}\n{USAGE_LINE}")),
+        Err(why) => return Err(Refusal::Usage(format!("{why}\n{USAGE_LINE}"))),
     };
-    let Some(root) = flags.instance.or_else(|| configured_instance(ctx)) else {
-        return refused(
-            err,
-            "no Instance: pass --instance <dir> or run `raul config set storage.root <dir>`",
-        );
+    let (instance, profile) = open_for(ctx, "plan", flags.instance, flags.profile.as_deref())?;
+    let plan = lod::plan(&instance, &profile, &flags.worlds, flags.allow_in_repo)
+        .map_err(|why| Refusal::Refused { verb: "plan", why })?;
+    Ok((flags.json, profile, plan))
+}
+
+/// The document `raul lod plan --json` prints (the run's request), for the window's direct job.
+///
+/// # Errors
+/// The usage error or refusal the command ends with.
+pub fn plan_document(ctx: &Context, args: &[String]) -> Result<serde_json::Value, Refusal> {
+    plan_of(ctx, args).map(|(_, _, plan)| plan.request)
+}
+
+fn plan(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    let (json, profile, plan) = match plan_of(ctx, args) {
+        Ok(x) => x,
+        Err(r) => return print_refusal(err, &r),
     };
-    let instance = match NvmodInstance::open_read_only(&root) {
-        Ok(i) => i,
-        Err(e) => return refused(err, &format!("{}: {e}", root.display())),
-    };
-    let profile = match instance.resolve_profile(flags.profile.as_deref()) {
-        Ok(p) => p,
-        Err(e) => return refused(err, &e.to_string()),
-    };
-    let plan = match lod::plan(&instance, &profile, &flags.worlds, flags.allow_in_repo) {
-        Ok(p) => p,
-        Err(why) => return refused(err, &why),
-    };
-    let text = if flags.json {
+    let text = if json {
         format!(
             "{}\n",
             serde_json::to_string_pretty(&plan.request).unwrap_or_default()
@@ -376,5 +432,75 @@ mod tests {
     fn a_command_line_that_cannot_be_understood_is_a_usage_message() {
         let why = generate_job(&words(&["--no-such-flag"])).err().unwrap();
         assert!(why.contains("unknown option --no-such-flag"), "{why}");
+    }
+
+    /// A synthetic Instance with a Profile and no generated LOD Mod.
+    fn instance(label: &str) -> (Context, PathBuf, PathBuf) {
+        use nvmod_testkit::BaseBuilder;
+        let dir =
+            std::env::temp_dir().join(format!("raul-lod-read-{label}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let base = dir.join("base");
+        BaseBuilder::steam().write(&base);
+        let root = dir.join("instance");
+        let (progress, cancel) = (&mut nvmod_api::NoProgress, nvmod_api::CancelToken::new());
+        nvmod_api::init::create(
+            &nvmod_api::init::CreateRequest {
+                instance: root.clone(),
+                base,
+            },
+            progress,
+            &cancel,
+        )
+        .unwrap();
+        nvmod_api::profile::create(
+            &nvmod_api::profile::CreateRequest {
+                instance: root.clone(),
+                name: None,
+            },
+            &mut nvmod_api::NoProgress,
+            &cancel,
+        )
+        .unwrap();
+        let ctx = Context::default()
+            .with_config_folder(dir.join("config"))
+            .without_run_log();
+        (ctx, root, dir)
+    }
+
+    #[test]
+    fn the_mods_document_lists_no_generated_mod_on_a_fresh_instance_and_refuses_what_it_cannot_open()
+     {
+        let (ctx, root, dir) = instance("mods");
+        let i = root.to_string_lossy().into_owned();
+        let doc = mods_document(&ctx, &words(&["--instance", &i])).unwrap();
+        assert_eq!(doc["contract"], "raul-lod-mods");
+        assert_eq!(doc["mods"].as_array().map(Vec::len), Some(0));
+        let missing = dir.join("nothing").to_string_lossy().into_owned();
+        let refusal = mods_document(&ctx, &words(&["--instance", &missing])).unwrap_err();
+        let (line, code) = refusal.render();
+        assert_eq!(code, crate::REFUSED);
+        assert!(line.starts_with("raul lod mods: refused:"), "{line}");
+        let none = mods_document(&ctx, &[]).unwrap_err();
+        assert!(none.render().0.contains("no Instance"));
+        let world = mods_document(&ctx, &words(&["--world", "X"])).unwrap_err();
+        assert_eq!(world.render().1, crate::USAGE);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn the_plan_document_is_the_request_and_a_bad_line_is_a_usage_error() {
+        let (ctx, root, dir) = instance("plan");
+        let i = root.to_string_lossy().into_owned();
+        let request = plan_document(&ctx, &words(&["--instance", &i, "--allow-in-repo"]));
+        // A plan needs plugins that carry worlds, which the synthetic Instance has none of: either it is a request
+        // document or a refusal in the command's words, never a panic.
+        match request {
+            Ok(doc) => assert!(doc.is_object()),
+            Err(r) => assert!(r.render().0.starts_with("raul lod plan: refused:")),
+        }
+        let bad = plan_document(&ctx, &words(&["--no-such-flag"])).unwrap_err();
+        assert_eq!(bad.render().1, crate::USAGE);
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 }
