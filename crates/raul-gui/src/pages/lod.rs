@@ -18,8 +18,8 @@ use eframe::egui::{self, RichText};
 use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobId, JobState};
 use raul_ui_model::pages::lod::{
-    BlockStatus, Outcome, Phase, Plan, Problem, Progress, State, Written, generate_command,
-    parse_plan, plan_command, read_result,
+    BlockStatus, Outcome, Phase, Plan, Problem, Progress, State, Written, elapsed_words,
+    generate_command, parse_plan, plan_command, read_result,
 };
 use raul_ui_model::pages::mods::{GeneratedRow, generated_command, parse_generated};
 use raul_ui_model::pages::settings::Command;
@@ -35,6 +35,8 @@ crate::texts!(TEXTS {
     STATE_CURRENT = "All blocks up to date";
     STATE_GENERATING = "Generating · {p}% · you can leave this page";
     STATE_GENERATING_START = "Generating · you can leave this page";
+    STATE_GENERATING_STEP = "{what} · {p}% of this step · {elapsed} · you can leave this page";
+    STATE_GENERATING_STEP_START = "{what} · {elapsed} · you can leave this page";
     STATE_STOPPING = "Stopping";
     GENERATE = "Generate";
     CONFIRM_TITLE = "Generate LOD?";
@@ -163,6 +165,8 @@ pub struct Lod {
     asked: Option<String>,
     /// The Profile's own generated LOD Mod as the mod list has it, read with each plan.
     existing: Option<GeneratedRow>,
+    /// When the running Generate started, for the time it has taken.
+    started: Option<std::time::Instant>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -200,7 +204,10 @@ impl Lod {
         };
         match job {
             Job::Plan => self.state.planning(),
-            Job::Generate => self.state.generating(),
+            Job::Generate => {
+                self.state.generating();
+                self.started = Some(std::time::Instant::now());
+            }
             Job::Existing => {}
         }
         if job == Job::Existing {
@@ -524,10 +531,9 @@ impl Page for Lod {
         match s.phase {
             Phase::NoInstance => STATE_NO_INSTANCE.to_owned(),
             Phase::Planning => STATE_PLANNING.to_owned(),
-            Phase::Generating => match s.progress.percent() {
-                Some(p) => STATE_GENERATING.replace("{p}", &p.to_string()),
-                None => STATE_GENERATING_START.to_owned(),
-            },
+            Phase::Generating => {
+                generating_line(&s.progress, self.started.map(|at| at.elapsed().as_secs()))
+            }
             Phase::Stopping => STATE_STOPPING.to_owned(),
             Phase::Planned => {
                 let blocks = s.blocks();
@@ -642,9 +648,17 @@ impl Page for Lod {
                 let what = if self.state.progress.phase.is_empty() {
                     STATE_GENERATING_START.to_owned()
                 } else {
-                    step_text(&self.state.progress.phase).to_owned()
+                    let mut what = step_text(&self.state.progress.phase).to_owned();
+                    if let Some(at) = self.started {
+                        what.push_str(" · ");
+                        what.push_str(&elapsed_words(at.elapsed().as_secs()));
+                    }
+                    what
                 };
                 waiting(ui, &t, &what, &generate_command(&instance));
+                // The time on screen moves once a second.
+                ui.ctx()
+                    .request_repaint_after(std::time::Duration::from_secs(1));
             }
             _ if self.state.problem.is_some() => {}
             _ => {
@@ -792,6 +806,31 @@ fn outcome(status: Status, up_to_date: bool, worlds: &[&str]) -> Outcome {
 }
 
 /// The words for a phase of a LOD run; a phase this build does not know is a step starting, never an error.
+/// The line that says how a running Generate stands. Each phase reports its own share, so the number falls back when
+/// a new phase starts (87 percent of the terrain, then 30 of the objects): the line names the phase and says the share
+/// is of that step, so a drop reads as the next step, and it shows the time the run has taken.
+fn generating_line(progress: &Progress, elapsed: Option<u64>) -> String {
+    let elapsed = elapsed.map(elapsed_words);
+    if progress.phase.is_empty() {
+        return progress.percent().map_or_else(
+            || STATE_GENERATING_START.to_owned(),
+            |p| STATE_GENERATING.replace("{p}", &p.to_string()),
+        );
+    }
+    let what = step_text(&progress.phase);
+    match (progress.percent(), elapsed) {
+        (Some(p), Some(e)) => STATE_GENERATING_STEP
+            .replace("{what}", what)
+            .replace("{p}", &p.to_string())
+            .replace("{elapsed}", &e),
+        (Some(p), None) => STATE_GENERATING.replace("{p}", &p.to_string()),
+        (None, Some(e)) => STATE_GENERATING_STEP_START
+            .replace("{what}", what)
+            .replace("{elapsed}", &e),
+        (None, None) => STATE_GENERATING_START.to_owned(),
+    }
+}
+
 fn step_text(phase: &str) -> &'static str {
     match phase {
         "read_plugins" => STEP_READ_PLUGINS,
@@ -902,6 +941,47 @@ pub fn fixtures() -> Vec<Fixture> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_run_whose_steps_start_over_at_zero_names_each_step_and_shows_the_time() {
+        // A recorded run: the terrain reached 87 percent, the objects then count from 0 (30 percent a while later), and
+        // the trees count from 0 again. The number alone goes 87, 30, 4; with the step named it reads as the next step.
+        let events = [
+            ("terrain", 87, 100, 200),
+            ("objects", 30, 100, 260),
+            ("trees", 4, 100, 330),
+        ];
+        let lines: Vec<String> = events
+            .iter()
+            .map(|(phase, done, total, secs)| {
+                generating_line(
+                    &Progress {
+                        phase: (*phase).to_owned(),
+                        done: *done,
+                        total: Some(*total),
+                    },
+                    Some(*secs),
+                )
+            })
+            .collect();
+        assert!(lines[0].contains(STEP_TERRAIN) && lines[0].contains("87% of this step"));
+        assert!(lines[1].contains(STEP_OBJECTS) && lines[1].contains("30% of this step"));
+        assert!(lines[2].contains(STEP_TREES) && lines[2].contains("4% of this step"));
+        assert!(lines[0].contains("3 min 20 s") && lines[2].contains("5 min 30 s"));
+        // The time keeps rising over the whole run, which the share does not.
+        assert_ne!(lines[0], lines[1]);
+        // Before the first event, and with no share yet.
+        assert_eq!(
+            generating_line(&Progress::default(), Some(3)),
+            STATE_GENERATING_START
+        );
+        let start = Progress {
+            phase: "read_plugins".to_owned(),
+            ..Progress::default()
+        };
+        assert!(generating_line(&start, Some(3)).contains(STEP_READ_PLUGINS));
+        assert!(generating_line(&start, Some(3)).contains("3 s"));
+    }
+
     use super::*;
 
     #[test]
