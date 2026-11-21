@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795218077609,
+  "lastUpdate": 1795220173254,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8084,6 +8084,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.490931,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b7e72f758039d649675e95f27f083a9650f8517b",
+          "message": "fix(gui,cli): warn on an unsorted list, show the LOD Mod's date and file count, print raul for nvmod's program name (#458)\n\n* fix(gui,cli): warn on an unsorted list, show the LOD Mod's date and file count, print raul for nvmod's program name (#409, #414, #415)\n\n* fix(cli): leave a --json document as nvmod wrote it when renaming the program\n\n* chore: take the unused pinned files out again",
+          "timestamp": "2026-11-21T00:14:29Z",
+          "tree_id": "096b3603237d306dc3751d8b4b777ad800d223fc",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b7e72f758039d649675e95f27f083a9650f8517b"
+        },
+        "date": 1795220172881,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.095931,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.697857,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.599712,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.521207,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.573211,
             "unit": "ms"
           }
         ]
