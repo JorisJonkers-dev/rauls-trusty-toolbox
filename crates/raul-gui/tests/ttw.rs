@@ -27,7 +27,7 @@ use raul_ui_service::{
 };
 use serde_json::json;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 use ttwright_testkit::{Manifest, loc, mpi_package};
 
@@ -82,7 +82,14 @@ fn unsupported_manifest() -> Manifest {
     m
 }
 
+/// Held by the test that runs; see `Fixture::_turn`.
+static TURN: Mutex<()> = Mutex::new(());
+
 struct Fixture {
+    /// The turn of this test. The stop request of the command line is one flag of the process, so a test that
+    /// stops an install while another test installs would stop that one too; the tests take turns, which keeps
+    /// plain `cargo test` (one process, many threads) as green as nextest (one process per test).
+    _turn: MutexGuard<'static, ()>,
     root: TempDir,
     /// The ttwright fixture: a Fallout 3 copy, the `.mpi` package and a destination folder.
     ttw: ttwright_testkit::Fixture,
@@ -95,6 +102,7 @@ impl Fixture {
 
     fn with_manifest(label: &str, manifest: &Manifest) -> Fixture {
         let f = Fixture {
+            _turn: TURN.lock().unwrap_or_else(PoisonError::into_inner),
             root: TempDir::new(label),
             ttw: ttwright_testkit::Fixture::with_manifest(label, manifest),
         };
@@ -224,27 +232,31 @@ fn a_dry_run_writes_nothing() {
 #[test]
 fn a_failure_or_a_refusal_is_a_report_that_says_why() {
     // A game copy the check rejects: ttwright fails before it writes anything.
-    let f = Fixture::new("gui-ttw-fail");
-    f.break_check();
-    let report = f.service().ttw(&f.request()).unwrap();
-    assert_eq!(report.status, Status::Failed, "{report:?}");
-    assert_eq!(
-        report.error.as_ref().map(|e| e.code.as_str()),
-        Some("ttwright_failed")
-    );
-    assert!(report.mod_name.is_none());
-    assert!(!f.installed());
+    {
+        let f = Fixture::new("gui-ttw-fail");
+        f.break_check();
+        let report = f.service().ttw(&f.request()).unwrap();
+        assert_eq!(report.status, Status::Failed, "{report:?}");
+        assert_eq!(
+            report.error.as_ref().map(|e| e.code.as_str()),
+            Some("ttwright_failed")
+        );
+        assert!(report.mod_name.is_none());
+        assert!(!f.installed());
+    }
 
     // A package whose version is not supported: refused before anything is written.
-    let f = Fixture::with_manifest("gui-ttw-unsupported", &unsupported_manifest());
-    let report = f.service().ttw(&f.request()).unwrap();
-    assert_eq!(report.status, Status::Unsupported, "{report:?}");
-    assert_eq!(
-        report.error.as_ref().map(|e| e.code.as_str()),
-        Some("unsupported")
-    );
-    assert!(report.mod_name.is_none());
-    assert!(!f.installed());
+    {
+        let f = Fixture::with_manifest("gui-ttw-unsupported", &unsupported_manifest());
+        let report = f.service().ttw(&f.request()).unwrap();
+        assert_eq!(report.status, Status::Unsupported, "{report:?}");
+        assert_eq!(
+            report.error.as_ref().map(|e| e.code.as_str()),
+            Some("unsupported")
+        );
+        assert!(report.mod_name.is_none());
+        assert!(!f.installed());
+    }
 
     // Nothing given and nothing configured: refused before ttwright starts.
     let f = Fixture::new("gui-ttw-missing");
