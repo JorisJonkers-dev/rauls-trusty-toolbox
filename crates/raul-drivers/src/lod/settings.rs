@@ -156,6 +156,10 @@ pub mod catalogue {
     /// Normal size, explained.
     pub const NORMAL_SIZE_HELP: &str =
         "The edge of each block's shading texture in pixels. Larger costs disk space and memory.";
+    /// Specular in the alpha of the shading texture.
+    pub const SPECULAR_ALPHA: &str = "Shine in the shading texture";
+    /// Specular in alpha, explained.
+    pub const SPECULAR_ALPHA_HELP: &str = "Stores how shiny each land texture is in the shading texture, so distant land can shine like the land near you. Off by default; it is new, so look at the result in the game.";
     /// Drop faces under the terrain.
     pub const DROP_UNDER_TERRAIN: &str = "Leave out object faces under the land";
     /// Drop faces under the terrain, explained.
@@ -237,11 +241,12 @@ macro_rules! level_rows {
             row(concat!("levels.", $l, ".max_vertices"), 2, Kind::Count, VERTICES, catalogue::MAX_VERTICES, catalogue::MAX_VERTICES_HELP),
             row(concat!("levels.", $l, ".diffuse_size"), 2, Kind::TextureSize, SIZE, catalogue::DIFFUSE_SIZE, catalogue::DIFFUSE_SIZE_HELP),
             row(concat!("levels.", $l, ".normal_size"), 2, Kind::TextureSize, SIZE, catalogue::NORMAL_SIZE, catalogue::NORMAL_SIZE_HELP),
+            row(concat!("levels.", $l, ".specular_alpha"), 3, Kind::Switch, NONE, catalogue::SPECULAR_ALPHA, catalogue::SPECULAR_ALPHA_HELP),
         )*]
     };
 }
 
-const LEVEL_ROWS: [Descriptor; 16] = level_rows!("4", "8", "16", "32");
+const LEVEL_ROWS: [Descriptor; 20] = level_rows!("4", "8", "16", "32");
 
 const BASE_ROWS: [Descriptor; 15] = [
     row(
@@ -370,8 +375,8 @@ const BASE_ROWS: [Descriptor; 15] = [
 ];
 
 /// Every option, in the order a view lists them: tier 1, then the advanced ones.
-pub const OPTIONS: [Descriptor; 31] = {
-    let mut all = [BASE_ROWS[0]; 31];
+pub const OPTIONS: [Descriptor; 35] = {
+    let mut all = [BASE_ROWS[0]; 35];
     let mut i = 0;
     while i < BASE_ROWS.len() {
         all[i] = BASE_ROWS[i];
@@ -1570,6 +1575,49 @@ mod tests {
         let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
         assert_eq!(back, none);
         assert!(none["objects"].get("drop_under_terrain").is_none());
+    }
+
+    /// The specular row of each terrain level is a tier 3 switch that is off, reaches the request of its own level
+    /// only when set, and leaves the digest of a Profile with no file when restored.
+    #[test]
+    fn the_specular_in_alpha_row_is_per_level_off_by_default_and_restores_the_request() {
+        for level in LEVELS {
+            let key = format!("levels.{level}.specular_alpha");
+            let d = descriptor(&key).unwrap();
+            assert_eq!((d.tier, d.kind), (3, Kind::Switch));
+            assert!(listed_in(generator(), d), "{key}");
+            assert_eq!(default_value(&key), Some(json!(false)), "{key}");
+        }
+        let dir = TempDir::new("raul-lodset-specular");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        assert!(none["terrain"]["levels"].as_array().unwrap().is_empty());
+        set(&at, "levels.16.specular_alpha", &json!(true)).unwrap();
+        assert_eq!(
+            parse_value("levels.16.specular_alpha", &["on".to_owned()]).unwrap(),
+            json!(true)
+        );
+        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        let levels = on["terrain"]["levels"].as_array().unwrap();
+        let on_at: Vec<(u64, bool)> = levels
+            .iter()
+            .map(|l| {
+                (
+                    l["level"].as_u64().unwrap(),
+                    l["specular_alpha"].as_bool().unwrap_or(false),
+                )
+            })
+            .collect();
+        assert_eq!(on_at, [(4, false), (8, false), (16, true), (32, false)]);
+        assert_eq!(
+            set(&at, "levels.8.specular_alpha", &json!(1))
+                .unwrap_err()
+                .code,
+            RefusalCode::WrongType
+        );
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
     }
 
     fn names(n: &[&str]) -> Vec<String> {

@@ -534,7 +534,13 @@ impl LodSettings {
                         .text_style(theme::secondary_style())
                         .color(t.muted.color()),
                 );
-                for field_name in ["quality", "max_vertices", "diffuse_size", "normal_size"] {
+                for field_name in [
+                    "quality",
+                    "max_vertices",
+                    "diffuse_size",
+                    "normal_size",
+                    "specular_alpha",
+                ] {
                     let key = format!("levels.{n}.{field_name}");
                     if let Some(i) = self.index(&key)
                         && field(ui, t, &mut self.state.fields[i], open, busy)
@@ -922,6 +928,34 @@ mod tests {
         assert_eq!(
             shown_name("levels.8.quality"),
             format!("{} ({})", LEVEL.replace("{n}", "8"), opt::QUALITY)
+        );
+    }
+
+    #[test]
+    fn every_terrain_level_has_the_shine_row_in_the_advanced_settings() {
+        let fixture = fixtures()
+            .into_iter()
+            .find(|f| f.name == "advanced-open")
+            .unwrap();
+        let app = App::fixture(fixture, Jobs::new(Arc::new(Recording::default())));
+        let mut h = Harness::builder()
+            .with_size([1280.0, 3600.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            });
+        h.run_steps(4);
+        let shown = h
+            .query_all_by_label(raul_drivers::lod::settings::catalogue::SPECULAR_ALPHA)
+            .count();
+        assert_eq!(shown, 4, "one row for each of the four levels");
+        assert_eq!(
+            shown_name("levels.16.specular_alpha"),
+            format!(
+                "{} ({})",
+                LEVEL.replace("{n}", "16"),
+                raul_drivers::lod::settings::catalogue::SPECULAR_ALPHA
+            )
         );
     }
 }
