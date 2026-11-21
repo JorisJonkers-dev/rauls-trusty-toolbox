@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795231726099,
+  "lastUpdate": 1795234959307,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9015,6 +9015,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.245808,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "941a8360d22b748c6bef16455463af2ee778a647",
+          "message": "refactor(gui): config list, get, set and unset are typed in-process jobs (#406) (#488)\n\n* refactor(gui): raul config list, get, set and unset are typed in-process jobs (#406)\n\n* test(gui): the setup wizard tests script the config commands, which run in process now (#406)\n\n* test(cli): the config, version and detect functions the window calls are covered in raul-cli (#406)\n\n* test: the settings save test steps a fixed number of frames throughout; detect test uses assert_eq (#406)",
+          "timestamp": "2026-11-21T04:21:03Z",
+          "tree_id": "62983ee4f59e72d8cf7afaa19a11ff31a9a907a8",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/941a8360d22b748c6bef16455463af2ee778a647"
+        },
+        "date": 1795234958728,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.8894490000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.591184,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.075340999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.9511069999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.44637,
             "unit": "ms"
           }
         ]
