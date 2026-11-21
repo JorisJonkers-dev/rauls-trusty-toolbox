@@ -708,7 +708,15 @@ mod tests {
             .into_iter()
             .find(|f| f.name == "partial")
             .unwrap();
-        let app = App::fixture(fixture, Jobs::new(exec.clone()));
+        let app = App::fixture(
+            fixture,
+            Jobs::new(exec.clone()).scripted(&[
+                "config-list",
+                "config-get",
+                "config-set",
+                "config-unset",
+            ]),
+        );
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {

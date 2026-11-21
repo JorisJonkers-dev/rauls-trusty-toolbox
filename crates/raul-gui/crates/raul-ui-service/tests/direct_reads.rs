@@ -291,3 +291,58 @@ fn detect_in_a_folder_prints_what_the_command_line_prints_and_ends_alike_when_no
     assert_eq!(direct.stdout.trim(), "[]");
     assert_eq!(direct.code, Some(i64::from(raul_cli::FOUND)));
 }
+
+/// What the direct job for a `config` action prints with `ctx`'s folder, and what the command prints for the same.
+fn config_pair(
+    ctx: &raul_core::context::Context,
+    action: &str,
+    words: &[&str],
+) -> (Output, Output) {
+    let rest: Vec<String> = words.iter().map(|w| (*w).to_owned()).collect();
+    let job = direct::for_command_in(&format!("config-{action}"), &rest, ctx)
+        .expect("the command is converted");
+    let spec = JobSpec::new(raul_ui_model::job::JobId(1), Action::Doctor, Vec::new());
+    let direct = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+    let mut args = vec!["config".to_owned(), action.to_owned()];
+    args.extend(rest);
+    args.push("--json".to_owned());
+    let cli = InProcessExec::with_context(ctx.clone()).run(&args).unwrap();
+    (direct, cli)
+}
+
+#[test]
+fn config_actions_print_what_the_command_line_prints_and_write_the_same_file() {
+    let inst = Instance::new();
+    let folder = inst.root().join("cfg");
+    std::fs::create_dir_all(&folder).unwrap();
+    let ctx = raul_core::context::Context::new()
+        .with_config_folder(&folder)
+        .without_run_log();
+    let game = s(&inst.root());
+    for (action, words) in [
+        ("list", vec![]),
+        ("set", vec!["storage.root", game.as_str()]),
+        ("get", vec!["storage.root"]),
+        ("unset", vec!["storage.root"]),
+        ("get", vec!["storage.root"]),
+        // A key that does not exist is a refusal document with the command's own exit code.
+        ("get", vec!["no.such.key"]),
+    ] {
+        let (direct, cli) = config_pair(&ctx, action, &words);
+        assert_same(&direct, &cli);
+    }
+    // A set through the direct job is on disk for the command to read.
+    let (direct, _) = config_pair(&ctx, "set", &["storage.root", &game]);
+    assert_eq!(direct.code, Some(0));
+    let (_, cli) = config_pair(&ctx, "get", &["storage.root"]);
+    assert!(cli.stdout.contains(&game), "{}", cli.stdout);
+}
+
+#[test]
+fn a_config_action_with_the_wrong_words_is_a_usage_error() {
+    let ctx = raul_core::context::Context::new().without_run_log();
+    let job = direct::for_command_in("config-set", &["storage.root".to_owned()], &ctx).unwrap();
+    let spec = JobSpec::new(raul_ui_model::job::JobId(1), Action::Doctor, Vec::new());
+    let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+    assert_ne!(out.code, Some(0));
+}

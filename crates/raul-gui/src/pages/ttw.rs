@@ -1717,7 +1717,15 @@ mod tests {
     where
         E: raul_ui_service::Exec + Send + Sync + 'static,
     {
-        let app = crate::shell::App::fixture(fixture, crate::jobs::Jobs::new(exec));
+        let app = crate::shell::App::fixture(
+            fixture,
+            crate::jobs::Jobs::new(exec).scripted(&[
+                "config-list",
+                "config-get",
+                "config-set",
+                "config-unset",
+            ]),
+        );
         egui_kittest::Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {
