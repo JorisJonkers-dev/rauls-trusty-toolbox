@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795221464460,
+  "lastUpdate": 1795221632899,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8231,6 +8231,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.027661,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "38164017e1246b6e887f4faf21f101e6a2776582",
+          "message": "fix(ttw): the Fallout.ini values go back when no enabled Mod provides the TTW master (#442) (#464)",
+          "timestamp": "2026-11-21T00:38:38Z",
+          "tree_id": "00d16174b465c71ee59b3c1f82785ffc9ddeb962",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/38164017e1246b6e887f4faf21f101e6a2776582"
+        },
+        "date": 1795221632382,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.318593,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.42245,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.789664,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.108627,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.380911000000001,
             "unit": "ms"
           }
         ]
