@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795278238183,
+  "lastUpdate": 1795285188917,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10289,6 +10289,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.984256,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e675bd65ab891d12730976a4d4b4187b83b7b58f",
+          "message": "docs: README status line names no release version (#527) (#528)\n\nIt said first release (v0.6.0) and nothing updates it at a release. Checked: only the README changes; the other install text (file names, attestation command, anchor) holds for later versions.",
+          "timestamp": "2026-11-21T18:18:10Z",
+          "tree_id": "92f804ad4dc217ccb5d1d5b63e50a43c22493677",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e675bd65ab891d12730976a4d4b4187b83b7b58f"
+        },
+        "date": 1795285188332,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.8876570000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.606917000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 35.990758,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.938542,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.984256,
             "unit": "ms"
           }
         ]
