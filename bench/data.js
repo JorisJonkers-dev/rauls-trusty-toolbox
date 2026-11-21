@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795222814384,
+  "lastUpdate": 1795222971222,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8378,6 +8378,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.961502,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8b4f929d60c417b9f902013251f641f099275962",
+          "message": "fix(gui): the LOD page drops the result of the run when the generated Mod is deleted (#457) (#466)",
+          "timestamp": "2026-11-21T01:00:47Z",
+          "tree_id": "950365b13b60038b7f95e7cbc822ef5f5993a431",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/8b4f929d60c417b9f902013251f641f099275962"
+        },
+        "date": 1795222970239,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.780246,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 12.074995,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 47.584988,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.114941,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.741952,
             "unit": "ms"
           }
         ]
