@@ -71,6 +71,10 @@ crate::texts!(TEXTS {
     READING = "Reading the plugin list";
     UNREADABLE = "The command finished, but what it printed could not be read.";
     SORTING = "Sorting: the pinned masterlist is fetched and checked first";
+    TAG_GENERATED = "Generated LOD";
+    GENERATED_HOVER = "{name} · generated LOD";
+    GENERATED_NOTE = "{name} is written by the LOD generator: it registers the packed LOD archive. Keep it on, or the game does not open the archive and uses its own distant land.";
+    GENERATED_OFF = "{name} is off, so the game does not open the packed LOD archive and uses its own distant land. Generate the LOD again to put it back on.";
 });
 
 crate::errors!(ERRORS {
@@ -276,7 +280,10 @@ impl LoadOrder {
                     } else {
                         name.color(t.muted.color())
                     };
-                    let hover = if p.active {
+                    let generated = is_generated_lod(&p.name);
+                    let hover = if generated {
+                        GENERATED_HOVER.replace("{name}", &p.name)
+                    } else if p.active {
                         p.name.clone()
                     } else {
                         INACTIVE.replace("{name}", &p.name)
@@ -286,6 +293,11 @@ impl LoadOrder {
                         egui::Layout::left_to_right(egui::Align::Center),
                         |ui| {
                             ui.set_width(plugin_width);
+                            if generated {
+                                ui.label(
+                                    RichText::new(TAG_GENERATED).small().color(t.info.color()),
+                                );
+                            }
                             ui.add(egui::Label::new(name).truncate())
                                 .on_hover_text(hover);
                         },
@@ -311,6 +323,28 @@ impl LoadOrder {
                     ui.end_row();
                 }
             });
+    }
+
+    /// One line under the list when it holds the stub of a packed LOD Mod: what it is, and what happens when it is off.
+    fn generated_note(&self, ui: &mut egui::Ui, t: &Tokens) {
+        let rows = if matches!(self.state.phase, Phase::Preview | Phase::Applying) {
+            &self.state.proposed
+        } else {
+            &self.state.current
+        };
+        let Some(stub) = rows.iter().find(|p| is_generated_lod(&p.name)) else {
+            return;
+        };
+        ui.add_space(8.0);
+        let (mark, text) = if stub.active {
+            (Mark::Info, GENERATED_NOTE)
+        } else {
+            (Mark::Warning, GENERATED_OFF)
+        };
+        ui.horizontal_top(|ui| {
+            icon(ui, t, mark);
+            ui.add(egui::Label::new(text.replace("{name}", &stub.name)).wrap());
+        });
     }
 
     /// The note under the header for the current step.
@@ -487,6 +521,7 @@ impl Page for LoadOrder {
             ui.label(RichText::new(EMPTY).color(t.muted.color()));
         } else {
             self.table(ui, &t);
+            self.generated_note(ui, &t);
         }
     }
 
@@ -513,6 +548,11 @@ fn parse<T, E>(
         .ok()
         .and_then(|v| read(v).ok())
         .ok_or_else(|| UNREADABLE.to_owned())
+}
+
+/// Whether `name` is the stub Plugin of a packed LOD Mod (the generator's fixed name).
+fn is_generated_lod(name: &str) -> bool {
+    name.eq_ignore_ascii_case(raul_drivers::lod::PACKED_PLUGIN)
 }
 
 fn plugin(row: &PluginRow) -> Plugin {
@@ -696,6 +736,18 @@ fn listed(names: &[&str]) -> State {
     s
 }
 
+/// A list that holds the stub of a packed LOD Mod, on or off.
+fn with_stub(active: bool) -> State {
+    let mut names = SORTED.to_vec();
+    names.push(raul_drivers::lod::PACKED_PLUGIN);
+    let mut s = State::default();
+    s.listed("Default".to_owned(), sample(&names));
+    if let Some(stub) = s.current.last_mut() {
+        stub.active = active;
+    }
+    s
+}
+
 fn preview() -> State {
     let mut proposed = sample(SORTED);
     for p in &mut proposed {
@@ -783,6 +835,8 @@ pub fn fixtures() -> Vec<Fixture> {
         fixture("applied", applied),
         fixture("error", failed),
         fixture("long-text", listed(&long)),
+        fixture("generated-lod", with_stub(true)),
+        fixture("generated-lod-off", with_stub(false)),
         fixture("large-list", listed(&large)),
     ]
 }
@@ -790,7 +844,55 @@ pub fn fixtures() -> Vec<Fixture> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::jobs::Jobs;
+    use crate::shell::App;
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable;
     use raul_ui_service::dto::{SortApplied, SortFinding, SortRow};
+    use std::sync::Arc;
+
+    struct Silent;
+
+    impl raul_ui_service::Exec for Silent {
+        fn run(&self, _args: &[String]) -> Result<Output, String> {
+            Err("not asked".to_owned())
+        }
+    }
+
+    /// The page named `name`, drawn once, and the number of labels with `text`.
+    fn labels_of(name: &str, text: &str) -> usize {
+        let fixture = fixtures().into_iter().find(|f| f.name == name).unwrap();
+        let app = App::fixture(fixture, Jobs::new(Arc::new(Silent)).scripted(&[]));
+        let mut h = Harness::builder()
+            .with_size([1280.0, 900.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            });
+        h.run_steps(4);
+        h.query_all_by_label(text).count()
+    }
+
+    #[test]
+    fn the_stub_of_a_packed_lod_is_marked_generated_with_one_line_that_says_what_off_does() {
+        let on = GENERATED_NOTE.replace("{name}", raul_drivers::lod::PACKED_PLUGIN);
+        let off = GENERATED_OFF.replace("{name}", raul_drivers::lod::PACKED_PLUGIN);
+        assert_eq!(labels_of("generated-lod", TAG_GENERATED), 1);
+        assert_eq!(labels_of("generated-lod", &on), 1);
+        assert_eq!(labels_of("generated-lod", &off), 0);
+        assert_eq!(labels_of("generated-lod-off", TAG_GENERATED), 1);
+        assert_eq!(labels_of("generated-lod-off", &off), 1);
+        assert_eq!(labels_of("generated-lod-off", &on), 0);
+        assert_eq!(labels_of("listed", TAG_GENERATED), 0, "no stub, no mark");
+    }
+
+    #[test]
+    fn the_stub_is_found_by_its_fixed_name_in_any_case() {
+        assert!(is_generated_lod("Lodwright LOD.esp"));
+        assert!(is_generated_lod("lodwright lod.ESP"));
+        assert!(!is_generated_lod("Lodwright LOD.esm"));
+        assert!(!is_generated_lod("SampleRadio.esp"));
+    }
 
     #[test]
     fn a_sort_report_becomes_the_preview_with_its_messages_and_notes() {
