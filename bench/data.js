@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795226245575,
+  "lastUpdate": 1795226577042,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8623,6 +8623,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.338518,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b6d8cab3470f3437d0e155b52df59b1dae2a28d7",
+          "message": "test: the crate graph of REORG section 3 is enforced (#46) (#476)",
+          "timestamp": "2026-11-21T02:01:22Z",
+          "tree_id": "bc0259ded8402b9eb81b77e03085c357ec719028",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b6d8cab3470f3437d0e155b52df59b1dae2a28d7"
+        },
+        "date": 1795226576254,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.648772,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.833453,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.301501000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.0283109999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.240246,
             "unit": "ms"
           }
         ]
