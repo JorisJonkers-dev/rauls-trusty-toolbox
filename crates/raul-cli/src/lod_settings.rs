@@ -7,9 +7,7 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use nvmod_instance::NvmodInstance;
-use raul_drivers::lod::settings::{
-    self, Change, ProfileSettings, Refusal, RefusalCode, SettingsDoc, Warning,
-};
+use raul_drivers::lod::settings::{self, ProfileSettings, Refusal, RefusalCode, SettingsDoc};
 use serde_json::Value;
 
 const USAGE_LINE: &str = "lod settings takes `show`, `set <key> <value>...`, `unset <key>`, `reset [--dry-run]` or \
@@ -72,55 +70,68 @@ pub(crate) fn run(
     if !words_ok {
         return crate::usage(err, USAGE_LINE);
     }
+    let (doc, code) = evaluate(ctx, verb, &flags);
+    render(&flags, verb, &doc, code, out, err)
+}
+
+/// Checks the words of a `lod settings` command line: `Some` with the flags when they are one of the five forms.
+fn understood(verb: &str, rest: &[String]) -> Option<Flags> {
+    let flags = parse(rest, verb == "reset").ok()?;
+    let words_ok = match verb {
+        "show" | "reset" | "undo" => flags.words.is_empty(),
+        "unset" => flags.words.len() == 1,
+        "set" => !flags.words.is_empty(),
+        _ => false,
+    };
+    words_ok.then_some(flags)
+}
+
+/// The document `raul lod settings <verb> --json` prints and the exit code it ends with, for the window's direct job;
+/// `rest` is what follows the verb. `None` is a usage error.
+#[must_use]
+pub fn answer(
+    ctx: &raul_core::context::Context,
+    verb: &str,
+    rest: &[String],
+) -> Option<(Value, u8)> {
+    let flags = understood(verb, rest)?;
+    let (doc, code) = evaluate(ctx, verb, &flags);
+    serde_json::to_value(&doc).ok().map(|json| (json, code))
+}
+
+/// Runs `verb` on the Profile's settings: the document and the exit code.
+fn evaluate(ctx: &raul_core::context::Context, verb: &str, flags: &Flags) -> (SettingsDoc, u8) {
+    let refused = |root: &std::path::Path, at: Option<&ProfileSettings>, refusal: Refusal| {
+        let code = exit_code(&refusal);
+        (settings::document(root, at, Err(refusal), Vec::new()), code)
+    };
     let Some(root) = flags
         .instance
         .clone()
         .or_else(|| crate::lod::configured_instance(ctx))
     else {
-        let refusal = settings::instance_invalid(
-            "no Instance: pass --instance <dir> or set storage.root with raul config".to_owned(),
-        );
-        return finish(
-            &flags,
-            verb,
+        return refused(
             &PathBuf::new(),
             None,
-            Err(refusal),
-            Vec::new(),
-            out,
-            err,
+            settings::instance_invalid(
+                "no Instance: pass --instance <dir> or set storage.root with raul config"
+                    .to_owned(),
+            ),
         );
     };
     let instance = match NvmodInstance::open_read_only(&root) {
         Ok(i) => i,
         Err(e) => {
-            let refusal = settings::instance_invalid(format!("{}: {e}", root.display()));
-            return finish(
-                &flags,
-                verb,
+            return refused(
                 &root,
                 None,
-                Err(refusal),
-                Vec::new(),
-                out,
-                err,
+                settings::instance_invalid(format!("{}: {e}", root.display())),
             );
         }
     };
     let at = match ProfileSettings::of(&instance, flags.profile.as_deref()) {
         Ok(a) => a,
-        Err(refusal) => {
-            return finish(
-                &flags,
-                verb,
-                &root,
-                None,
-                Err(refusal),
-                Vec::new(),
-                out,
-                err,
-            );
-        }
+        Err(refusal) => return refused(&root, None, refusal),
     };
     let outcome = match verb {
         "show" => settings::show(&at).map(|_| None),
@@ -136,7 +147,11 @@ pub(crate) fn run(
     } else {
         Vec::new()
     };
-    finish(&flags, verb, &root, Some(&at), outcome, warnings, out, err)
+    let code = outcome.as_ref().err().map_or(crate::OK, exit_code);
+    (
+        settings::document(&root, Some(&at), outcome, warnings),
+        code,
+    )
 }
 
 fn exit_code(refusal: &Refusal) -> u8 {
@@ -147,23 +162,18 @@ fn exit_code(refusal: &Refusal) -> u8 {
     }
 }
 
-#[allow(clippy::too_many_arguments)] // one call per way out of `run`
-fn finish(
+fn render(
     flags: &Flags,
     verb: &str,
-    root: &std::path::Path,
-    at: Option<&ProfileSettings>,
-    outcome: Result<Option<Change>, Refusal>,
-    warnings: Vec<Warning>,
+    doc: &SettingsDoc,
+    code: u8,
     out: &mut dyn Write,
     err: &mut dyn Write,
 ) -> u8 {
-    let code = outcome.as_ref().err().map_or(crate::OK, exit_code);
-    let doc = settings::document(root, at, outcome, warnings);
     if flags.json {
         let text = format!(
             "{}\n",
-            serde_json::to_string_pretty(&doc).unwrap_or_default()
+            serde_json::to_string_pretty(doc).unwrap_or_default()
         );
         let written = crate::write_or_fail(out, err, &text);
         return if written == crate::OK { code } else { written };
@@ -187,7 +197,7 @@ fn finish(
             w.key, w.what
         );
     }
-    crate::write_or_fail(out, err, &text(verb, &doc))
+    crate::write_or_fail(out, err, &text(verb, doc))
 }
 
 /// A value as a line shows it. Nothing set is `(none)` for a number that keeps everything when empty (the water
@@ -266,4 +276,78 @@ fn text(verb: &str, doc: &SettingsDoc) -> String {
         }
     }
     t
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn words(line: &[&str]) -> Vec<String> {
+        line.iter().map(|w| (*w).to_owned()).collect()
+    }
+
+    /// A synthetic Instance with a Profile.
+    fn instance(label: &str) -> (raul_core::context::Context, PathBuf, PathBuf) {
+        use nvmod_testkit::BaseBuilder;
+        let dir = std::env::temp_dir().join(format!("raul-lod-set-{label}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let base = dir.join("base");
+        BaseBuilder::steam().write(&base);
+        let root = dir.join("instance");
+        let cancel = nvmod_api::CancelToken::new();
+        nvmod_api::init::create(
+            &nvmod_api::init::CreateRequest {
+                instance: root.clone(),
+                base,
+            },
+            &mut nvmod_api::NoProgress,
+            &cancel,
+        )
+        .unwrap();
+        nvmod_api::profile::create(
+            &nvmod_api::profile::CreateRequest {
+                instance: root.clone(),
+                name: None,
+            },
+            &mut nvmod_api::NoProgress,
+            &cancel,
+        )
+        .unwrap();
+        let ctx = raul_core::context::Context::default()
+            .with_config_folder(dir.join("config"))
+            .without_run_log();
+        (ctx, root, dir)
+    }
+
+    #[test]
+    fn the_answer_shows_resets_refuses_and_reports_a_usage_error_as_none() {
+        let (ctx, root, dir) = instance("answer");
+        let i = root.to_string_lossy().into_owned();
+        let (doc, code) = answer(&ctx, "show", &words(&["--instance", &i])).unwrap();
+        assert_eq!(code, crate::OK, "{doc}");
+        assert_eq!(doc["contract"], "raul-lod-settings");
+        let (_, code) = answer(&ctx, "reset", &words(&["--instance", &i, "--dry-run"])).unwrap();
+        assert_eq!(code, crate::OK);
+        // An option that does not exist is a refusal document with the command's code.
+        let (refused, code) =
+            answer(&ctx, "unset", &words(&["no.such.option", "--instance", &i])).unwrap();
+        assert_eq!(code, crate::REFUSED, "{refused}");
+        assert!(refused["error"].is_object(), "{refused}");
+        // No Instance and an Instance that cannot be opened are refusals too.
+        let none = answer(&ctx, "show", &[]).unwrap();
+        assert_eq!(none.1, crate::REFUSED);
+        let missing = dir.join("nothing").to_string_lossy().into_owned();
+        assert_eq!(
+            answer(&ctx, "show", &words(&["--instance", &missing]))
+                .unwrap()
+                .1,
+            crate::REFUSED
+        );
+        // Words that are not one of the five forms.
+        assert!(answer(&ctx, "set", &[]).is_none());
+        assert!(answer(&ctx, "show", &words(&["extra"])).is_none());
+        assert!(answer(&ctx, "nonsense", &[]).is_none());
+        assert!(answer(&ctx, "show", &words(&["--bogus"])).is_none());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }

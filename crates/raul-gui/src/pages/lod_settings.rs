@@ -894,7 +894,16 @@ mod tests {
             .into_iter()
             .find(|f| f.name == "defaults")
             .unwrap();
-        let app = App::fixture(fixture, Jobs::new(exec.clone()));
+        let app = App::fixture(
+            fixture,
+            Jobs::new(exec.clone()).scripted(&[
+                "lod-settings-show",
+                "lod-settings-set",
+                "lod-settings-unset",
+                "lod-settings-reset",
+                "lod-settings-undo",
+            ]),
+        );
         let mut h = Harness::builder()
             .with_size([1280.0, 3200.0])
             .build_eframe(|cc| {
@@ -948,7 +957,16 @@ mod tests {
             .into_iter()
             .find(|f| f.name == "advanced-open")
             .unwrap();
-        let app = App::fixture(fixture, Jobs::new(Arc::new(Recording::default())));
+        let app = App::fixture(
+            fixture,
+            Jobs::new(Arc::new(Recording::default())).scripted(&[
+                "lod-settings-show",
+                "lod-settings-set",
+                "lod-settings-unset",
+                "lod-settings-reset",
+                "lod-settings-undo",
+            ]),
+        );
         let mut h = Harness::builder()
             .with_size([1280.0, 3600.0])
             .build_eframe(|cc| {
@@ -977,7 +995,16 @@ mod tests {
             .into_iter()
             .find(|f| f.name == "advanced-open")
             .unwrap();
-        let app = App::fixture(fixture, Jobs::new(Arc::new(Recording::default())));
+        let app = App::fixture(
+            fixture,
+            Jobs::new(Arc::new(Recording::default())).scripted(&[
+                "lod-settings-show",
+                "lod-settings-set",
+                "lod-settings-unset",
+                "lod-settings-reset",
+                "lod-settings-undo",
+            ]),
+        );
         let mut h = Harness::builder()
             .with_size([1280.0, 4200.0])
             .build_eframe(|cc| {

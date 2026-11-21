@@ -370,3 +370,23 @@ fn lod_mods_and_lod_plan_print_what_the_command_line_prints() {
         );
     }
 }
+
+#[test]
+fn lod_settings_actions_print_what_the_command_line_prints() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    let root = s(&inst.root());
+    for (verb, extra) in [
+        ("show", vec![]),
+        ("reset", vec!["--dry-run"]),
+        ("unset", vec!["no.such.option"]),
+    ] {
+        let mut rest = vec!["--instance", root.as_str()];
+        rest.extend(extra.iter().copied());
+        let id = format!("lod-settings-{verb}");
+        let mut cli = vec!["lod", "settings", verb];
+        cli.extend(rest.iter().copied());
+        cli.push("--json");
+        assert_same(&direct_output(&id, &rest), &cli_output(&cli));
+    }
+}
