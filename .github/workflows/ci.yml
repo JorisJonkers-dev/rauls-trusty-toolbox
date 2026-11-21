@@ -86,7 +86,8 @@ jobs:
         run: |
           set -uo pipefail
           cargo build --locked --bin raul
-          out=$(target/debug/raul 2>&1); code=$?
+          code=0
+          out=$(target/debug/raul 2>&1) || code=$?
           echo "$out"
           echo "exit code: $code"
           if [ "$code" -eq 0 ] && [ "$out" = "raul: the window opened and closed" ]; then exit 0; fi
