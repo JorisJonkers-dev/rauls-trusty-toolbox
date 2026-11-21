@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795294849671,
+  "lastUpdate": 1795296209496,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10583,6 +10583,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.72868,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "77b796cd5e8ee3fc30db0634873d7c1398494d20",
+          "message": "fix(gui): window error texts name no flag and no command for the known hints (#540) (#542)\n\nThe shared error widget rewrites the hints nvmod and the drivers give for a command line (--with-masters, --force, nvmod rollback, raul sort, raul ttw --resume, raul mods) into what to do in the window. Checked: unit test of the table, end-to-end Load order test (a plugin whose master is off), clippy.",
+          "timestamp": "2026-11-21T22:21:52+01:00",
+          "tree_id": "d50e6e925b518351f0d3e5b7a5fc00c8c80abc93",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/77b796cd5e8ee3fc30db0634873d7c1398494d20"
+        },
+        "date": 1795296208738,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.898589,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.663983,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.293467,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.067448,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.3329320000000004,
             "unit": "ms"
           }
         ]
