@@ -186,6 +186,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: scripts/release-contents.sh --self-test
 
+      - name: Release asset check
+        if: ${{ !cancelled() }}
+        run: scripts/check-release-assets.sh --self-test
+
       - name: Installed files list
         if: ${{ !cancelled() }}
         run: scripts/installed-files.sh --self-test

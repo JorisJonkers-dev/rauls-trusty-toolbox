@@ -27,6 +27,12 @@ other file in the package (`scripts/installed-files.sh`, written by `release.yml
 `raul update` checks an unpacked update against it before it installs anything (ADR-0020), and the release smoke test
 checks every portable package with the same script. The AppImage, the deb and the NSIS installer do not carry one.
 
+The `.deb` is named `raul`, has a Maintainer and declares the libraries the window and the engine open at run time
+(`[package.metadata.packager.deb]` in `crates/raul-cli/Cargo.toml`). `scripts/check-deb-install.sh` installs it on plain
+Debian and Ubuntu images in the release workflow and starts `raul --version` and the window there. The AppImage and the
+`.tar.gz` carry no system libraries; the README lists them. `scripts/check-release-assets.sh` fails a release or a dry run
+that lacks an installer.
+
 `icons/raul.png` is a placeholder gear until a designed icon exists.
 
 ## Signing

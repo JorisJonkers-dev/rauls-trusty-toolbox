@@ -406,6 +406,12 @@ jobs:
               hdiutil detach "$RUNNER_TEMP/dmg" ;;
           esac
 
+      # The .deb as a user installs it, on plain Debian and Ubuntu images (#506): apt finds its dependencies, the package
+      # is named raul and has a Maintainer, and `raul --version` and the window's start work with nothing else installed.
+      - name: Install the .deb on plain Debian and Ubuntu
+        if: ${{ runner.os == 'Linux' }}
+        run: scripts/check-deb-install.sh target/packages "$VERSION"
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: packages-${{ matrix.name }}
@@ -449,6 +455,14 @@ jobs:
           ref: ${{ inputs.tag || github.sha }}
           submodules: recursive
 
+      # The checks below come from the commit this workflow runs from, not from the tag being completed (an older tag
+      # has no such script).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: workflow-scripts
+          sparse-checkout: scripts
+          persist-credentials: false
+
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: packages-*
@@ -460,8 +474,13 @@ jobs:
           set -euo pipefail
           version="${TAG#v}"
           if [ -z "$version" ]; then version="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
           perl -0pi -e "s/^version = \".*?\"$/version = \"$version\"/m" Cargo.toml
           cargo update --workspace
+
+      # A release, or a dry run, with an installer missing fails here, before anything is attached (#505).
+      - name: Every installer is present
+        run: workflow-scripts/scripts/check-release-assets.sh files dist "$VERSION"
 
       - name: SBOM
         run: |
@@ -511,3 +530,28 @@ jobs:
             echo "You need your own copy of Fallout: New Vegas; no game files are included."
           } > "$RUNNER_TEMP/notes.md"
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$RUNNER_TEMP/notes.md"
+
+      # What GitHub lists on the release is checked again after the upload (#505).
+      - name: The release lists every installer
+        if: ${{ env.TAG != '' }}
+        run: workflow-scripts/scripts/check-release-assets.sh release "$TAG"
+
+  # A release that was published without installers (a build job failed, so publish was skipped) is a red run that
+  # says so and says what to run (#505). It runs whatever happened before it, including a cancelled run.
+  release-has-assets:
+    name: Release has its installers
+    needs: [release-please, build, publish]
+    if: ${{ always() && (needs.release-please.outputs.release_created == 'true' || inputs.tag != '') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: scripts
+          persist-credentials: false
+      - run: scripts/check-release-assets.sh release "$TAG"
