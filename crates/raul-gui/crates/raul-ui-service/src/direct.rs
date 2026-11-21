@@ -578,14 +578,20 @@ fn fetch_masterlist(
     lock: Option<&Path>,
     store: Option<&Path>,
 ) -> Result<PathBuf, JobError> {
-    use raul_core::pinned::{MasterlistPin, PinnedError, masterlist};
-    const WHAT: &str = "loadorder.sort.fetch";
+    use raul_core::pinned::{MasterlistPin, masterlist};
     let pin = MasterlistPin {
         lock: lock.map(Path::to_path_buf),
         store: store.map(Path::to_path_buf),
         ..MasterlistPin::default()
     };
-    masterlist(instance, &pin).map_err(|e| match e {
+    masterlist(instance, &pin).map_err(pinned_error)
+}
+
+/// How a failed fetch of the pinned masterlist is told to the caller.
+fn pinned_error(e: raul_core::pinned::PinnedError) -> JobError {
+    use raul_core::pinned::PinnedError;
+    const WHAT: &str = "loadorder.sort.fetch";
+    match e {
         PinnedError::Refused(why) => JobError::new(ErrorKind::Refused, WHAT, why),
         PinnedError::Verification(why) => JobError::new(
             ErrorKind::Corrupt,
@@ -597,7 +603,7 @@ fn fetch_masterlist(
             WHAT,
             format!("the masterlist could not be fetched: {why}"),
         ),
-    })
+    }
 }
 
 /// The document of `raul sort --json`, from the proposal and what was applied.
@@ -1228,4 +1234,24 @@ fn finish(
         exit: class,
     });
     output
+}
+
+#[cfg(test)]
+mod pinned_tests {
+    use super::*;
+    use raul_core::pinned::PinnedError;
+
+    /// Each way the pinned masterlist can fail is its own class, with the reason in the words.
+    #[test]
+    fn a_failed_fetch_keeps_its_class_and_its_reason() {
+        let e = pinned_error(PinnedError::Refused("no pin".into()));
+        assert_eq!((e.kind, e.summary.as_str()), (ErrorKind::Refused, "no pin"));
+        let e = pinned_error(PinnedError::Verification("bad sum".into()));
+        assert_eq!(e.kind, ErrorKind::Corrupt);
+        assert_eq!(e.summary, "verification failed: bad sum");
+        let e = pinned_error(PinnedError::Failed("offline".into()));
+        assert_eq!(e.kind, ErrorKind::Failed);
+        assert_eq!(e.summary, "the masterlist could not be fetched: offline");
+        assert_eq!(e.job, "loadorder.sort.fetch");
+    }
 }
