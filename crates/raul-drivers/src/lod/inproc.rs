@@ -187,6 +187,7 @@ mod tests {
             done: Some(1),
             total: Some(2),
             up_to_date: false,
+            ..ProgressEvent::start(Step::Terrain, None)
         };
         assert_eq!(
             map(&block),
@@ -205,6 +206,7 @@ mod tests {
                 done: Some(2),
                 total: Some(3),
                 up_to_date: true,
+                ..ProgressEvent::start(step, None)
             };
             assert_eq!(
                 map(&block),
