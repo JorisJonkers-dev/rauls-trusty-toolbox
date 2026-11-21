@@ -4416,7 +4416,6 @@ dependencies = [
  "nvmod-instance",
  "nvmod-loadorder",
  "nvmod-testkit",
- "nvmod-tools",
  "raul-cli",
  "raul-core",
  "raul-drivers",
