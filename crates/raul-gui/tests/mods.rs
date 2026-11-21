@@ -12,7 +12,8 @@ use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::mods::{
     DELETE, DELETE_ACTION, DISABLE, DISABLED_STATUS, ENABLE, ENABLED_STATUS, GENERATED_NOTE,
-    MOVE_UP, MOVED_STATUS, REGENERATE, REMOVE, REMOVE_ACTION, REMOVED_STATUS, TAG_GENERATED,
+    MOVE_UP, MOVED_STATUS, REGENERATE, REMOVE, REMOVE_ACTION, REMOVED_STATUS, TAG_GENERATED, UNDO,
+    UNDO_ENABLED, UNDO_NOTHING, UNDONE_STATUS,
 };
 use raul_gui::shell::App;
 use raul_ui_model::pages::{PageId, View};
@@ -170,6 +171,24 @@ fn the_page_lists_changes_and_removes_mods_and_leaves_the_generated_lod_mod_to_t
     h.get_by_label(ENABLE).click();
     settle(&mut h);
     assert_eq!(status(&mut h).as_deref(), Some(ENABLED_STATUS));
+    assert_eq!(f.modlist()[2], "+Beta");
+
+    // Undo takes the last change back through the journal, says what it takes back first, and is off afterwards.
+    assert!(
+        h.query_by_label(&UNDO_ENABLED.replace("{name}", "Beta"))
+            .is_some(),
+        "the line says what Undo takes back"
+    );
+    h.get_by_label(UNDO).click();
+    settle(&mut h);
+    assert_eq!(status(&mut h).as_deref(), Some(UNDONE_STATUS));
+    assert_eq!(f.modlist()[2], "-Beta", "the enable was taken back");
+    assert!(
+        h.query_by_label(UNDO_NOTHING).is_some(),
+        "nothing is left to undo"
+    );
+    h.get_by_label(ENABLE).click();
+    settle(&mut h);
     assert_eq!(f.modlist()[2], "+Beta");
 
     // Move Beta up one place: it passes the LOD Mod.
