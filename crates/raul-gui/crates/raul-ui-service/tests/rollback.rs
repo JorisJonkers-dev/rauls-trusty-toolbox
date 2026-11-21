@@ -280,7 +280,7 @@ fn an_undo_without_an_instance_is_refused_not_run_on_the_working_folder() {
     let (out, _) = run(job, &CancelHandle::new());
     assert_eq!(out.code, Some(2), "{out:?}");
     assert!(
-        raul_ui_service::direct::for_command("lod-settings-show", &[]).is_none(),
+        raul_ui_service::direct::for_command("update-check", &[]).is_none(),
         "an action not converted yet stays a command line"
     );
 }
