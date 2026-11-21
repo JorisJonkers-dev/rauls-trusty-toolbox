@@ -35,6 +35,10 @@
         "enabled": true
       }
     },
+    "output": {
+      "description": "Output form. Left out of the digest.",
+      "$ref": "#/$defs/OutputRequest"
+    },
     "output_dir": {
       "description": "The output folder: must not lie inside the data folder or a git working tree.",
       "type": "string"
@@ -215,6 +219,16 @@
           "description": "Write object LOD.",
           "type": "boolean",
           "default": true
+        }
+      }
+    },
+    "OutputRequest": {
+      "description": "What the output folder holds when the run is done.",
+      "type": "object",
+      "properties": {
+        "pack": {
+          "description": "Pack the generated files into one BSA archive with a stub plugin of the same name instead of leaving them\nloose. A step after the generation: it is not part of the request digest, so switching it rebuilds no\nblock. Off by default; written only when on.",
+          "type": "boolean"
         }
       }
     },
