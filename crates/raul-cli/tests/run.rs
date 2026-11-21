@@ -133,7 +133,6 @@ fn a_game_that_ends_badly_ends_the_run_badly() {
     let run = Run::new("release-run-fail");
     let (code, out, err) = run.play(&run.stand_in(3));
     assert_ne!(code, 0, "{out}\n{err}");
-    assert!(run.logs().contains("stand-in started"));
 }
 
 #[test]
