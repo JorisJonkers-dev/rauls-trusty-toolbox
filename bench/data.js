@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795225191443,
+  "lastUpdate": 1795226245575,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8574,6 +8574,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.630188,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "691693dae827cf2da184530a0cf9303158fecfc4",
+          "message": "refactor(sort): raul fetches and stores the pinned masterlist itself (#474)\n\n* feat(sort): raul owns the fetch and store of the pinned masterlist (#449)\n\n* test: sort mode passes through the masterlist fetch; refused-lock message\n\n* test(gui): the failed fetch of the pinned masterlist keeps its class; fmt",
+          "timestamp": "2026-11-21T01:55:15Z",
+          "tree_id": "bf8949588f09896e2c94e7abbccd8d39bf9f7a69",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/691693dae827cf2da184530a0cf9303158fecfc4"
+        },
+        "date": 1795226245091,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.301938,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.537108,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.129816,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.154711,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.338518,
             "unit": "ms"
           }
         ]
