@@ -260,6 +260,18 @@
           "description": "Write water planes into the terrain blocks that have ground below water.",
           "type": "boolean",
           "default": true
+        },
+        "water_polygons": {
+          "description": "Write the water planes of levels 8 to 32 as the polygons of the wet area's outline, corners only (fewer\nvertices, the same ground covered); takes precedence over `water_shared_vertices`. Off by default; written\nonly when on.",
+          "type": "boolean"
+        },
+        "water_shared_vertices": {
+          "description": "Write a corner that two rectangles of the water plane have in common once, at levels 8 to 32 (fewer vertices,\nthe same planes). Off by default; written only when on.",
+          "type": "boolean"
+        },
+        "water_walls": {
+          "description": "Write walls under the outline of the water planes, from the water down to the height the game's outlines drop\nto (own design, `docs/spec/terrain-lod.md`). Off by default; written only when on.",
+          "type": "boolean"
         }
       }
     },
