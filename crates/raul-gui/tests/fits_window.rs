@@ -49,6 +49,11 @@ fn overflowing(size: [f32; 2]) -> Vec<(String, String)> {
                 "config-get",
                 "config-set",
                 "config-unset",
+                "update-check",
+                "update-status",
+                "update-download",
+                "update-install",
+                "update-rollback",
             ]),
         );
         let mut h = Harness::builder().with_size(size).build_eframe(|cc| {
