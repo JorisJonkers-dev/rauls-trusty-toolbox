@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795241706213,
+  "lastUpdate": 1795243264471,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9505,6 +9505,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.661356,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b898767ccd27a6631fb621e935b69b8f293b3479",
+          "message": "refactor(gui): the update steps are typed in-process jobs (#406) (#501)\n\n* refactor(gui): update check, status, download, install and rollback are typed in-process jobs (#406)\n\n* test(cli): the update steps' printing, refusals and word checks are covered (#406)",
+          "timestamp": "2026-11-21T06:39:08Z",
+          "tree_id": "d2310fcb3acc0e532624ba8967d6ae4a3fa2274b",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b898767ccd27a6631fb621e935b69b8f293b3479"
+        },
+        "date": 1795243263936,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.277949,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.526004,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.981365000000004,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.142416000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.277716999999999,
             "unit": "ms"
           }
         ]
