@@ -33,6 +33,8 @@ crate::texts!(TEXTS {
     STATE_NOT_GENERATED = "{n} of {m} blocks not generated this session";
     STATE_FAILED = "The last run did not finish";
     STATE_CURRENT = "All blocks up to date";
+    STATE_MOD_MUST = "The LOD Mod is out of date: generate again";
+    STATE_MOD_MAY = "The LOD Mod may be out of date";
     STATE_GENERATING = "Generating · {p}% · you can leave this page";
     STATE_GENERATING_START = "Generating · you can leave this page";
     STATE_GENERATING_STEP = "{what} · {p}% · {elapsed} · you can leave this page";
@@ -540,7 +542,18 @@ impl Page for Lod {
                 if blocks.iter().any(|b| b.status == BlockStatus::Failed) {
                     STATE_FAILED.to_owned()
                 } else if s.not_current() == 0 {
-                    STATE_CURRENT.to_owned()
+                    // The Mod can be out of date although every block is current (a setting that rebuilds none,
+                    // such as packing): the header must not say it is all fine then.
+                    match self
+                        .existing
+                        .as_ref()
+                        .and_then(|e| e.stale.as_ref())
+                        .map(|st| st.state.as_str())
+                    {
+                        Some("must") => STATE_MOD_MUST.to_owned(),
+                        Some("may") => STATE_MOD_MAY.to_owned(),
+                        _ => STATE_CURRENT.to_owned(),
+                    }
                 } else {
                     STATE_NOT_GENERATED
                         .replace("{n}", &s.not_current().to_string())
@@ -1127,5 +1140,34 @@ mod tests {
         assert!(existing_line(&row).starts_with("Made 2026-11-21 00:39 UTC, 1 file. "));
         row.files = None;
         assert!(existing_line(&row).starts_with("Made 2026-11-21 00:39 UTC. "));
+    }
+
+    #[test]
+    fn the_header_does_not_say_all_is_current_when_the_mod_is_out_of_date() {
+        let row = |state: Option<&str>| GeneratedRow {
+            name: FIXTURE_MOD.to_owned(),
+            own: true,
+            legacy: false,
+            lodwright_version: None,
+            stale: state.map(|s| raul_ui_model::pages::mods::StaleRow {
+                state: s.to_owned(),
+                reason: String::new(),
+            }),
+            generated_at: None,
+            files: None,
+        };
+        let mut s = planned(&["A", "B"]);
+        s.generated(outcome(Status::Success, false, &["A", "B"]));
+        let mut page = Lod::with(s);
+        assert_eq!(page.state_line(), STATE_CURRENT, "no existing Mod read yet");
+        for (state, line) in [
+            (Some("current"), STATE_CURRENT),
+            (None, STATE_CURRENT),
+            (Some("may"), STATE_MOD_MAY),
+            (Some("must"), STATE_MOD_MUST),
+        ] {
+            page.existing = Some(row(state));
+            assert_eq!(page.state_line(), line, "{state:?}");
+        }
     }
 }
