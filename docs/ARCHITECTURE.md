@@ -129,6 +129,16 @@ refreshed. Renovate lists files with git and never sees inside a submodule, so t
 written in `components/<repo>.version`; `scripts/bump-component.sh` keeps it equal and CI fails when it drifts. nvmod moves with the loot-rs it links (ADR-0015). Pipeline Complete decides whether the pull request merges,
 and auto-merge lands it. The release (`release.yml`) packages `raul` with the Component programs at those pins.
 
+## Crate graph rules
+
+A test (`crates/raul-core/tests/crate_graph.rs`, run in pull-request CI with the workspace tests) reads each crate's
+`[dependencies]` and fails on a forbidden edge (REORG section 3):
+
+- `raul-runner` (and `raul-supply`, once it is split out) depends on no other `raul-*` crate.
+- `raul-ui-model` depends on no `raul-*` and no `nvmod-*` crate.
+- `raul-gui` reaches nvmod only through `raul-ui-service`. It still links `nvmod-modinstall` and `nvmod-run`
+  directly; the test lists them as debt that may only shrink.
+
 ## Workspaces and lock files
 
 | Workspace | Lock file | Builds |
