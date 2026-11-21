@@ -7,7 +7,7 @@ Fallout: New Vegas, running natively on Linux, Windows and macOS. It finds your 
 Tale of Two Wastelands if you want it, installs and sorts your mods, builds distant LOD and
 launches the game through the nv-rs engine port, all from one window or one command line.
 
-**Status: first release (v0.6.0).** One window and the same commands on the command line: the setup wizard, Tale of
+**Status: early releases (0.x).** One window and the same commands on the command line: the setup wizard, Tale of
 Two Wastelands, Mods, Load order, distant LOD and Play, on Linux, Windows and macOS. The installers are built and
 smoke-tested for all three systems; Windows and macOS have not yet had a full run on real hardware. The Windows and macOS
 packages are unsigned, the icon is a placeholder, and packing the generated LOD into one archive is experimental and
