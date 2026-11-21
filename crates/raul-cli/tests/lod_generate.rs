@@ -227,6 +227,8 @@ fn enabled_lines(f: &Fixture) -> usize {
 #[test]
 fn success_keeps_one_enabled_lod_mod_and_a_second_run_is_up_to_date() {
     let f = Fixture::new("raul-lodgen-ok");
+    // Packing is the default; this test is about the loose form.
+    f.settings("[output]\npack = false\n");
     let (code, result, finished) = f.generate(&[]);
     assert_eq!(code, Some(0), "{result}");
     assert_eq!(result["status"], "success", "{result}");
@@ -611,6 +613,9 @@ fn mod_files(f: &Fixture) -> Vec<String> {
 fn packing_gives_a_mod_of_one_archive_and_its_stub_and_switching_it_either_way_marks_the_lod_out_of_date()
  {
     let f = Fixture::new("raul-lodgen-pack");
+    // A Profile that has a loose generated LOD Mod from before packing was the default: its settings file names no
+    // packing and its Mod keeps working until the next generate, which packs.
+    f.settings("[output]\npack = false\n");
     assert_eq!(f.generate(&[]).0, Some(0));
     let loose = mod_files(&f);
     assert!(
@@ -619,7 +624,11 @@ fn packing_gives_a_mod_of_one_archive_and_its_stub_and_switching_it_either_way_m
     );
     assert_eq!(stale_of(&f).0, "current");
 
-    f.settings("[output]\npack = true\n");
+    f.settings("");
+    assert!(
+        f.lod_mod().join("meta.ini").is_file(),
+        "the loose Mod is still there"
+    );
     let (state, reason) = stale_of(&f);
     assert_eq!(state, "must", "{reason}");
     assert!(reason.contains("Packing was turned on"), "{reason}");
@@ -647,7 +656,7 @@ fn packing_gives_a_mod_of_one_archive_and_its_stub_and_switching_it_either_way_m
         "the stub is in the Load order: {plugins}"
     );
 
-    f.settings("");
+    f.settings("[output]\npack = false\n");
     let (state, reason) = stale_of(&f);
     assert_eq!(state, "must", "{reason}");
     assert!(reason.contains("Packing was turned off"), "{reason}");
@@ -664,6 +673,37 @@ fn packing_gives_a_mod_of_one_archive_and_its_stub_and_switching_it_either_way_m
         "the stub went with the packed form: {plugins}"
     );
     assert_eq!(stale_of(&f).0, "current");
+}
+
+#[test]
+fn packing_is_refused_with_a_plain_sentence_when_no_plugin_slot_is_left_for_the_stub() {
+    let f = Fixture::new("raul-lodgen-slots");
+    let inst = f.instance();
+    // 254 more active plugins on top of the game's master: 255 in all, so the stub has no slot.
+    let dir = inst.join("profiles/Default");
+    let mut lines = String::new();
+    for i in 0..254 {
+        lines.push_str(&format!("Filler{i}.esp\r\n"));
+    }
+    for name in ["plugins.txt", "loadorder.txt"] {
+        let path = dir.join(name);
+        let mut text = std::fs::read_to_string(&path).unwrap_or_default();
+        text.push_str(&lines);
+        std::fs::write(path, text).unwrap();
+    }
+    let out = f.raul(&["lod", "plan", "--json", "--instance", s(&inst)]);
+    assert!(!out.status.success(), "{out:?}");
+    let text =
+        String::from_utf8_lossy(&out.stderr).into_owned() + &String::from_utf8_lossy(&out.stdout);
+    assert!(text.contains("no room"), "{text}");
+    assert!(
+        text.contains("Pack the generated LOD into one archive"),
+        "{text}"
+    );
+    // Turned off, the same Load order plans.
+    f.settings("[output]\npack = false\n");
+    let out = f.raul(&["lod", "plan", "--json", "--instance", s(&inst)]);
+    assert!(out.status.success(), "{out:?}");
 }
 
 #[test]
