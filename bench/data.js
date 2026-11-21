@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795285188917,
+  "lastUpdate": 1795285594937,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10338,6 +10338,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.984256,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9a47f17d2564bccac357f6bf3969fd12e3bb5517",
+          "message": "fix(lod): far lakes and rivers are drawn with the generated LOD (lodwright 0.15.1) (#530)\n\nREADME note for users of v0.6.0: its generated LOD had no far water; newer releases draw it, and the LOD is generated again. Closes #529",
+          "timestamp": "2026-11-21T18:24:34Z",
+          "tree_id": "fdef458f0cea87a4643852d30dceb81dca1ee819",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/9a47f17d2564bccac357f6bf3969fd12e3bb5517"
+        },
+        "date": 1795285594004,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.296196,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.495970999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.966986,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.155043,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.454447,
             "unit": "ms"
           }
         ]
