@@ -204,6 +204,9 @@ pub struct State {
     pub journal: Option<String>,
     /// The moves of the preview shown, computed once when it arrived; read them with [`State::moves`].
     pub preview_moves: Vec<Move>,
+    /// How many errors of the load order the Doctor reports for the list read (a master after the plugin that needs
+    /// it); `None` until the Doctor answered. See [`State::unsorted`].
+    pub order_errors: Option<usize>,
 }
 
 impl State {
@@ -327,6 +330,15 @@ impl State {
         )
     }
 
+    /// How many errors of the load order the list has, when it rests as it was read and the Doctor found some: the
+    /// page warns that the list is not in a working order until a sort puts it right.
+    pub fn unsorted(&self) -> Option<usize> {
+        (self.phase == Phase::Listed)
+            .then_some(self.order_errors)
+            .flatten()
+            .filter(|n| *n > 0)
+    }
+
     /// How many plugins are active.
     pub fn active(&self) -> usize {
         self.current.iter().filter(|p| p.active).count()
@@ -407,6 +419,28 @@ mod tests {
             .filter(|(i, p)| now[*i].name != p.name)
             .count();
         assert_eq!(moves(&now, &then).len(), changed);
+    }
+
+    #[test]
+    fn a_list_with_load_order_errors_is_unsorted_until_it_is_previewed_or_applied() {
+        let mut s = State::default();
+        s.listed("Default".to_owned(), list(&["A.esp", "B.esp"]));
+        assert_eq!(s.unsorted(), None, "the Doctor has not answered");
+        s.order_errors = Some(0);
+        assert_eq!(s.unsorted(), None, "no error");
+        s.order_errors = Some(21);
+        assert_eq!(s.unsorted(), Some(21));
+        s.sorting();
+        assert_eq!(s.unsorted(), None, "not while a sort runs");
+        s.previewed(list(&["B.esp", "A.esp"]), Vec::new());
+        assert_eq!(s.unsorted(), None, "the preview has its own note");
+        s.applying();
+        s.applied(Some("j".to_owned()));
+        assert_eq!(
+            s.unsorted(),
+            None,
+            "an applied sort is not shown as unsorted"
+        );
     }
 
     #[test]

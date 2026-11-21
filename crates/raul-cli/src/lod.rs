@@ -148,7 +148,17 @@ fn mods(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write
                 (Some(v), false) => format!(" (lodwright {v})"),
                 (None, false) => String::new(),
             };
-            let _ = writeln!(text, "  {:>3}  {}  {state}{built}", m.position, m.name);
+            let made = m.generated_at.map_or_else(String::new, |t| {
+                format!(", generated {}", raul_drivers::lod::utc_minute(t))
+            });
+            let files = m.files.map_or_else(String::new, |n| {
+                format!(", {n} file{}", if n == 1 { "" } else { "s" })
+            });
+            let _ = writeln!(
+                text,
+                "  {:>3}  {}  {state}{built}{made}{files}",
+                m.position, m.name
+            );
         }
         text
     };

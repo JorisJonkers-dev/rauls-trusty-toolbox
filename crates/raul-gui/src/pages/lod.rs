@@ -61,6 +61,9 @@ crate::texts!(TEXTS {
     EXISTING_MAY = "Generated with LOD generator {v}. Something changed since that may show in the LOD.";
     EXISTING_MUST = "Generated with LOD generator {v}. Something changed since that shows in the LOD: generate again.";
     EXISTING_UNKNOWN = "Generated with LOD generator {v}. Whether it is still current is not known.";
+    EXISTING_BUILT = "Made {when}, {n} files.";
+    EXISTING_BUILT_ONE = "Made {when}, 1 file.";
+    EXISTING_BUILT_WHEN = "Made {when}.";
     KEEPS_VALUE = "One Mod in your mod list. A new run replaces it and keeps its place and whether it is on.";
     WORK_FOLDER = "Work folder";
     COL_BLOCK = "Block";
@@ -125,12 +128,27 @@ fn existing_line(row: &GeneratedRow) -> String {
         Some("must") => EXISTING_MUST,
         _ => EXISTING_UNKNOWN,
     };
-    text.replace(
+    let line = text.replace(
         "{v}",
         row.lodwright_version
             .as_deref()
             .unwrap_or("of an earlier release"),
-    )
+    );
+    let when = row.generated_at.map(raul_drivers::lod::utc_minute);
+    let made = match (when, row.files) {
+        (Some(when), Some(1)) => Some(EXISTING_BUILT_ONE.replace("{when}", &when)),
+        (Some(when), Some(n)) => Some(
+            EXISTING_BUILT
+                .replace("{when}", &when)
+                .replace("{n}", &n.to_string()),
+        ),
+        (Some(when), None) => Some(EXISTING_BUILT_WHEN.replace("{when}", &when)),
+        (None, _) => None,
+    };
+    match made {
+        Some(made) => format!("{made} {line}"),
+        None => line,
+    }
 }
 
 /// The LOD page.
@@ -854,6 +872,8 @@ pub fn fixtures() -> Vec<Fixture> {
                         state: "may".to_owned(),
                         reason: "the load order changed".to_owned(),
                     }),
+                    generated_at: Some(1_795_221_599),
+                    files: Some(26_921),
                 }),
                 ..Lod::with(State {
                     instance: Some(INSTANCE.to_owned()),
@@ -960,11 +980,35 @@ mod tests {
                 state: s.to_owned(),
                 reason: String::new(),
             }),
+            generated_at: None,
+            files: None,
         };
         assert!(existing_line(&row(Some("current"), Some("0.8.0"))).contains("it is current"));
         assert!(existing_line(&row(Some("may"), Some("0.8.0"))).contains("may show"));
         assert!(existing_line(&row(Some("must"), Some("0.8.0"))).contains("generate again"));
         let unknown = existing_line(&row(None, None));
         assert!(unknown.contains("not known") && unknown.contains("an earlier release"));
+        assert!(!unknown.contains("Made"), "no date without a marker time");
+    }
+
+    #[test]
+    fn the_note_about_the_existing_mod_gives_its_date_and_file_count() {
+        let mut row = GeneratedRow {
+            name: FIXTURE_MOD.to_owned(),
+            own: true,
+            legacy: false,
+            lodwright_version: Some("0.8.0".to_owned()),
+            stale: None,
+            generated_at: Some(1_795_221_599),
+            files: Some(26_921),
+        };
+        assert!(
+            existing_line(&row)
+                .starts_with("Made 2026-11-21 00:39 UTC, 26921 files. Generated with")
+        );
+        row.files = Some(1);
+        assert!(existing_line(&row).starts_with("Made 2026-11-21 00:39 UTC, 1 file. "));
+        row.files = None;
+        assert!(existing_line(&row).starts_with("Made 2026-11-21 00:39 UTC. "));
     }
 }

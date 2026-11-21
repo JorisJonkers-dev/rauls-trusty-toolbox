@@ -18,6 +18,7 @@ pub use generate::{
 pub use marker::{LEGACY_MOD_NAME, Marker, is_generated, meta_ini, mod_name, read_marker};
 pub use mods::{
     GeneratedMod, LodMods, MODS_CONTRACT, MODS_SCHEMA_VERSION, generated_mods, mods_schema,
+    utc_minute,
 };
 pub use run_lock::RunLock;
 pub use stale::{Fingerprint, Staleness, State as StaleState};

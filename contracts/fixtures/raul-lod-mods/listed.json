@@ -17,7 +17,9 @@
       "stale": {
         "state": "must",
         "reason": "The LOD settings changed since the last run."
-      }
+      },
+      "generated_at": 1795221599,
+      "files": 26921
     },
     {
       "name": "LOD (lodwright)",
@@ -28,7 +30,9 @@
       "profile": null,
       "request_digest": null,
       "lodwright_version": null,
-      "stale": null
+      "stale": null,
+      "generated_at": null,
+      "files": null
     }
   ]
 }

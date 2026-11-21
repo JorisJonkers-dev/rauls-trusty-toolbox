@@ -682,6 +682,8 @@ fn listed() -> State {
             legacy: false,
             lodwright_version: Some("0.3.0".to_owned()),
             stale: None,
+            generated_at: None,
+            files: None,
         }],
     });
     s

@@ -13,6 +13,7 @@ use crate::catalogue::{self as msg, ErrorText};
 use crate::shell;
 use crate::theme::Tokens;
 use eframe::egui::{self, RichText};
+use raul_ui_model::pages::home::{doctor_command, parse_order_errors};
 use raul_ui_model::pages::load_order::{
     Message, MessageKind, Phase, Plugin, Problem, State, apply_command, list_command,
     preview_command, undo_command,
@@ -49,6 +50,9 @@ crate::texts!(TEXTS {
     PREVIEW_NOTE = "Preview: {n} moves pending";
     PREVIEW_NOTE_ONE = "Preview: 1 move pending";
     PREVIEW_DETAIL = "Nothing changes until Apply. Undo stays available after.";
+    UNSORTED_NOTE = "The list is not in a working order: {n} places load a plugin before one it needs";
+    UNSORTED_NOTE_ONE = "The list is not in a working order: 1 place loads a plugin before one it needs";
+    UNSORTED_DETAIL = "Sort shows what it would change first. Nothing changes until Apply.";
     SORTED_NOTE = "The plugins are already in the masterlist's order.";
     APPLIED_NOTE = "The sorted order is written. Undo puts the old one back.";
     COL_POSITION = "#";
@@ -107,6 +111,7 @@ enum Job {
     Preview,
     Apply,
     Undo,
+    Doctor,
 }
 
 impl LoadOrder {
@@ -125,6 +130,7 @@ impl LoadOrder {
             Job::Preview => preview_command(i),
             Job::Apply => apply_command(i),
             Job::Undo => undo_command(i),
+            Job::Doctor => doctor_command(i),
         })
     }
 
@@ -138,9 +144,12 @@ impl LoadOrder {
             Job::Preview => self.state.sorting(),
             Job::Apply => self.state.applying(),
             Job::Undo => self.state.undoing(),
+            // Read in the background: it changes nothing the person sees until it answers.
+            Job::Doctor => {}
         }
         match start(cx, &command) {
             Ok(id) => self.pending.add(job, id),
+            Err(_) if job == Job::Doctor => {}
             Err(e) => self.state.failed(Problem {
                 id: e.id,
                 cause: e.what.to_owned(),
@@ -172,11 +181,21 @@ impl LoadOrder {
             };
             match job {
                 Job::List => match parse(&result, serde_json::from_value::<PluginsReport>) {
-                    Ok(r) => self
-                        .state
-                        .listed(r.profile, r.plugins.iter().map(plugin).collect()),
+                    Ok(r) => {
+                        self.state
+                            .listed(r.profile, r.plugins.iter().map(plugin).collect());
+                        self.state.order_errors = None;
+                        self.run(cx, Job::Doctor);
+                    }
                     Err(why) => self.state.failed(problem(&LIST_FAILED, why)),
                 },
+                // A Doctor that cannot be read leaves the list without a warning: the sort still tells the truth.
+                Job::Doctor => {
+                    self.state.order_errors = result
+                        .as_ref()
+                        .ok()
+                        .and_then(|out| parse_order_errors(&out.stdout).ok());
+                }
                 Job::Preview => match parse(&result, serde_json::from_value::<SortReport>) {
                     Ok(r) => {
                         let (proposed, notes) = preview_of(&r);
@@ -317,6 +336,13 @@ impl LoadOrder {
             },
             Phase::Applied => {
                 note(ui, t, Mark::Ok, APPLIED_NOTE, None);
+            }
+            Phase::Listed if self.state.unsorted().is_some() => {
+                let head = match self.state.unsorted() {
+                    Some(1) => UNSORTED_NOTE_ONE.to_owned(),
+                    n => UNSORTED_NOTE.replace("{n}", &n.unwrap_or_default().to_string()),
+                };
+                note(ui, t, Mark::Warning, &head, Some(UNSORTED_DETAIL));
             }
             // A problem already shows its details.
             _ if self.state.problem.is_some() => return true,
@@ -745,6 +771,11 @@ pub fn fixtures() -> Vec<Fixture> {
         ),
         fixture("empty", empty),
         fixture("listed", listed(CURRENT)),
+        fixture("listed-unsorted", {
+            let mut s = listed(CURRENT);
+            s.order_errors = Some(21);
+            s
+        }),
         fixture("sorting", sorting),
         fixture("preview", preview()),
         fixture("sorted", sorted),
