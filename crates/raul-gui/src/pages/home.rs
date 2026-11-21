@@ -1258,6 +1258,27 @@ mod tests {
             "no Stop for a game that is gone"
         );
         assert!(h.query_by_label(STATE_RUNNING).is_none());
+    }
+
+    // The title line and the panel say the same once the game is gone (#459). The shell asks for one more frame when
+    // the page changes the line while it draws; the test harness runs extra passes by itself, so this checks the
+    // outcome, not the request.
+    #[cfg(unix)]
+    #[test]
+    fn the_title_line_follows_the_panel_in_the_frame_that_sees_the_game_gone() {
+        let dir = scratch("ended-line");
+        lock(&dir, i32::MAX as u32, "run nv-rs");
+        let mut h = show(running_in(&dir, false));
+        h.step();
+        assert!(
+            h.query_by_label(RAUL_ENDED).is_some(),
+            "the panel says it ended"
+        );
+        assert!(
+            h.query_by_label(STATE_RUNNING).is_none(),
+            "the title line no longer says running"
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
         let _ = std::fs::remove_dir_all(&dir);
     }
 
