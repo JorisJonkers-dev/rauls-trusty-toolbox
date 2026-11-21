@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795221754005,
+  "lastUpdate": 1795222814384,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8329,6 +8329,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.156766,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dc06571a99c3ffd0236abe1a1e9d97531fef140c",
+          "message": "test(gui): Home's TTW row follows the Instance in the same session (#454) (#467)",
+          "timestamp": "2026-11-21T00:58:17Z",
+          "tree_id": "a7cd68d8540c4cd764ab4f89154808e0c0429134",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/dc06571a99c3ffd0236abe1a1e9d97531fef140c"
+        },
+        "date": 1795222813505,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.325068,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.450723,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.200900000000004,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.163911000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.961502,
             "unit": "ms"
           }
         ]
