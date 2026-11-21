@@ -53,6 +53,13 @@ jobs:
         with:
           node-version: "24"
 
+      # Renovate and everything it needs come from a committed lock file (.github/renovate-runner), so a run never
+      # resolves a version that was published a minute ago and is not served yet (the run that failed with ETARGET).
+      # Bump the version in that folder with `npm install --save-exact --before=<8 days ago> renovate@<version>`.
+      - name: Install Renovate
+        working-directory: .github/renovate-runner
+        run: npm ci
+
       - name: Renovate
         env:
           RENOVATE_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -60,4 +67,4 @@ jobs:
           LOG_LEVEL: debug
           # The commands Renovate starts see only this variable, not the job environment: the cargo registry token.
           RENOVATE_CUSTOM_ENV_VARIABLES: ${{ format('{{"CARGO_REGISTRIES_JORISJONKERS_PACKAGES_TOKEN":"{0}"}}', env.CARGO_REGISTRIES_JORISJONKERS_PACKAGES_TOKEN) }}
-        run: npx --yes renovate@44.224.1
+        run: ./.github/renovate-runner/node_modules/.bin/renovate
