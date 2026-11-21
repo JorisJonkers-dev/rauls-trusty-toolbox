@@ -5,6 +5,7 @@
 //! be verified is 3, a tool whose contract version is newer than nvmod reads is refused (2).
 
 use crate::sha256_hex;
+use std::ffi::OsString;
 use std::fmt;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -94,8 +95,9 @@ pub struct Call<'a> {
     pub tool: &'a str,
     /// The program to run.
     pub program: &'a Path,
-    /// Its arguments, one word each. There is no shell.
-    pub args: &'a [String],
+    /// Its arguments, one word each, passed to the program exactly as given (a path need not be UTF-8). There is
+    /// no shell.
+    pub args: &'a [OsString],
     /// Bytes written to the tool's standard input, then it is closed.
     pub stdin: Option<&'a [u8]>,
     /// The SHA-256 the program must have, checked right before it is started; `None` runs it unchecked.
@@ -109,7 +111,7 @@ pub struct Call<'a> {
 impl<'a> Call<'a> {
     /// A call of `program` with `args`, expecting exit code 0, with no pinned checksum and nothing on stdin.
     #[must_use]
-    pub fn new(tool: &'a str, program: &'a Path, args: &'a [String]) -> Call<'a> {
+    pub fn new(tool: &'a str, program: &'a Path, args: &'a [OsString]) -> Call<'a> {
         Call {
             tool,
             program,
@@ -474,8 +476,8 @@ mod tests {
         nvmod_testkit::write_script(dir.path(), name, body)
     }
 
-    fn args(words: &[&str]) -> Vec<String> {
-        words.iter().map(|w| (*w).to_owned()).collect()
+    fn args(words: &[&str]) -> Vec<OsString> {
+        words.iter().map(OsString::from).collect()
     }
 
     fn fast() -> Runner {
@@ -493,6 +495,19 @@ mod tests {
         let out = fast().run(&Call::new("t", &p, &a)).unwrap();
         assert_eq!(out.stdout, b"a b|c;touch pwned|$HOME|");
         assert!(!dir.path().join("pwned").exists());
+    }
+
+    /// A file name that is not UTF-8 reaches the program as the same bytes (a mod or a file may be named so on Linux).
+    #[cfg(unix)]
+    #[test]
+    fn an_argument_that_is_not_utf8_reaches_the_program_unchanged() {
+        use std::os::unix::ffi::OsStringExt;
+        let dir = TempDir::new("run-nonutf8");
+        let p = script(&dir, "t", r#"printf '%s' "$1" | od -An -tx1 | tr -d ' \n'"#);
+        let odd = OsString::from_vec(vec![b'a', 0xff, 0xfe, b'z']);
+        let a = [odd];
+        let out = fast().run(&Call::new("t", &p, &a)).unwrap();
+        assert_eq!(out.stdout, b"61fffe7a");
     }
 
     #[test]
