@@ -323,6 +323,9 @@ fn level_of(key: &str) -> Option<u32> {
 
 fn default_text(row: &OptionRow) -> String {
     match &row.default {
+        // A number that is empty by default (the water depth) is not set, which keeps everything: "none". The worker
+        // count and the memory budget are whole numbers the program decides when unset.
+        Value::Null if row.kind == Kind::Number => DEFAULT_EMPTY.to_owned(),
         Value::Null => DEFAULT_RUN_TIME.to_owned(),
         Value::Array(a) if a.is_empty() => DEFAULT_EMPTY.to_owned(),
         Value::Bool(_) => String::new(),
@@ -519,6 +522,7 @@ impl LodSettings {
                 "allow_in_repo",
                 "objects.drop_under_terrain",
                 "objects.drop_under_water",
+                "terrain.drop_under_water",
             ] {
                 if let Some(i) = self.index(key)
                     && field(ui, t, &mut self.state.fields[i], open, busy)
@@ -540,6 +544,7 @@ impl LodSettings {
                     "diffuse_size",
                     "normal_size",
                     "specular_alpha",
+                    "skirts",
                 ] {
                     let key = format!("levels.{n}.{field_name}");
                     if let Some(i) = self.index(&key)
@@ -957,5 +962,28 @@ mod tests {
                 raul_drivers::lod::settings::catalogue::SPECULAR_ALPHA
             )
         );
+    }
+
+    #[test]
+    fn the_skirts_and_water_depth_rows_are_in_the_advanced_settings() {
+        use raul_drivers::lod::settings::catalogue as c;
+        let fixture = fixtures()
+            .into_iter()
+            .find(|f| f.name == "advanced-open")
+            .unwrap();
+        let app = App::fixture(fixture, Jobs::new(Arc::new(Recording::default())));
+        let mut h = Harness::builder()
+            .with_size([1280.0, 4200.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            });
+        h.run_steps(4);
+        assert_eq!(
+            h.query_all_by_label(c::SKIRTS).count(),
+            4,
+            "one for each level"
+        );
+        assert_eq!(h.query_all_by_label(c::TERRAIN_DROP_UNDER_WATER).count(), 1);
     }
 }

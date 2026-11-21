@@ -160,6 +160,14 @@ pub mod catalogue {
     pub const SPECULAR_ALPHA: &str = "Shine in the shading texture";
     /// Specular in alpha, explained.
     pub const SPECULAR_ALPHA_HELP: &str = "Stores how shiny each land texture is in the shading texture, so distant land can shine like the land near you. Off by default; it is new, so look at the result in the game.";
+    /// Skirts at the borders of a level's blocks.
+    pub const SKIRTS: &str = "Close the gaps between blocks";
+    /// Skirts, explained.
+    pub const SKIRTS_HELP: &str = "Hangs a narrow wall under the edge of every block, as the game's own blocks do, so no gap shows between neighbouring blocks. Off by default; it is new, so look at the result in the game.";
+    /// Drop terrain faces under the water.
+    pub const TERRAIN_DROP_UNDER_WATER: &str = "Leave out land faces deep under the water";
+    /// Drop terrain faces under the water, explained.
+    pub const TERRAIN_DROP_UNDER_WATER_HELP: &str = "Distant land loses the faces that lie at least this far below the water, in game units, which nobody sees through it. The files get smaller. Empty keeps every face.";
     /// Drop faces under the terrain.
     pub const DROP_UNDER_TERRAIN: &str = "Leave out object faces under the land";
     /// Drop faces under the terrain, explained.
@@ -242,13 +250,14 @@ macro_rules! level_rows {
             row(concat!("levels.", $l, ".diffuse_size"), 2, Kind::TextureSize, SIZE, catalogue::DIFFUSE_SIZE, catalogue::DIFFUSE_SIZE_HELP),
             row(concat!("levels.", $l, ".normal_size"), 2, Kind::TextureSize, SIZE, catalogue::NORMAL_SIZE, catalogue::NORMAL_SIZE_HELP),
             row(concat!("levels.", $l, ".specular_alpha"), 3, Kind::Switch, NONE, catalogue::SPECULAR_ALPHA, catalogue::SPECULAR_ALPHA_HELP),
+            row(concat!("levels.", $l, ".skirts"), 3, Kind::Switch, NONE, catalogue::SKIRTS, catalogue::SKIRTS_HELP),
         )*]
     };
 }
 
-const LEVEL_ROWS: [Descriptor; 20] = level_rows!("4", "8", "16", "32");
+const LEVEL_ROWS: [Descriptor; 24] = level_rows!("4", "8", "16", "32");
 
-const BASE_ROWS: [Descriptor; 15] = [
+const BASE_ROWS: [Descriptor; 16] = [
     row(
         "worlds",
         1,
@@ -372,11 +381,19 @@ const BASE_ROWS: [Descriptor; 15] = [
         catalogue::DROP_UNDER_WATER,
         catalogue::DROP_UNDER_WATER_HELP,
     ),
+    row(
+        "terrain.drop_under_water",
+        3,
+        Kind::Number,
+        (Some(0.0), Some(100_000.0)),
+        catalogue::TERRAIN_DROP_UNDER_WATER,
+        catalogue::TERRAIN_DROP_UNDER_WATER_HELP,
+    ),
 ];
 
 /// Every option, in the order a view lists them: tier 1, then the advanced ones.
-pub const OPTIONS: [Descriptor; 35] = {
-    let mut all = [BASE_ROWS[0]; 35];
+pub const OPTIONS: [Descriptor; 40] = {
+    let mut all = [BASE_ROWS[0]; 40];
     let mut i = 0;
     while i < BASE_ROWS.len() {
         all[i] = BASE_ROWS[i];
@@ -408,6 +425,7 @@ fn generator_key(key: &str) -> Option<String> {
         "worlds"
         | "objects.drop_under_terrain"
         | "objects.drop_under_water"
+        | "terrain.drop_under_water"
         | "inclusion.exclude_plugins"
         | "inclusion.only_plugins"
         | "inclusion.exclude_records"
@@ -1575,6 +1593,74 @@ mod tests {
         let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
         assert_eq!(back, none);
         assert!(none["objects"].get("drop_under_terrain").is_none());
+    }
+
+    /// The skirts row of each terrain level is a tier 3 switch that is off, reaches the request of its own level only
+    /// when set, and leaves the digest of a Profile with no file when restored.
+    #[test]
+    fn the_skirts_row_is_per_level_off_by_default_and_restores_the_request() {
+        for level in LEVELS {
+            let key = format!("levels.{level}.skirts");
+            let d = descriptor(&key).unwrap();
+            assert_eq!((d.tier, d.kind), (3, Kind::Switch));
+            assert!(listed_in(generator(), d), "{key}");
+            assert_eq!(default_value(&key), Some(json!(false)), "{key}");
+        }
+        let dir = TempDir::new("raul-lodset-skirts");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        set(&at, "levels.8.skirts", &json!(true)).unwrap();
+        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        let on_at: Vec<(u64, bool)> = on["terrain"]["levels"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|l| {
+                (
+                    l["level"].as_u64().unwrap(),
+                    l["skirts"].as_bool().unwrap_or(false),
+                )
+            })
+            .collect();
+        assert_eq!(on_at, [(4, false), (8, true), (16, false), (32, false)]);
+        assert_eq!(
+            set(&at, "levels.4.skirts", &json!(1)).unwrap_err().code,
+            RefusalCode::WrongType
+        );
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
+    }
+
+    /// The depth under water is a tier 3 number with no default: absent from the request until set, in range when set.
+    #[test]
+    fn the_terrain_water_depth_row_is_absent_until_set_and_in_range() {
+        let d = descriptor("terrain.drop_under_water").unwrap();
+        assert_eq!((d.tier, d.kind), (3, Kind::Number));
+        assert!(listed_in(generator(), d));
+        assert_eq!(default_value("terrain.drop_under_water"), Some(Value::Null));
+        let dir = TempDir::new("raul-lodset-depth");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        assert!(none["terrain"].get("drop_under_water").is_none());
+        set(&at, "terrain.drop_under_water", &json!(64.5)).unwrap();
+        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        assert_eq!(on["terrain"]["drop_under_water"], json!(64.5));
+        for bad in [json!(-1), json!(100_001)] {
+            assert_eq!(
+                set(&at, "terrain.drop_under_water", &bad).unwrap_err().code,
+                RefusalCode::OutOfRange
+            );
+        }
+        assert_eq!(
+            set(&at, "terrain.drop_under_water", &json!("deep"))
+                .unwrap_err()
+                .code,
+            RefusalCode::WrongType
+        );
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
     }
 
     /// The specular row of each terrain level is a tier 3 switch that is off, reaches the request of its own level
