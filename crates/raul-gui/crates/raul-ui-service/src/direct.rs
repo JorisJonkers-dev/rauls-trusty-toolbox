@@ -641,7 +641,52 @@ fn sort_request(
 
 /// The pinned masterlist, fetched into the store when it is not there yet. Fetching is not a job of nvmod's API (its
 /// sort takes the file, "the caller fetches and verifies it"); raul-core does it, as `raul sort --fetch-masterlist`.
-fn fetch_masterlist(
+/// Also a plain line to show when the file was already in the store: nothing is downloaded then (the store is
+/// checked against the pinned checksum first), which is also why the sort works with no network.
+fn fetch_masterlist_noting(
+    instance: &Path,
+    lock: Option<&Path>,
+    store: Option<&Path>,
+) -> Result<(PathBuf, Option<String>), JobError> {
+    let started = std::time::SystemTime::now();
+    let file = fetch_masterlist_file(instance, lock, store)?;
+    let stored_on = std::fs::metadata(&file)
+        .and_then(|m| m.modified())
+        .ok()
+        .filter(|written| *written < started);
+    Ok((file, stored_on.map(stored_line)))
+}
+
+/// What the window says when the sort used the masterlist that was already stored on this machine.
+fn stored_line(written: std::time::SystemTime) -> String {
+    format!(
+        "Sorted with the masterlist stored on {}: the version this Toolbox pins, checked against its checksum. Nothing was downloaded.",
+        date_of(written)
+    )
+}
+
+/// The UTC date of `time`, as `2026-11-21`.
+fn date_of(time: std::time::SystemTime) -> String {
+    let days = i64::try_from(
+        time.duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs())
+            / 86_400,
+    )
+    .unwrap_or(0);
+    // Civil date from days since 1970-01-01 (Howard Hinnant's algorithm).
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    format!("{year:04}-{month:02}-{day:02}")
+}
+
+fn fetch_masterlist_file(
     instance: &Path,
     lock: Option<&Path>,
     store: Option<&Path>,
@@ -675,7 +720,10 @@ fn pinned_error(e: raul_core::pinned::PinnedError) -> JobError {
 }
 
 /// The document of `raul sort --json`, from the proposal and what was applied.
-fn sort_document(output: &nvmod_api::loadorder::SortOutput) -> serde_json::Value {
+fn sort_document(
+    output: &nvmod_api::loadorder::SortOutput,
+    stored: Option<&str>,
+) -> serde_json::Value {
     let proposal = &output.proposal;
     let found = &proposal.output;
     let order: Vec<_> = proposal
@@ -713,7 +761,7 @@ fn sort_document(output: &nvmod_api::loadorder::SortOutput) -> serde_json::Value
             .map(|m| serde_json::json!({ "kind": m.kind.label(), "text": m.text }))
             .collect::<Vec<_>>(),
         "not_installed": found.not_installed,
-        "warnings": found.warnings,
+        "warnings": found.warnings.iter().cloned().chain(stored.map(str::to_owned)).collect::<Vec<_>>(),
         "applied": output.applied.as_ref().map(|a| serde_json::json!({
             "lists_written": a.lists_written,
             "stamped": a.stamped,
@@ -733,17 +781,27 @@ pub fn sort(request: &nvmod_api::loadorder::SortRequest, source: &MasterlistSour
     let profile = request.profile.clone();
     let apply = request.apply;
     let run = move |progress: &mut dyn Progress, cancel: &CancelToken| {
+        let mut stored = None;
         if let MasterlistSource::Pinned { lock, store } = &source {
             progress.report(&Event::step(
                 "fetch-masterlist",
                 "loadorder.sort.fetching-masterlist",
             ));
-            request.masterlist =
-                fetch_masterlist(&request.instance, lock.as_deref(), store.as_deref())?;
+            let (file, note) =
+                fetch_masterlist_noting(&request.instance, lock.as_deref(), store.as_deref())?;
+            request.masterlist = file;
+            stored = note;
         }
-        nvmod_api::loadorder::sort(&request, progress, cancel)
+        Ok(
+            match nvmod_api::loadorder::sort(&request, progress, cancel)? {
+                Outcome::Done(output) => Outcome::Done((output, stored)),
+                Outcome::Cancelled => Outcome::Cancelled,
+            },
+        )
     };
-    let render = |done: &nvmod_api::loadorder::SortOutput| Ok(Reply::ok(sort_document(done)));
+    let render = |done: &(nvmod_api::loadorder::SortOutput, Option<String>)| {
+        Ok(Reply::ok(sort_document(&done.0, done.1.as_deref())))
+    };
     if apply {
         DirectJob::writing_as(instance, "sort", run, render).snapshotting(profile)
     } else {
@@ -1321,5 +1379,13 @@ mod pinned_tests {
         assert_eq!(e.kind, ErrorKind::Failed);
         assert_eq!(e.summary, "the masterlist could not be fetched: offline");
         assert_eq!(e.job, "loadorder.sort.fetch");
+    }
+
+    #[test]
+    fn a_date_is_the_utc_day_of_the_time() {
+        let at = |secs| std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs);
+        assert_eq!(date_of(at(0)), "1970-01-01");
+        assert_eq!(date_of(at(1_700_000_000)), "2023-11-14");
+        assert_eq!(date_of(at(1_709_164_800)), "2024-02-29");
     }
 }
