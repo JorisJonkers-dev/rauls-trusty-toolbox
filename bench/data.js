@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795235335819,
+  "lastUpdate": 1795235621158,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9113,6 +9113,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.7712650000000005,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "19508c1e447d7eb9f9c17532f9f94be411411d10",
+          "message": "fix(gui): a sort from the stored masterlist says so, with the date it was stored (#486) (#490)\n\n* fix(gui): a sort from the stored masterlist says so, with the date it was stored (#486)\n\n* fix(gui): drop the unused fetch wrapper (#486)",
+          "timestamp": "2026-11-21T04:29:28Z",
+          "tree_id": "0b72736468c968da9670daae4e8aa076f9af96e8",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/19508c1e447d7eb9f9c17532f9f94be411411d10"
+        },
+        "date": 1795235620382,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.9265219999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.772492,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 37.160303,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.992125,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.832515,
             "unit": "ms"
           }
         ]
