@@ -35,7 +35,7 @@ crate::texts!(TEXTS {
     STATE_CURRENT = "All blocks up to date";
     STATE_GENERATING = "Generating · {p}% · you can leave this page";
     STATE_GENERATING_START = "Generating · you can leave this page";
-    STATE_GENERATING_STEP = "{what} · {p}% of this step · {elapsed} · you can leave this page";
+    STATE_GENERATING_STEP = "{what} · {p}% · {elapsed} · you can leave this page";
     STATE_GENERATING_STEP_START = "{what} · {elapsed} · you can leave this page";
     STATE_STOPPING = "Stopping";
     GENERATE = "Generate";
@@ -806,9 +806,9 @@ fn outcome(status: Status, up_to_date: bool, worlds: &[&str]) -> Outcome {
 }
 
 /// The words for a phase of a LOD run; a phase this build does not know is a step starting, never an error.
-/// The line that says how a running Generate stands. Each phase reports its own share, so the number falls back when
-/// a new phase starts (87 percent of the terrain, then 30 of the objects): the line names the phase and says the share
-/// is of that step, so a drop reads as the next step, and it shows the time the run has taken.
+/// The line that says how a running Generate stands: the share of the whole run (lodwright 0.14.0 reports it and it never
+/// goes back), the step the run is in and the time the run has taken. A library that reports only each step's own share
+/// makes the number fall back when a step starts; the step's name then explains the drop.
 fn generating_line(progress: &Progress, elapsed: Option<u64>) -> String {
     let elapsed = elapsed.map(elapsed_words);
     if progress.phase.is_empty() {
@@ -963,9 +963,9 @@ mod tests {
                 )
             })
             .collect();
-        assert!(lines[0].contains(STEP_TERRAIN) && lines[0].contains("87% of this step"));
-        assert!(lines[1].contains(STEP_OBJECTS) && lines[1].contains("30% of this step"));
-        assert!(lines[2].contains(STEP_TREES) && lines[2].contains("4% of this step"));
+        assert!(lines[0].contains(STEP_TERRAIN) && lines[0].contains("87%"));
+        assert!(lines[1].contains(STEP_OBJECTS) && lines[1].contains("30%"));
+        assert!(lines[2].contains(STEP_TREES) && lines[2].contains("4%"));
         assert!(lines[0].contains("3 min 20 s") && lines[2].contains("5 min 30 s"));
         // The time keeps rising over the whole run, which the share does not.
         assert_ne!(lines[0], lines[1]);
