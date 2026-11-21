@@ -282,15 +282,18 @@ impl Mods {
                                 .to_owned(),
                             );
                             if let Some((name, _)) = &self.target {
-                                self.state.undoable(
-                                    match job {
-                                        Job::Enable => UNDO_ENABLED,
-                                        Job::Disable => UNDO_DISABLED,
-                                        Job::Move => UNDO_MOVED,
-                                        _ => UNDO_REMOVED,
-                                    }
-                                    .replace("{name}", name),
-                                );
+                                let what = match job {
+                                    Job::Enable => UNDO_ENABLED,
+                                    Job::Disable => UNDO_DISABLED,
+                                    Job::Move => UNDO_MOVED,
+                                    _ => UNDO_REMOVED,
+                                }
+                                .replace("{name}", name);
+                                if matches!(job, Job::Enable | Job::Disable | Job::Move) {
+                                    self.state.undoable(what);
+                                } else {
+                                    self.state.undoable_removal(what, name);
+                                }
                             }
                             self.read(cx);
                         }

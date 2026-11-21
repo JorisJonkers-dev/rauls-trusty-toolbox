@@ -203,6 +203,9 @@ pub struct State {
     /// What Undo would take back, in a plain line: the last change made on this page; `None` when there is nothing to
     /// undo.
     pub undo: Option<String>,
+    /// When what Undo would take back is a Remove: the Mod's name, and whether a list has shown it gone yet. The Undo
+    /// is dropped when the Mod is listed again by another route (installed again), as a second copy would be wrong.
+    pub undo_removed: Option<(String, bool)>,
 }
 
 impl State {
@@ -222,6 +225,15 @@ impl State {
             self.selected = None;
         }
         self.apply_marks();
+        if let Some((name, gone)) = &mut self.undo_removed {
+            let listed = self.mods.iter().any(|m| !m.separator && &m.name == name);
+            if !listed {
+                *gone = true;
+            } else if *gone {
+                self.undo = None;
+                self.undo_removed = None;
+            }
+        }
         self.phase = Phase::Listed;
     }
 
@@ -265,11 +277,20 @@ impl State {
     /// A change went through: Undo can take it back, and says what it would take back.
     pub fn undoable(&mut self, what: String) {
         self.undo = Some(what);
+        self.undo_removed = None;
+    }
+
+    /// A Remove went through: like [`State::undoable`], and the Undo is dropped when the Mod comes back by another
+    /// route.
+    pub fn undoable_removal(&mut self, what: String, name: &str) {
+        self.undoable(what);
+        self.undo_removed = Some((name.to_owned(), false));
     }
 
     /// The undo went through (or the change it was for is gone): nothing is left to undo here.
     pub fn undone(&mut self) {
         self.undo = None;
+        self.undo_removed = None;
     }
 
     /// A step failed; the list stays as it was read.
@@ -617,6 +638,27 @@ mod tests {
             s.selected().is_none(),
             "a removed Mod is no longer selected"
         );
+    }
+
+    #[test]
+    fn the_undo_of_a_remove_goes_when_the_mod_is_listed_again() {
+        let mut s = State::default();
+        s.listed("Default".into(), vec![ModEntry::named("Alpha", 1)]);
+        s.undoable_removal("Undo brings Alpha back from the trash.".to_owned(), "Alpha");
+        // a list that still shows it (read before the removal landed) does not drop the Undo
+        s.listed("Default".into(), vec![ModEntry::named("Alpha", 1)]);
+        assert!(s.undo.is_some());
+        s.listed("Default".into(), vec![ModEntry::named("Beta", 1)]);
+        assert!(s.undo.is_some(), "gone from the list: Undo stays");
+        s.listed(
+            "Default".into(),
+            vec![ModEntry::named("Beta", 1), ModEntry::named("Alpha", 2)],
+        );
+        assert_eq!(s.undo, None, "installed again: nothing to undo");
+        // another kind of change is not touched by the list
+        s.undoable("Undo turns Beta off again.".to_owned());
+        s.listed("Default".into(), vec![ModEntry::named("Beta", 1)]);
+        assert!(s.undo.is_some());
     }
 
     #[test]
