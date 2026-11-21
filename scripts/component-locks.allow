@@ -1,5 +1,5 @@
 # Differences between the GUI lock and nv-rs's lock for the crates the engine's facade and play entry reach, accepted
-# by hand (scripts/check-component-locks). One per line: name, the GUI versions, the nv-rs versions. Each lock resolves
+# by hand (tools/check-component-locks). One per line: name, the GUI versions, the nv-rs versions. Each lock resolves
 # on its own, so some difference is normal; the engine CI job builds and tests against the GUI lock's versions.
 # Remove a line when the difference goes away (the check fails on a line that no longer applies).
 #

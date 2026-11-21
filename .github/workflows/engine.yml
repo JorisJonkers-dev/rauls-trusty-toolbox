@@ -1,7 +1,7 @@
 # The engine's crates (nv-rs) are linked into the GUI workspace behind the feature `engine` (ADR-0016, ADR-0017).
 # This workflow runs only when that link can change: the nv-rs pin, the GUI manifest and lock, the adapter crate or
 # the checks below. It does two things.
-#   engine      the lock and manifest agree with nv-rs (scripts/check-component-locks), and the adapter crate is
+#   engine      the lock and manifest agree with nv-rs (tools/check-component-locks), and the adapter crate is
 #               linted and tested with the feature on (the other workflows leave it off).
 #   build-time  a clean release build of `raul` without and with the engine, with wall-clock time and peak memory in
 #               the job summary. The Rust cache is keyed on the lock files, so the first run after a change is cold
@@ -16,7 +16,7 @@ on:
       - "crates/raul-gui/Cargo.toml"
       - "crates/raul-gui/Cargo.lock"
       - "crates/raul-gui/crates/raul-engine/**"
-      - "scripts/check-component-locks"
+      - "tools/check-component-locks/**"
       - "scripts/component-locks.allow"
       - "scripts/measure-build"
       - "rust-toolchain.toml"
@@ -29,7 +29,7 @@ on:
       - "crates/raul-gui/Cargo.toml"
       - "crates/raul-gui/Cargo.lock"
       - "crates/raul-gui/crates/raul-engine/**"
-      - "scripts/check-component-locks"
+      - "tools/check-component-locks/**"
       - "scripts/component-locks.allow"
       - "scripts/measure-build"
       - "rust-toolchain.toml"
@@ -66,8 +66,8 @@ jobs:
 
       - name: The lock and manifest agree with nv-rs
         run: |
-          scripts/check-component-locks --self-test
-          scripts/check-component-locks
+          cargo test --locked --manifest-path tools/check-component-locks/Cargo.toml
+          cargo run --quiet --locked --manifest-path tools/check-component-locks/Cargo.toml
 
       - name: Lint with the engine
         working-directory: crates/raul-gui
