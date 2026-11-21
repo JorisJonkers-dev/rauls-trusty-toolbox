@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795229635160,
+  "lastUpdate": 1795231533455,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8917,6 +8917,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.950725,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "63e3e7c6d26362377a0dd71799e221ce7d9ab685",
+          "message": "refactor(gui): version and detect are typed in-process jobs (#406) (#485)\n\n* refactor(gui): version and detect are typed in-process jobs (#406)\n\nThe window no longer builds a command line for raul version and raul detect: both call the same functions the command line prints from, and a test per action checks the document and the exit code against the command's --json output.\n\n* test(gui): the shell tests script version, which now runs in process (#406)",
+          "timestamp": "2026-11-21T03:23:32Z",
+          "tree_id": "2c019546f94b77288d2d530fe38c735c63f008e4",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/63e3e7c6d26362377a0dd71799e221ce7d9ab685"
+        },
+        "date": 1795231532604,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.2661830000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.367961,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.692792000000004,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.130221,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.423402000000001,
             "unit": "ms"
           }
         ]
