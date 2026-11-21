@@ -515,8 +515,9 @@ jobs:
           set -euo pipefail
           gh release upload "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --clobber
           if [ -n "$APPLE_CERTIFICATE" ]; then mac="signed and notarised"; else mac="**unsigned**: macOS will ask you to allow it in System Settings, Privacy & Security"; fi
-          notes="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)"
+          notes="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body | scripts/release-contents.sh --strip)"
           {
+            scripts/release-contents.sh --install
             printf '%s\n\n' "$notes"
             scripts/release-contents.sh dist/SHA256SUMS
             echo
@@ -524,7 +525,7 @@ jobs:
             echo
             echo "- Windows: **unsigned**. SmartScreen may warn; choose More info, Run anyway."
             echo "- macOS: $mac."
-            echo "- Linux: AppImage and .deb are not signed; verify with SHA256SUMS and \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`."
+            echo "- Linux: AppImage, .deb and .tar.gz are not signed; verify with SHA256SUMS and \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`."
             echo
             echo "Source of every GPL Component at these versions: see the submodules (components/) at $TAG."
             echo "You need your own copy of Fallout: New Vegas; no game files are included."
