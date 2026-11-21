@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795249454610,
+  "lastUpdate": 1795250203978,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9750,6 +9750,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.401338,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4cf133574b149c7f56f4cd234a37a7a993309764",
+          "message": "fix(gui): the Undo of a Remove goes when the Mod is installed again (#510) (#511)",
+          "timestamp": "2026-11-21T08:34:47Z",
+          "tree_id": "bce83a2887ad940e4bf0df571886f56d83d946e4",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/4cf133574b149c7f56f4cd234a37a7a993309764"
+        },
+        "date": 1795250203369,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.2885560000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.412101999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.280729,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.3220089999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.097961,
             "unit": "ms"
           }
         ]
