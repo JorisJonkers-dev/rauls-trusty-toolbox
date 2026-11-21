@@ -1,0 +1,17 @@
+[package]
+name = "check-component-locks"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.100"
+license = "GPL-3.0-only"
+publish = false
+description = "Keeps the GUI workspace's lock and manifest consistent with nv-rs, whose crates it links in process."
+
+# Its own workspace: a check tool of this repository, not part of the shipped crates.
+[workspace]
+
+[dependencies]
+toml = { version = "=1.2.1", default-features = false, features = ["std", "parse", "serde"] }
+
+[lints.rust]
+unsafe_code = "forbid"

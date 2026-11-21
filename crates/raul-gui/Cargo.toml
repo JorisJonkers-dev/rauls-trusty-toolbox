@@ -95,7 +95,7 @@ eframe = { version = "=0.37.0", default-features = false, features = ["accesskit
 egui_kittest = { version = "=0.37.0", features = ["eframe", "snapshot", "wgpu"] }
 
 # Cargo reads [patch] and [profile] from the root of the build only, so the settings of nv-rs's root Cargo.toml that
-# the engine needs are repeated here; scripts/check-component-locks keeps them equal. wgpu-hal is nv-rs's vendored
+# the engine needs are repeated here; tools/check-component-locks keeps them equal. wgpu-hal is nv-rs's vendored
 # 30.0.1 (Vulkan pipeline-library work); without it the engine would run on the published crate.
 [patch.crates-io]
 wgpu-hal = { path = "../../components/nv-rs/vendor/wgpu-hal" }
