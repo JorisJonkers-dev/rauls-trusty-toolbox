@@ -66,6 +66,9 @@ pub fn output_dir(root: &Path, profile: &str) -> PathBuf {
 /// The output folder every Profile shared before each had its own.
 pub const SHARED_OUTPUT_DIR: &str = ".raul/lod/out";
 
+/// How many plugins the game loads at most (the base game's own count included).
+pub const MAX_PLUGINS: usize = 255;
+
 /// The stub Plugin lodwright writes with a packed LOD (`output.pack`): the base name of the archive is fixed.
 pub const PACKED_PLUGIN: &str = "Lodwright LOD.esp";
 
@@ -251,7 +254,8 @@ pub fn request_parts(settings: &Settings) -> Value {
         },
         "limits": limits,
     });
-    // off by default and written only when on, like the switches above (lodwright leaves it out of the request digest)
+    // lodwright's own default is loose files, so the request names packing whenever it is on (the default here); it is
+    // left out of lodwright's request digest
     if o.pack {
         request["output"] = json!({ "pack": true });
     }
@@ -325,8 +329,8 @@ pub struct Output {
     pub objects: bool,
     /// Tree LOD.
     pub trees: bool,
-    /// Experimental: pack the generated files into one archive with a stub Plugin instead of leaving them loose (off
-    /// unless set). Read when the LOD is generated.
+    /// Pack the generated files into one archive with a stub Plugin instead of leaving them loose (on unless turned
+    /// off). Read when the LOD is generated.
     pub pack: bool,
 }
 
@@ -338,7 +342,7 @@ impl Default for Output {
             water: true,
             objects: true,
             trees: true,
-            pack: false,
+            pack: true,
         }
     }
 }
@@ -434,6 +438,16 @@ pub fn plan(
         worlds.to_vec()
     };
     let parts = request_parts(&settings);
+    // The stub of a packed LOD takes a Plugin slot of its own: with every slot taken there is no room for it.
+    if !parts["output"].is_null() && plugins.len() >= MAX_PLUGINS {
+        return Err(format!(
+            "the Load order has {} active plugins and the game takes {MAX_PLUGINS}; the packed LOD needs one more for \
+             its own Plugin, so there is no room. Turn off \"{}\" in the LOD settings, or turn off a plugin you do not \
+             need, then generate again",
+            plugins.len(),
+            settings::catalogue::PACK
+        ));
+    }
     let mut request = json!({
         "schema_version": REQUEST_VERSION,
         "contract": REQUEST_CONTRACT,

@@ -185,9 +185,9 @@ pub mod catalogue {
     /// Water polygons, explained.
     pub const WATER_POLYGONS_HELP: &str = "Experimental, off by default. Builds distant water from polygons that follow the water's shape. It is new and not proven in the game: turn it on only to look at the result.";
     /// Pack the generated LOD into one archive.
-    pub const PACK: &str = "Pack the generated LOD into one archive (experimental)";
+    pub const PACK: &str = "Pack the generated LOD into one archive";
     /// Packing, explained.
-    pub const PACK_HELP: &str = "Experimental, off by default. The next generate ends by writing the LOD into one archive (a .bsa file) and a small Plugin of the same name that registers it, in place of the loose files; the LOD Mod then holds the archive, the Plugin and no loose files. The Plugin stays on in the Load order, or the game does not open the archive and uses its own distant land; it needs the game's first Plugin (normally FalloutNV.esm) to be present. Turning this off applies at the next generate, which builds the loose files again. It is new and not proven in the game: leave it off unless you want to try it.";
+    pub const PACK_HELP: &str = "On by default. The next generate ends by writing the LOD into one archive (a .bsa file) and a small Plugin of the same name that registers it, in place of the loose files; the LOD Mod then holds the archive, the Plugin and no loose files. The Plugin takes one of the game's 255 plugin slots and stays on in the Load order, or the game does not open the archive and uses its own distant land; it needs the game's first Plugin (normally FalloutNV.esm) to be present. Turning this off applies at the next generate, which builds the loose files again.";
     /// Drop faces under the terrain.
     pub const DROP_UNDER_TERRAIN: &str = "Leave out object faces under the land";
     /// Drop faces under the terrain, explained.
@@ -536,6 +536,10 @@ pub fn default_value(key: &str) -> Option<Value> {
     let d = descriptor(key)?;
     if key == "allow_in_repo" {
         return Some(json!(false));
+    }
+    // raul's own default: the generator leaves packing off, raul packs.
+    if key == "output.pack" {
+        return Some(json!(true));
     }
     let info = generator().option(&generator_key(key)?)?;
     if let Some(rest) = key.strip_prefix("levels.") {
@@ -1769,30 +1773,35 @@ mod tests {
         assert_eq!(back, none);
     }
 
-    /// The pack row is tier 3, off by default, written to the request only when set (under `output`) and gone from it
-    /// again after a restore; a generator that does not list it hides it.
+    /// The pack row is tier 3 and on by default (raul's own default; the generator's is off): the request names it
+    /// until it is turned off, and a restore puts the default back; a generator that does not list it hides it.
     #[test]
-    fn the_pack_row_is_experimental_off_by_default_and_restores_the_request() {
+    fn the_pack_row_is_on_by_default_and_turning_it_off_leaves_it_out_of_the_request() {
         let dir = TempDir::new("raul-lodset-pack");
         let at = at(&dir);
-        let none = super::super::request_parts(&Settings::default());
+        let on = super::super::request_parts(&Settings::default());
         let d = descriptor("output.pack").unwrap();
         assert_eq!((d.tier, d.kind), (3, Kind::Switch));
-        assert!(d.label.contains("experimental"));
-        assert!(d.help.contains("Experimental, off by default"));
+        assert!(!d.label.contains("experimental") && !d.help.contains("Experimental"));
         assert!(listed_in(generator(), d));
-        assert_eq!(default_value("output.pack"), Some(json!(false)));
-        assert!(none.get("output").is_none());
-        set(&at, "output.pack", &json!(true)).unwrap();
-        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        assert_eq!(default_value("output.pack"), Some(json!(true)));
         assert_eq!(on["output"], json!({ "pack": true }));
+        set(&at, "output.pack", &json!(false)).unwrap();
+        let off = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        assert!(
+            off.get("output").is_none(),
+            "off is the generator's own default"
+        );
         assert_eq!(
             set(&at, "output.pack", &json!("yes")).unwrap_err().code,
             RefusalCode::WrongType
         );
         reset(&at, false).unwrap();
         let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
-        assert_eq!(back, none);
+        assert_eq!(back, on, "a restore packs again");
+        // A settings file written before the row existed packs too.
+        let old = Settings::default();
+        assert!(old.output.pack);
         let mut without = generator().clone();
         without.options.retain(|o| o.key != "output.pack");
         assert!(!listed_in(&without, d), "an older generator hides the row");
