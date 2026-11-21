@@ -450,3 +450,72 @@ mod tests {
         assert!(said.contains("did not start"), "{said}");
     }
 }
+
+#[cfg(test)]
+mod step_tests {
+    use super::*;
+
+    fn failed(code: u8) -> Failure {
+        Failure {
+            line: "raul update x: no".into(),
+            doc: Some(serde_json::json!({ "ok": false })),
+            code,
+        }
+    }
+
+    #[test]
+    fn a_step_prints_its_sentence_or_its_document_and_a_failure_its_line_and_code() {
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let ok: Step = Ok((serde_json::json!({ "a": 1 }), "all well".to_owned()));
+        assert_eq!(emit(false, ok.clone(), &mut out, &mut err), crate::OK);
+        assert_eq!(String::from_utf8_lossy(&out), "all well\n");
+        out.clear();
+        assert_eq!(emit(true, ok, &mut out, &mut err), crate::OK);
+        assert_eq!(String::from_utf8_lossy(&out), "{\"a\":1}\n");
+        out.clear();
+        assert_eq!(
+            emit(true, Err(failed(crate::REFUSED)), &mut out, &mut err),
+            crate::REFUSED
+        );
+        assert!(String::from_utf8_lossy(&out).contains("\"ok\":false"));
+        assert!(String::from_utf8_lossy(&err).contains("raul update x: no"));
+        out.clear();
+        assert_eq!(
+            emit(false, Err(failed(crate::FOUND)), &mut out, &mut err),
+            crate::FOUND
+        );
+        assert!(out.is_empty(), "no document without --json");
+    }
+
+    #[test]
+    fn an_install_that_cannot_update_itself_is_refused_before_anything_is_fetched_or_replaced() {
+        // A test binary is not an installed raul.
+        for step in [
+            install_step(),
+            rollback_step(),
+            download_step(Some("v0.0.1".into()), false),
+        ] {
+            let f = step.unwrap_err();
+            assert_eq!(f.code, crate::REFUSED, "{f:?}");
+            assert!(f.line.starts_with("raul update "), "{f:?}");
+            assert!(f.doc.is_some());
+        }
+        let (doc, text) = status_step().unwrap();
+        assert_eq!(doc["current"], RUNNING);
+        assert_ne!(text, "");
+    }
+
+    #[test]
+    fn the_words_of_a_step_are_checked_before_it_runs() {
+        let words = |w: &[&str]| w.iter().map(|x| (*x).to_owned()).collect::<Vec<_>>();
+        assert!(answer("status", &words(&["--json"])).is_some());
+        assert!(answer("status", &words(&["extra"])).is_none());
+        assert!(answer("install", &[]).is_some());
+        assert!(answer("rollback", &[]).is_some());
+        assert!(answer("nonsense", &[]).is_none());
+        // A named release is refused (not here), whatever else is on the line; an unknown flag is not understood.
+        assert!(answer("download", &words(&["--tag", "v1.0.0", "--allow-older"])).is_some());
+        assert!(answer("download", &words(&["--tag"])).is_none());
+        assert!(answer("download", &words(&["--bogus"])).is_none());
+    }
+}
