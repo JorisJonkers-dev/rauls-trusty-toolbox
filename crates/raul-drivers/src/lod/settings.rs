@@ -1591,7 +1591,7 @@ mod tests {
         let dir = TempDir::new("raul-lodset-specular");
         let at = at(&dir);
         let none = super::super::request_parts(&Settings::default());
-        assert!(none["terrain"]["levels"].as_array().unwrap().is_empty());
+        assert_eq!(none["terrain"]["levels"], json!([]));
         set(&at, "levels.16.specular_alpha", &json!(true)).unwrap();
         assert_eq!(
             parse_value("levels.16.specular_alpha", &["on".to_owned()]).unwrap(),
