@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795243390026,
+  "lastUpdate": 1795244081301,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9603,6 +9603,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.524647,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "8972ff9471b66807b61849deb6df43bf4c2c87a7",
+          "message": "fix(gui): the LOD progress names its step and shows the elapsed time (#502) (#504)\n\n* fix(gui): the LOD progress names its step and shows the time the run has taken (#502)\n\n* test(gui): the LOD run test looks for the leave-this-page line, which now follows the step name (#502)",
+          "timestamp": "2026-11-21T06:53:00Z",
+          "tree_id": "10c8ccecc50ab26425508ffa02e01bb3ef641720",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/8972ff9471b66807b61849deb6df43bf4c2c87a7"
+        },
+        "date": 1795244080561,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.913527,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.713955,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 37.309162,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.097362,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.364804,
             "unit": "ms"
           }
         ]
