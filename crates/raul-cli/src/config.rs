@@ -167,3 +167,40 @@ fn plain(words: &[&str], entries: &[Entry]) -> String {
     }
     text
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn context(label: &str) -> (raul_core::context::Context, PathBuf) {
+        let dir = std::env::temp_dir().join(format!("raul-config-{label}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        (
+            raul_core::context::Context::new()
+                .with_config_folder(&dir)
+                .without_run_log(),
+            dir,
+        )
+    }
+
+    #[test]
+    fn the_json_answer_lists_sets_gets_and_unsets_and_refuses_in_the_commands_words() {
+        let (ctx, dir) = context("answer");
+        let folder = dir.to_string_lossy().into_owned();
+        let (list, code) = json_answer(&ctx, &["list"]).unwrap();
+        assert_eq!(code, crate::OK);
+        assert!(list["entries"].is_array() || list.is_object(), "{list}");
+        let (set, code) = json_answer(&ctx, &["set", "storage.root", &folder]).unwrap();
+        assert_eq!(code, crate::OK, "{set}");
+        let (got, _) = json_answer(&ctx, &["get", "storage.root"]).unwrap();
+        assert!(got.to_string().contains("storage.root"), "{got}");
+        let (_, code) = json_answer(&ctx, &["unset", "storage.root"]).unwrap();
+        assert_eq!(code, crate::OK);
+        let (refused, code) = json_answer(&ctx, &["get", "no.such.key"]).unwrap();
+        assert_eq!(code, crate::USAGE, "{refused}");
+        assert!(json_answer(&ctx, &["set", "storage.root"]).is_none());
+        assert!(json_answer(&ctx, &[]).is_none());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+}
