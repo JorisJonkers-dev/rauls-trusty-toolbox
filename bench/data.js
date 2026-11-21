@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795255301893,
+  "lastUpdate": 1795263199609,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9897,6 +9897,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.791622,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7c2dbc94dbfbefa9b1582189953e12e0071e4e48",
+          "message": "chore(main): release 0.6.0 (#329)\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-21T13:11:20+01:00",
+          "tree_id": "165a68ae2c0d29924794e6d71bb9e4fd450210ee",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7c2dbc94dbfbefa9b1582189953e12e0071e4e48"
+        },
+        "date": 1795263198871,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.358543,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.026946,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 27.443661000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.086738,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.315302,
             "unit": "ms"
           }
         ]
