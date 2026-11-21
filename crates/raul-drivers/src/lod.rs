@@ -223,7 +223,10 @@ pub fn request_parts(settings: &Settings) -> Value {
     }
     for (key, on) in [
         ("water_walls", settings.terrain.water_walls),
-        ("water_shared_vertices", settings.terrain.water_shared_vertices),
+        (
+            "water_shared_vertices",
+            settings.terrain.water_shared_vertices,
+        ),
         ("water_polygons", settings.terrain.water_polygons),
     ] {
         if on {

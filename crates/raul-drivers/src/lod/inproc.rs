@@ -60,13 +60,20 @@ pub(crate) struct Run {
 fn map(event: &ProgressEvent) -> Event {
     let phase = event.label_key().trim_start_matches("lod.").to_owned();
     // lodwright 0.14.0 reports the run as a whole on every event (`run_done` of `run_total`, which never goes back):
-    // that is the bar. The step is the label, so a block's own count moves into the message. An older library sends
-    // neither field, and then the step's own count and name stay as they were.
-    if let (Some(done), Some(of)) = (event.run_done, event.run_total) {
-        let message = event.world.as_deref().map(|world| match (event.step, event.level) {
-            (Step::Terrain, Some(level)) => format!("{world} level {level}"),
-            _ => world.to_owned(),
-        });
+    // on a finished block that is the bar, and the step is the label, so the block's own count is dropped and its name
+    // goes in the message. A step that only starts stays a phase (a progress event means a finished block, which the
+    // stop checkpoint and the tests rely on). An older library sends neither field, and then the block's own count and
+    // the step's name stay as they were.
+    if let (Some(_), Some(_), Some(done), Some(of)) =
+        (event.done, event.total, event.run_done, event.run_total)
+    {
+        let message = event
+            .world
+            .as_deref()
+            .map(|world| match (event.step, event.level) {
+                (Step::Terrain, Some(level)) => format!("{world} level {level}"),
+                _ => world.to_owned(),
+            });
         return Event::Progress {
             phase,
             done,
@@ -202,17 +209,14 @@ mod tests {
                 message: Some("Island".to_owned()),
             }
         );
-        // A step that has only started still moves the bar.
+        // A step that has only started stays a phase.
         let mut start = ProgressEvent::start(Step::Trees, None);
         start.run_done = Some(7000);
         start.run_total = Some(10_000);
         assert_eq!(
             map(&start),
-            Event::Progress {
-                phase: "trees".to_owned(),
-                done: 7000,
-                of: 10_000,
-                message: None,
+            Event::Phase {
+                phase: "trees".to_owned()
             }
         );
     }
