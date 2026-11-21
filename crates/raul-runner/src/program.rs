@@ -44,7 +44,7 @@ impl Started {
 /// The program could not be started.
 pub fn start_program(
     program: &str,
-    args: &[impl AsRef<std::ffi::OsStr>],
+    args: &[String],
     env: &BTreeMap<String, String>,
     cwd: &Path,
     attached: bool,

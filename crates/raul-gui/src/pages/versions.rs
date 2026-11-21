@@ -442,14 +442,8 @@ fn restart(repaint: Option<&egui::Context>) {
         return;
     };
     let env: std::collections::BTreeMap<String, String> = std::env::vars().collect();
-    let started = raul_runner::start_program(
-        &program.to_string_lossy(),
-        &[] as &[&str],
-        &env,
-        &cwd,
-        false,
-        None,
-    );
+    let started =
+        raul_runner::start_program(&program.to_string_lossy(), &[], &env, &cwd, false, None);
     if started.is_ok()
         && let Some(ctx) = repaint
     {
