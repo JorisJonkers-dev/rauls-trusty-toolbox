@@ -16,6 +16,10 @@ LOD settings can turn that off). The plan is in [`docs/PLAN.md`](docs/PLAN.md) a
 
 <!-- Screenshots go here. -->
 
+**Known issue in v0.6.0:** the distant land that raul generated had no far water; lakes and rivers such as Lake Mead
+and the Colorado were not drawn at a distance. The generator that raul builds in now draws them (lodwright 0.15.1). If
+you made LOD with v0.6.0, install a newer release and generate the LOD again.
+
 ## Install
 
 Download the package for your system from the
