@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795235621158,
+  "lastUpdate": 1795236565365,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9162,6 +9162,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.832515,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "b53c67a0984fd69b8fdfe85dd39f106541bca411",
+          "message": "test(cli): the game starts through the launcher, on synthetic data in CI (#47) (#491)\n\n* test(cli): the Release test of the game start through the launcher, on synthetic data (#47)\n\n* test: allow-list the launcher test that runs the built binary; the failing-run case checks the exit code only (#47)\n\n* test: the stand-in run has the engine folder of the Instance, as on Windows the run starts in it (#47)\n\n* test: the launcher test checks the log only where the plan names one (Windows plans differ) (#47)",
+          "timestamp": "2026-11-21T04:47:51Z",
+          "tree_id": "3557d8f561971996fa094200b274acf7d83ac61a",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b53c67a0984fd69b8fdfe85dd39f106541bca411"
+        },
+        "date": 1795236564846,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.880729,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.6072,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.021344,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.053669,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.026453999999999,
             "unit": "ms"
           }
         ]
