@@ -412,3 +412,19 @@ fn a_mods_page_command_without_its_mod_or_position_ends_as_a_usage_error_and_a_r
         direct::for_command("mods-remove", &words(&["Plain Mod", "--instance", "/i"])).is_none()
     );
 }
+
+#[test]
+fn the_plugin_switch_commands_are_direct_jobs_and_a_missing_plugin_is_a_usage_error() {
+    let words = |w: &[&str]| w.iter().map(|x| (*x).to_owned()).collect::<Vec<_>>();
+    let spec = JobSpec::new(JobId(5), Action::Plugins, Vec::new()).writing();
+    for id in ["plugins-enable", "plugins-disable"] {
+        let job = direct::for_command(id, &words(&["--instance", "/i"])).unwrap();
+        let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+        assert_eq!(out.code, Some(5), "{id}: no plugin named: {out:?}");
+        // A plugin named, in a folder that is no Instance: refused, and nothing is written.
+        let nowhere = s(&std::env::temp_dir().join("no-such-instance-for-the-switch"));
+        let job = direct::for_command(id, &words(&["Some.esp", "--instance", &nowhere])).unwrap();
+        let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+        assert_ne!(out.code, Some(0), "{id}: {out:?}");
+    }
+}

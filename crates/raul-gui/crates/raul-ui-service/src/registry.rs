@@ -442,6 +442,22 @@ pub const COMMANDS: &[Command] = &[
         awaits: None,
     },
     Command {
+        id: "plugins-enable",
+        action: Action::Plugins,
+        words: &["enable"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
+        id: "plugins-disable",
+        action: Action::Plugins,
+        words: &["disable"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: true,
+        awaits: None,
+    },
+    Command {
         id: "sort-preview",
         action: Action::Sort,
         words: &[],
