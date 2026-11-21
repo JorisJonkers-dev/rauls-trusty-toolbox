@@ -9,10 +9,15 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
         [flag] if flag == "--json" => true,
         _ => return crate::usage(err, "version takes only --json"),
     };
-    let version = env!("CARGO_PKG_VERSION");
     if json {
-        let v = serde_json::json!({ "raul": version });
+        let v = document();
         return crate::write_or_fail(out, err, &format!("{v}\n"));
     }
-    crate::write_or_fail(out, err, &format!("raul {version}\n"))
+    crate::write_or_fail(out, err, &format!("raul {}\n", env!("CARGO_PKG_VERSION")))
+}
+
+/// The document `raul version --json` prints; the window's direct job prints the same one.
+#[must_use]
+pub fn document() -> serde_json::Value {
+    serde_json::json!({ "raul": env!("CARGO_PKG_VERSION") })
 }

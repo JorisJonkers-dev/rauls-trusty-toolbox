@@ -271,3 +271,23 @@ fn a_failure_of_a_read_has_no_repro_command_line() {
         .view_error();
     assert_eq!(e.repro, None);
 }
+
+#[test]
+fn version_prints_what_the_command_line_prints() {
+    assert_same(
+        &direct_output("version", &[]),
+        &cli_output(&["version", "--json"]),
+    );
+}
+
+#[test]
+fn detect_in_a_folder_prints_what_the_command_line_prints_and_ends_alike_when_nothing_is_found() {
+    // An Instance folder holds no game: the document is an empty list and the code is the command's "nothing found".
+    let inst = Instance::new();
+    let dir = s(&inst.root());
+    let direct = direct_output("detect", &["--folder", &dir]);
+    let cli = cli_output(&["detect", "--folder", &dir, "--json"]);
+    assert_same(&direct, &cli);
+    assert_eq!(direct.stdout.trim(), "[]");
+    assert_eq!(direct.code, Some(i64::from(raul_cli::FOUND)));
+}

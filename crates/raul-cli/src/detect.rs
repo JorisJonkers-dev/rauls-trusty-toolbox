@@ -7,6 +7,16 @@ use std::path::PathBuf;
 
 use raul_core::detect::{Game, GameCopy, SearchRoots, detect, inspect};
 
+/// The game copies `raul detect` reports: the one in `folder`, or every copy on this machine. The window's direct
+/// job calls the same function.
+#[must_use]
+pub fn copies(folder: Option<&std::path::Path>) -> Vec<GameCopy> {
+    match folder {
+        Some(dir) => inspect(dir).into_iter().collect(),
+        None => detect(&SearchRoots::for_this_machine()),
+    }
+}
+
 pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let mut json = false;
     let mut folder = None;
@@ -21,10 +31,7 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
             other => return crate::usage(err, &format!("unknown option {other}")),
         }
     }
-    let copies: Vec<GameCopy> = match &folder {
-        Some(dir) => inspect(dir).into_iter().collect(),
-        None => detect(&SearchRoots::for_this_machine()),
-    };
+    let copies = copies(folder.as_deref());
     let code = if copies.is_empty() {
         crate::FOUND
     } else {
