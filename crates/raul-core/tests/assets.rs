@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! ADR-0014: only our own and openly licensed assets ship. Every non-code asset in the repository is listed in
 //! `packaging/NOTICE-assets.toml` with its source and licence, and no game-style file or path is in it (also not as
-//! a fixture). Runs with the workspace tests in pull-request CI.
+//! a fixture). It walks the working tree (no git needed). Runs with the workspace tests in pull-request CI.
 
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 /// Extensions of files that are art, fonts, audio or documents shown to people: not code, so they need a listing.
 const ASSET_EXTENSIONS: [&str; 22] = [
@@ -26,8 +25,7 @@ const GENERATED: [&str; 1] = ["crates/raul-gui/tests/snapshots/"];
 fn extension(path: &str) -> String {
     Path::new(path)
         .extension()
-        .map(|e| e.to_string_lossy().to_lowercase())
-        .unwrap_or_default()
+        .map_or_else(String::new, |e| e.to_string_lossy().to_lowercase())
 }
 
 /// What is wrong with `files` (paths from the repository root) given the `listed` assets; empty when nothing is.
@@ -72,21 +70,31 @@ fn root() -> PathBuf {
         .unwrap()
 }
 
+/// Every file of the working tree, from the root, except what is not the repository's own: git's folder, build
+/// output, installed packages and the submodules (other repositories with their own checks).
 fn tracked() -> Vec<String> {
-    let out = Command::new("git")
-        .args(["ls-files", "-z"])
-        .current_dir(root())
-        .output()
-        .expect("git is needed to list the files of the repository");
-    assert!(out.status.success(), "git ls-files failed");
-    String::from_utf8(out.stdout)
-        .unwrap()
-        .split('\0')
-        .filter(|f| !f.is_empty())
-        // Submodules are other repositories with their own checks.
-        .filter(|f| !f.starts_with("components/"))
-        .map(str::to_owned)
-        .collect()
+    fn walk(dir: &Path, root: &Path, found: &mut Vec<String>) {
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            let name = path.file_name().unwrap().to_string_lossy().into_owned();
+            if path.is_dir() {
+                if !matches!(
+                    name.as_str(),
+                    ".git" | "target" | "node_modules" | "components"
+                ) {
+                    walk(&path, root, found);
+                }
+            } else {
+                let relative = path.strip_prefix(root).unwrap();
+                found.push(relative.to_string_lossy().replace('\\', "/"));
+            }
+        }
+    }
+    let root = root();
+    let mut found = Vec::new();
+    walk(&root, &root, &mut found);
+    found.sort();
+    found
 }
 
 fn listed() -> BTreeSet<String> {
@@ -113,7 +121,10 @@ fn the_repository_has_no_unlisted_asset_and_no_game_style_file() {
 #[test]
 fn an_unlisted_asset_fails_and_a_listed_one_passes() {
     let listed: BTreeSet<String> = ["art/logo.png".to_owned()].into();
-    assert!(problems(&strings(&["art/logo.png", "src/main.rs"]), &listed).is_empty());
+    assert_eq!(
+        problems(&strings(&["art/logo.png", "src/main.rs"]), &listed),
+        Vec::<String>::new()
+    );
     let found = problems(&strings(&["art/logo.png", "art/other.PNG"]), &listed);
     assert_eq!(found.len(), 1, "{found:?}");
     assert!(found[0].starts_with("art/other.PNG: not listed"));
