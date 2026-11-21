@@ -7,18 +7,26 @@ Fallout: New Vegas, running natively on Linux, Windows and macOS. It finds your 
 Tale of Two Wastelands if you want it, installs and sorts your mods, builds distant LOD and
 launches the game through the nv-rs engine port, all from one window or one command line.
 
-**Status: early.** `raul` runs from the command line today: it finds your game, checks the pinned
-Components and runs every nvmod command. The GUI arrives when it moves here from nvmod-rs. The plan is in
-[`docs/PLAN.md`](docs/PLAN.md) and the reorganisation that refines it in [`docs/REORG.md`](docs/REORG.md), the design in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), decisions in
+**Status: first release (v0.6.0).** One window and the same commands on the command line: the setup wizard, Tale of
+Two Wastelands, Mods, Load order, distant LOD and Play, on Linux, Windows and macOS. The installers are built and
+smoke-tested for all three systems; Windows and macOS have not yet had a full run on real hardware. The Windows and macOS
+packages are unsigned, the icon is a placeholder, and packing the generated LOD into one archive is experimental and
+off. The plan is in [`docs/PLAN.md`](docs/PLAN.md) and the reorganisation that refines it in [`docs/REORG.md`](docs/REORG.md), the design in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), decisions in
 [`docs/adr`](docs/adr) and terms in [`GLOSSARY.md`](GLOSSARY.md).
 
-<!-- Screenshots go here once the GUI ships. -->
+<!-- Screenshots go here. -->
 
 ## Install
 
 Download the package for your system from the
 [latest release](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/latest) and check it against
-`SHA256SUMS` (or `gh attestation verify <file> --repo JorisJonkers-dev/rauls-trusty-toolbox`).
+`SHA256SUMS`: `sha256sum -c SHA256SUMS --ignore-missing` in the download folder (Linux), or compare
+`shasum -a 256 <file>` (macOS) or `Get-FileHash <file>` (Windows PowerShell) with the matching line of that file.
+That needs nothing else installed.
+
+To also check where the file was built, use `gh attestation verify <file> --repo JorisJonkers-dev/rauls-trusty-toolbox`.
+It needs GitHub CLI 2.49 or newer (the `gh` package of many distributions is older and has no `attestation` command) and
+a GitHub login (`gh auth login`), because GitHub asks for one even for a public repository.
 
 | System | Package | Notes |
 | --- | --- | --- |
