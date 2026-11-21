@@ -603,16 +603,8 @@ fn sort_request(
 
 /// The pinned masterlist, fetched into the store when it is not there yet. Fetching is not a job of nvmod's API (its
 /// sort takes the file, "the caller fetches and verifies it"); raul-core does it, as `raul sort --fetch-masterlist`.
-fn fetch_masterlist(
-    instance: &Path,
-    lock: Option<&Path>,
-    store: Option<&Path>,
-) -> Result<PathBuf, JobError> {
-    fetch_masterlist_noting(instance, lock, store).map(|(file, _)| file)
-}
-
-/// [`fetch_masterlist`], and a plain line to show when the file was already in the store: nothing is downloaded then
-/// (the store is checked against the pinned checksum first), which is also why the sort works with no network.
+/// Also a plain line to show when the file was already in the store: nothing is downloaded then (the store is
+/// checked against the pinned checksum first), which is also why the sort works with no network.
 fn fetch_masterlist_noting(
     instance: &Path,
     lock: Option<&Path>,
