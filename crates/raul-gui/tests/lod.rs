@@ -13,8 +13,7 @@ use raul_core::context::Context;
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::lod::{
-    CURRENT_STATUS, DONE_STATUS, GENERATE, STATE_CURRENT, STATE_GENERATING_START, STOP,
-    STOPPED_STATUS,
+    CURRENT_STATUS, DONE_STATUS, GENERATE, STATE_CURRENT, STOP, STOPPED_STATUS,
 };
 use raul_gui::shell::App;
 use raul_ui_service::{Exec, InProcessExec};
@@ -206,7 +205,7 @@ fn stop_ends_the_run_and_adds_nothing() {
     h.run_steps(8);
     assert!(
         // The header and the status line can both say it, so ask for every match.
-        h.query_all_by_label_contains(STATE_GENERATING_START)
+        h.query_all_by_label_contains("you can leave this page")
             .next()
             .is_some(),
         "the run shows while it goes"
