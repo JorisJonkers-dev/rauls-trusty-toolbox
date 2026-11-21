@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795269367530,
+  "lastUpdate": 1795269902973,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10093,6 +10093,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.720453,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "973f6a6a120495661eceef59e3b7c74bd48e4d39",
+          "message": "docs(release): the release notes open with how to install and check a download, and a repeated run does not add the sections twice (#516) (#523)",
+          "timestamp": "2026-11-21T14:02:58Z",
+          "tree_id": "dbaeb1538bbec8a07c53bb8726c026a27051c155",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/973f6a6a120495661eceef59e3b7c74bd48e4d39"
+        },
+        "date": 1795269902075,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.470345,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.337921,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 29.282253,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.150525,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.358492,
             "unit": "ms"
           }
         ]
