@@ -330,6 +330,20 @@ impl State {
         self.problem = None;
     }
 
+    /// The mod list holds no generated LOD Mod (the person deleted it): what the last run of this session built is
+    /// not there any more, so the blocks go back to "not generated" and the result line goes away. Not while a run
+    /// is on its way.
+    pub fn mod_gone(&mut self) {
+        if self.phase == Phase::Planned
+            && self
+                .outcome
+                .as_ref()
+                .is_some_and(|o| o.status == Status::Success && !o.dry_run)
+        {
+            self.outcome = None;
+        }
+    }
+
     /// The step that ran failed: back to the plan, with the problem shown.
     pub fn failed(&mut self, problem: Problem) {
         self.phase = Phase::Planned;
@@ -500,6 +514,28 @@ mod tests {
         assert_eq!((b[0].status, b[0].files), (BlockStatus::Built, 12));
         assert_eq!(s.not_current(), 0);
         assert!(s.problem.is_none(), "a problem from during the run is over");
+    }
+
+    #[test]
+    fn a_deleted_mod_takes_the_result_of_the_run_with_it() {
+        let mut s = State::default();
+        s.planned(plan(&["A"]));
+        let mut o = read_result(&fixture("lod-up-to-date.ndjson")).unwrap();
+        o.worlds = vec!["A".into()];
+        s.generated(o);
+        assert!(s.blocks().iter().all(|b| b.status == BlockStatus::UpToDate));
+        s.generating();
+        s.mod_gone();
+        assert_eq!(s.phase, Phase::Generating, "a run on its way is left alone");
+        assert!(s.outcome.is_some());
+        s.generated(s.outcome.clone().unwrap());
+        s.mod_gone();
+        assert!(s.outcome.is_none());
+        assert!(
+            s.blocks()
+                .iter()
+                .all(|b| b.status == BlockStatus::NotGenerated)
+        );
     }
 
     #[test]
