@@ -25,6 +25,7 @@ pub use lod::{LodJob, generate_job as lod_generate_job, generate_job_in as lod_g
 pub use lod::{
     Refusal as LodRefusal, mods_document as lod_mods_document, plan_document as lod_plan_document,
 };
+pub use lod_settings::answer as lod_settings_answer;
 pub use ttw::{TtwJob, install_job as ttw_install_job, install_job_in as ttw_install_job_in};
 pub use version::document as version_document;
 

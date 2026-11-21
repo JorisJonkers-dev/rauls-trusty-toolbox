@@ -309,6 +309,8 @@ pub fn for_command_in(
         "install" => {
             Some(install_command_request(rest).map_or_else(DirectJob::usage, |r| install_mod(&r)))
         }
+        "lod-settings-show" | "lod-settings-set" | "lod-settings-unset" | "lod-settings-reset"
+        | "lod-settings-undo" => Some(lod_settings(id, rest, ctx)),
         "lod-plan" => Some(lod_read(rest, ctx, raul_cli::lod_plan_document)),
         "lod-mods" => Some(lod_read(rest, ctx, raul_cli::lod_mods_document)),
         "version" => Some(version()),
@@ -389,6 +391,34 @@ pub fn lod_read(
                 let (line, _) = r.render();
                 JobError::new(ErrorKind::Refused, "lod.read", line)
             })
+        },
+    )
+}
+
+/// `raul lod settings show|set|unset|reset|undo`: a Profile's LOD settings, read or written in process. Like the command
+/// it takes no Instance lock (the settings functions refuse while a LOD run is in progress); the answer is the
+/// `raul-lod-settings` document, a refusal is that document too, with the command's exit code.
+pub fn lod_settings(id: &str, rest: &[String], ctx: &raul_core::context::Context) -> DirectJob {
+    let verb = id.strip_prefix("lod-settings-").unwrap_or(id).to_owned();
+    let rest: Vec<String> = rest.iter().filter(|w| *w != "--json").cloned().collect();
+    let ctx = ctx.clone();
+    DirectJob::reading_as(
+        move |_, _| -> Result<Outcome<Option<(serde_json::Value, u8)>>, JobError> {
+            Ok(Outcome::Done(raul_cli::lod_settings_answer(
+                &ctx, &verb, &rest,
+            )))
+        },
+        |answer: &Option<(serde_json::Value, u8)>| {
+            Ok(answer.as_ref().map_or(
+                Reply {
+                    json: serde_json::Value::Null,
+                    exit: raul_cli::USAGE,
+                },
+                |(json, exit)| Reply {
+                    json: json.clone(),
+                    exit: *exit,
+                },
+            ))
         },
     )
 }
