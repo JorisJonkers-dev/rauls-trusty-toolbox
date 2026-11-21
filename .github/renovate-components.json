@@ -22,7 +22,8 @@
   "timezone": "Etc/UTC",
   "minimumReleaseAge": null,
   "prHourlyLimit": 0,
-  "prConcurrentLimit": 0,
+  "prConcurrentLimit": 1,
+  "pruneStaleBranches": false,
   "branchPrefix": "renovate-components/",
   "rebaseWhen": "behind-base-branch",
   "automerge": true,
@@ -109,6 +110,13 @@
       "description": "loot-rs moves with nvmod (ADR-0015): the bump script takes the loot-rs tag nvmod links, so a loot-rs release alone is not an update here until nvmod links it.",
       "matchDepNames": [
         "loot-rs"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "nv-rs is held out of the follower until 2026-11-24 23:10 UTC (#384, #472): its newest releases need zip 9.7 and zeroize 1.9.2, which the 7-day age rule does not yet allow, so a hand-made bump PR (#384) carries it and its branch renovate-components/nv-rs-0.x must stay as it is. With prConcurrentLimit 1 that held branch took the only slot and blocked every other Component's bump. Remove this rule when #384 has merged.",
+      "matchDepNames": [
+        "nv-rs"
       ],
       "enabled": false
     },

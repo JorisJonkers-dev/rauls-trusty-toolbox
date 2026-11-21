@@ -156,3 +156,64 @@ fn a_run_that_outlasts_its_timeout_is_stopped_and_leaves_the_mod_alone() {
     assert!(message.contains("was not touched"), "{message}");
     assert_eq!(f.state(), before, "a timed out run changed the Instance");
 }
+
+/// A process kill (no chance to clean up) in the middle of a run leaves the LOD Mod and its place in the Profile as
+/// they were; the next run with the same settings finishes and replaces the Mod only at its end.
+#[test]
+fn a_killed_run_leaves_the_existing_lod_mod_alone_and_the_next_run_finishes() {
+    let f = Fixture::new("raul-lodkill");
+    // The built binary, not the library: a stop request in the other tests of this file is process-wide.
+    let first = f.raul(&["lod", "generate", "--instance", s(&f.instance())]);
+    assert!(first.status.success(), "{first:?}");
+    let first_state = f.state();
+    // Other settings make the LOD out of date, so the next run builds again.
+    std::fs::write(
+        f.instance().join("profiles/Default/raul-lod.toml"),
+        "threads = 1\n[output]\ntrees = false\n",
+    )
+    .unwrap();
+    let before = f.state();
+
+    let mut child = Command::new(env!("CARGO_BIN_EXE_raul"))
+        .args(["lod", "generate", "--instance", s(&f.instance())])
+        .env("RAUL_CONFIG_DIR", f.path("config"))
+        .env("NVMOD_STATE_DIR", f.path("state"))
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let staging = f.instance().join(".raul/lod/Default/out.lodwright-staging");
+    let waited = Instant::now();
+    while !staging.is_dir() {
+        assert!(
+            waited.elapsed() < Duration::from_secs(60),
+            "the run never started its staging folder"
+        );
+        std::thread::sleep(Duration::from_millis(2));
+    }
+    child.kill().unwrap();
+    let status = child.wait().unwrap();
+    assert!(
+        !status.success(),
+        "the run finished before the kill: {status:?}"
+    );
+    assert_eq!(
+        f.state(),
+        before,
+        "a killed run changed the Mod or the Profile"
+    );
+
+    let again = f.raul(&["lod", "generate", "--instance", s(&f.instance())]);
+    assert!(again.status.success(), "{again:?}");
+    assert_ne!(
+        f.state(),
+        first_state,
+        "the next run did not replace the Mod"
+    );
+    assert!(
+        !f.instance()
+            .join(".raul/lod/Default/out.lodwright-staging")
+            .exists(),
+        "the staging folder is gone after the swap"
+    );
+}

@@ -279,6 +279,15 @@ impl Progress {
     }
 }
 
+/// A time taken in plain words: `42 s`, `3 min 5 s`, `1 h 2 min`.
+pub fn elapsed_words(seconds: u64) -> String {
+    match seconds {
+        0..60 => format!("{seconds} s"),
+        60..3600 => format!("{} min {} s", seconds / 60, seconds % 60),
+        _ => format!("{} h {} min", seconds / 3600, seconds % 3600 / 60),
+    }
+}
+
 /// The state of the LOD page.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct State {
@@ -328,6 +337,20 @@ impl State {
         self.outcome = Some(outcome);
         self.phase = Phase::Planned;
         self.problem = None;
+    }
+
+    /// The mod list holds no generated LOD Mod (the person deleted it): what the last run of this session built is
+    /// not there any more, so the blocks go back to "not generated" and the result line goes away. Not while a run
+    /// is on its way.
+    pub fn mod_gone(&mut self) {
+        if self.phase == Phase::Planned
+            && self
+                .outcome
+                .as_ref()
+                .is_some_and(|o| o.status == Status::Success && !o.dry_run)
+        {
+            self.outcome = None;
+        }
     }
 
     /// The step that ran failed: back to the plan, with the problem shown.
@@ -503,6 +526,28 @@ mod tests {
     }
 
     #[test]
+    fn a_deleted_mod_takes_the_result_of_the_run_with_it() {
+        let mut s = State::default();
+        s.planned(plan(&["A"]));
+        let mut o = read_result(&fixture("lod-up-to-date.ndjson")).unwrap();
+        o.worlds = vec!["A".into()];
+        s.generated(o);
+        assert!(s.blocks().iter().all(|b| b.status == BlockStatus::UpToDate));
+        s.generating();
+        s.mod_gone();
+        assert_eq!(s.phase, Phase::Generating, "a run on its way is left alone");
+        assert!(s.outcome.is_some());
+        s.generated(s.outcome.clone().unwrap());
+        s.mod_gone();
+        assert!(s.outcome.is_none());
+        assert!(
+            s.blocks()
+                .iter()
+                .all(|b| b.status == BlockStatus::NotGenerated)
+        );
+    }
+
+    #[test]
     fn a_failed_up_to_date_or_dry_run_shows_on_every_block() {
         let mut s = State::default();
         s.planned(plan(&["A", "B"]));
@@ -547,5 +592,15 @@ mod tests {
             "raul lod generate --instance /i"
         );
         assert!(generate_command("/i").writes && !plan_command("/i").writes);
+    }
+
+    #[test]
+    fn a_time_taken_is_said_in_plain_words() {
+        assert_eq!(elapsed_words(0), "0 s");
+        assert_eq!(elapsed_words(59), "59 s");
+        assert_eq!(elapsed_words(60), "1 min 0 s");
+        assert_eq!(elapsed_words(75), "1 min 15 s");
+        assert_eq!(elapsed_words(3599), "59 min 59 s");
+        assert_eq!(elapsed_words(3720), "1 h 2 min");
     }
 }

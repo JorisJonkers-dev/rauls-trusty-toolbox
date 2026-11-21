@@ -18,13 +18,14 @@ use eframe::egui::{self, RichText};
 use raul_ui_model::pages::mods::{
     Filter, GeneratedList, GeneratedRow, ModEntry, Phase, Problem, StaleRow, Staleness, State,
     disable_command, enable_command, generated_command, list_command, move_command,
-    parse_generated, parse_list, remove_command,
+    parse_generated, parse_list, remove_command, undo_command,
 };
 use raul_ui_model::pages::mods_install::{self as install_model, Installed, Phase as InstallPhase};
 use raul_ui_model::pages::settings::Command;
 use raul_ui_model::pages::{PageId, View};
 use raul_ui_model::wizard::{FomodOption, FomodQuestion, FomodWizard, GroupRule, OptionKind};
 use raul_ui_service::Output;
+use raul_ui_service::dto::RollbackReport;
 
 crate::texts!(TEXTS {
     STATE_NO_INSTANCE = "No Instance yet";
@@ -82,6 +83,14 @@ crate::texts!(TEXTS {
     DISABLED_STATUS = "Mod disabled.";
     MOVED_STATUS = "Mod moved.";
     REMOVED_STATUS = "Mod removed.";
+    UNDO = "Undo";
+    UNDO_HOVER = "Takes back the last change to the mod list.";
+    UNDO_NOTHING = "Nothing to undo.";
+    UNDO_ENABLED = "Undo turns {name} off again.";
+    UNDO_DISABLED = "Undo turns {name} back on, with its plugins as they were.";
+    UNDO_MOVED = "Undo puts {name} back where it was.";
+    UNDO_REMOVED = "Undo brings {name} back from the trash.";
+    UNDONE_STATUS = "Last change undone.";
     UNREADABLE = "The command finished, but what it printed could not be read.";
 });
 
@@ -97,6 +106,14 @@ crate::errors!(ERRORS {
     CHANGE_FAILED = (
         "The mod list was not changed",
         "Nothing changed. The line below says why."
+    );
+    UNDO_FAILED = (
+        "The last change was not undone",
+        "The mod list is as it was. The line below says why."
+    );
+    UNDO_OTHER = (
+        "Undo took back another change",
+        "The last change of the Instance was not a mod list change. Run the Doctor and check the mod list."
     );
     REMOVE_FAILED = (
         "The Mod was not removed",
@@ -132,6 +149,7 @@ enum Job {
     Disable,
     Move,
     Remove,
+    Undo,
 }
 
 impl Mods {
@@ -146,7 +164,7 @@ impl Mods {
     fn command(&self, job: Job) -> Option<Command> {
         let i = self.state.instance.as_deref()?;
         let (name, to) = match (&self.target, job) {
-            (_, Job::List | Job::Generated) => ("", 0),
+            (_, Job::List | Job::Generated | Job::Undo) => ("", 0),
             (Some((name, to)), _) => (name.as_str(), *to),
             (None, _) => return None,
         };
@@ -157,6 +175,7 @@ impl Mods {
             Job::Disable => disable_command(i, name),
             Job::Move => move_command(i, name, to),
             Job::Remove => remove_command(i, name),
+            Job::Undo => undo_command(i),
         })
     }
 
@@ -230,6 +249,21 @@ impl Mods {
                         }
                     }
                 }
+                Job::Undo => match answer(&result).and_then(|out| {
+                    serde_json::from_str::<RollbackReport>(out.stdout.trim())
+                        .map_err(|e| e.to_string())
+                }) {
+                    Ok(r) => {
+                        self.state.undone();
+                        self.read(cx);
+                        if r.kind == "mods" {
+                            cx.shell.status = Some(UNDONE_STATUS.to_owned());
+                        } else {
+                            self.state.problem = Some(problem(&UNDO_OTHER, r.kind));
+                        }
+                    }
+                    Err(why) => self.state.failed(problem(&UNDO_FAILED, why)),
+                },
                 Job::Enable | Job::Disable | Job::Move | Job::Remove => {
                     let failed = if job == Job::Remove {
                         &REMOVE_FAILED
@@ -247,6 +281,17 @@ impl Mods {
                                 }
                                 .to_owned(),
                             );
+                            if let Some((name, _)) = &self.target {
+                                self.state.undoable(
+                                    match job {
+                                        Job::Enable => UNDO_ENABLED,
+                                        Job::Disable => UNDO_DISABLED,
+                                        Job::Move => UNDO_MOVED,
+                                        _ => UNDO_REMOVED,
+                                    }
+                                    .replace("{name}", name),
+                                );
+                            }
                             self.read(cx);
                         }
                         Err(why) => self.state.failed(problem(failed, why)),
@@ -268,6 +313,25 @@ impl Mods {
                 .with_command(remove_command(instance, name).shown())
                 .danger(),
         );
+    }
+
+    /// Undo for the last change of the list, with what it would take back; off when there is nothing to undo.
+    fn undo_row(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>, t: &Tokens, instance: &str) {
+        let can = self.state.undo.is_some() && !self.state.busy();
+        let mut clicked = false;
+        ui.horizontal_wrapped(|ui| {
+            clicked = ui
+                .add_enabled(can, egui::Button::new(UNDO))
+                .on_hover_text(UNDO_HOVER)
+                .on_hover_text(undo_command(instance).shown())
+                .clicked();
+            let line = self.state.undo.as_deref().unwrap_or(UNDO_NOTHING);
+            ui.add(egui::Label::new(RichText::new(line).color(t.muted.color())).wrap());
+        });
+        ui.add_space(8.0);
+        if clicked {
+            self.run(cx, Job::Undo);
+        }
     }
 
     /// The search, the filter, and what they hide (UI-RULES T7).
@@ -536,17 +600,14 @@ impl Page for Mods {
             self.read(cx);
         }
         self.take_answers(cx);
-        // The answer counts only for the Mod the dialog named, and only while nothing runs.
+        // The answer counts only for the Mod the dialog named (the generated LOD Mod too: its Delete asks here), and only
+        // while nothing runs.
         if let Some(answer) = cx.dialogs.take_answer(REMOVE_DIALOG) {
             let asked = self.asked.take();
             if answer == Answer::Confirmed
                 && self.state.phase == Phase::Listed
                 && let Some(name) = asked
-                && self
-                    .state
-                    .mods
-                    .iter()
-                    .any(|m| m.name == name && m.generated.is_none())
+                && self.state.mods.iter().any(|m| m.name == name)
             {
                 self.change(cx, Job::Remove, name, 0);
             }
@@ -574,6 +635,7 @@ impl Page for Mods {
             self.read(cx);
         }
         ui.add_space(12.0);
+        self.undo_row(ui, cx, &t, &instance);
         if self.state.phase == Phase::Loading && self.state.mods.is_empty() {
             waiting(ui, &t, READING, &list_command(&instance));
             return;
@@ -685,6 +747,8 @@ fn listed() -> State {
             legacy: false,
             lodwright_version: Some("0.3.0".to_owned()),
             stale: None,
+            generated_at: None,
+            files: None,
         }],
     });
     s
@@ -723,6 +787,8 @@ pub fn fixtures() -> Vec<Fixture> {
     "sample".clone_into(&mut filtered.query);
     let mut changing = selected.clone();
     changing.changing();
+    let mut undoable = selected.clone();
+    undoable.undoable(UNDO_DISABLED.replace("{name}", "Sample Weapons"));
     let mut failed = selected.clone();
     failed.failed(Problem {
         id: REMOVE_FAILED.id,
@@ -833,6 +899,7 @@ pub fn fixtures() -> Vec<Fixture> {
         fixture("generated-off", off),
         fixture("filtered", filtered),
         fixture("changing", changing),
+        fixture("undo-available", undoable),
         fixture("error", failed),
         fixture("long-text", long_text),
         fixture("large-list", large_list),

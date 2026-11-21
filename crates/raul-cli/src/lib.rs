@@ -9,17 +9,30 @@ mod lod;
 mod lod_settings;
 pub mod play;
 mod printer;
+mod program_name;
 mod setup;
+mod sort;
 mod space;
+mod support_bundle;
 mod target;
 mod ttw;
 mod update;
 mod version;
 
+pub use config::json_answer as config_answer;
+pub use detect::copies as detect_copies;
 pub use lod::{LodJob, generate_job as lod_generate_job, generate_job_in as lod_generate_job_in};
+pub use lod::{
+    Refusal as LodRefusal, mods_document as lod_mods_document, plan_document as lod_plan_document,
+};
+pub use lod_settings::answer as lod_settings_answer;
 pub use ttw::{TtwJob, install_job as ttw_install_job, install_job_in as ttw_install_job_in};
+pub use update::{Failure as UpdateFailure, answer as update_answer};
+pub use version::document as version_document;
 
 use std::io::Write;
+
+pub use raul_core::context::Context;
 
 /// Exit code for success.
 pub const OK: u8 = nvmod_cli::OK;
@@ -44,6 +57,7 @@ pub const OWN_COMMANDS: &[&str] = &[
     "setup",
     "ttw",
     "lod",
+    "support-bundle",
     "target",
     "install-nv-rs",
     "help",
@@ -137,6 +151,11 @@ usage:
                               the file as it was in raul-lod.toml.previous; --dry-run names what it would remove
   raul lod settings undo [--instance <dir>] [--profile <name>] [--json]
                               put back the file the last reset kept (one level; a later set or unset ends it)
+  raul support-bundle [--instance <dir>] [--hide-names] [--out <file>] [--apply] [--json]
+                              what a bug report needs, in one zip: versions, system, the folders of `raul config`,
+                              the Instance's Mods, plugins and Doctor report, and the last run logs. Without --apply
+                              it prints the plan; nothing is sent and no game file's contents are read. The home
+                              folder is written as `~`; --hide-names also replaces Mod and plugin names with hashes
   raul run --stop --instance <dir> [--profile <name>] [--json]
                               ask the running game to stop between two frames (the play mode's stop file)
   raul <nvmod command> ...    every nvmod command (install, sort, run, profile, doctor, ...);
@@ -145,6 +164,12 @@ usage:
 
 /// Runs one command line (without the program name) and returns the exit code.
 pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    run_in(&Context::default(), args, out, err)
+}
+
+/// [`run`] with the folders and switches of `ctx` instead of the person's own: how the window and the tests run a
+/// command without touching the environment of the process.
+pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     match args.first().map(String::as_str) {
         None | Some("help" | "--help" | "-h") => write_or_fail(out, err, HELP),
         Some("--version" | "-V") => version::run(&[], out, err),
@@ -152,21 +177,58 @@ pub fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         Some("detect") => detect::run(&args[1..], out, err),
         Some("space") => space::run(&args[1..], out, err),
         Some("bench") => bench::run(&args[1..], out, err),
-        Some("update") => update::run(&args[1..], out, err),
-        Some("config") => config::run(&args[1..], out, err),
+        Some("update") => update::run(ctx, &args[1..], out, err),
+        Some("config") => config::run(ctx, &args[1..], out, err),
         Some("setup") => setup::run(&args[1..], out, err),
-        Some("ttw") => ttw::run(&args[1..], out, err),
-        Some("lod") => lod::run(&args[1..], out, err),
+        Some("ttw") => ttw::run(ctx, &args[1..], out, err),
+        Some("lod") => lod::run(ctx, &args[1..], out, err),
+        Some("support-bundle") => support_bundle::run(ctx, &args[1..], out, err),
         Some("install-nv-rs") => gone_install_nv_rs(err),
         Some("target") => target::run(args, out, err),
         Some("run") if args.iter().any(|a| a == "--stop") => play::stop(&args[1..], out, err),
         Some("run") if play::enabled() => run_in_play_mode(args, out, err),
-        Some("nvmod-help") => nvmod_cli::run_logged(&["--help".to_string()], out, err),
+        Some("run") if args.iter().any(|a| a == "--json") => {
+            play::run_plain(args, ctx.run_log(), out, err)
+        }
+        Some("run") => {
+            let mut out = program_name::Renamed::new(out);
+            let mut err = program_name::Renamed::new(err);
+            play::run_plain(args, ctx.run_log(), &mut out, &mut err)
+        }
+        Some("sort") => match sort::prepare(&args[1..], err) {
+            Ok(None) => nvmod(ctx, args, out, err),
+            Ok(Some(rest)) => {
+                let mut words = vec!["sort".to_owned()];
+                words.extend(rest);
+                nvmod(ctx, &words, out, err)
+            }
+            Err(code) => code,
+        },
+        Some("nvmod-help") => nvmod(ctx, &["--help".to_string()], out, err),
         Some(_) if route(args) == Route::Own => {
             let _ = writeln!(err, "raul: {} has no handler", args[0]);
             FAILED
         }
-        Some(_) => nvmod_cli::run_logged(args, out, err),
+        Some(_) => nvmod(ctx, args, out, err),
+    }
+}
+
+/// An nvmod command, with its run log unless the context says none.
+fn nvmod(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    // A `--json` document is data for a program: its text is not rewritten.
+    if args.iter().any(|a| a == "--json") {
+        return if ctx.run_log() {
+            nvmod_cli::run_logged(args, out, err)
+        } else {
+            nvmod_cli::run(args, out, err)
+        };
+    }
+    let mut out = program_name::Renamed::new(out);
+    let mut err = program_name::Renamed::new(err);
+    if ctx.run_log() {
+        nvmod_cli::run_logged(args, &mut out, &mut err)
+    } else {
+        nvmod_cli::run(args, &mut out, &mut err)
     }
 }
 
@@ -242,6 +304,21 @@ mod tests {
     fn the_commands_that_moved_from_nvmod_are_own_commands() {
         for command in ["config", "setup", "ttw", "lod", "target"] {
             assert!(OWN_COMMANDS.contains(&command), "{command}");
+        }
+    }
+
+    /// `raul run` without a target is refused by nvmod's usage rule before anything starts; the words say `raul`,
+    /// except in a `--json` run, where the text is left as it is.
+    #[test]
+    fn a_run_with_no_target_is_a_usage_error_that_names_raul() {
+        let ctx = Context::default().without_run_log();
+        for (line, renamed) in [(&["run"][..], true), (&["run", "--json"], false)] {
+            let (mut out, mut err) = (Vec::new(), Vec::new());
+            let code = run_in(&ctx, &words(line), &mut out, &mut err);
+            assert_eq!(code, USAGE, "{line:?}");
+            let text = String::from_utf8(err).unwrap() + &String::from_utf8(out).unwrap();
+            assert_eq!(text.contains("raul run"), renamed, "{line:?}: {text}");
+            assert!(renamed || text.contains("nvmod run"), "{text}");
         }
     }
 }

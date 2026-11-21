@@ -58,6 +58,7 @@ fn instance_from(base: &Path, root: &Path, stage: bool) {
                 instance: root.to_owned(),
                 profile: None,
                 copy: true,
+                full: false,
             },
             progress,
             cancel,

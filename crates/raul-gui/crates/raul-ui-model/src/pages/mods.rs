@@ -15,6 +15,11 @@ pub fn list_command(instance: &str) -> Command {
     Command::read("mods-list", 2, &["mods", "list", "--instance", instance])
 }
 
+/// `raul rollback --instance <dir>`: takes back the last change of the Instance, here the last Mods change.
+pub fn undo_command(instance: &str) -> Command {
+    Command::write("rollback", 1, &["rollback", "--instance", instance])
+}
+
 /// `raul lod mods --instance <dir>`: which of them are generated LOD.
 pub fn generated_command(instance: &str) -> Command {
     Command::read("lod-mods", 2, &["lod", "mods", "--instance", instance])
@@ -195,6 +200,9 @@ pub struct State {
     pub problem: Option<Problem>,
     /// The generated LOD Mods, as last read; the entries of the same names are marked.
     pub lod: GeneratedList,
+    /// What Undo would take back, in a plain line: the last change made on this page; `None` when there is nothing to
+    /// undo.
+    pub undo: Option<String>,
 }
 
 impl State {
@@ -252,6 +260,16 @@ impl State {
     pub fn changing(&mut self) {
         self.phase = Phase::Changing;
         self.problem = None;
+    }
+
+    /// A change went through: Undo can take it back, and says what it would take back.
+    pub fn undoable(&mut self, what: String) {
+        self.undo = Some(what);
+    }
+
+    /// The undo went through (or the change it was for is gone): nothing is left to undo here.
+    pub fn undone(&mut self) {
+        self.undo = None;
     }
 
     /// A step failed; the list stays as it was read.
@@ -389,6 +407,12 @@ pub struct GeneratedRow {
     /// How out of date it is, for the Profile's own Mod.
     #[serde(default)]
     pub stale: Option<StaleRow>,
+    /// When it was generated, in seconds since 1970 UTC, when the marker file says.
+    #[serde(default)]
+    pub generated_at: Option<u64>,
+    /// How many files it holds, when the folder could be read.
+    #[serde(default)]
+    pub files: Option<u64>,
 }
 
 /// The staleness `raul lod mods --json` reports: `unknown`, `current`, `may` or `must`, and why.
@@ -593,5 +617,18 @@ mod tests {
             s.selected().is_none(),
             "a removed Mod is no longer selected"
         );
+    }
+
+    #[test]
+    fn a_change_can_be_undone_once_and_the_undo_names_what_it_takes_back() {
+        let mut s = State::default();
+        assert_eq!(s.undo, None, "nothing to undo at first");
+        s.undoable("Undo turns A off again.".to_owned());
+        assert_eq!(s.undo.as_deref(), Some("Undo turns A off again."));
+        s.undone();
+        assert_eq!(s.undo, None);
+        let c = undo_command("/i");
+        assert!(c.writes);
+        assert_eq!(c.shown(), "raul rollback --instance /i");
     }
 }

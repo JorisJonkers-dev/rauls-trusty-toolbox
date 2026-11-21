@@ -7,6 +7,16 @@ use std::path::PathBuf;
 
 use raul_core::detect::{Game, GameCopy, SearchRoots, detect, inspect};
 
+/// The game copies `raul detect` reports: the one in `folder`, or every copy on this machine. The window's direct
+/// job calls the same function.
+#[must_use]
+pub fn copies(folder: Option<&std::path::Path>) -> Vec<GameCopy> {
+    match folder {
+        Some(dir) => inspect(dir).into_iter().collect(),
+        None => detect(&SearchRoots::for_this_machine()),
+    }
+}
+
 pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let mut json = false;
     let mut folder = None;
@@ -21,10 +31,7 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
             other => return crate::usage(err, &format!("unknown option {other}")),
         }
     }
-    let copies: Vec<GameCopy> = match &folder {
-        Some(dir) => inspect(dir).into_iter().collect(),
-        None => detect(&SearchRoots::for_this_machine()),
-    };
+    let copies = copies(folder.as_deref());
     let code = if copies.is_empty() {
         crate::FOUND
     } else {
@@ -67,4 +74,15 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
     }
     crate::write_or_fail(out, err, &text);
     code
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn a_folder_without_a_game_has_no_copies() {
+        let dir = std::env::temp_dir().join(format!("raul-detect-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        assert_eq!(super::copies(Some(&dir)), Vec::new());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }

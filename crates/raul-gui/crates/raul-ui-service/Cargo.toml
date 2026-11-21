@@ -14,7 +14,6 @@ nvmod-loadorder = { workspace = true }
 nvmod-backup = { workspace = true }
 nvmod-core = { workspace = true }
 nvmod-instance = { workspace = true }
-nvmod-tools = { workspace = true }
 raul-core = { workspace = true }
 raul-drivers = { workspace = true }
 raul-cli = { workspace = true }
@@ -25,6 +24,7 @@ serde_json = { workspace = true }
 
 [dev-dependencies]
 nvmod-testkit = { workspace = true }
+sevenz-rust2 = { version = "=0.25.0", default-features = false, features = ["compress"] }
 ttwright-testkit = { path = "../../../../components/ttwright-rs/crates/ttwright-testkit" }
 lodwright-testkit = { path = "../../../../components/lodwright-rs/crates/lodwright-testkit" }
 

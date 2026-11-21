@@ -45,7 +45,20 @@ fn no_page_fixture_shows_a_command_line() {
     let mut found = Vec::new();
     for fixture in pages::fixtures() {
         let name = format!("{}-{}", fixture.page.view().slug(), fixture.name);
-        let app = App::fixture(fixture, Jobs::new(Arc::new(Quiet)));
+        let app = App::fixture(
+            fixture,
+            Jobs::new(Arc::new(Quiet)).scripted(&[
+                "config-list",
+                "config-get",
+                "config-set",
+                "config-unset",
+                "update-check",
+                "update-status",
+                "update-download",
+                "update-install",
+                "update-rollback",
+            ]),
+        );
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {

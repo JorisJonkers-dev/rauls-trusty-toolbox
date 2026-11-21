@@ -51,6 +51,7 @@ crate::texts!(TEXTS {
     DEFAULT_RUN_TIME = "Default: decided at run time";
     DEFAULT_EMPTY = "Default: none";
     LIST_HINT = "Separate names with commas";
+    SCALES_HINT = "Record id and number, like 0012AB34=2, with commas between";
     MARK_SET = "Changed";
     MARK_SAVING = "Saving";
     MARK_NOT_SAVED = "Not saved";
@@ -280,20 +281,20 @@ impl LodSettings {
         cx.dialogs.open(dialog);
     }
 
-    fn read_prefs(&mut self) {
+    fn read_prefs(&mut self, cx: &PageCx<'_>) {
         if self.prefs_read {
             return;
         }
         self.prefs_read = true;
-        if let Some(path) = raul_core::update::Settings::default_path() {
+        if let Some(path) = cx.jobs.context().settings_file() {
             self.state.understood |=
                 raul_core::update::Settings::load(&path).lod_advanced_understood;
         }
     }
 
-    fn understood_now(&mut self) {
+    fn understood_now(&mut self, cx: &PageCx<'_>) {
         self.state.understood = true;
-        if let Some(path) = raul_core::update::Settings::default_path() {
+        if let Some(path) = cx.jobs.context().settings_file() {
             let mut prefs = raul_core::update::Settings::load(&path);
             prefs.lod_advanced_understood = true;
             // The box stays ticked for this visit even when the preference cannot be written.
@@ -323,6 +324,9 @@ fn level_of(key: &str) -> Option<u32> {
 
 fn default_text(row: &OptionRow) -> String {
     match &row.default {
+        // A number that is empty by default (the water depth) is not set, which keeps everything: "none". The worker
+        // count and the memory budget are whole numbers the program decides when unset.
+        Value::Null if row.kind == Kind::Number => DEFAULT_EMPTY.to_owned(),
         Value::Null => DEFAULT_RUN_TIME.to_owned(),
         Value::Array(a) if a.is_empty() => DEFAULT_EMPTY.to_owned(),
         Value::Bool(_) => String::new(),
@@ -366,7 +370,7 @@ impl Page for LodSettings {
 
     fn ui(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
-        self.read_prefs();
+        self.read_prefs(cx);
         // The disclosure is closed on every visit, and the options are read again.
         if self.visits.returned(ui.ctx()) {
             self.state.advanced_open = false;
@@ -509,7 +513,7 @@ impl LodSettings {
                 .changed()
                 && understood
             {
-                self.understood_now();
+                self.understood_now(cx);
             }
             let open = self.state.understood;
             if !open {
@@ -519,6 +523,8 @@ impl LodSettings {
                 "allow_in_repo",
                 "objects.drop_under_terrain",
                 "objects.drop_under_water",
+                "terrain.drop_under_water",
+                "terrain.texture_scales",
             ] {
                 if let Some(i) = self.index(key)
                     && field(ui, t, &mut self.state.fields[i], open, busy)
@@ -534,7 +540,14 @@ impl LodSettings {
                         .text_style(theme::secondary_style())
                         .color(t.muted.color()),
                 );
-                for field_name in ["quality", "max_vertices", "diffuse_size", "normal_size"] {
+                for field_name in [
+                    "quality",
+                    "max_vertices",
+                    "diffuse_size",
+                    "normal_size",
+                    "specular_alpha",
+                    "skirts",
+                ] {
                     let key = format!("levels.{n}.{field_name}");
                     if let Some(i) = self.index(&key)
                         && field(ui, t, &mut self.state.fields[i], open, busy)
@@ -650,7 +663,9 @@ fn field(ui: &mut egui::Ui, t: &Tokens, f: &mut Field, enabled: bool, busy: bool
             .color(t.muted.color()),
     );
     if f.row.kind != Kind::Switch {
-        let hint = if matches!(f.row.kind, Kind::Names | Kind::Records) {
+        let hint = if f.row.kind == Kind::Scales {
+            SCALES_HINT
+        } else if matches!(f.row.kind, Kind::Names | Kind::Records) {
             LIST_HINT
         } else {
             ""
@@ -692,6 +707,7 @@ fn row(key: &str, value: Value, overridden: bool) -> OptionRow {
         raul_drivers::lod::settings::Kind::TextureSize => Kind::TextureSize,
         raul_drivers::lod::settings::Kind::Names => Kind::Names,
         raul_drivers::lod::settings::Kind::Records => Kind::Records,
+        raul_drivers::lod::settings::Kind::Scales => Kind::Scales,
     };
     let default = raul_drivers::lod::settings::default_value(key).unwrap_or(Value::Null);
     OptionRow {
@@ -867,6 +883,7 @@ mod tests {
             Kind::TextureSize => "texture_size",
             Kind::Names => "names",
             Kind::Records => "records",
+            Kind::Scales => "scales",
         }
     }
 
@@ -877,7 +894,16 @@ mod tests {
             .into_iter()
             .find(|f| f.name == "defaults")
             .unwrap();
-        let app = App::fixture(fixture, Jobs::new(exec.clone()));
+        let app = App::fixture(
+            fixture,
+            Jobs::new(exec.clone()).scripted(&[
+                "lod-settings-show",
+                "lod-settings-set",
+                "lod-settings-unset",
+                "lod-settings-reset",
+                "lod-settings-undo",
+            ]),
+        );
         let mut h = Harness::builder()
             .with_size([1280.0, 3200.0])
             .build_eframe(|cc| {
@@ -923,5 +949,75 @@ mod tests {
             shown_name("levels.8.quality"),
             format!("{} ({})", LEVEL.replace("{n}", "8"), opt::QUALITY)
         );
+    }
+
+    #[test]
+    fn every_terrain_level_has_the_shine_row_in_the_advanced_settings() {
+        let fixture = fixtures()
+            .into_iter()
+            .find(|f| f.name == "advanced-open")
+            .unwrap();
+        let app = App::fixture(
+            fixture,
+            Jobs::new(Arc::new(Recording::default())).scripted(&[
+                "lod-settings-show",
+                "lod-settings-set",
+                "lod-settings-unset",
+                "lod-settings-reset",
+                "lod-settings-undo",
+            ]),
+        );
+        let mut h = Harness::builder()
+            .with_size([1280.0, 3600.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            });
+        h.run_steps(4);
+        let shown = h
+            .query_all_by_label(raul_drivers::lod::settings::catalogue::SPECULAR_ALPHA)
+            .count();
+        assert_eq!(shown, 4, "one row for each of the four levels");
+        assert_eq!(
+            shown_name("levels.16.specular_alpha"),
+            format!(
+                "{} ({})",
+                LEVEL.replace("{n}", "16"),
+                raul_drivers::lod::settings::catalogue::SPECULAR_ALPHA
+            )
+        );
+    }
+
+    #[test]
+    fn the_skirts_and_water_depth_rows_are_in_the_advanced_settings() {
+        use raul_drivers::lod::settings::catalogue as c;
+        let fixture = fixtures()
+            .into_iter()
+            .find(|f| f.name == "advanced-open")
+            .unwrap();
+        let app = App::fixture(
+            fixture,
+            Jobs::new(Arc::new(Recording::default())).scripted(&[
+                "lod-settings-show",
+                "lod-settings-set",
+                "lod-settings-unset",
+                "lod-settings-reset",
+                "lod-settings-undo",
+            ]),
+        );
+        let mut h = Harness::builder()
+            .with_size([1280.0, 4200.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            });
+        h.run_steps(4);
+        assert_eq!(
+            h.query_all_by_label(c::SKIRTS).count(),
+            4,
+            "one for each level"
+        );
+        assert_eq!(h.query_all_by_label(c::TERRAIN_DROP_UNDER_WATER).count(), 1);
+        assert_eq!(h.query_all_by_label(c::TEXTURE_SCALES).count(), 1);
     }
 }

@@ -101,7 +101,7 @@ fn lines(pipe: impl Read + Send + 'static, cap: usize) -> mpsc::Receiver<Piped> 
 /// Asks the process group led by `pid` to end, or forces it to. The standard library has no signal call and the
 /// Toolbox forbids `unsafe`, so the system's own program does it.
 #[cfg(unix)]
-fn signal_group(pid: u32, force: bool) {
+pub(crate) fn signal_group(pid: u32, force: bool) {
     let signal = if force { "-KILL" } else { "-TERM" };
     // The group is the Runner's own child; signalling it is part of running it (ADR-0007).
     crate::runner::count_started();
@@ -116,7 +116,7 @@ fn signal_group(pid: u32, force: bool) {
 
 /// Asks the process tree of `pid` to end, or forces it to.
 #[cfg(windows)]
-fn signal_group(pid: u32, force: bool) {
+pub(crate) fn signal_group(pid: u32, force: bool) {
     let pid = pid.to_string();
     let mut args = vec!["/PID", pid.as_str(), "/T"];
     if force {
@@ -134,7 +134,7 @@ fn signal_group(pid: u32, force: bool) {
 }
 
 /// Puts the program in a process group of its own, so a stop reaches the programs it starts too.
-fn own_group(command: &mut Command) {
+pub(crate) fn own_group(command: &mut Command) {
     #[cfg(unix)]
     std::os::unix::process::CommandExt::process_group(command, 0);
     #[cfg(windows)]

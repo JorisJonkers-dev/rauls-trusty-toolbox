@@ -18,9 +18,10 @@ use eframe::egui::{self, RichText};
 use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobId, JobState};
 use raul_ui_model::pages::lod::{
-    BlockStatus, Outcome, Phase, Plan, Problem, Progress, State, Written, generate_command,
-    parse_plan, plan_command, read_result,
+    BlockStatus, Outcome, Phase, Plan, Problem, Progress, State, Written, elapsed_words,
+    generate_command, parse_plan, plan_command, read_result,
 };
+use raul_ui_model::pages::mods::{GeneratedRow, generated_command, parse_generated};
 use raul_ui_model::pages::settings::Command;
 use raul_ui_model::pages::{Attention, Flow, PageId, Severity, View};
 use raul_ui_service::Output;
@@ -34,6 +35,8 @@ crate::texts!(TEXTS {
     STATE_CURRENT = "All blocks up to date";
     STATE_GENERATING = "Generating · {p}% · you can leave this page";
     STATE_GENERATING_START = "Generating · you can leave this page";
+    STATE_GENERATING_STEP = "{what} · {p}% of this step · {elapsed} · you can leave this page";
+    STATE_GENERATING_STEP_START = "{what} · {elapsed} · you can leave this page";
     STATE_STOPPING = "Stopping";
     GENERATE = "Generate";
     CONFIRM_TITLE = "Generate LOD?";
@@ -55,6 +58,14 @@ crate::texts!(TEXTS {
     KIND_TREES = "Trees";
     KIND_NONE = "Nothing: every kind is switched off in the LOD settings";
     KEEPS = "Keeps it as";
+    EXISTING = "In your mod list";
+    EXISTING_CURRENT = "Generated with LOD generator {v}. Nothing has changed since: it is current.";
+    EXISTING_MAY = "Generated with LOD generator {v}. Something changed since that may show in the LOD.";
+    EXISTING_MUST = "Generated with LOD generator {v}. Something changed since that shows in the LOD: generate again.";
+    EXISTING_UNKNOWN = "Generated with LOD generator {v}. Whether it is still current is not known.";
+    EXISTING_BUILT = "Made {when}, {n} files.";
+    EXISTING_BUILT_ONE = "Made {when}, 1 file.";
+    EXISTING_BUILT_WHEN = "Made {when}.";
     KEEPS_VALUE = "One Mod in your mod list. A new run replaces it and keeps its place and whether it is on.";
     WORK_FOLDER = "Work folder";
     COL_BLOCK = "Block";
@@ -111,6 +122,37 @@ crate::errors!(ERRORS {
 
 const GENERATE_DIALOG: &str = "lod-generate";
 
+/// What the mod list says about the generated LOD Mod: the generator that made it and whether it is current.
+fn existing_line(row: &GeneratedRow) -> String {
+    let text = match row.stale.as_ref().map(|s| s.state.as_str()) {
+        Some("current") => EXISTING_CURRENT,
+        Some("may") => EXISTING_MAY,
+        Some("must") => EXISTING_MUST,
+        _ => EXISTING_UNKNOWN,
+    };
+    let line = text.replace(
+        "{v}",
+        row.lodwright_version
+            .as_deref()
+            .unwrap_or("of an earlier release"),
+    );
+    let when = row.generated_at.map(raul_drivers::lod::utc_minute);
+    let made = match (when, row.files) {
+        (Some(when), Some(1)) => Some(EXISTING_BUILT_ONE.replace("{when}", &when)),
+        (Some(when), Some(n)) => Some(
+            EXISTING_BUILT
+                .replace("{when}", &when)
+                .replace("{n}", &n.to_string()),
+        ),
+        (Some(when), None) => Some(EXISTING_BUILT_WHEN.replace("{when}", &when)),
+        (None, _) => None,
+    };
+    match made {
+        Some(made) => format!("{made} {line}"),
+        None => line,
+    }
+}
+
 /// The LOD page.
 #[derive(Debug, Default)]
 pub struct Lod {
@@ -121,12 +163,17 @@ pub struct Lod {
     generate: Option<JobId>,
     /// The Instance the open Generate dialog names.
     asked: Option<String>,
+    /// The Profile's own generated LOD Mod as the mod list has it, read with each plan.
+    existing: Option<GeneratedRow>,
+    /// When the running Generate started, for the time it has taken.
+    started: Option<std::time::Instant>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Job {
     Plan,
     Generate,
+    Existing,
 }
 
 impl Lod {
@@ -143,6 +190,7 @@ impl Lod {
         match job {
             Job::Plan => i.map(plan_command),
             Job::Generate => i.map(generate_command),
+            Job::Existing => i.map(generated_command),
         }
     }
 
@@ -156,7 +204,18 @@ impl Lod {
         };
         match job {
             Job::Plan => self.state.planning(),
-            Job::Generate => self.state.generating(),
+            Job::Generate => {
+                self.state.generating();
+                self.started = Some(std::time::Instant::now());
+            }
+            Job::Existing => {}
+        }
+        if job == Job::Existing {
+            // A read for the page's note: when it cannot be made the note is simply not shown.
+            if let Ok(id) = start(cx, &command) {
+                self.pending.add(job, id);
+            }
+            return;
         }
         match start(cx, &command) {
             Ok(id) => {
@@ -215,6 +274,7 @@ impl Lod {
             ..State::default()
         };
         self.run(cx, Job::Plan);
+        self.run(cx, Job::Existing);
     }
 
     fn track_progress(&mut self, cx: &PageCx<'_>) {
@@ -230,10 +290,29 @@ impl Lod {
         }
     }
 
+    /// What the mod list says about the generated LOD Mod: the Mod itself, or that it is gone.
+    fn read_existing(&mut self, result: &Result<Output, String>) {
+        if let Ok(out) = result
+            && let Ok(list) = parse_generated(&out.stdout)
+        {
+            self.existing = list
+                .mods
+                .iter()
+                .find(|m| m.own)
+                .or_else(|| list.mods.first())
+                .cloned();
+            // A Mod deleted on the Mods page takes the result of this session's run with it.
+            if self.existing.is_none() {
+                self.state.mod_gone();
+            }
+        }
+    }
+
     fn take_answers(&mut self, cx: &mut PageCx<'_>) {
         for (job, result) in self.pending.finished(cx.jobs) {
             let command = self.command(job).map(|c| c.shown());
             match job {
+                Job::Existing => self.read_existing(&result),
                 Job::Plan => match plan_answer(&result) {
                     Ok(plan) => self.state.planned(plan),
                     Err(cause) => self.state.failed(Problem {
@@ -255,6 +334,7 @@ impl Lod {
                         }),
                         Err(why) => Err(why.clone()),
                     };
+                    self.run(cx, Job::Existing);
                     match outcome {
                         Ok(o) => self.finished(cx, o, command),
                         Err(cause) => {
@@ -311,7 +391,13 @@ impl Lod {
         }
     }
 
-    fn plan_section(ui: &mut egui::Ui, t: &Tokens, plan: &Plan, mod_name: Option<&str>) {
+    fn plan_section(
+        ui: &mut egui::Ui,
+        t: &Tokens,
+        plan: &Plan,
+        mod_name: Option<&str>,
+        existing: Option<&GeneratedRow>,
+    ) {
         shell::section_label(ui, t, SECTION_PLAN, true);
         let kinds: Vec<&str> = [
             (plan.terrain, KIND_TERRAIN),
@@ -355,6 +441,11 @@ impl Lod {
                     ui.label(RichText::new(KEEPS_VALUE).color(t.muted.color()));
                 });
                 ui.end_row();
+                if let Some(e) = existing {
+                    label(ui, EXISTING);
+                    ui.add(egui::Label::new(existing_line(e)).wrap());
+                    ui.end_row();
+                }
                 label(ui, WORK_FOLDER);
                 path(ui, t, &plan.output_dir);
                 ui.end_row();
@@ -440,10 +531,9 @@ impl Page for Lod {
         match s.phase {
             Phase::NoInstance => STATE_NO_INSTANCE.to_owned(),
             Phase::Planning => STATE_PLANNING.to_owned(),
-            Phase::Generating => match s.progress.percent() {
-                Some(p) => STATE_GENERATING.replace("{p}", &p.to_string()),
-                None => STATE_GENERATING_START.to_owned(),
-            },
+            Phase::Generating => {
+                generating_line(&s.progress, self.started.map(|at| at.elapsed().as_secs()))
+            }
             Phase::Stopping => STATE_STOPPING.to_owned(),
             Phase::Planned => {
                 let blocks = s.blocks();
@@ -510,6 +600,7 @@ impl Page for Lod {
         self.follow_instance(cx);
         if back && self.state.phase == Phase::Planned {
             self.run(cx, Job::Plan);
+            self.run(cx, Job::Existing);
         }
         self.take_answers(cx);
         // The answer counts only for the Instance the dialog named, and only while nothing runs.
@@ -557,9 +648,17 @@ impl Page for Lod {
                 let what = if self.state.progress.phase.is_empty() {
                     STATE_GENERATING_START.to_owned()
                 } else {
-                    step_text(&self.state.progress.phase).to_owned()
+                    let mut what = step_text(&self.state.progress.phase).to_owned();
+                    if let Some(at) = self.started {
+                        what.push_str(" · ");
+                        what.push_str(&elapsed_words(at.elapsed().as_secs()));
+                    }
+                    what
                 };
                 waiting(ui, &t, &what, &generate_command(&instance));
+                // The time on screen moves once a second.
+                ui.ctx()
+                    .request_repaint_after(std::time::Duration::from_secs(1));
             }
             _ if self.state.problem.is_some() => {}
             _ => {
@@ -583,8 +682,13 @@ impl Page for Lod {
         }
         ui.add_space(12.0);
         if let Some(plan) = self.state.plan.clone() {
-            let mod_name = self.state.outcome.as_ref().and_then(|o| o.mod_name.clone());
-            Self::plan_section(ui, &t, &plan, mod_name.as_deref());
+            let mod_name = self
+                .state
+                .outcome
+                .as_ref()
+                .and_then(|o| o.mod_name.clone())
+                .or_else(|| self.existing.as_ref().map(|e| e.name.clone()));
+            Self::plan_section(ui, &t, &plan, mod_name.as_deref(), self.existing.as_ref());
             ui.add_space(16.0);
             self.blocks(ui, &t);
             ui.add_space(14.0);
@@ -702,6 +806,31 @@ fn outcome(status: Status, up_to_date: bool, worlds: &[&str]) -> Outcome {
 }
 
 /// The words for a phase of a LOD run; a phase this build does not know is a step starting, never an error.
+/// The line that says how a running Generate stands. Each phase reports its own share, so the number falls back when
+/// a new phase starts (87 percent of the terrain, then 30 of the objects): the line names the phase and says the share
+/// is of that step, so a drop reads as the next step, and it shows the time the run has taken.
+fn generating_line(progress: &Progress, elapsed: Option<u64>) -> String {
+    let elapsed = elapsed.map(elapsed_words);
+    if progress.phase.is_empty() {
+        return progress.percent().map_or_else(
+            || STATE_GENERATING_START.to_owned(),
+            |p| STATE_GENERATING.replace("{p}", &p.to_string()),
+        );
+    }
+    let what = step_text(&progress.phase);
+    match (progress.percent(), elapsed) {
+        (Some(p), Some(e)) => STATE_GENERATING_STEP
+            .replace("{what}", what)
+            .replace("{p}", &p.to_string())
+            .replace("{elapsed}", &e),
+        (Some(p), None) => STATE_GENERATING.replace("{p}", &p.to_string()),
+        (None, Some(e)) => STATE_GENERATING_STEP_START
+            .replace("{what}", what)
+            .replace("{elapsed}", &e),
+        (None, None) => STATE_GENERATING_START.to_owned(),
+    }
+}
+
 fn step_text(phase: &str) -> &'static str {
     match phase {
         "read_plugins" => STEP_READ_PLUGINS,
@@ -777,6 +906,28 @@ pub fn fixtures() -> Vec<Fixture> {
             },
         ),
         fixture("planned", planned(&[])),
+        {
+            let mut f = fixture("existing-mod", planned(&["NorthRidge"]));
+            f.page = Box::new(Lod {
+                existing: Some(GeneratedRow {
+                    name: FIXTURE_MOD.to_owned(),
+                    own: true,
+                    legacy: false,
+                    lodwright_version: Some("0.8.0".to_owned()),
+                    stale: Some(raul_ui_model::pages::mods::StaleRow {
+                        state: "may".to_owned(),
+                        reason: "the load order changed".to_owned(),
+                    }),
+                    generated_at: Some(1_795_221_599),
+                    files: Some(26_921),
+                }),
+                ..Lod::with(State {
+                    instance: Some(INSTANCE.to_owned()),
+                    ..planned(&["NorthRidge"])
+                })
+            });
+            f
+        },
         fixture("generating", generating),
         fixture("generating-objects", objects),
         fixture("generated", built),
@@ -790,7 +941,78 @@ pub fn fixtures() -> Vec<Fixture> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_run_whose_steps_start_over_at_zero_names_each_step_and_shows_the_time() {
+        // A recorded run: the terrain reached 87 percent, the objects then count from 0 (30 percent a while later), and
+        // the trees count from 0 again. The number alone goes 87, 30, 4; with the step named it reads as the next step.
+        let events = [
+            ("terrain", 87, 100, 200),
+            ("objects", 30, 100, 260),
+            ("trees", 4, 100, 330),
+        ];
+        let lines: Vec<String> = events
+            .iter()
+            .map(|(phase, done, total, secs)| {
+                generating_line(
+                    &Progress {
+                        phase: (*phase).to_owned(),
+                        done: *done,
+                        total: Some(*total),
+                    },
+                    Some(*secs),
+                )
+            })
+            .collect();
+        assert!(lines[0].contains(STEP_TERRAIN) && lines[0].contains("87% of this step"));
+        assert!(lines[1].contains(STEP_OBJECTS) && lines[1].contains("30% of this step"));
+        assert!(lines[2].contains(STEP_TREES) && lines[2].contains("4% of this step"));
+        assert!(lines[0].contains("3 min 20 s") && lines[2].contains("5 min 30 s"));
+        // The time keeps rising over the whole run, which the share does not.
+        assert_ne!(lines[0], lines[1]);
+        // Before the first event, and with no share yet.
+        assert_eq!(
+            generating_line(&Progress::default(), Some(3)),
+            STATE_GENERATING_START
+        );
+        let start = Progress {
+            phase: "read_plugins".to_owned(),
+            ..Progress::default()
+        };
+        assert!(generating_line(&start, Some(3)).contains(STEP_READ_PLUGINS));
+        assert!(generating_line(&start, Some(3)).contains("3 s"));
+    }
+
     use super::*;
+
+    #[test]
+    fn a_mod_list_without_the_generated_mod_clears_the_result_of_the_run() {
+        let list = |mods: &str| {
+            Ok(Output {
+                code: Some(0),
+                stdout: format!(
+                    r#"{{"contract":"raul-lod-mods","schema_version":1,"own_name":"Generated LOD (Default)","mods":[{mods}]}}"#
+                ),
+                stderr: String::new(),
+            })
+        };
+        let mut s = planned(&["A"]);
+        s.generated(outcome(Status::Success, false, &["A"]));
+        let mut page = Lod::with(s);
+        let mod_row = r#"{"name":"Generated LOD (Default)","own":true,"legacy":false,"lodwright_version":"0.8.0"}"#;
+        page.read_existing(&list(mod_row));
+        assert!(page.existing.is_some() && page.state.outcome.is_some());
+        page.read_existing(&Err("no answer".to_owned()));
+        assert!(
+            page.state.outcome.is_some(),
+            "an unreadable answer changes nothing"
+        );
+        page.read_existing(&list(""));
+        assert!(page.existing.is_none() && page.state.outcome.is_none());
+        assert_eq!(
+            page.state_line(),
+            "1 of 1 blocks not generated this session"
+        );
+    }
 
     #[test]
     fn each_phase_of_a_run_has_its_words_and_an_unknown_one_is_a_step_not_an_error() {
@@ -862,5 +1084,48 @@ mod tests {
             stderr: "raul lod plan: refused: no Instance\n".into(),
         });
         assert!(plan_answer(&refused).unwrap_err().contains("no Instance"));
+    }
+
+    #[test]
+    fn the_note_about_the_existing_mod_says_how_current_it_is() {
+        let row = |state: Option<&str>, version: Option<&str>| GeneratedRow {
+            name: FIXTURE_MOD.to_owned(),
+            own: true,
+            legacy: false,
+            lodwright_version: version.map(str::to_owned),
+            stale: state.map(|s| raul_ui_model::pages::mods::StaleRow {
+                state: s.to_owned(),
+                reason: String::new(),
+            }),
+            generated_at: None,
+            files: None,
+        };
+        assert!(existing_line(&row(Some("current"), Some("0.8.0"))).contains("it is current"));
+        assert!(existing_line(&row(Some("may"), Some("0.8.0"))).contains("may show"));
+        assert!(existing_line(&row(Some("must"), Some("0.8.0"))).contains("generate again"));
+        let unknown = existing_line(&row(None, None));
+        assert!(unknown.contains("not known") && unknown.contains("an earlier release"));
+        assert!(!unknown.contains("Made"), "no date without a marker time");
+    }
+
+    #[test]
+    fn the_note_about_the_existing_mod_gives_its_date_and_file_count() {
+        let mut row = GeneratedRow {
+            name: FIXTURE_MOD.to_owned(),
+            own: true,
+            legacy: false,
+            lodwright_version: Some("0.8.0".to_owned()),
+            stale: None,
+            generated_at: Some(1_795_221_599),
+            files: Some(26_921),
+        };
+        assert!(
+            existing_line(&row)
+                .starts_with("Made 2026-11-21 00:39 UTC, 26921 files. Generated with")
+        );
+        row.files = Some(1);
+        assert!(existing_line(&row).starts_with("Made 2026-11-21 00:39 UTC, 1 file. "));
+        row.files = None;
+        assert!(existing_line(&row).starts_with("Made 2026-11-21 00:39 UTC. "));
     }
 }

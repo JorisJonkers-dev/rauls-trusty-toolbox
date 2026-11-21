@@ -7,11 +7,12 @@
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, write_file};
+use raul_core::context::Context;
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::load_order::{APPLIED_STATUS, SORT, UNDO, UNDONE_STATUS};
 use raul_gui::shell::App;
-use raul_ui_service::{CancelHandle, Exec, Output, ProcessExec};
+use raul_ui_service::{CancelHandle, Exec, InProcessExec, Output};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -87,15 +88,19 @@ impl Fixture {
         f
     }
 
-    /// `raul` with this fixture's configuration and state, and the masterlist file where the pages ask for the pinned one.
-    fn exec(&self) -> ProcessExec {
-        ProcessExec::new(env!("CARGO_BIN_EXE_raul"))
-            .with_env("RAUL_CONFIG_DIR", &self.s("config"))
-            .with_env("NVMOD_STATE_DIR", &self.s("state"))
-            .with_argument_replaced(
-                "--fetch-masterlist",
-                &["--masterlist", &self.s("masterlist.yaml")],
-            )
+    /// The folders this fixture's runs use: its own configuration, and no run log, so nothing reaches the real home.
+    fn context(&self) -> Context {
+        Context::new()
+            .with_config_folder(self.path("config"))
+            .without_run_log()
+    }
+
+    /// The command line run in this process with this fixture's folders, and the masterlist file where the pages ask for the pinned one.
+    fn exec(&self) -> InProcessExec {
+        InProcessExec::with_context(self.context()).with_argument_replaced(
+            "--fetch-masterlist",
+            &["--masterlist", &self.s("masterlist.yaml")],
+        )
     }
 
     fn path(&self, p: &str) -> PathBuf {
@@ -123,7 +128,7 @@ impl Fixture {
 
 /// The real runner, noting the command word of every command line it is asked to run.
 struct Recording {
-    inner: ProcessExec,
+    inner: InProcessExec,
     words: Arc<Mutex<Vec<String>>>,
 }
 
@@ -177,12 +182,14 @@ fn sort_preview_apply_then_undo_restores_the_lists_byte_for_byte() {
     let before = f.lists();
     let words = Arc::new(Mutex::new(Vec::new()));
     let exec = Recording {
-        inner: f.exec().with_grace(Duration::from_secs(5)),
+        inner: f.exec(),
         words: Arc::clone(&words),
     };
     // The sort stays a command line here: the fixture's command swaps the pinned masterlist for a file, which a direct sort
     // (it fetches the pinned one itself) would not go through.
-    let jobs = Jobs::new(Arc::new(exec)).scripted(&["sort-preview", "sort-apply"]);
+    let jobs = Jobs::new(Arc::new(exec))
+        .with_context(f.context())
+        .scripted(&["sort-preview", "sort-apply"]);
     let app = App::new(jobs);
     let mut h = Harness::builder()
         .with_size([1280.0, 800.0])
@@ -201,7 +208,7 @@ fn sort_preview_apply_then_undo_restores_the_lists_byte_for_byte() {
     h.get_by_label(SORT).click();
     settle(&mut h);
     assert_eq!(f.lists(), before, "a preview writes nothing");
-    h.get_by_label_contains("Apply 1 move").click();
+    h.get_by_label_contains("Apply 2 moves").click();
     settle(&mut h);
     assert_eq!(
         h.state_mut().shell_mut().status.as_deref(),

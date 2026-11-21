@@ -1148,7 +1148,14 @@ mod tests {
         let exec = Arc::new(Script::default());
         let app = App::fixture(
             Fixture::new("flow", Setup::with(state)),
-            Jobs::new(exec.clone()).scripted(&["init", "target-nv-rs"]),
+            Jobs::new(exec.clone()).scripted(&[
+                "init",
+                "target-nv-rs",
+                "config-list",
+                "config-get",
+                "config-set",
+                "config-unset",
+            ]),
         );
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
@@ -1255,7 +1262,14 @@ mod tests {
         let exec = Arc::new(Script::default());
         let app = App::fixture(
             Fixture::new("flow", Setup::with(state)),
-            Jobs::new(exec.clone()).scripted(&["init", "target-nv-rs"]),
+            Jobs::new(exec.clone()).scripted(&[
+                "init",
+                "target-nv-rs",
+                "config-list",
+                "config-get",
+                "config-set",
+                "config-unset",
+            ]),
         );
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])

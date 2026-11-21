@@ -708,20 +708,28 @@ mod tests {
             .into_iter()
             .find(|f| f.name == "partial")
             .unwrap();
-        let app = App::fixture(fixture, Jobs::new(exec.clone()));
+        let app = App::fixture(
+            fixture,
+            Jobs::new(exec.clone()).scripted(&[
+                "config-list",
+                "config-get",
+                "config-set",
+                "config-unset",
+            ]),
+        );
         let mut h = Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {
                 crate::set_up(&cc.egui_ctx);
                 app
             });
-        h.run();
+        h.run_steps(8);
         h.get_by_label(LABEL_FALLOUT3).click();
-        h.run();
+        h.run_steps(8);
         h.get_by_label(LABEL_FALLOUT3).type_text("/g/fo3");
-        h.run();
+        h.run_steps(8);
         h.key_press(egui::Key::Enter);
-        h.run();
+        h.run_steps(8);
         for _ in 0..50 {
             if !exec.calls.lock().unwrap().is_empty() {
                 break;
@@ -729,7 +737,9 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
         std::thread::sleep(std::time::Duration::from_millis(50));
-        h.run();
+        // The result arrives from a thread, so the frames that follow depend on timing: step a fixed number of frames
+        // instead of until the window settles within the default four.
+        h.run_steps(10);
         assert_eq!(
             exec.calls.lock().unwrap().first().cloned(),
             Some(

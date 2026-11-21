@@ -16,17 +16,21 @@ use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText};
 use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobId, JobState, Outcome};
+use raul_ui_model::pages::home::TTW_MOD;
 use raul_ui_model::pages::load_order::Problem;
+use raul_ui_model::pages::mods::{list_command, parse_list};
 use raul_ui_model::pages::settings::{Answer, Command, Fetch, Key};
 use raul_ui_model::pages::ttw::{
-    DOWNLOAD_URL, Found, NEEDED_BYTES, PackageInfo, Progress, Report, Settling, Sources, State,
-    Step, check_command, check_package, default_downloads, find_in, find_package, free_bytes_of,
-    install_command, is_archive_name, newest_archive, newest_candidate, space_command,
+    DOWNLOAD_URL, Found, NEEDED_BYTES, PackageInfo, Progress, Redirected, Report, Settling,
+    Sources, State, Step, check_command, default_downloads, free_bytes_of, install_command,
+    space_command,
 };
 use raul_ui_model::pages::{Flow, PageId, View};
 use raul_ui_model::wizard::{Step as FlowStep, TtwNeed};
 use raul_ui_service::Output;
+use raul_ui_service::download;
 use raul_ui_service::dto::TtwReport;
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 crate::texts!(TEXTS {
@@ -60,22 +64,20 @@ crate::texts!(TEXTS {
     MISSING_FALLOUT3 = "To continue, set the Fallout 3 folder in Settings.";
     MISSING_PACKAGE = "To continue, set the TTW package in Settings.";
     SECTION_PACKAGE = "The TTW package";
-    PACKAGE_WHAT = "Download the Tale of Two Wastelands installer package from the TTW website. Its file name starts with TTW_ and ends in .mpi. If what you downloaded ends in .7z, unpack it first.";
+    PACKAGE_WHAT = "Download the Tale of Two Wastelands installer package from the TTW website. What you download is a .7z file; it does not need to be unpacked.";
     OPEN_DOWNLOAD = "Open the download page";
     FIND_IT = "Find it for me";
     WATCH = "Watch my Downloads folder and use the package when it arrives";
-    UNPACK_NO_PLACE = "There is no place to unpack the package to yet. Finish setting up first.";
-    UNPACK_FAILED = "The archive could not be unpacked. Unpack it yourself, or save it again as a .zip, .7z or .tar.";
-    UNPACK_EMPTY = "The archive holds no TTW package.";
     FINDING = "Looking for the TTW package in your Downloads folder";
     FOUND = "Found the newest TTW package in your Downloads folder:";
     USE_THIS = "Use this file";
-    NOT_FOUND = "No TTW package in your Downloads folder or in the folders inside it. Download it, unpack it if it came in an archive, then find it again.";
+    NOT_FOUND = "No TTW package in your Downloads folder or in the folders inside it. Download it, then find it again.";
     LOOKED_IN = "Looked in";
     PACKAGE_SAVED = "TTW package saved.";
     SECTION_OUTPUT = "Output";
     FACT_INTO = "Installs into";
     FACT_AS = "Added as";
+    REDIRECTED = "{n} files meant for a place outside the Mod, such as the game folder, were put in the folder {folder} inside the Mod instead: the installer never writes outside its destination.";
     ADDED_AS = "One Mod, with its plugins enabled in your load order";
     FACT_GAMES = "Game folders";
     GAMES_UNTOUCHED = "Not changed";
@@ -164,7 +166,7 @@ crate::errors!(ERRORS {
 #[derive(Debug)]
 struct Watch {
     stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
-    found: std::sync::mpsc::Receiver<Result<PackageInfo, String>>,
+    found: std::sync::mpsc::Receiver<PackageInfo>,
 }
 
 impl Drop for Watch {
@@ -174,6 +176,12 @@ impl Drop for Watch {
 }
 
 /// How often the watch looks at the folder.
+/// The folder inside the Mod where the installer puts what the package meant for a place outside it.
+const REDIRECTED_FOLDER: &str = "_ttwright_game_root";
+
+/// What the copied details say was being done.
+const REDIRECTED_DOING: &str = "Installing Tale of Two Wastelands";
+
 const WATCH_EVERY: std::time::Duration = if cfg!(test) {
     std::time::Duration::from_millis(10)
 } else {
@@ -195,8 +203,6 @@ pub struct Ttw {
     search: Option<std::sync::mpsc::Receiver<(PathBuf, Option<PackageInfo>)>>,
     /// The watch of the Downloads folder the user agreed to, if one runs.
     watch: Option<Watch>,
-    /// Where a package that comes in an archive is unpacked, when not the Instance's work folder (tests).
-    unpack_to: Option<PathBuf>,
     /// Why the package found was not saved.
     save_failed: Option<String>,
     /// The package the flow had before the one found was chosen: the wizard's and the sources', put back when the
@@ -215,6 +221,8 @@ enum Job {
     Save,
     /// `raul space`: the free space where the Instance is.
     Space,
+    /// `raul mods list`: whether the Mod a finished install shows is still in the Instance.
+    Mods,
 }
 
 impl Ttw {
@@ -235,13 +243,6 @@ impl Ttw {
         self
     }
 
-    /// Unpacks a package that arrives in an archive into `folder` rather than into the Instance's work folder.
-    #[must_use]
-    pub fn unpacking_to(mut self, folder: impl Into<PathBuf>) -> Ttw {
-        self.unpack_to = Some(folder.into());
-        self
-    }
-
     /// The folder the search looks in.
     fn downloads(&self) -> PathBuf {
         self.downloads
@@ -255,6 +256,7 @@ impl Ttw {
             Job::Sources | Job::Refresh => Command::config_list(),
             Job::Check => check_command(i),
             Job::Space => space_command(i),
+            Job::Mods => list_command(i),
             Job::Install => install_command(i, self.state.resuming),
             Job::Save => {
                 let file = self.state.wizard.package()?;
@@ -273,7 +275,7 @@ impl Ttw {
                 self.state.loading();
                 Ok(())
             }
-            Job::Refresh => Ok(()),
+            Job::Refresh | Job::Mods => Ok(()),
             Job::Space => {
                 self.state.space_loading();
                 Ok(())
@@ -306,8 +308,8 @@ impl Ttw {
                         self.state.sources_failed(e.what.to_owned());
                         Ok(())
                     }
-                    // The flow keeps the sources it has.
-                    Job::Refresh => Ok(()),
+                    // The flow keeps the sources it has, and the result it shows.
+                    Job::Refresh | Job::Mods => Ok(()),
                     Job::Space => {
                         self.state.space_failed(e.what.to_owned());
                         Ok(())
@@ -336,7 +338,7 @@ impl Ttw {
         let (tx, rx) = std::sync::mpsc::channel();
         let repaint = cx.repaint.clone();
         std::thread::spawn(move || {
-            let found = find_in(&folders);
+            let found = download::find(&folders);
             let _ = tx.send((folder, found));
             if let Some(repaint) = repaint {
                 repaint.request_repaint();
@@ -366,47 +368,28 @@ impl Ttw {
     /// Starts watching the folders the search looks in. Nothing starts until the user asked for it.
     fn start_watch(&mut self, cx: &PageCx<'_>) {
         let folders = self.search_folders(self.downloads());
-        // Where a package that came in an archive is unpacked: a folder of its own in the Instance's work folder.
-        let unpack_to = self.unpack_to.clone().or_else(|| {
-            self.state
-                .instance
-                .as_deref()
-                .map(|i| Path::new(i).join(".raul/ttw/package"))
-        });
         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let (tx, rx) = std::sync::mpsc::channel();
         let (flag, repaint) = (stop.clone(), cx.repaint.clone());
         std::thread::spawn(move || {
             let mut settling: Option<Settling> = None;
+            let mut refused = download::Refused::new();
             while !flag.load(std::sync::atomic::Ordering::SeqCst) {
                 std::thread::sleep(WATCH_EVERY);
-                // The newest candidate by name and shape, however small it is still: a file that is growing is
-                // settled first, and only then checked as a whole. A package wins over an archive.
-                let Some(path) = newest_candidate(&folders).or_else(|| newest_archive(&folders))
-                else {
+                // The newest file that is the package, or an archive that holds it (the same rule `raul ttw`
+                // uses); a file that is growing is settled first.
+                let Some(info) = download::newest_accepted(&folders, &mut refused) else {
                     settling = None;
                     continue;
                 };
-                let size = std::fs::metadata(&path).ok().map(|m| m.len());
-                let watched = settling.get_or_insert_with(|| Settling::new(path.clone()));
-                if watched.path() != path {
-                    *watched = Settling::new(path.clone());
+                let watched = settling.get_or_insert_with(|| Settling::new(info.path.clone()));
+                if watched.path() != info.path {
+                    *watched = Settling::new(info.path.clone());
                 }
-                if !watched.poll(WATCH_EVERY, size) {
+                if !watched.poll(WATCH_EVERY, Some(info.size)) {
                     continue;
                 }
-                let answer = if is_archive_name(&path.to_string_lossy()) && !path_is_package(&path)
-                {
-                    unpack(&path, unpack_to.as_deref())
-                } else {
-                    // A file under a package's name that does not check out yet may be a download that stalled
-                    // for a moment: the watch goes on.
-                    match check_package(&path) {
-                        Ok(info) => Ok(info),
-                        Err(_) => continue,
-                    }
-                };
-                let _ = tx.send(answer);
+                let _ = tx.send(info);
                 if let Some(repaint) = repaint {
                     repaint.request_repaint();
                 }
@@ -424,13 +407,7 @@ impl Ttw {
         };
         if let Ok(answer) = watch.found.try_recv() {
             self.watch = None;
-            let info = match answer {
-                Ok(info) => info,
-                Err(why) => {
-                    self.save_failed = Some(why);
-                    return;
-                }
-            };
+            let info = answer;
             let folder = info.path.parent().unwrap_or(Path::new("")).to_path_buf();
             self.state.searched_package(&folder, Some(&info));
             self.use_found(cx);
@@ -483,14 +460,32 @@ impl Ttw {
         if cx.shell.instance == self.state.instance || self.state.busy() {
             return;
         }
-        self.state = State::new(cx.shell.instance.clone());
+        self.start_over(cx.shell.instance.clone());
+        if self.state.instance.is_some() {
+            self.run(cx, Job::Sources);
+        }
+    }
+
+    /// The flow from its first step, for `instance`; the sources are read again on the next frame.
+    fn start_over(&mut self, instance: Option<String>) {
+        self.state = State::new(instance);
         self.install = None;
         self.search = None;
         self.watch = None;
         self.save_failed = None;
         self.unsaved_from = None;
-        if self.state.instance.is_some() {
-            self.run(cx, Job::Sources);
+        self.visits.loaded = false;
+    }
+
+    /// What the mod list says about the Mod a finished install shows: when it is gone (removed on the Mods page), the
+    /// page follows the Instance and starts again at Sources, so a new install can be run.
+    fn read_mods(&mut self, result: &Result<Output, String>) {
+        if let Ok(out) = result
+            && let Ok((_, mods)) = parse_list(&out.stdout)
+            && self.state.finished_install()
+            && !mods.iter().any(|m| m.name == TTW_MOD)
+        {
+            self.start_over(self.state.instance.clone());
         }
     }
 
@@ -514,6 +509,10 @@ impl Ttw {
                     if let Ok(c) = read_config(&result) {
                         self.state.refreshed(Sources::of(&c));
                     }
+                    Ok(())
+                }
+                Job::Mods => {
+                    self.read_mods(&result);
                     Ok(())
                 }
                 Job::Space => {
@@ -846,6 +845,14 @@ impl Ttw {
             rows.push((FACT_FILES, files.as_str(), false));
         }
         facts(ui, t, "ttw-installed", &rows);
+        if let Some((line, list)) = redirected_note(r) {
+            ui.add_space(12.0);
+            note(ui, t, Mark::Warning, &line, None);
+            if ui.button(msg::COPY_DETAILS).clicked() {
+                ui.ctx()
+                    .copy_text(shell::copy_text(REDIRECTED_DOING, &line, &list));
+            }
+        }
         if !r.plugins.is_empty() {
             ui.add_space(12.0);
             shell::section_label(ui, t, FACT_PLUGINS, true);
@@ -1032,6 +1039,10 @@ impl Page for Ttw {
             // Shown again: the sources may have changed in Settings; the flow starts over only if they did.
             self.run(cx, Job::Refresh);
         }
+        if back && self.state.finished_install() {
+            // Shown again after an install: the Mod may have been removed since.
+            self.run(cx, Job::Mods);
+        }
         self.take_answers(cx);
         self.follow_install(cx);
         if self.state.needs_check() {
@@ -1096,6 +1107,7 @@ fn report_of(result: &Result<Output, String>) -> Result<Report, String> {
             what
         }
     })?;
+    let (redirected_total, redirected) = redirected_of(r.ttwright.as_ref());
     Ok(Report {
         status: r.status,
         dry_run: r.dry_run,
@@ -1105,7 +1117,66 @@ fn report_of(result: &Result<Output, String>) -> Result<Report, String> {
         tool: r.tool.map(|t| t.name),
         code: r.error.as_ref().map(|e| e.code.clone()),
         message: r.error.map(|e| e.message),
+        redirected_total,
+        redirected,
     })
+}
+
+/// The files the installer redirected, from its own result document: how many in all and the ones it listed.
+fn redirected_of(doc: Option<&serde_json::Value>) -> (u64, Vec<Redirected>) {
+    let Some(doc) = doc else {
+        return (0, Vec::new());
+    };
+    let text = |v: &serde_json::Value, key: &str| {
+        v.get(key)
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default()
+            .to_owned()
+    };
+    let listed: Vec<Redirected> = doc
+        .get("redirected")
+        .and_then(serde_json::Value::as_array)
+        .map_or_else(Vec::new, |files| {
+            files
+                .iter()
+                .map(|f| Redirected {
+                    location: text(f, "location"),
+                    target: text(f, "target"),
+                    written_to: text(f, "written_to"),
+                })
+                .collect()
+        });
+    let total = doc
+        .get("redirected_total")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(0)
+        .max(listed.len() as u64);
+    (total, listed)
+}
+
+/// The note under a finished install about redirected files, and the list for Copy details.
+fn redirected_note(r: &Report) -> Option<(String, String)> {
+    if r.redirected_total == 0 {
+        return None;
+    }
+    let line = REDIRECTED
+        .replace("{n}", &r.redirected_total.to_string())
+        .replace("{folder}", REDIRECTED_FOLDER);
+    let mut list = format!(
+        "{} files redirected to {REDIRECTED_FOLDER}\n",
+        r.redirected_total
+    );
+    for f in &r.redirected {
+        let _ = writeln!(list, "{}: {} -> {}", f.location, f.target, f.written_to);
+    }
+    if r.redirected_total > r.redirected.len() as u64 {
+        let _ = writeln!(
+            list,
+            "... and {} more not listed",
+            r.redirected_total - r.redirected.len() as u64
+        );
+    }
+    Some((line, list))
 }
 
 /// A share as a whole percentage, 0 to 100.
@@ -1170,27 +1241,6 @@ fn steps(ui: &mut egui::Ui, t: &Tokens, current: Step, installed: bool) {
     });
 }
 
-/// One source on a narrow page: its label, then its value and mark, wrapping onto the next line when they do not fit.
-/// Whether `path` is named like a TTW package file itself (`TTW_*.mpi`), not like an archive of one.
-fn path_is_package(path: &Path) -> bool {
-    path.file_name()
-        .is_some_and(|n| raul_ui_model::pages::ttw::is_package(&n.to_string_lossy()))
-}
-
-/// Unpacks `archive` into `dest` (a zip or tar in process; any other kind with a tool such as 7z when one is
-/// installed) and finds the package inside, checked. The reasons are plain words, without tool names or paths.
-fn unpack(archive: &Path, dest: Option<&Path>) -> Result<PackageInfo, String> {
-    let Some(dest) = dest else {
-        return Err(UNPACK_NO_PLACE.to_owned());
-    };
-    let _ = std::fs::remove_dir_all(dest);
-    std::fs::create_dir_all(dest).map_err(|_| UNPACK_FAILED.to_owned())?;
-    nvmod_modinstall::extract::extract(archive, dest, nvmod_modinstall::Limits::default())
-        .map_err(|_| UNPACK_FAILED.to_owned())?;
-    let package = find_package(dest).ok_or_else(|| UNPACK_EMPTY.to_owned())?;
-    check_package(&package).map_err(|p| p.why().to_owned())
-}
-
 /// A size in bytes as megabytes or gigabytes, for the package found.
 fn size_text(bytes: u64) -> String {
     const MB: u64 = 1_000_000;
@@ -1205,6 +1255,7 @@ fn size_text(bytes: u64) -> String {
     }
 }
 
+/// One source on a narrow page: its label, then its value and mark, wrapping onto the next line when they do not fit.
 fn source_line(ui: &mut egui::Ui, t: &Tokens, label: &str, value: Option<&str>, defaults: bool) {
     ui.label(RichText::new(label).color(t.text.color()));
     // A path takes the width the page has and truncates; the mark goes on the line below it.
@@ -1416,6 +1467,7 @@ fn looking(name: &'static str, state: State) -> Fixture {
 }
 
 /// The states the snapshot tests render.
+#[allow(clippy::too_many_lines)]
 pub fn fixtures() -> Vec<Fixture> {
     let mut loading = State::new(Some(INSTANCE.to_owned()));
     loading.loading();
@@ -1446,6 +1498,23 @@ pub fn fixtures() -> Vec<Fixture> {
         Report {
             plugins,
             files: Some(41_872),
+            ..Report::of(Status::Success, false)
+        },
+        problem(&INSTALL_FAILED, ""),
+    );
+    let mut redirected = installing(48, Some(48));
+    let _ = redirected.installed(
+        Report {
+            plugins: vec!["TaleOfTwoWastelands.esm".to_owned()],
+            files: Some(41_872),
+            redirected_total: 120,
+            redirected: (1..=3)
+                .map(|i| Redirected {
+                    location: "FNV Root".to_owned(),
+                    target: format!("/games/steamapps/common/Fallout New Vegas/Data/Sample{i}.bsa"),
+                    written_to: format!("_ttwright_game_root/FNV Root/Data/Sample{i}.bsa"),
+                })
+                .collect(),
             ..Report::of(Status::Success, false)
         },
         problem(&INSTALL_FAILED, ""),
@@ -1511,6 +1580,7 @@ pub fn fixtures() -> Vec<Fixture> {
         fixture("installing-no-estimate", installing(0, None)),
         fixture("cancelling", cancelling),
         fixture("installed", installed),
+        fixture("installed-redirected", redirected),
         fixture("cancelled", cancelled),
         fixture("unknown", unknown),
     ]
@@ -1533,6 +1603,51 @@ mod tests {
         r#"{"schema_version":1,"contract":"raul-events","seq":1,"command":"ttw","event":"result","result":{"schema_version":1,"contract":"raul-ttw-result","status":"cancelled","dry_run":false,"resumed":false,"instance":"/i","profile":"Default","mod":null,"plugins_enabled":[],"files":null,"staging":"/i/s","resumable":true,"tool":{"name":"ttwright","path":"/t","sha256":"00","version":"0.3.0"},"ttwright":null,"error":{"code":"cancelled","message":"stopped","ttwright_code":"cancelled"}}}"#,
         "\n{\"schema_version\":1,\"contract\":\"raul-events\",\"seq\":2,\"command\":\"ttw\",\"event\":\"finished\",\"status\":\"cancelled\",\"exit_code\":4,\"code\":\"cancelled\",\"message\":\"stopped\",\"resumable\":true,\"changed\":false}"
     );
+
+    #[test]
+    fn a_mod_list_without_the_ttw_mod_sends_a_finished_install_back_to_sources() {
+        let list = |mods: &[&str]| {
+            let rows: Vec<String> = mods
+                .iter()
+                .enumerate()
+                .map(|(i, name)| {
+                    format!(
+                        r#"{{"position":{i},"name":"{name}","state":"enabled","kind":"mod","installed":true}}"#
+                    )
+                })
+                .collect();
+            Ok(output(
+                0,
+                &format!(r#"{{"profile":"Default","mods":[{}]}}"#, rows.join(",")),
+            ))
+        };
+        let mut done = installing(1, Some(1));
+        done.installed(
+            Report::of(Status::Success, false),
+            problem(&INSTALL_FAILED, ""),
+        )
+        .unwrap();
+        assert!(done.finished_install());
+        let mut page = Ttw::with(done);
+        page.visits.loaded = true;
+        page.read_mods(&list(&[TTW_MOD, "Other"]));
+        assert!(
+            page.state.finished_install(),
+            "the Mod is there: the page keeps its result"
+        );
+        page.read_mods(&Err("no answer".to_owned()));
+        assert!(
+            page.state.finished_install(),
+            "an unreadable answer changes nothing"
+        );
+        page.read_mods(&list(&["Other"]));
+        assert!(!page.state.finished_install() && page.state.step == Step::Sources);
+        assert!(
+            !page.visits.loaded,
+            "the sources are read again on the next frame"
+        );
+        assert!(page.state.instance.is_some(), "the Instance stays");
+    }
 
     #[test]
     fn a_ttw_stream_becomes_the_report_the_page_shows() {
@@ -1666,7 +1781,7 @@ mod tests {
         std::fs::write(root.join("notes.txt"), b"not a package").unwrap();
         // A package-shaped file: the search skips a file that is too small or does not start like a package.
         let mut body = vec![0u8; 1_000_000];
-        body[..4].copy_from_slice(b"PK\x03\x04");
+        body[..4].copy_from_slice(b"BSA\0");
         std::fs::write(root.join("unpacked/TTW_3.4.0.mpi"), body).unwrap();
         (root, std::sync::Arc::new(Recording::default()))
     }
@@ -1678,7 +1793,15 @@ mod tests {
     where
         E: raul_ui_service::Exec + Send + Sync + 'static,
     {
-        let app = crate::shell::App::fixture(fixture, crate::jobs::Jobs::new(exec));
+        let app = crate::shell::App::fixture(
+            fixture,
+            crate::jobs::Jobs::new(exec).scripted(&[
+                "config-list",
+                "config-get",
+                "config-set",
+                "config-unset",
+            ]),
+        );
         egui_kittest::Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {
@@ -1712,7 +1835,7 @@ mod tests {
             let file = file.clone();
             std::thread::spawn(move || {
                 let mut body = vec![0u8; 400_000];
-                body[..4].copy_from_slice(b"PK\x03\x04");
+                body[..4].copy_from_slice(b"BSA\0");
                 for extra in [0usize, 300_000, 300_000] {
                     body.extend(std::iter::repeat_n(1u8, extra));
                     std::fs::write(&file, &body).unwrap();
@@ -1745,22 +1868,24 @@ mod tests {
     }
 
     #[test]
-    fn a_zip_that_arrives_is_unpacked_and_its_package_used() {
+    fn a_download_archive_that_arrives_is_used_as_it_is_and_a_newer_patch_archive_is_not() {
         use egui_kittest::kittest::Queryable;
         let (downloads, exec) = fake_downloads("archive");
         let _ = std::fs::remove_dir_all(downloads.join("unpacked"));
-        let unpacked = downloads.join("work/package");
-        let mut package = vec![0u8; 1_000_000];
-        package[..4].copy_from_slice(b"PK\x03\x04");
-        let zip = nvmod_testkit::ZipBuilder::new()
-            .file("TTW 3.4/TTW_3.4.0.mpi", &package)
+        let mut package = vec![0u8; 4096];
+        package[..4].copy_from_slice(b"BSA\0");
+        let real = nvmod_testkit::ZipBuilder::new()
+            .file("Tale of Two Wastelands 3.4.mpi", &package)
+            .file("TTW_Installer.exe", b"MZ made-up")
+            .bytes();
+        let patch = nvmod_testkit::ZipBuilder::new()
+            .file("YUPTTW.esm", b"TES4")
             .bytes();
         let mut h = harness(
             Fixture {
                 page: Box::new(
                     Ttw::with(at(Step::Sources, sources(Some(FALLOUT3), None)))
-                        .looking_in(downloads.clone())
-                        .unpacking_to(unpacked.clone()),
+                        .looking_in(downloads.clone()),
                 ),
                 ..fixture("sources-missing", State::default())
             },
@@ -1769,8 +1894,11 @@ mod tests {
         h.run();
         h.get_by_label(WATCH).click();
         h.run_steps(2);
-        std::fs::write(downloads.join("TTW 3.4 Installer.zip"), zip).unwrap();
-        let want = unpacked.join("TTW 3.4/TTW_3.4.0.mpi").display().to_string();
+        let real_path = downloads.join("Tale of Two Wastelands 3.4-133-[mod.pub].zip");
+        std::fs::write(&real_path, real).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1200));
+        std::fs::write(downloads.join("YUPTTW 13.9.1-1234.zip"), patch).unwrap();
+        let want = real_path.display().to_string();
         let mut used = false;
         for _ in 0..1000 {
             h.run_steps(2);
@@ -1783,7 +1911,7 @@ mod tests {
             }
             std::thread::sleep(std::time::Duration::from_millis(20));
         }
-        assert!(used, "the package inside the archive is saved and used");
+        assert!(used, "the download itself is saved and used");
     }
 
     #[test]
@@ -1794,7 +1922,7 @@ mod tests {
         let games = downloads.join("games");
         std::fs::create_dir_all(&games).unwrap();
         let mut body = vec![0u8; 1_000_000];
-        body[..4].copy_from_slice(b"PK\x03\x04");
+        body[..4].copy_from_slice(b"BSA\0");
         std::fs::write(games.join("TTW_7.mpi"), body).unwrap();
         let fallout3 = games.join("Fallout 3 goty").display().to_string();
         let mut h = harness(
@@ -1825,7 +1953,11 @@ mod tests {
     fn find_it_for_me_shows_the_package_it_found_and_use_this_file_saves_it() {
         use egui_kittest::kittest::Queryable;
         let (downloads, exec) = fake_downloads("found");
-        let file = format!("{}/unpacked/TTW_3.4.0.mpi", downloads.display());
+        let file = downloads
+            .join("unpacked")
+            .join("TTW_3.4.0.mpi")
+            .display()
+            .to_string();
         let mut h = harness(
             Fixture {
                 page: Box::new(
@@ -1877,7 +2009,11 @@ mod tests {
     fn a_refused_save_says_so_and_does_not_use_the_file() {
         use egui_kittest::kittest::Queryable;
         let (downloads, _) = fake_downloads("refused");
-        let file = format!("{}/unpacked/TTW_3.4.0.mpi", downloads.display());
+        let file = downloads
+            .join("unpacked")
+            .join("TTW_3.4.0.mpi")
+            .display()
+            .to_string();
         let exec = std::sync::Arc::new(Refusing::default());
         let mut h = harness(
             Fixture {
@@ -1965,5 +2101,49 @@ mod tests {
             "it says where it looked"
         );
         let _ = std::fs::remove_dir_all(&empty);
+    }
+}
+
+#[cfg(test)]
+mod redirected_tests {
+    use super::*;
+
+    #[test]
+    fn the_installers_redirected_files_are_read_from_its_result() {
+        let doc = serde_json::json!({
+            "redirected_total": 150,
+            "redirected": [
+                {"step": "asset", "location": "FNV Root", "target": "/g/Data/a.bsa", "written_to": "_ttwright_game_root/a.bsa"}
+            ]
+        });
+        let (total, listed) = redirected_of(Some(&doc));
+        assert_eq!(total, 150);
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].location, "FNV Root");
+        assert_eq!(redirected_of(None), (0, Vec::new()));
+        assert_eq!(redirected_of(Some(&serde_json::json!({}))), (0, Vec::new()));
+    }
+
+    #[test]
+    fn a_result_with_redirected_files_has_the_note_and_the_list_and_one_without_has_neither() {
+        let plain = Report::of(Status::Success, false);
+        assert!(redirected_note(&plain).is_none());
+        let report = Report {
+            redirected_total: 3,
+            redirected: vec![Redirected {
+                location: "FNV Root".into(),
+                target: "/g/a.bsa".into(),
+                written_to: "_ttwright_game_root/a.bsa".into(),
+            }],
+            ..plain
+        };
+        let (line, list) = redirected_note(&report).unwrap();
+        assert!(line.starts_with("3 files"), "{line}");
+        assert!(line.contains("_ttwright_game_root"));
+        assert!(
+            list.contains("FNV Root: /g/a.bsa -> _ttwright_game_root/a.bsa"),
+            "{list}"
+        );
+        assert!(list.contains("2 more not listed"), "{list}");
     }
 }

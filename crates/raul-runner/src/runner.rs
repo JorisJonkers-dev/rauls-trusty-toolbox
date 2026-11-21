@@ -5,6 +5,7 @@
 //! be verified is 3, a tool whose contract version is newer than nvmod reads is refused (2).
 
 use crate::sha256_hex;
+use std::ffi::OsString;
 use std::fmt;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -94,8 +95,9 @@ pub struct Call<'a> {
     pub tool: &'a str,
     /// The program to run.
     pub program: &'a Path,
-    /// Its arguments, one word each. There is no shell.
-    pub args: &'a [String],
+    /// Its arguments, one word each, passed to the program exactly as given (a path need not be UTF-8). There is
+    /// no shell.
+    pub args: &'a [OsString],
     /// Bytes written to the tool's standard input, then it is closed.
     pub stdin: Option<&'a [u8]>,
     /// The SHA-256 the program must have, checked right before it is started; `None` runs it unchecked.
@@ -109,7 +111,7 @@ pub struct Call<'a> {
 impl<'a> Call<'a> {
     /// A call of `program` with `args`, expecting exit code 0, with no pinned checksum and nothing on stdin.
     #[must_use]
-    pub fn new(tool: &'a str, program: &'a Path, args: &'a [String]) -> Call<'a> {
+    pub fn new(tool: &'a str, program: &'a Path, args: &'a [OsString]) -> Call<'a> {
         Call {
             tool,
             program,
@@ -389,6 +391,8 @@ impl Runner {
     fn run_inner(&self, call: &Call) -> Result<Output, ToolError> {
         Self::verify(call)?;
         let mut command = self.command(call);
+        // A group of its own, so that a timeout, the output cap or a cancel ends the programs the tool started too.
+        crate::stream::own_group(&mut command);
         let mut child = spawn(&mut command).map_err(|e| {
             failed(
                 call,
@@ -431,6 +435,7 @@ impl Runner {
                     Err(e) => return Err(failed(call, format!("cannot wait for the tool: {e}"))),
                 }
             }
+            crate::stream::signal_group(child.id(), true);
             let _ = child.kill();
             break child
                 .wait()
@@ -474,8 +479,8 @@ mod tests {
         nvmod_testkit::write_script(dir.path(), name, body)
     }
 
-    fn args(words: &[&str]) -> Vec<String> {
-        words.iter().map(|w| (*w).to_owned()).collect()
+    fn args(words: &[&str]) -> Vec<OsString> {
+        words.iter().map(OsString::from).collect()
     }
 
     fn fast() -> Runner {
@@ -493,6 +498,19 @@ mod tests {
         let out = fast().run(&Call::new("t", &p, &a)).unwrap();
         assert_eq!(out.stdout, b"a b|c;touch pwned|$HOME|");
         assert!(!dir.path().join("pwned").exists());
+    }
+
+    /// A file name that is not UTF-8 reaches the program as the same bytes (a mod or a file may be named so on Linux).
+    #[cfg(unix)]
+    #[test]
+    fn an_argument_that_is_not_utf8_reaches_the_program_unchanged() {
+        use std::os::unix::ffi::OsStringExt;
+        let dir = TempDir::new("run-nonutf8");
+        let p = script(&dir, "t", r#"printf '%s' "$1" | od -An -tx1 | tr -d ' \n'"#);
+        let odd = OsString::from_vec(vec![b'a', 0xff, 0xfe, b'z']);
+        let a = [odd];
+        let out = fast().run(&Call::new("t", &p, &a)).unwrap();
+        assert_eq!(out.stdout, b"61fffe7a");
     }
 
     #[test]
@@ -541,6 +559,48 @@ mod tests {
             "{why}"
         );
         assert_eq!(why.exit_code(), 4);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn a_timeout_ends_the_programs_the_tool_started_too() {
+        let dir = TempDir::new("run-timeout-tree");
+        let marker = dir.path().join("grandchild-alive");
+        // A child of the tool that would write the marker if it outlived the tool.
+        let p = script(
+            &dir,
+            "t",
+            &format!("(sleep 2; touch {m}) & exec sleep 30", m = marker.display()),
+        );
+        let runner = Runner {
+            timeout: Duration::from_millis(300),
+            ..Runner::default()
+        };
+        assert!(runner.run(&Call::new("slow", &p, &[])).is_err());
+        std::thread::sleep(Duration::from_millis(2500));
+        assert!(
+            !marker.exists(),
+            "the tool's own child outlived the timeout"
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn the_output_cap_ends_the_programs_the_tool_started_too() {
+        let dir = TempDir::new("run-cap-tree");
+        let marker = dir.path().join("grandchild-alive");
+        let p = script(
+            &dir,
+            "t",
+            &format!("(sleep 2; touch {m}) & exec yes", m = marker.display()),
+        );
+        let runner = Runner {
+            max_output: 1000,
+            ..fast()
+        };
+        assert!(runner.run(&Call::new("loud", &p, &[])).is_err());
+        std::thread::sleep(Duration::from_millis(2500));
+        assert!(!marker.exists(), "the tool's own child outlived the cap");
     }
 
     #[test]

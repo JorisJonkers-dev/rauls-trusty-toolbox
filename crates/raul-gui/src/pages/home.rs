@@ -20,9 +20,10 @@ use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText, Stroke};
 use raul_ui_model::pages::home::{
-    Block, Launch, Level, Readiness, Row, RowId, State, Step, Why, doctor_command,
+    Block, Launch, Level, Readiness, Row, RowId, State, Step, TTW_MOD, Why, doctor_command,
     load_order_command, parse_order_errors,
 };
+use raul_ui_model::pages::mods::{generated_command, list_command, parse_generated, parse_list};
 use raul_ui_model::pages::settings::{Command, Config, Fetch, Key};
 use raul_ui_model::pages::{Attention, PageId, Severity, View};
 
@@ -54,6 +55,9 @@ crate::texts!(TEXTS {
     DETAIL_TTW_READY = "Sources set. Ready when you are.";
     DETAIL_TTW_NEEDS = "Optional. Needs Fallout 3 and the TTW installer.";
     DETAIL_LOAD_ORDER = "Sorted and reviewed on its own page";
+    DETAIL_TTW_INSTALLED = "Installed: the Mod is in your mod list.";
+    DETAIL_ORDER_VALID = "The Doctor finds no error in the load order.";
+    DETAIL_LOD_GENERATED = "A generated LOD Mod is in your mod list.";
     DETAIL_LOD = "Generated and checked on its own page";
     MARK_OK = "OK";
     MARK_WARNING = "Warning";
@@ -74,6 +78,8 @@ crate::texts!(TEXTS {
     RAUL_READY = "All set. Go on, the Mojave's waiting.";
     RAUL_WARNINGS = "Ready. A thing or two could be better.";
     RAUL_STARTED = "Game's running. I'll be here.";
+    RAUL_ENDED_STOPPED = "The game was stopped as asked. Ready when you are.";
+    RAUL_ENDED = "The game has ended. Ready when you are.";
 });
 
 crate::errors!(ERRORS {
@@ -102,6 +108,31 @@ pub struct Home {
     play_waiting: bool,
     /// What the dialog under Play offered to fix, so its Fix opens that page even when the state moved on.
     blocked_fix: Option<View>,
+    /// When the game was started from this page, while it is believed to run: Home looks at the Instance lock
+    /// from then on to see when it ends.
+    watching: Option<Watch>,
+    /// Stop was asked for the game that runs.
+    stop_asked: bool,
+}
+
+/// The wait for the end of a game that was started from Home.
+#[derive(Debug, Clone, Copy)]
+struct Watch {
+    started: std::time::Instant,
+    last: Option<std::time::Instant>,
+}
+
+/// How long after the start Home waits before it believes the lock: the game takes the lock over from `raul run`.
+const GRACE: std::time::Duration = std::time::Duration::from_secs(3);
+
+/// How often Home looks at the lock while a game runs.
+const WATCH_EVERY: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// Whether a game started by `raul run` still runs in the Instance: the Instance lock names a live process whose
+/// command is a run. A lock of another command (a stage, an install) is not a game.
+fn game_runs(instance: &str) -> bool {
+    nvmod_run::InstanceLock::read(std::path::Path::new(instance))
+        .is_some_and(|h| h.command.starts_with("run") && nvmod_run::pid_alive(h.pid))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -109,6 +140,8 @@ enum Job {
     Config,
     LoadOrder,
     OrderErrors,
+    Mods,
+    Generated,
     Run,
     Stop,
 }
@@ -189,6 +222,17 @@ impl Home {
             }
             Err(e) => self.state.order_errors = Fetch::Failed(e.what.to_owned()),
         }
+        // Whether TTW and a generated LOD Mod are in the Instance comes from its mod list, not from this session.
+        self.state.ttw_installed = None;
+        self.state.lod_generated = None;
+        for (job, command) in [
+            (Job::Mods, list_command(instance)),
+            (Job::Generated, generated_command(instance)),
+        ] {
+            if let Ok(id) = start(cx, &command) {
+                self.pending.add(job, id);
+            }
+        }
     }
 
     fn take_answers(&mut self, cx: &mut PageCx<'_>) {
@@ -219,6 +263,20 @@ impl Home {
                         Err(why) => Fetch::Failed(why.clone()),
                     };
                 }
+                Job::Mods => {
+                    if let Ok(out) = &result
+                        && let Ok((_, mods)) = parse_list(&out.stdout)
+                    {
+                        self.state.ttw_installed = Some(mods.iter().any(|m| m.name == TTW_MOD));
+                    }
+                }
+                Job::Generated => {
+                    if let Ok(out) = &result
+                        && let Ok(g) = parse_generated(&out.stdout)
+                    {
+                        self.state.lod_generated = Some(!g.mods.is_empty());
+                    }
+                }
                 Job::Stop => {
                     // The game ends between two frames; Home reads its state again.
                     if let Err(why) = &result {
@@ -229,12 +287,18 @@ impl Home {
                         self.state.launch = Launch::Failed(failure_of(out));
                     } else {
                         cx.shell.status = Some(STOP_ASKED_STATUS.to_owned());
+                        self.stop_asked = true;
                     }
                 }
                 Job::Run => {
                     self.state.launch = match &result {
                         Ok(out) if out.code == Some(0) => {
                             cx.shell.status = Some(STARTED_STATUS.to_owned());
+                            self.stop_asked = false;
+                            self.watching = Some(Watch {
+                                started: std::time::Instant::now(),
+                                last: None,
+                            });
                             Launch::Started
                         }
                         Ok(out) => Launch::Failed(failure_of(out)),
@@ -242,6 +306,45 @@ impl Home {
                     };
                 }
             }
+        }
+    }
+
+    /// Follows a game started from here: once the Instance lock no longer names it, Home leaves the running state
+    /// and says how it ended.
+    fn follow_game(&mut self, ctx: &egui::Context) {
+        if self.state.launch != Launch::Started {
+            self.watching = None;
+            return;
+        }
+        let Some(watch) = self.watching else {
+            return;
+        };
+        let now = std::time::Instant::now();
+        let due = now.duration_since(watch.started) >= GRACE
+            && watch
+                .last
+                .is_none_or(|l| now.duration_since(l) >= WATCH_EVERY);
+        if !due {
+            ctx.request_repaint_after(WATCH_EVERY);
+            return;
+        }
+        let gone = self
+            .state
+            .config
+            .ready()
+            .and_then(|c| c.get(Key::Instance))
+            .is_some_and(|i| !game_runs(i));
+        if gone {
+            self.watching = None;
+            self.state.launch = Launch::Ended {
+                stopped: self.stop_asked,
+            };
+        } else {
+            self.watching = Some(Watch {
+                last: Some(now),
+                ..watch
+            });
+            ctx.request_repaint_after(WATCH_EVERY);
         }
     }
 
@@ -258,8 +361,8 @@ impl Home {
     /// Pressing Play: start the game, or say what stands in the way and offer the page that fixes it. A press is
     /// never a silent no-op (UI-RULES G3), and a setup that misses a step never starts a game.
     fn play(&mut self, cx: &mut PageCx<'_>) {
-        if self.state.launch == Launch::Starting {
-            return; // A launch is on its way; the panel says Starting.
+        if matches!(self.state.launch, Launch::Starting | Launch::Started) {
+            return; // A launch is on its way, or its game runs: one game at a time.
         }
         if self.state.reading() {
             // A Play from the top bar that arrived while the reads run starts as soon as they settle.
@@ -407,6 +510,7 @@ impl Page for Home {
             self.load(cx, first);
         }
         self.take_answers(cx);
+        self.follow_game(ui.ctx());
         self.share(cx);
         if self.state.wants_setup() {
             self.state.offered_setup = true;
@@ -493,6 +597,8 @@ impl Home {
         // Play already says (UI-RULES G5). "All set" shows only when readiness holds in full (rule 1).
         let line = match &self.state.launch {
             Launch::Started => Some(RAUL_STARTED),
+            Launch::Ended { stopped: true } => Some(RAUL_ENDED_STOPPED),
+            Launch::Ended { stopped: false } => Some(RAUL_ENDED),
             Launch::Failed(_) => None,
             _ if checking || block.is_some() => None,
             _ if readiness == Readiness::Ready => {
@@ -505,9 +611,10 @@ impl Home {
             ui.add_space(4.0);
         }
         let starting = self.state.launch == Launch::Starting;
+        let running = self.state.launch == Launch::Started;
         let label = if starting { STARTING } else { PLAY_BIG };
         let button = shell::primary_button(&t, label).min_size(egui::vec2(180.0, 44.0));
-        let pressed = ui.add_enabled(!starting && !checking, button);
+        let pressed = ui.add_enabled(!starting && !running && !checking, button);
         if let Some(b) = block {
             pressed.clone().on_hover_text(block_text(b).what);
         }
@@ -641,8 +748,8 @@ fn readiness_row(ui: &mut egui::Ui, t: &Tokens, cx: &mut PageCx<'_>, row: &Row) 
             |ui| mark(ui, t, mark_of(row.level), mark_word(row.level)),
         );
         let action = match (row.id, row.level) {
+            (RowId::Ttw, Level::Ok) | (RowId::LoadOrder | RowId::Lod, _) => Some(OPEN),
             (RowId::Ttw, _) => Some(SET_UP),
-            (RowId::LoadOrder | RowId::Lod, _) => Some(OPEN),
             (_, Level::Problem | Level::Warning) => Some(FIX),
             _ => None,
         };
@@ -674,6 +781,9 @@ fn row_detail(row: &Row) -> String {
         Why::Checking => DETAIL_CHECKING.to_owned(),
         Why::TtwReady => DETAIL_TTW_READY.to_owned(),
         Why::TtwNeedsSources => DETAIL_TTW_NEEDS.to_owned(),
+        Why::TtwInstalled => DETAIL_TTW_INSTALLED.to_owned(),
+        Why::OrderValid => DETAIL_ORDER_VALID.to_owned(),
+        Why::LodGenerated => DETAIL_LOD_GENERATED.to_owned(),
         Why::OnItsPage if row.id == RowId::Lod => DETAIL_LOD.to_owned(),
         Why::OnItsPage => DETAIL_LOAD_ORDER.to_owned(),
     }
@@ -869,7 +979,15 @@ pub fn fixtures() -> Vec<Fixture> {
                 ..State::ready(all.clone())
             }),
         ),
-        Fixture::new("ttw-ready", seen(State::ready(ttw))),
+        Fixture::new("ttw-ready", seen(State::ready(ttw.clone()))),
+        Fixture::new(
+            "ttw-installed",
+            seen(State {
+                ttw_installed: Some(true),
+                lod_generated: Some(true),
+                ..State::ready(ttw)
+            }),
+        ),
         Fixture {
             name: "error",
             page: Box::new(seen(State {
@@ -915,7 +1033,7 @@ mod tests {
     use crate::jobs::Jobs;
     use crate::shell::App;
     use egui_kittest::Harness;
-    use egui_kittest::kittest::Queryable;
+    use egui_kittest::kittest::{NodeT, Queryable};
     use raul_ui_service::{Exec, Output, registry};
     use std::sync::{Arc, Mutex};
 
@@ -1001,7 +1119,17 @@ mod tests {
             }
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
-        h.run_steps(10);
+        // The answer arrives on a worker thread: wait for the page to show it rather than
+        // assuming a fixed number of frames is enough on a slow machine.
+        for _ in 0..200 {
+            h.run_steps(2);
+            if h.query_by_label(STOP_ASKED_STATUS).is_some()
+                || h.query_by_label(RUN_FAILED_PROBE).is_some()
+            {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
         let calls = exec.calls.lock().unwrap().clone();
         let asked = h.query_by_label(STOP_ASKED_STATUS).is_some();
         let failed = h.query_by_label(RUN_FAILED_PROBE).is_some();
@@ -1059,5 +1187,141 @@ mod tests {
             exec.calls.lock().unwrap().iter().all(|c| c[0] != "run"),
             "the game was not started"
         );
+    }
+
+    /// Home as it is a few seconds after a game was started from it in `instance`.
+    fn running_in(instance: &std::path::Path, stop_asked: bool) -> Fixture {
+        let config = Config::with(
+            "/users/player/.config/raul/config.toml",
+            &[
+                (Key::NewVegas, "/games/steamapps/common/Fallout New Vegas"),
+                (Key::StorageRoot, "/users/player/raul-storage"),
+                (Key::Instance, instance.to_str().unwrap()),
+            ],
+        );
+        let mut home = Home::with(State {
+            offered_setup: true,
+            launch: Launch::Started,
+            ..State::ready(config)
+        });
+        home.visits.loaded = true;
+        home.stop_asked = stop_asked;
+        let ago = std::time::Instant::now()
+            .checked_sub(GRACE + std::time::Duration::from_secs(1))
+            .unwrap();
+        home.watching = Some(Watch {
+            started: ago,
+            last: None,
+        });
+        Fixture::new("running", home)
+    }
+
+    fn lock(instance: &std::path::Path, pid: u32, command: &str) {
+        std::fs::create_dir_all(instance.join(".nvmod")).unwrap();
+        std::fs::write(
+            instance.join(nvmod_run::LOCK_FILE),
+            format!(r#"{{"pid":{pid},"started":0,"command":"{command}"}}"#),
+        )
+        .unwrap();
+    }
+
+    fn scratch(label: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("raul-home-{label}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn show(fixture: Fixture) -> Harness<'static, App> {
+        let app = App::fixture(
+            fixture,
+            Jobs::new(Arc::new(Recording::default())).scripted(&[
+                "config-list",
+                "config-get",
+                "config-set",
+                "config-unset",
+            ]),
+        );
+        Harness::builder()
+            .with_size([1280.0, 800.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            })
+    }
+
+    // Windows cannot tell a gone process from a live one here (the lock is never taken over), so only Unix ends.
+    #[cfg(unix)]
+    #[test]
+    fn home_leaves_the_running_state_when_the_game_has_ended() {
+        let dir = scratch("ended");
+        // A process id above any the system hands out is never a running process.
+        let gone = i32::MAX as u32;
+        lock(&dir, gone, "run nv-rs");
+        let mut h = show(running_in(&dir, false));
+        h.run();
+        assert!(h.query_by_label(RAUL_ENDED).is_some(), "says it ended");
+        assert!(
+            h.query_by_label(STOP_GAME).is_none(),
+            "no Stop for a game that is gone"
+        );
+        assert!(h.query_by_label(STATE_RUNNING).is_none());
+    }
+
+    // The title line and the panel say the same once the game is gone (#459). The shell asks for one more frame when
+    // the page changes the line while it draws; the test harness runs extra passes by itself, so this checks the
+    // outcome, not the request.
+    #[cfg(unix)]
+    #[test]
+    fn the_title_line_follows_the_panel_in_the_frame_that_sees_the_game_gone() {
+        let dir = scratch("ended-line");
+        lock(&dir, i32::MAX as u32, "run nv-rs");
+        let mut h = show(running_in(&dir, false));
+        h.step();
+        assert!(
+            h.query_by_label(RAUL_ENDED).is_some(),
+            "the panel says it ended"
+        );
+        assert!(
+            h.query_by_label(STATE_RUNNING).is_none(),
+            "the title line no longer says running"
+        );
+        std::fs::remove_dir_all(&dir).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_game_that_was_stopped_as_asked_says_so() {
+        let dir = scratch("stopped");
+        let mut h = show(running_in(&dir, true));
+        h.run();
+        assert!(h.query_by_label(RAUL_ENDED_STOPPED).is_some());
+        assert!(h.query_by_label(PLAY_BIG).is_some());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_game_that_still_runs_keeps_home_running_and_play_off() {
+        let dir = scratch("runs");
+        lock(&dir, std::process::id(), "run nv-rs");
+        let mut h = show(running_in(&dir, false));
+        h.run();
+        assert!(h.query_by_label(RAUL_STARTED).is_some());
+        assert!(h.query_by_label(STOP_GAME).is_some());
+        assert!(
+            h.get_by_label(PLAY_BIG).accesskit_node().is_disabled(),
+            "Play is not offered while a game of this Instance runs"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_lock_of_another_command_is_not_a_game() {
+        let dir = scratch("stage");
+        lock(&dir, std::process::id(), "stage");
+        assert!(!game_runs(dir.to_str().unwrap()));
+        lock(&dir, std::process::id(), "run nv-rs");
+        assert!(game_runs(dir.to_str().unwrap()));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

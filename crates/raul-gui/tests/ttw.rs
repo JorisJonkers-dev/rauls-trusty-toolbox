@@ -11,6 +11,7 @@ use eframe::egui::accesskit::Role;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use nvmod_testkit::{BaseBuilder, TempDir};
+use raul_core::context::Context;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::ttw::{
     CANCEL, INSTALL, INSTALL_CANCELLED, INSTALL_FAILED, INSTALL_UNKNOWN, INSTALLED_STATUS, NEXT,
@@ -21,10 +22,12 @@ use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobEvent, JobId, JobState, JobTable, Outcome};
 use raul_ui_model::pages::{Flow, View};
 use raul_ui_service::registry::Action;
-use raul_ui_service::{CancelHandle, CliService, Hold, JobSpec, ProcessExec, Service, TtwRequest};
+use raul_ui_service::{
+    CancelHandle, CliService, Hold, InProcessExec, JobSpec, Service, TtwRequest,
+};
 use serde_json::json;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 use ttwright_testkit::{Manifest, loc, mpi_package};
 
@@ -79,7 +82,14 @@ fn unsupported_manifest() -> Manifest {
     m
 }
 
+/// Held by the test that runs; see `Fixture::_turn`.
+static TURN: Mutex<()> = Mutex::new(());
+
 struct Fixture {
+    /// The turn of this test. The stop request of the command line is one flag of the process, so a test that
+    /// stops an install while another test installs would stop that one too; the tests take turns, which keeps
+    /// plain `cargo test` (one process, many threads) as green as nextest (one process per test).
+    _turn: MutexGuard<'static, ()>,
     root: TempDir,
     /// The ttwright fixture: a Fallout 3 copy, the `.mpi` package and a destination folder.
     ttw: ttwright_testkit::Fixture,
@@ -92,6 +102,7 @@ impl Fixture {
 
     fn with_manifest(label: &str, manifest: &Manifest) -> Fixture {
         let f = Fixture {
+            _turn: TURN.lock().unwrap_or_else(PoisonError::into_inner),
             root: TempDir::new(label),
             ttw: ttwright_testkit::Fixture::with_manifest(label, manifest),
         };
@@ -109,11 +120,16 @@ impl Fixture {
         f
     }
 
-    /// `raul` with this fixture's own configuration and state, so nothing reaches the real home.
-    fn exec(&self) -> ProcessExec {
-        ProcessExec::new(env!("CARGO_BIN_EXE_raul"))
-            .with_env("RAUL_CONFIG_DIR", &self.s("config"))
-            .with_env("NVMOD_STATE_DIR", &self.s("state"))
+    /// The folders this fixture's runs use: its own configuration, and no run log, so nothing reaches the real home.
+    fn context(&self) -> Context {
+        Context::new()
+            .with_config_folder(self.path("config"))
+            .without_run_log()
+    }
+
+    /// The command line run in this process with this fixture's folders.
+    fn exec(&self) -> InProcessExec {
+        InProcessExec::with_context(self.context())
     }
 
     fn path(&self, p: &str) -> PathBuf {
@@ -131,8 +147,8 @@ impl Fixture {
         assert_eq!(out.code, Some(0), "{args:?}: {}", out.stderr);
     }
 
-    fn service(&self) -> CliService<ProcessExec> {
-        CliService::new(self.exec().with_grace(Duration::from_secs(5)))
+    fn service(&self) -> CliService<InProcessExec> {
+        CliService::new(self.exec())
     }
 
     /// A request with every input given.
@@ -216,27 +232,31 @@ fn a_dry_run_writes_nothing() {
 #[test]
 fn a_failure_or_a_refusal_is_a_report_that_says_why() {
     // A game copy the check rejects: ttwright fails before it writes anything.
-    let f = Fixture::new("gui-ttw-fail");
-    f.break_check();
-    let report = f.service().ttw(&f.request()).unwrap();
-    assert_eq!(report.status, Status::Failed, "{report:?}");
-    assert_eq!(
-        report.error.as_ref().map(|e| e.code.as_str()),
-        Some("ttwright_failed")
-    );
-    assert!(report.mod_name.is_none());
-    assert!(!f.installed());
+    {
+        let f = Fixture::new("gui-ttw-fail");
+        f.break_check();
+        let report = f.service().ttw(&f.request()).unwrap();
+        assert_eq!(report.status, Status::Failed, "{report:?}");
+        assert_eq!(
+            report.error.as_ref().map(|e| e.code.as_str()),
+            Some("ttwright_failed")
+        );
+        assert!(report.mod_name.is_none());
+        assert!(!f.installed());
+    }
 
     // A package whose version is not supported: refused before anything is written.
-    let f = Fixture::with_manifest("gui-ttw-unsupported", &unsupported_manifest());
-    let report = f.service().ttw(&f.request()).unwrap();
-    assert_eq!(report.status, Status::Unsupported, "{report:?}");
-    assert_eq!(
-        report.error.as_ref().map(|e| e.code.as_str()),
-        Some("unsupported")
-    );
-    assert!(report.mod_name.is_none());
-    assert!(!f.installed());
+    {
+        let f = Fixture::with_manifest("gui-ttw-unsupported", &unsupported_manifest());
+        let report = f.service().ttw(&f.request()).unwrap();
+        assert_eq!(report.status, Status::Unsupported, "{report:?}");
+        assert_eq!(
+            report.error.as_ref().map(|e| e.code.as_str()),
+            Some("unsupported")
+        );
+        assert!(report.mod_name.is_none());
+        assert!(!f.installed());
+    }
 
     // Nothing given and nothing configured: refused before ttwright starts.
     let f = Fixture::new("gui-ttw-missing");
@@ -328,8 +348,7 @@ impl Fixture {
 
     /// The window, with the install held at its first asset by `hold` when given.
     fn window_with(&self, hold: Option<Arc<Hold>>) -> Harness<'static, App> {
-        let exec = self.exec().with_grace(Duration::from_secs(5));
-        let mut jobs = Jobs::new(Arc::new(exec)).with_config_folder(&self.path("config"));
+        let mut jobs = Jobs::in_context(self.context());
         if let Some(hold) = hold {
             jobs = jobs.holding_ttw(hold);
         }

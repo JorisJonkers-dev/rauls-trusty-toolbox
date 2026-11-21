@@ -263,12 +263,16 @@ impl DirectJob {
 /// The direct job that does what the page's command with the registry id `id` does, from the values and flags after
 /// its words; `None` for a command that still runs as a command line. Each converted action adds one arm here.
 pub fn for_command(id: &str, rest: &[String]) -> Option<DirectJob> {
-    for_command_in(id, rest, None)
+    for_command_in(id, rest, &raul_core::context::Context::default())
 }
 
-/// [`for_command`] with the configuration file the runs that read `raul config` use (`None`: the person's own). A test
-/// gives its own, so nothing reaches the real one and no environment variable of the process is set.
-pub fn for_command_in(id: &str, rest: &[String], config: Option<&Path>) -> Option<DirectJob> {
+/// [`for_command`] with the folders the runs that read `raul config` use (`ctx`; the default is the person's own). A
+/// test gives its own, so nothing reaches the real ones and no environment variable of the process is set.
+pub fn for_command_in(
+    id: &str,
+    rest: &[String],
+    ctx: &raul_core::context::Context,
+) -> Option<DirectJob> {
     match id {
         "rollback" => Some(match value_of(rest, "--instance") {
             "" => DirectJob::reading(|_, _| -> Result<Outcome<()>, JobError> {
@@ -305,16 +309,25 @@ pub fn for_command_in(id: &str, rest: &[String], config: Option<&Path>) -> Optio
         "install" => {
             Some(install_command_request(rest).map_or_else(DirectJob::usage, |r| install_mod(&r)))
         }
+        "lod-settings-show" | "lod-settings-set" | "lod-settings-unset" | "lod-settings-reset"
+        | "lod-settings-undo" => Some(lod_settings(id, rest, ctx)),
+        "update-check" | "update-status" | "update-download" | "update-install"
+        | "update-rollback" => Some(update(id, rest)),
+        "lod-plan" => Some(lod_read(rest, ctx, raul_cli::lod_plan_document)),
+        "lod-mods" => Some(lod_read(rest, ctx, raul_cli::lod_mods_document)),
+        "version" => Some(version()),
+        "detect" => Some(detect(rest)),
+        "config-list" | "config-get" | "config-set" | "config-unset" => Some(config(id, rest, ctx)),
         "conflicts" => Some(conflicts(&conflicts_request(rest))),
         "tree" => Some(tree(&tree_request(rest))),
         "doctor" => Some(doctor_request(rest).map_or_else(DirectJob::usage, |r| doctor(&r))),
         "verify" => Some(verify_request(rest).map_or_else(DirectJob::usage, |r| verify(&r))),
         "plugins-list" => Some(plugins_list(&plugins_list_request(rest))),
-        "ttw" => Some(
-            raul_cli::ttw_install_job_in(rest, config).map_or_else(DirectJob::usage, ttw_install),
-        ),
+        "ttw" => {
+            Some(raul_cli::ttw_install_job_in(rest, ctx).map_or_else(DirectJob::usage, ttw_install))
+        }
         "lod-generate" => Some(
-            raul_cli::lod_generate_job_in(rest, config).map_or_else(DirectJob::usage, lod_generate),
+            raul_cli::lod_generate_job_in(rest, ctx).map_or_else(DirectJob::usage, lod_generate),
         ),
         "mods-list" => {
             Some(mods_list_request(rest).map_or_else(DirectJob::usage, |r| mods_list(&r)))
@@ -332,6 +345,152 @@ pub fn for_command_in(id: &str, rest: &[String], config: Option<&Path>) -> Optio
         }
         _ => None,
     }
+}
+
+/// `raul version`: the Toolbox version of this build, as the command prints it with `--json`.
+pub fn version() -> DirectJob {
+    DirectJob::reading(|_, _| -> Result<Outcome<serde_json::Value>, JobError> {
+        Ok(Outcome::Done(raul_cli::version_document()))
+    })
+}
+
+/// `raul detect [--folder <dir>]`: the game copies on this machine, or the one in the folder. Its document is the list
+/// of copies; the exit code is [`raul_cli::FOUND`] when there is none, as the command ends.
+pub fn detect(rest: &[String]) -> DirectJob {
+    let folder = option_of(rest, "--folder").map(PathBuf::from);
+    DirectJob::reading_as(
+        move |_, _| -> Result<Outcome<Vec<raul_core::detect::GameCopy>>, JobError> {
+            Ok(Outcome::Done(raul_cli::detect_copies(folder.as_deref())))
+        },
+        |copies: &Vec<raul_core::detect::GameCopy>| {
+            serde_json::to_value(copies).map(|json| Reply {
+                json,
+                exit: if copies.is_empty() {
+                    raul_cli::FOUND
+                } else {
+                    0
+                },
+            })
+        },
+    )
+}
+
+/// `raul lod plan` and `raul lod mods`: the read-only LOD documents, from the command's own functions. A usage error or
+/// refusal is a refusal here, with the command's words.
+pub fn lod_read(
+    rest: &[String],
+    ctx: &raul_core::context::Context,
+    document: fn(
+        &raul_core::context::Context,
+        &[String],
+    ) -> Result<serde_json::Value, raul_cli::LodRefusal>,
+) -> DirectJob {
+    let rest: Vec<String> = rest.iter().filter(|w| *w != "--json").cloned().collect();
+    let ctx = ctx.clone();
+    DirectJob::reading(
+        move |_, _| -> Result<Outcome<serde_json::Value>, JobError> {
+            document(&ctx, &rest).map(Outcome::Done).map_err(|r| {
+                let (line, _) = r.render();
+                JobError::new(ErrorKind::Refused, "lod.read", line)
+            })
+        },
+    )
+}
+
+/// `raul lod settings show|set|unset|reset|undo`: a Profile's LOD settings, read or written in process. Like the command
+/// it takes no Instance lock (the settings functions refuse while a LOD run is in progress); the answer is the
+/// `raul-lod-settings` document, a refusal is that document too, with the command's exit code.
+pub fn lod_settings(id: &str, rest: &[String], ctx: &raul_core::context::Context) -> DirectJob {
+    let verb = id.strip_prefix("lod-settings-").unwrap_or(id).to_owned();
+    let rest: Vec<String> = rest.iter().filter(|w| *w != "--json").cloned().collect();
+    let ctx = ctx.clone();
+    DirectJob::reading_as(
+        move |_, _| -> Result<Outcome<Option<(serde_json::Value, u8)>>, JobError> {
+            Ok(Outcome::Done(raul_cli::lod_settings_answer(
+                &ctx, &verb, &rest,
+            )))
+        },
+        |answer: &Option<(serde_json::Value, u8)>| {
+            Ok(answer.as_ref().map_or(
+                Reply {
+                    json: serde_json::Value::Null,
+                    exit: raul_cli::USAGE,
+                },
+                |(json, exit)| Reply {
+                    json: json.clone(),
+                    exit: *exit,
+                },
+            ))
+        },
+    )
+}
+
+/// `raul update check|status|download|install|rollback`: the update steps of `raul-core`, run in process. The document
+/// is the one `--json` prints; a step that did not go through is a refusal or a failure with the command's words and
+/// class (an install that cannot update itself is a refusal, a failed fetch a failure).
+pub fn update(id: &str, rest: &[String]) -> DirectJob {
+    let verb = id.strip_prefix("update-").unwrap_or(id).to_owned();
+    let rest = rest.to_vec();
+    DirectJob::reading(
+        move |_, _| -> Result<Outcome<serde_json::Value>, JobError> {
+            let Some(step) = raul_cli::update_answer(&verb, &rest) else {
+                return Err(JobError::new(
+                    ErrorKind::Refused,
+                    "update.usage",
+                    format!("update {verb}: the words after it are not understood"),
+                ));
+            };
+            match step {
+                Ok((doc, _)) => Ok(Outcome::Done(doc)),
+                Err(f) => Err(JobError::new(
+                    if f.code == raul_cli::REFUSED {
+                        ErrorKind::Refused
+                    } else {
+                        ErrorKind::Failed
+                    },
+                    "update.step",
+                    f.line,
+                )),
+            }
+        },
+    )
+}
+
+/// `raul config list|get|set|unset`: the file of `ctx`, read or written in process. Like the command, it takes no
+/// Instance lock (the file is the person's own, not an Instance's); the answer is the `raul-config` document, and a
+/// refusal is that document too, with the command's exit code.
+pub fn config(id: &str, rest: &[String], ctx: &raul_core::context::Context) -> DirectJob {
+    let word = id.strip_prefix("config-").unwrap_or(id).to_owned();
+    let mut words = vec![word];
+    words.extend(rest.iter().filter(|w| *w != "--json").cloned());
+    if words.len()
+        != if id == "config-list" {
+            1
+        } else if id == "config-set" {
+            3
+        } else {
+            2
+        }
+    {
+        return DirectJob::usage(format!("{}: wrong number of words", words[0]));
+    }
+    let ctx = ctx.clone();
+    DirectJob::reading_as(
+        move |_, _| -> Result<Outcome<Option<(serde_json::Value, u8)>>, JobError> {
+            let refs: Vec<&str> = words.iter().map(String::as_str).collect();
+            Ok(Outcome::Done(raul_cli::config_answer(&ctx, &refs)))
+        },
+        |answer: &Option<(serde_json::Value, u8)>| match answer {
+            Some((json, exit)) => Ok(Reply {
+                json: json.clone(),
+                exit: *exit,
+            }),
+            None => Ok(Reply {
+                json: serde_json::Value::Null,
+                exit: raul_cli::USAGE,
+            }),
+        },
+    )
 }
 
 /// The Instance to hold the lock of while a run writes into it: the one the run names, when it is one.
@@ -554,6 +713,7 @@ fn sort_request(
         profile: option_of(rest, "--profile"),
         masterlist: masterlist.map_or_default(PathBuf::from),
         apply: has_flag(rest, "--apply"),
+        mode: nvmod_api::loadorder::SortMode::Full,
     };
     let source = if fetch {
         MasterlistSource::Pinned {
@@ -566,65 +726,91 @@ fn sort_request(
     Ok((request, source))
 }
 
-/// The tool of `tools.lock.toml` that pins the masterlist.
-const MASTERLIST_TOOL: &str = "loot-masterlist-falloutnv";
+/// The pinned masterlist, fetched into the store when it is not there yet. Fetching is not a job of nvmod's API (its
+/// sort takes the file, "the caller fetches and verifies it"); raul-core does it, as `raul sort --fetch-masterlist`.
+/// Also a plain line to show when the file was already in the store: nothing is downloaded then (the store is
+/// checked against the pinned checksum first), which is also why the sort works with no network.
+fn fetch_masterlist_noting(
+    instance: &Path,
+    lock: Option<&Path>,
+    store: Option<&Path>,
+) -> Result<(PathBuf, Option<String>), JobError> {
+    let started = std::time::SystemTime::now();
+    let file = fetch_masterlist_file(instance, lock, store)?;
+    let stored_on = std::fs::metadata(&file)
+        .and_then(|m| m.modified())
+        .ok()
+        .filter(|written| *written < started);
+    Ok((file, stored_on.map(stored_line)))
+}
 
-/// The pinned masterlist, fetched into the tool store when it is not there yet. Fetching is not a job of nvmod's
-/// API (its sort takes the file, "the caller fetches and verifies it"), so it is done here with the same pieces the
-/// command line uses.
-fn fetch_masterlist(
+/// What the window says when the sort used the masterlist that was already stored on this machine.
+fn stored_line(written: std::time::SystemTime) -> String {
+    format!(
+        "Sorted with the masterlist stored on {}: the version this Toolbox pins, checked against its checksum. Nothing was downloaded.",
+        date_of(written)
+    )
+}
+
+/// The UTC date of `time`, as `2026-11-21`.
+fn date_of(time: std::time::SystemTime) -> String {
+    let days = i64::try_from(
+        time.duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs())
+            / 86_400,
+    )
+    .unwrap_or(0);
+    // Civil date from days since 1970-01-01 (Howard Hinnant's algorithm).
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    format!("{year:04}-{month:02}-{day:02}")
+}
+
+fn fetch_masterlist_file(
     instance: &Path,
     lock: Option<&Path>,
     store: Option<&Path>,
 ) -> Result<PathBuf, JobError> {
-    use crate::fetch::CurlFetcher;
-    use nvmod_tools::{Acquire, AcquireError, Lock, Store, Trust, builtin_lock};
+    use raul_core::pinned::{MasterlistPin, masterlist};
+    let pin = MasterlistPin {
+        lock: lock.map(Path::to_path_buf),
+        store: store.map(Path::to_path_buf),
+        ..MasterlistPin::default()
+    };
+    masterlist(instance, &pin).map_err(pinned_error)
+}
+
+/// How a failed fetch of the pinned masterlist is told to the caller.
+fn pinned_error(e: raul_core::pinned::PinnedError) -> JobError {
+    use raul_core::pinned::PinnedError;
     const WHAT: &str = "loadorder.sort.fetch";
-    let refused = |why: String| JobError::new(ErrorKind::Refused, WHAT, why);
-    let lock = match lock {
-        None => builtin_lock(),
-        Some(path) => {
-            let text = std::fs::read_to_string(path)
-                .map_err(|e| refused(format!("{}: {e}", path.display())))?;
-            Lock::parse(&text).map_err(refused)?
-        }
-    };
-    let entry = lock.tool(MASTERLIST_TOOL).ok_or_else(|| {
-        refused(format!(
-            "the lock file pins no tool called `{MASTERLIST_TOOL}`, so no masterlist source is pinned: \
-             give a masterlist file instead"
-        ))
-    })?;
-    let store = Store::new(store.map_or_else(Store::default_location, Path::to_path_buf));
-    let curl = CurlFetcher::default();
-    let trust = Trust::load(instance).map_err(refused)?;
-    let acquire = Acquire {
-        fetcher: &curl,
-        gh: Path::new("gh"),
-        retry_delay: Duration::from_millis(1000),
-        store: &store,
-        trust: Some(&trust),
-    };
-    acquire
-        .fetch(entry)
-        .map(|done| done.path)
-        .map_err(|e| match e {
-            AcquireError::Refused(why) => refused(why),
-            AcquireError::Verification(why) => JobError::new(
-                ErrorKind::Corrupt,
-                WHAT,
-                format!("verification failed: {why}"),
-            ),
-            AcquireError::Failed(why) => JobError::new(
-                ErrorKind::Failed,
-                WHAT,
-                format!("the masterlist could not be fetched: {why}"),
-            ),
-        })
+    match e {
+        PinnedError::Refused(why) => JobError::new(ErrorKind::Refused, WHAT, why),
+        PinnedError::Verification(why) => JobError::new(
+            ErrorKind::Corrupt,
+            WHAT,
+            format!("verification failed: {why}"),
+        ),
+        PinnedError::Failed(why) => JobError::new(
+            ErrorKind::Failed,
+            WHAT,
+            format!("the masterlist could not be fetched: {why}"),
+        ),
+    }
 }
 
 /// The document of `raul sort --json`, from the proposal and what was applied.
-fn sort_document(output: &nvmod_api::loadorder::SortOutput) -> serde_json::Value {
+fn sort_document(
+    output: &nvmod_api::loadorder::SortOutput,
+    stored: Option<&str>,
+) -> serde_json::Value {
     let proposal = &output.proposal;
     let found = &proposal.output;
     let order: Vec<_> = proposal
@@ -652,6 +838,7 @@ fn sort_document(output: &nvmod_api::loadorder::SortOutput) -> serde_json::Value
         .collect();
     serde_json::json!({
         "profile": proposal.profile,
+        "mode": found.mode.label(),
         "reordered": proposal.reordered(),
         "times_stale": nvmod_loadorder::times_stale(&proposal.data, &proposal.current),
         "positions": { "changed": proposal.positions_changed(), "total": proposal.proposed.len() },
@@ -661,7 +848,7 @@ fn sort_document(output: &nvmod_api::loadorder::SortOutput) -> serde_json::Value
             .map(|m| serde_json::json!({ "kind": m.kind.label(), "text": m.text }))
             .collect::<Vec<_>>(),
         "not_installed": found.not_installed,
-        "warnings": found.warnings,
+        "warnings": found.warnings.iter().cloned().chain(stored.map(str::to_owned)).collect::<Vec<_>>(),
         "applied": output.applied.as_ref().map(|a| serde_json::json!({
             "lists_written": a.lists_written,
             "stamped": a.stamped,
@@ -681,17 +868,27 @@ pub fn sort(request: &nvmod_api::loadorder::SortRequest, source: &MasterlistSour
     let profile = request.profile.clone();
     let apply = request.apply;
     let run = move |progress: &mut dyn Progress, cancel: &CancelToken| {
+        let mut stored = None;
         if let MasterlistSource::Pinned { lock, store } = &source {
             progress.report(&Event::step(
                 "fetch-masterlist",
                 "loadorder.sort.fetching-masterlist",
             ));
-            request.masterlist =
-                fetch_masterlist(&request.instance, lock.as_deref(), store.as_deref())?;
+            let (file, note) =
+                fetch_masterlist_noting(&request.instance, lock.as_deref(), store.as_deref())?;
+            request.masterlist = file;
+            stored = note;
         }
-        nvmod_api::loadorder::sort(&request, progress, cancel)
+        Ok(
+            match nvmod_api::loadorder::sort(&request, progress, cancel)? {
+                Outcome::Done(output) => Outcome::Done((output, stored)),
+                Outcome::Cancelled => Outcome::Cancelled,
+            },
+        )
     };
-    let render = |done: &nvmod_api::loadorder::SortOutput| Ok(Reply::ok(sort_document(done)));
+    let render = |done: &(nvmod_api::loadorder::SortOutput, Option<String>)| {
+        Ok(Reply::ok(sort_document(&done.0, done.1.as_deref())))
+    };
     if apply {
         DirectJob::writing_as(instance, "sort", run, render).snapshotting(profile)
     } else {
@@ -1250,4 +1447,32 @@ fn finish(
         exit: class,
     });
     output
+}
+
+#[cfg(test)]
+mod pinned_tests {
+    use super::*;
+    use raul_core::pinned::PinnedError;
+
+    /// Each way the pinned masterlist can fail is its own class, with the reason in the words.
+    #[test]
+    fn a_failed_fetch_keeps_its_class_and_its_reason() {
+        let e = pinned_error(PinnedError::Refused("no pin".into()));
+        assert_eq!((e.kind, e.summary.as_str()), (ErrorKind::Refused, "no pin"));
+        let e = pinned_error(PinnedError::Verification("bad sum".into()));
+        assert_eq!(e.kind, ErrorKind::Corrupt);
+        assert_eq!(e.summary, "verification failed: bad sum");
+        let e = pinned_error(PinnedError::Failed("offline".into()));
+        assert_eq!(e.kind, ErrorKind::Failed);
+        assert_eq!(e.summary, "the masterlist could not be fetched: offline");
+        assert_eq!(e.job, "loadorder.sort.fetch");
+    }
+
+    #[test]
+    fn a_date_is_the_utc_day_of_the_time() {
+        let at = |secs| std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs);
+        assert_eq!(date_of(at(0)), "1970-01-01");
+        assert_eq!(date_of(at(1_700_000_000)), "2023-11-14");
+        assert_eq!(date_of(at(1_709_164_800)), "2024-02-29");
+    }
 }

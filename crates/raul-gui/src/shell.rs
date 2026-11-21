@@ -395,9 +395,11 @@ impl App {
             repaint: Some(ui.ctx().clone()),
         };
         // The header (UI-RULES A1): title, one-line state, tools on the right, then a hairline.
+        let mut shown_line = String::new();
         ui.horizontal_wrapped(|ui| {
             ui.label(RichText::new(page.title()).text_style(theme::title_style()));
-            ui.label(RichText::new(page.state_line()).color(t.muted.color()));
+            shown_line = page.state_line();
+            ui.label(RichText::new(&shown_line).color(t.muted.color()));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 page.tools(ui, &mut cx);
             });
@@ -409,6 +411,11 @@ impl App {
         egui::ScrollArea::vertical()
             .auto_shrink([false, false])
             .show(ui, |ui| page.ui(ui, &mut cx));
+        // The header is drawn before the page, so a state the page changed while drawing shows in the next frame:
+        // ask for it, or the line under the title keeps the old state until the person moves the mouse.
+        if page.state_line() != shown_line {
+            ui.ctx().request_repaint();
+        }
     }
 
     fn footer(&mut self, ui: &mut egui::Ui) {

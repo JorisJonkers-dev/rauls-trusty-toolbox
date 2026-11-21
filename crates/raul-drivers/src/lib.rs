@@ -43,3 +43,9 @@ fn require_every_property(value: &mut serde_json::Value) {
         _ => {}
     }
 }
+
+/// The folder of nvmod's run logs: `NVMOD_STATE_DIR/logs`, or the state folder of the system.
+#[must_use]
+pub fn run_log_dir() -> std::path::PathBuf {
+    nvmod_runlog::logs_dir(&nvmod_runlog::state_dir())
+}

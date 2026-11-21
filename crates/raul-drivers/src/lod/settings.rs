@@ -156,6 +156,22 @@ pub mod catalogue {
     /// Normal size, explained.
     pub const NORMAL_SIZE_HELP: &str =
         "The edge of each block's shading texture in pixels. Larger costs disk space and memory.";
+    /// Specular in the alpha of the shading texture.
+    pub const SPECULAR_ALPHA: &str = "Shine in the shading texture";
+    /// Specular in alpha, explained.
+    pub const SPECULAR_ALPHA_HELP: &str = "Stores how shiny each land texture is in the shading texture, so distant land can shine like the land near you. Off by default; it is new, so look at the result in the game.";
+    /// Skirts at the borders of a level's blocks.
+    pub const SKIRTS: &str = "Close the gaps between blocks";
+    /// Skirts, explained.
+    pub const SKIRTS_HELP: &str = "Hangs a narrow wall under the edge of every block, as the game's own blocks do, so no gap shows between neighbouring blocks. Off by default; it is new, so look at the result in the game.";
+    /// Drop terrain faces under the water.
+    pub const TERRAIN_DROP_UNDER_WATER: &str = "Leave out land faces deep under the water";
+    /// Drop terrain faces under the water, explained.
+    pub const TERRAIN_DROP_UNDER_WATER_HELP: &str = "Distant land loses the faces that lie at least this far below the water, in game units, which nobody sees through it. The files get smaller. Empty keeps every face.";
+    /// How often a land texture repeats.
+    pub const TEXTURE_SCALES: &str = "How often a land texture repeats";
+    /// Texture scales, explained.
+    pub const TEXTURE_SCALES_HELP: &str = "For a land texture, how many times it repeats across a quarter of a cell in the colour textures. Give the land texture's record id and the number, like 0012AB34=2, separated by commas. A texture that is not listed repeats once.";
     /// Drop faces under the terrain.
     pub const DROP_UNDER_TERRAIN: &str = "Leave out object faces under the land";
     /// Drop faces under the terrain, explained.
@@ -182,6 +198,8 @@ pub enum Kind {
     Names,
     /// A list of record ids, eight hex digits each.
     Records,
+    /// A table of record id (eight hex digits) to a number, written `id=number`.
+    Scales,
 }
 
 /// One option of the LOD settings.
@@ -237,13 +255,15 @@ macro_rules! level_rows {
             row(concat!("levels.", $l, ".max_vertices"), 2, Kind::Count, VERTICES, catalogue::MAX_VERTICES, catalogue::MAX_VERTICES_HELP),
             row(concat!("levels.", $l, ".diffuse_size"), 2, Kind::TextureSize, SIZE, catalogue::DIFFUSE_SIZE, catalogue::DIFFUSE_SIZE_HELP),
             row(concat!("levels.", $l, ".normal_size"), 2, Kind::TextureSize, SIZE, catalogue::NORMAL_SIZE, catalogue::NORMAL_SIZE_HELP),
+            row(concat!("levels.", $l, ".specular_alpha"), 3, Kind::Switch, NONE, catalogue::SPECULAR_ALPHA, catalogue::SPECULAR_ALPHA_HELP),
+            row(concat!("levels.", $l, ".skirts"), 3, Kind::Switch, NONE, catalogue::SKIRTS, catalogue::SKIRTS_HELP),
         )*]
     };
 }
 
-const LEVEL_ROWS: [Descriptor; 16] = level_rows!("4", "8", "16", "32");
+const LEVEL_ROWS: [Descriptor; 24] = level_rows!("4", "8", "16", "32");
 
-const BASE_ROWS: [Descriptor; 15] = [
+const BASE_ROWS: [Descriptor; 17] = [
     row(
         "worlds",
         1,
@@ -367,11 +387,27 @@ const BASE_ROWS: [Descriptor; 15] = [
         catalogue::DROP_UNDER_WATER,
         catalogue::DROP_UNDER_WATER_HELP,
     ),
+    row(
+        "terrain.drop_under_water",
+        3,
+        Kind::Number,
+        (Some(0.0), Some(100_000.0)),
+        catalogue::TERRAIN_DROP_UNDER_WATER,
+        catalogue::TERRAIN_DROP_UNDER_WATER_HELP,
+    ),
+    row(
+        "terrain.texture_scales",
+        3,
+        Kind::Scales,
+        (Some(0.0625), Some(16.0)),
+        catalogue::TEXTURE_SCALES,
+        catalogue::TEXTURE_SCALES_HELP,
+    ),
 ];
 
 /// Every option, in the order a view lists them: tier 1, then the advanced ones.
-pub const OPTIONS: [Descriptor; 31] = {
-    let mut all = [BASE_ROWS[0]; 31];
+pub const OPTIONS: [Descriptor; 41] = {
+    let mut all = [BASE_ROWS[0]; 41];
     let mut i = 0;
     while i < BASE_ROWS.len() {
         all[i] = BASE_ROWS[i];
@@ -403,6 +439,8 @@ fn generator_key(key: &str) -> Option<String> {
         "worlds"
         | "objects.drop_under_terrain"
         | "objects.drop_under_water"
+        | "terrain.drop_under_water"
+        | "terrain.texture_scales"
         | "inclusion.exclude_plugins"
         | "inclusion.only_plugins"
         | "inclusion.exclude_records"
@@ -459,6 +497,7 @@ pub fn default_value(key: &str) -> Option<Value> {
     }
     Some(match d.kind {
         Kind::Names | Kind::Records if info.default.is_null() => json!([]),
+        Kind::Scales if info.default.is_null() => json!({}),
         _ => info.default.clone(),
     })
 }
@@ -902,6 +941,22 @@ fn check_value(d: &Descriptor, v: &toml::Value) -> Result<(), Refusal> {
                 return refuse(RefusalCode::NotAPowerOfTwo);
             }
         }
+        Kind::Scales => {
+            let Some(entries) = v.as_table() else {
+                return refuse(RefusalCode::WrongType);
+            };
+            for (id, scale) in entries {
+                if id.len() != 8 || u32::from_str_radix(id, 16).is_err() {
+                    return refuse(RefusalCode::NotARecord);
+                }
+                let Some(n) = number(scale) else {
+                    return refuse(RefusalCode::WrongType);
+                };
+                if !n.is_finite() || d.min.is_some_and(|m| n < m) || d.max.is_some_and(|m| n > m) {
+                    return refuse(RefusalCode::OutOfRange);
+                }
+            }
+        }
         Kind::Names | Kind::Records => {
             let Some(items) = v.as_array() else {
                 return refuse(RefusalCode::WrongType);
@@ -990,6 +1045,16 @@ fn to_toml(d: &Descriptor, v: &Value) -> Result<toml::Value, Refusal> {
             )
         }
         Kind::Number => toml::Value::Float(v.as_f64().ok_or_else(wrong)?),
+        Kind::Scales => {
+            let mut table = Table::new();
+            for (id, scale) in v.as_object().ok_or_else(wrong)? {
+                table.insert(
+                    id.clone(),
+                    toml::Value::Float(scale.as_f64().ok_or_else(wrong)?),
+                );
+            }
+            toml::Value::Table(table)
+        }
         Kind::Names | Kind::Records => toml::Value::Array(
             v.as_array()
                 .ok_or_else(wrong)?
@@ -1034,6 +1099,20 @@ pub fn parse_value(key: &str, words: &[String]) -> Result<Value, Refusal> {
             .map(|n| json!(n))
             .ok_or_else(wrong),
         Kind::Names | Kind::Records => Ok(json!(words)),
+        Kind::Scales => {
+            let mut entries = serde_json::Map::new();
+            for word in words {
+                let (id, scale) = word.split_once('=').ok_or_else(wrong)?;
+                let scale: f64 = scale
+                    .trim()
+                    .parse()
+                    .ok()
+                    .filter(|n: &f64| n.is_finite())
+                    .ok_or_else(wrong)?;
+                entries.insert(id.trim().to_ascii_uppercase(), json!(scale));
+            }
+            Ok(Value::Object(entries))
+        }
     }
 }
 
@@ -1570,6 +1649,182 @@ mod tests {
         let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
         assert_eq!(back, none);
         assert!(none["objects"].get("drop_under_terrain").is_none());
+    }
+
+    /// The skirts row of each terrain level is a tier 3 switch that is off, reaches the request of its own level only
+    /// when set, and leaves the digest of a Profile with no file when restored.
+    #[test]
+    fn the_skirts_row_is_per_level_off_by_default_and_restores_the_request() {
+        for level in LEVELS {
+            let key = format!("levels.{level}.skirts");
+            let d = descriptor(&key).unwrap();
+            assert_eq!((d.tier, d.kind), (3, Kind::Switch));
+            assert!(listed_in(generator(), d), "{key}");
+            assert_eq!(default_value(&key), Some(json!(false)), "{key}");
+        }
+        let dir = TempDir::new("raul-lodset-skirts");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        set(&at, "levels.8.skirts", &json!(true)).unwrap();
+        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        let on_at: Vec<(u64, bool)> = on["terrain"]["levels"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|l| {
+                (
+                    l["level"].as_u64().unwrap(),
+                    l["skirts"].as_bool().unwrap_or(false),
+                )
+            })
+            .collect();
+        assert_eq!(on_at, [(4, false), (8, true), (16, false), (32, false)]);
+        assert_eq!(
+            set(&at, "levels.4.skirts", &json!(1)).unwrap_err().code,
+            RefusalCode::WrongType
+        );
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
+    }
+
+    /// The depth under water is a tier 3 number with no default: absent from the request until set, in range when set.
+    #[test]
+    fn the_terrain_water_depth_row_is_absent_until_set_and_in_range() {
+        let d = descriptor("terrain.drop_under_water").unwrap();
+        assert_eq!((d.tier, d.kind), (3, Kind::Number));
+        assert!(listed_in(generator(), d));
+        assert_eq!(default_value("terrain.drop_under_water"), Some(Value::Null));
+        let dir = TempDir::new("raul-lodset-depth");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        assert!(none["terrain"].get("drop_under_water").is_none());
+        set(&at, "terrain.drop_under_water", &json!(64.5)).unwrap();
+        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        assert_eq!(on["terrain"]["drop_under_water"], json!(64.5));
+        for bad in [json!(-1), json!(100_001)] {
+            assert_eq!(
+                set(&at, "terrain.drop_under_water", &bad).unwrap_err().code,
+                RefusalCode::OutOfRange
+            );
+        }
+        assert_eq!(
+            set(&at, "terrain.drop_under_water", &json!("deep"))
+                .unwrap_err()
+                .code,
+            RefusalCode::WrongType
+        );
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
+    }
+
+    /// The texture scales row is a tier 3 table of record id to number, empty by default, written to the request only
+    /// when set, with each id and each number checked.
+    #[test]
+    fn the_texture_scales_row_takes_record_ids_with_numbers_in_range() {
+        let d = descriptor("terrain.texture_scales").unwrap();
+        assert_eq!((d.tier, d.kind), (3, Kind::Scales));
+        assert!(listed_in(generator(), d));
+        assert_eq!(default_value("terrain.texture_scales"), Some(json!({})));
+        let words = |w: &[&str]| w.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>();
+        let value = parse_value(
+            "terrain.texture_scales",
+            &words(&["0012ab34=2", "0012AB35=0.5"]),
+        )
+        .unwrap();
+        assert_eq!(value, json!({"0012AB34": 2.0, "0012AB35": 0.5}));
+        for bad in [&["oops"][..], &["0012AB34=x"], &["0012AB34"]] {
+            assert_eq!(
+                parse_value("terrain.texture_scales", &words(bad))
+                    .unwrap_err()
+                    .code,
+                RefusalCode::WrongType,
+                "{bad:?}"
+            );
+        }
+        let dir = TempDir::new("raul-lodset-scales");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        assert!(none["terrain"].get("texture_scales").is_none());
+        set(&at, "terrain.texture_scales", &value).unwrap();
+        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        assert_eq!(
+            on["terrain"]["texture_scales"],
+            json!({"0012AB34": 2.0, "0012AB35": 0.5})
+        );
+        assert_eq!(
+            set(&at, "terrain.texture_scales", &json!({"oak": 2}))
+                .unwrap_err()
+                .code,
+            RefusalCode::NotARecord
+        );
+        for scale in [0.01, 17.0] {
+            assert_eq!(
+                set(&at, "terrain.texture_scales", &json!({"0012AB34": scale}))
+                    .unwrap_err()
+                    .code,
+                RefusalCode::OutOfRange
+            );
+        }
+        assert_eq!(
+            set(&at, "terrain.texture_scales", &json!({"0012AB34": "big"}))
+                .unwrap_err()
+                .code,
+            RefusalCode::WrongType
+        );
+        assert_eq!(
+            set(&at, "terrain.texture_scales", &json!([1]))
+                .unwrap_err()
+                .code,
+            RefusalCode::WrongType
+        );
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
+    }
+
+    /// The specular row of each terrain level is a tier 3 switch that is off, reaches the request of its own level
+    /// only when set, and leaves the digest of a Profile with no file when restored.
+    #[test]
+    fn the_specular_in_alpha_row_is_per_level_off_by_default_and_restores_the_request() {
+        for level in LEVELS {
+            let key = format!("levels.{level}.specular_alpha");
+            let d = descriptor(&key).unwrap();
+            assert_eq!((d.tier, d.kind), (3, Kind::Switch));
+            assert!(listed_in(generator(), d), "{key}");
+            assert_eq!(default_value(&key), Some(json!(false)), "{key}");
+        }
+        let dir = TempDir::new("raul-lodset-specular");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        assert_eq!(none["terrain"]["levels"], json!([]));
+        set(&at, "levels.16.specular_alpha", &json!(true)).unwrap();
+        assert_eq!(
+            parse_value("levels.16.specular_alpha", &["on".to_owned()]).unwrap(),
+            json!(true)
+        );
+        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        let levels = on["terrain"]["levels"].as_array().unwrap();
+        let on_at: Vec<(u64, bool)> = levels
+            .iter()
+            .map(|l| {
+                (
+                    l["level"].as_u64().unwrap(),
+                    l["specular_alpha"].as_bool().unwrap_or(false),
+                )
+            })
+            .collect();
+        assert_eq!(on_at, [(4, false), (8, false), (16, true), (32, false)]);
+        assert_eq!(
+            set(&at, "levels.8.specular_alpha", &json!(1))
+                .unwrap_err()
+                .code,
+            RefusalCode::WrongType
+        );
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
     }
 
     fn names(n: &[&str]) -> Vec<String> {

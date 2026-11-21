@@ -244,5 +244,58 @@ fn a_fetch_from_a_lock_that_pins_no_masterlist_is_refused_before_anything_is_fet
         ],
     );
     assert_eq!(out.code, Some(2), "{out:?}");
-    assert!(out.stderr.contains("pins no tool"), "{}", out.stderr);
+    assert!(
+        out.stderr.contains("no masterlist source is pinned"),
+        "{}",
+        out.stderr
+    );
+}
+
+#[test]
+fn a_sort_from_the_stored_masterlist_says_so_with_the_date_it_was_stored() {
+    let (inst, masterlist) = staged();
+    let sha = raul_runner::sha256_hex(MASTERLIST.as_bytes());
+    let lock = inst.work.path().join("tools.lock.toml");
+    let text = format!(
+        "schema_version = 1\n[[tool]]\nname = \"loot-masterlist-falloutnv\"\nversion = \"v1\"\nkind = \"third-party\"\n\
+         [tool.assets.any]\nurl = \"https://example.invalid/masterlist.yaml\"\nsha256 = \"{sha}\"\n"
+    );
+    write_file(inst.work.path(), "tools.lock.toml", text.as_bytes());
+    let store = inst.work.path().join("store");
+    let stored = store.join(&sha);
+    std::fs::create_dir_all(&stored).unwrap();
+    let file = stored.join(format!(
+        "loot-masterlist-falloutnv{}",
+        std::env::consts::EXE_SUFFIX
+    ));
+    std::fs::copy(&masterlist, &file).unwrap();
+    // Written on 2023-11-14 (UTC).
+    let written = std::time::UNIX_EPOCH + std::time::Duration::from_secs(1_700_000_000);
+    std::fs::File::options()
+        .write(true)
+        .open(&file)
+        .unwrap()
+        .set_modified(written)
+        .unwrap();
+    let out = direct_output(
+        "sort-preview",
+        &[
+            "--instance",
+            &s(&inst.root()),
+            "--fetch-masterlist",
+            "--lock",
+            &s(&lock),
+            "--store",
+            &s(&store),
+        ],
+    );
+    assert_eq!(out.code, Some(0), "{out:?}");
+    let doc: serde_json::Value = serde_json::from_str(&out.stdout).unwrap();
+    let warnings = doc["warnings"].as_array().unwrap();
+    assert!(
+        warnings.iter().any(|w| w.as_str().is_some_and(
+            |w| w.contains("stored on 2023-11-14") && w.contains("Nothing was downloaded")
+        )),
+        "{warnings:?}"
+    );
 }

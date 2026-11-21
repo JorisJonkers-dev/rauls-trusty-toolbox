@@ -3,12 +3,12 @@
 //! it makes, Apply, and Undo.
 //!
 //! The page drives it with the answers of `raul plugins list`, `raul sort` (a preview, then `--apply`) and
-//! `raul rollback`. The moves are computed here from the current and the proposed order: a plugin moves when it is
-//! not on the longest run of plugins that keep their relative order, so a plugin that only shifts because another
-//! moved past it is not counted.
+//! `raul rollback`. The moves are computed here from the current and the proposed order: a plugin moves when its
+//! place is not the same in both, the same count `raul sort` prints ("15 of 18 position(s) would change"), so the
+//! Move column, the header and the Apply button agree with it.
 
 use super::settings::Command;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 /// `raul plugins list --instance <dir>`: the Profile's plugins in Load order.
 pub fn list_command(instance: &str) -> Command {
@@ -127,61 +127,27 @@ impl Move {
     }
 }
 
-/// The plugins that move between `current` and `proposed`: every plugin of both that is not on one longest
-/// subsequence the two orders share. A plugin only in `proposed` is not a move.
+/// The plugins that move between `current` and `proposed`: every plugin of both whose place differs, with the place
+/// it has now and the one it gets. A plugin only in `proposed` is not a move.
 pub fn moves(current: &[Plugin], proposed: &[Plugin]) -> Vec<Move> {
     let at: HashMap<&str, usize> = current
         .iter()
         .enumerate()
         .map(|(i, p)| (p.name.as_str(), i))
         .collect();
-    // Each proposed plugin that is in the current order, as (proposed index, current index).
-    let placed: Vec<(usize, usize)> = proposed
+    proposed
         .iter()
         .enumerate()
-        .filter_map(|(to, p)| at.get(p.name.as_str()).map(|from| (to, *from)))
-        .collect();
-    let keep = longest_increasing(&placed);
-    placed
-        .iter()
-        .enumerate()
-        .filter(|(i, _)| !keep.contains(i))
-        .map(|(_, (to, from))| Move {
-            name: proposed[*to].name.clone(),
-            from: from + 1,
-            to: to + 1,
+        .filter_map(|(to, p)| {
+            at.get(p.name.as_str())
+                .filter(|from| **from != to)
+                .map(|from| Move {
+                    name: p.name.clone(),
+                    from: from + 1,
+                    to: to + 1,
+                })
         })
         .collect()
-}
-
-/// The indices of one longest strictly increasing subsequence of the current places in `placed` (pairs of
-/// proposed and current index). Among the longest, it keeps the most plugins whose place does not change, so a
-/// plugin that stays where it is is rarely counted as a move. Quadratic; the page computes it once per preview.
-fn longest_increasing(placed: &[(usize, usize)]) -> HashSet<usize> {
-    // For each end i: (length, plugins kept in place) of the best run ending at i, and the one before i.
-    let mut best: Vec<(usize, usize)> = Vec::with_capacity(placed.len());
-    let mut parent: Vec<Option<usize>> = vec![None; placed.len()];
-    for (i, (to, from)) in placed.iter().enumerate() {
-        let own = usize::from(to == from);
-        let mut here = (1, own);
-        for j in 0..i {
-            if placed[j].1 < *from {
-                let through = (best[j].0 + 1, best[j].1 + own);
-                if through > here {
-                    here = through;
-                    parent[i] = Some(j);
-                }
-            }
-        }
-        best.push(here);
-    }
-    let mut keep = HashSet::new();
-    let mut next = (0..placed.len()).max_by_key(|i| (best[*i], std::cmp::Reverse(*i)));
-    while let Some(i) = next {
-        keep.insert(i);
-        next = parent[i];
-    }
-    keep
 }
 
 /// Where the page is.
@@ -238,6 +204,9 @@ pub struct State {
     pub journal: Option<String>,
     /// The moves of the preview shown, computed once when it arrived; read them with [`State::moves`].
     pub preview_moves: Vec<Move>,
+    /// How many errors of the load order the Doctor reports for the list read (a master after the plugin that needs
+    /// it); `None` until the Doctor answered. See [`State::unsorted`].
+    pub order_errors: Option<usize>,
 }
 
 impl State {
@@ -259,6 +228,19 @@ impl State {
     /// The plugin list arrived.
     pub fn listed(&mut self, profile: String, plugins: Vec<Plugin>) {
         self.profile = Some(profile);
+        let mut plugins = plugins;
+        // After an applied sort the list is read again, and `raul plugins list` carries no group or messages: the
+        // ones of the sort stay on their plugins until the sort is undone.
+        if self.journal.is_some() {
+            let known: HashMap<&str, &Plugin> =
+                self.current.iter().map(|p| (p.name.as_str(), p)).collect();
+            for p in &mut plugins {
+                if let Some(old) = known.get(p.name.as_str()) {
+                    p.group.clone_from(&old.group);
+                    p.messages.clone_from(&old.messages);
+                }
+            }
+        }
         self.current = plugins;
         self.proposed.clear();
         self.phase = self.resting();
@@ -348,6 +330,15 @@ impl State {
         )
     }
 
+    /// How many errors of the load order the list has, when it rests as it was read and the Doctor found some: the
+    /// page warns that the list is not in a working order until a sort puts it right.
+    pub fn unsorted(&self) -> Option<usize> {
+        (self.phase == Phase::Listed)
+            .then_some(self.order_errors)
+            .flatten()
+            .filter(|n| *n > 0)
+    }
+
     /// How many plugins are active.
     pub fn active(&self) -> usize {
         self.current.iter().filter(|p| p.active).count()
@@ -379,53 +370,77 @@ mod tests {
     }
 
     #[test]
-    fn one_plugin_moved_up_is_one_move_not_a_shift_of_the_rest() {
+    fn a_plugin_moved_up_moves_every_plugin_it_passes_down_one_place() {
         let now = list(&["A.esm", "B.esp", "C.esp", "D.esp", "E.esp"]);
         let then = list(&["A.esm", "E.esp", "B.esp", "C.esp", "D.esp"]);
         let m = moves(&now, &then);
+        let places: Vec<(&str, usize, usize)> =
+            m.iter().map(|m| (m.name.as_str(), m.from, m.to)).collect();
         assert_eq!(
-            m,
-            vec![Move {
-                name: "E.esp".into(),
-                from: 5,
-                to: 2
-            }]
+            places,
+            [
+                ("E.esp", 5, 2),
+                ("B.esp", 2, 3),
+                ("C.esp", 3, 4),
+                ("D.esp", 4, 5)
+            ]
         );
         assert!(m[0].up());
+        assert!(!m[1].up());
     }
 
     #[test]
-    fn the_same_order_has_no_moves_and_a_swap_has_one() {
+    fn the_same_order_has_no_moves_and_a_plugin_that_stays_is_not_one() {
         let now = list(&["A", "B", "C"]);
         assert!(moves(&now, &now).is_empty());
         let m = moves(&now, &list(&["A", "C", "B"]));
-        assert_eq!(m.len(), 1);
-        assert!(!m[0].up() || m[0].name == "C");
+        assert_eq!(m.len(), 2, "A stays, C and B change place");
+        assert!(m.iter().all(|m| m.name != "A" && m.from != m.to));
         assert!(moves(&[], &now).is_empty(), "new plugins are not moves");
-        assert_eq!(moves(&now, &list(&["C", "B", "A"])).len(), 2);
+        assert_eq!(
+            moves(&now, &list(&["C", "B", "A"])).len(),
+            2,
+            "B keeps the middle"
+        );
     }
 
     #[test]
-    fn a_plugin_that_keeps_its_place_is_not_the_one_counted() {
-        let now = list(&["A", "B", "C", "D", "E", "F", "G"]);
-        // F jumps up and D moves below E: E stays fifth, so it is not a move.
-        let then = list(&["A", "B", "F", "C", "E", "D", "G"]);
-        let m = moves(&now, &then);
-        assert_eq!(m.len(), 2, "{m:?}");
-        assert!(m.iter().all(|m| m.from != m.to), "{m:?}");
-    }
-
-    #[test]
-    fn a_large_list_is_counted_exactly() {
-        let now: Vec<Plugin> = (0..2000)
-            .map(|i| Plugin::named(format!("P{i:04}.esp")))
+    fn the_count_is_the_number_of_plugins_whose_place_changes() {
+        // The shape of the report: 18 plugins, 15 change place.
+        let now: Vec<Plugin> = (1..=18)
+            .map(|i| Plugin::named(format!("P{i:02}")))
             .collect();
         let mut then = now.clone();
-        let moved = then.remove(1500);
-        then.insert(10, moved);
-        let m = moves(&now, &then);
-        assert_eq!(m.len(), 1);
-        assert_eq!((m[0].from, m[0].to), (1501, 11));
+        then.rotate_left(1);
+        then.swap(0, 17);
+        let changed = then
+            .iter()
+            .enumerate()
+            .filter(|(i, p)| now[*i].name != p.name)
+            .count();
+        assert_eq!(moves(&now, &then).len(), changed);
+    }
+
+    #[test]
+    fn a_list_with_load_order_errors_is_unsorted_until_it_is_previewed_or_applied() {
+        let mut s = State::default();
+        s.listed("Default".to_owned(), list(&["A.esp", "B.esp"]));
+        assert_eq!(s.unsorted(), None, "the Doctor has not answered");
+        s.order_errors = Some(0);
+        assert_eq!(s.unsorted(), None, "no error");
+        s.order_errors = Some(21);
+        assert_eq!(s.unsorted(), Some(21));
+        s.sorting();
+        assert_eq!(s.unsorted(), None, "not while a sort runs");
+        s.previewed(list(&["B.esp", "A.esp"]), Vec::new());
+        assert_eq!(s.unsorted(), None, "the preview has its own note");
+        s.applying();
+        s.applied(Some("j".to_owned()));
+        assert_eq!(
+            s.unsorted(),
+            None,
+            "an applied sort is not shown as unsorted"
+        );
     }
 
     #[test]
@@ -444,7 +459,7 @@ mod tests {
             text: "check this".into(),
         });
         s.previewed(proposed, Vec::new());
-        assert_eq!(s.moves().len(), 1);
+        assert_eq!(s.moves().len(), 2, "C and B change place");
         assert_eq!(s.flagged(), 1, "the current rows took the messages");
         s.applying();
         s.applied(Some("j1".into()));
@@ -454,6 +469,11 @@ mod tests {
         s.loading();
         s.listed("Default".into(), list(&["A", "C", "B"]));
         assert_eq!(s.phase, Phase::Applied, "Undo stays offered after a reload");
+        assert_eq!(
+            s.flagged(),
+            1,
+            "the messages of the sort stay visible after Apply and a reload"
+        );
         s.undoing();
         s.undone();
         assert_eq!((s.phase, s.journal.clone()), (Phase::Loading, None));

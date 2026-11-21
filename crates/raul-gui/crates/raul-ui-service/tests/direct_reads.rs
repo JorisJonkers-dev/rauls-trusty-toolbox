@@ -271,3 +271,144 @@ fn a_failure_of_a_read_has_no_repro_command_line() {
         .view_error();
     assert_eq!(e.repro, None);
 }
+
+#[test]
+fn version_prints_what_the_command_line_prints() {
+    assert_same(
+        &direct_output("version", &[]),
+        &cli_output(&["version", "--json"]),
+    );
+}
+
+#[test]
+fn detect_in_a_folder_prints_what_the_command_line_prints_and_ends_alike_when_nothing_is_found() {
+    // An Instance folder holds no game: the document is an empty list and the code is the command's "nothing found".
+    let inst = Instance::new();
+    let dir = s(&inst.root());
+    let direct = direct_output("detect", &["--folder", &dir]);
+    let cli = cli_output(&["detect", "--folder", &dir, "--json"]);
+    assert_same(&direct, &cli);
+    assert_eq!(direct.stdout.trim(), "[]");
+    assert_eq!(direct.code, Some(i64::from(raul_cli::FOUND)));
+}
+
+/// What the direct job for a `config` action prints with `ctx`'s folder, and what the command prints for the same.
+fn config_pair(
+    ctx: &raul_core::context::Context,
+    action: &str,
+    words: &[&str],
+) -> (Output, Output) {
+    let rest: Vec<String> = words.iter().map(|w| (*w).to_owned()).collect();
+    let job = direct::for_command_in(&format!("config-{action}"), &rest, ctx)
+        .expect("the command is converted");
+    let spec = JobSpec::new(raul_ui_model::job::JobId(1), Action::Doctor, Vec::new());
+    let direct = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+    let mut args = vec!["config".to_owned(), action.to_owned()];
+    args.extend(rest);
+    args.push("--json".to_owned());
+    let cli = InProcessExec::with_context(ctx.clone()).run(&args).unwrap();
+    (direct, cli)
+}
+
+#[test]
+fn config_actions_print_what_the_command_line_prints_and_write_the_same_file() {
+    let inst = Instance::new();
+    let folder = inst.root().join("cfg");
+    std::fs::create_dir_all(&folder).unwrap();
+    let ctx = raul_core::context::Context::new()
+        .with_config_folder(&folder)
+        .without_run_log();
+    let game = s(&inst.root());
+    for (action, words) in [
+        ("list", vec![]),
+        ("set", vec!["storage.root", game.as_str()]),
+        ("get", vec!["storage.root"]),
+        ("unset", vec!["storage.root"]),
+        ("get", vec!["storage.root"]),
+        // A key that does not exist is a refusal document with the command's own exit code.
+        ("get", vec!["no.such.key"]),
+    ] {
+        let (direct, cli) = config_pair(&ctx, action, &words);
+        assert_same(&direct, &cli);
+    }
+    // A set through the direct job is on disk for the command to read.
+    let (direct, _) = config_pair(&ctx, "set", &["storage.root", &game]);
+    assert_eq!(direct.code, Some(0));
+    let (_, cli) = config_pair(&ctx, "get", &["storage.root"]);
+    assert!(cli.stdout.contains(&game), "{}", cli.stdout);
+}
+
+#[test]
+fn a_config_action_with_the_wrong_words_is_a_usage_error() {
+    let ctx = raul_core::context::Context::new().without_run_log();
+    let job = direct::for_command_in("config-set", &["storage.root".to_owned()], &ctx).unwrap();
+    let spec = JobSpec::new(raul_ui_model::job::JobId(1), Action::Doctor, Vec::new());
+    let out = run_direct(&spec, job, &mut |_| {}, &CancelHandle::new());
+    assert_ne!(out.code, Some(0));
+}
+
+#[test]
+fn lod_mods_and_lod_plan_print_what_the_command_line_prints() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    let root = s(&inst.root());
+    assert_same(
+        &direct_output("lod-mods", &["--instance", &root]),
+        &cli_output(&["lod", "mods", "--instance", &root, "--json"]),
+    );
+    // A plan of an Instance with no plugin that carries a world is the command's refusal, word for word and with its
+    // code, or the same request document.
+    let direct = direct_output("lod-plan", &["--instance", &root]);
+    let cli = cli_output(&["lod", "plan", "--instance", &root, "--json"]);
+    assert_eq!(direct.code, cli.code, "{direct:?} / {cli:?}");
+    if cli.code == Some(0) {
+        assert_same(&direct, &cli);
+    } else {
+        assert!(
+            direct.stderr.contains("refused"),
+            "the refusal is shown: {direct:?}"
+        );
+    }
+}
+
+#[test]
+fn lod_settings_actions_print_what_the_command_line_prints() {
+    let inst = Instance::new();
+    install_plain(&inst);
+    let root = s(&inst.root());
+    for (verb, extra) in [
+        ("show", vec![]),
+        ("reset", vec!["--dry-run"]),
+        ("unset", vec!["no.such.option"]),
+    ] {
+        let mut rest = vec!["--instance", root.as_str()];
+        rest.extend(extra.iter().copied());
+        let id = format!("lod-settings-{verb}");
+        let mut cli = vec!["lod", "settings", verb];
+        cli.extend(rest.iter().copied());
+        cli.push("--json");
+        assert_same(&direct_output(&id, &rest), &cli_output(&cli));
+    }
+}
+
+#[test]
+fn update_status_prints_what_the_command_line_prints_and_a_refused_step_ends_alike() {
+    // A test binary is not an installed raul: the status says so, and the steps that change an install refuse.
+    assert_same(
+        &direct_output("update-status", &[]),
+        &cli_output(&["update", "status", "--json"]),
+    );
+    for verb in ["install", "rollback"] {
+        let direct = direct_output(&format!("update-{verb}"), &[]);
+        let cli = cli_output(&["update", verb, "--json"]);
+        assert_eq!(direct.code, cli.code, "{verb}: {direct:?} / {cli:?}");
+        assert!(
+            direct.stderr.contains(&format!("raul update {verb}")),
+            "{verb}: {direct:?}"
+        );
+    }
+    // A download of a named release is refused before anything is fetched.
+    let direct = direct_output("update-download", &["--tag", "v0.0.1"]);
+    let cli = cli_output(&["update", "download", "--tag", "v0.0.1", "--json"]);
+    assert_eq!(direct.code, cli.code, "{direct:?} / {cli:?}");
+}

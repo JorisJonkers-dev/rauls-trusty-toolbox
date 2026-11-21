@@ -158,6 +158,10 @@
           "type": "number",
           "format": "float"
         },
+        "skirts": {
+          "description": "Close the gap between neighbouring blocks with a skirt under every border vertex, as the game's own blocks\ndo (`docs/spec/terrain-lod.md`). Off by default and written only when set.",
+          "type": "boolean"
+        },
         "specular_alpha": {
           "description": "Carry specular in the alpha channel of the normal map, written as BC3 (own design, `docs/spec/textures.md`).\nOff by default and written only when set; off keeps the normal map opaque BC1.",
           "type": "boolean"
@@ -218,6 +222,14 @@
       "description": "Terrain settings.",
       "type": "object",
       "properties": {
+        "drop_under_water": {
+          "description": "Leave out terrain faces that cannot be seen under water: a face whose three corners all lie at least this many\nworld units below the water plane of the cell it is in (own design, `docs/spec/terrain-lod.md`). Absent by\ndefault, which keeps every face; written only when set.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "float"
+        },
         "enabled": {
           "description": "Write terrain LOD.",
           "type": "boolean",

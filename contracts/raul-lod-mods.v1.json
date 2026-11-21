@@ -7,6 +7,26 @@
           "description": "Whether the Profile enables it.",
           "type": "boolean"
         },
+        "files": {
+          "default": null,
+          "description": "How many files the Mod holds (its folder, without `meta.ini`); `null` when the folder cannot be read.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "generated_at": {
+          "default": null,
+          "description": "When it was generated, in seconds since 1970-01-01 UTC: the time of its marker file; `null` when the file\ncannot say.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "legacy": {
           "description": "It has the name every Profile shared before and no marker: the Profile's next `raul lod generate` hands its\nplace and state to the Profile's own Mod.",
           "type": "boolean"
@@ -60,6 +80,8 @@
       },
       "required": [
         "enabled",
+        "files",
+        "generated_at",
         "legacy",
         "lodwright_version",
         "name",
