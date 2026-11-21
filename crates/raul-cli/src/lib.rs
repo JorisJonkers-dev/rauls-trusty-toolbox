@@ -170,6 +170,14 @@ pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn
         Some("target") => target::run(args, out, err),
         Some("run") if args.iter().any(|a| a == "--stop") => play::stop(&args[1..], out, err),
         Some("run") if play::enabled() => run_in_play_mode(args, out, err),
+        Some("run") if args.iter().any(|a| a == "--json") => {
+            play::run_plain(args, ctx.run_log(), out, err)
+        }
+        Some("run") => {
+            let mut out = program_name::Renamed::new(out);
+            let mut err = program_name::Renamed::new(err);
+            play::run_plain(args, ctx.run_log(), &mut out, &mut err)
+        }
         Some("nvmod-help") => nvmod(ctx, &["--help".to_string()], out, err),
         Some(_) if route(args) == Route::Own => {
             let _ = writeln!(err, "raul: {} has no handler", args[0]);
@@ -270,6 +278,21 @@ mod tests {
     fn the_commands_that_moved_from_nvmod_are_own_commands() {
         for command in ["config", "setup", "ttw", "lod", "target"] {
             assert!(OWN_COMMANDS.contains(&command), "{command}");
+        }
+    }
+
+    /// `raul run` without a target is refused by nvmod's usage rule before anything starts; the words say `raul`,
+    /// except in a `--json` run, where the text is left as it is.
+    #[test]
+    fn a_run_with_no_target_is_a_usage_error_that_names_raul() {
+        let ctx = Context::default().without_run_log();
+        for (line, renamed) in [(&["run"][..], true), (&["run", "--json"], false)] {
+            let (mut out, mut err) = (Vec::new(), Vec::new());
+            let code = run_in(&ctx, &words(line), &mut out, &mut err);
+            assert_eq!(code, USAGE, "{line:?}");
+            let text = String::from_utf8(err).unwrap() + &String::from_utf8(out).unwrap();
+            assert_eq!(text.contains("raul run"), renamed, "{line:?}: {text}");
+            assert!(renamed || text.contains("nvmod run"), "{text}");
         }
     }
 }
