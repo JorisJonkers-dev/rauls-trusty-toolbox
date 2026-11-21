@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795247394787,
+  "lastUpdate": 1795249454610,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9701,6 +9701,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.271887,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "dd75f28962749b8c628e58280dbcabcf8ff5289e",
+          "message": "chore(deps): bump lodwright-rs to 0.14.0 (#508)\n\n* chore(deps): bump lodwright-rs to 0.14.0\n\n* fix(lod): build the progress events of the tests on the 0.14.0 library, which has more fields\n\n* chore(contracts): the lodwright request schema snapshot of 0.14.0\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-21T08:20:53Z",
+          "tree_id": "3b600855b53035b9080b9cb2cad638a2c08d743c",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/dd75f28962749b8c628e58280dbcabcf8ff5289e"
+        },
+        "date": 1795249454097,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.66014,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.126473000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.495981999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.006267,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.401338,
             "unit": "ms"
           }
         ]
