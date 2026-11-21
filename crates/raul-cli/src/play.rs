@@ -49,6 +49,37 @@ pub fn request_stop(run_dir: &Path) -> std::io::Result<()> {
     std::fs::write(stop_file(run_dir), b"stop")
 }
 
+/// Starts the programs of `raul run` through raul's own runner (`raul-runner`), so the Toolbox does not use the
+/// launcher of nvmod-run: the game in the play mode (see [`PlayLauncher`]) and the person's other programs.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct RaulLauncher;
+
+struct Child(raul_runner::Started);
+
+impl Running for Child {
+    fn pid(&self) -> u32 {
+        self.0.pid()
+    }
+
+    fn wait(self: Box<Self>) -> Result<i32, String> {
+        self.0.wait()
+    }
+}
+
+impl Launcher for RaulLauncher {
+    fn start(&self, spec: &LaunchSpec, attached: bool) -> Result<Box<dyn Running>, String> {
+        raul_runner::start_program(
+            &spec.program,
+            &spec.args,
+            &spec.env,
+            &spec.working_dir,
+            attached,
+            spec.log.as_deref(),
+        )
+        .map(|started| Box::new(Child(started)) as Box<dyn Running>)
+    }
+}
+
 /// Starts raul's own binary in the play mode when nvmod asks for the viewer it was given; any other program is
 /// started as nvmod asked.
 pub struct PlayLauncher<'a> {
@@ -195,6 +226,26 @@ pub fn stop(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     crate::OK
 }
 
+/// `raul run ...` for a build without the engine, or a program of the person's own: nvmod plans and prepares the run,
+/// raul's runner starts the program. `args` is the command line with `run` first; `log` writes the run log as every
+/// nvmod command does.
+pub fn run_plain(args: &[String], log: bool, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    if !log {
+        return nvmod_cli::run_with_launcher(&args[1..], out, err, &RaulLauncher);
+    }
+    match nvmod_cli::begin_run_log(args) {
+        Ok((rest, session)) => {
+            let code = nvmod_cli::run_with_launcher(&rest[1..], out, err, &RaulLauncher);
+            session.finish(code);
+            code
+        }
+        Err(why) => {
+            let _ = writeln!(err, "nvmod: {why}");
+            crate::USAGE
+        }
+    }
+}
+
 /// `raul run ...` with the play mode: `rest` is the command line with `run` first.
 pub fn run(rest: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let Ok(exe) = std::env::current_exe() else {
@@ -202,7 +253,7 @@ pub fn run(rest: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
         return crate::FAILED;
     };
     let args = with_viewer(&rest[1..], &exe);
-    let launcher = PlayLauncher::new(&exe, &nvmod_run::ProcessLauncher);
+    let launcher = PlayLauncher::new(&exe, &RaulLauncher);
     let code = nvmod_cli::run_with_launcher(&args, out, err, &launcher);
     if args.iter().any(|a| a == "--wait") {
         let asked = args
@@ -335,6 +386,30 @@ mod tests {
             .start(&spec("/opt/raul", &dir), true)
             .unwrap();
         assert!(!stop_file(&dir).exists());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn raul_s_own_launcher_starts_a_program_waits_for_it_and_logs_its_output() {
+        let dir = scratch("launcher");
+        let log = dir.join("run.log");
+        let me = std::env::current_exe().unwrap();
+        let spec = LaunchSpec {
+            program: me.to_string_lossy().into_owned(),
+            args: words("--list"),
+            env: std::collections::BTreeMap::new(),
+            working_dir: dir.clone(),
+            log: Some(log.clone()),
+        };
+        let running = RaulLauncher.start(&spec, false).unwrap();
+        assert!(running.pid() > 0);
+        assert_eq!(running.wait(), Ok(0));
+        assert!(std::fs::read_to_string(&log).unwrap().contains("tests"));
+        let missing = LaunchSpec {
+            program: dir.join("nothing").to_string_lossy().into_owned(),
+            ..spec
+        };
+        assert!(RaulLauncher.start(&missing, true).is_err());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
