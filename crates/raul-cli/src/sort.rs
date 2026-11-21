@@ -113,6 +113,15 @@ mod tests {
     }
 
     #[test]
+    fn the_sort_mode_goes_to_nvmod_with_the_other_words() {
+        let (_, _, rest) = split(&words(
+            "--instance /i --mode full --fetch-masterlist --lock /l",
+        ))
+        .unwrap();
+        assert_eq!(rest, words("--instance /i --mode full"));
+    }
+
+    #[test]
     fn other_sorts_and_unreadable_ones_go_to_nvmod_unchanged() {
         assert!(split(&words("--instance /i --masterlist /m")).is_none());
         assert!(split(&words("--fetch-masterlist --apply")).is_none());

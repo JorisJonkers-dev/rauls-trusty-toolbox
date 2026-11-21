@@ -244,5 +244,5 @@ fn a_fetch_from_a_lock_that_pins_no_masterlist_is_refused_before_anything_is_fet
         ],
     );
     assert_eq!(out.code, Some(2), "{out:?}");
-    assert!(out.stderr.contains("pins no tool"), "{}", out.stderr);
+    assert!(out.stderr.contains("no masterlist source is pinned"), "{}", out.stderr);
 }
