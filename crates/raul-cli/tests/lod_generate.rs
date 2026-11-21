@@ -681,10 +681,11 @@ fn packing_is_refused_with_a_plain_sentence_when_no_plugin_slot_is_left_for_the_
     let inst = f.instance();
     // 254 more active plugins on top of the game's master: 255 in all, so the stub has no slot.
     let dir = inst.join("profiles/Default");
-    let mut lines = String::new();
-    for i in 0..254 {
-        lines.push_str(&format!("Filler{i}.esp\r\n"));
-    }
+    let lines = (0..254)
+        .map(|i| format!("Filler{i}.esp"))
+        .collect::<Vec<_>>()
+        .join("\r\n")
+        + "\r\n";
     for name in ["plugins.txt", "loadorder.txt"] {
         let path = dir.join(name);
         let mut text = std::fs::read_to_string(&path).unwrap_or_default();
