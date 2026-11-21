@@ -88,6 +88,7 @@ jobs:
           cargo build --locked --bin raul
           out=$(target/debug/raul 2>&1); code=$?
           echo "$out"
+          echo "exit code: $code"
           if [ "$code" -eq 0 ] && [ "$out" = "raul: the window opened and closed" ]; then exit 0; fi
           if [[ "$out" == *"requires opengl 2.0"* ]]; then
             echo "::warning title=GUI start skipped::this runner offers no OpenGL 2.0 (hosted ${{ matrix.os }}): the window was not opened here; Linux (gui.yml) opens it on Mesa"
