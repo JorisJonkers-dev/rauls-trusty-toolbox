@@ -233,6 +233,17 @@
       "value": {}
     },
     {
+      "default": false,
+      "key": "output.pack",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
+    },
+    {
       "default": 10.0,
       "key": "levels.4.quality",
       "kind": "number",

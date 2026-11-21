@@ -184,6 +184,10 @@ pub mod catalogue {
     pub const WATER_POLYGONS: &str = "Water polygons (experimental)";
     /// Water polygons, explained.
     pub const WATER_POLYGONS_HELP: &str = "Experimental, off by default. Builds distant water from polygons that follow the water's shape. It is new and not proven in the game: turn it on only to look at the result.";
+    /// Pack the generated LOD into one archive.
+    pub const PACK: &str = "Pack the generated LOD into one archive (experimental)";
+    /// Packing, explained.
+    pub const PACK_HELP: &str = "Experimental, off by default. The next generate ends by writing the LOD into one archive (a .bsa file) and a small Plugin of the same name that registers it, in place of the loose files; the LOD Mod then holds the archive, the Plugin and no loose files. The Plugin stays on in the Load order, or the game does not open the archive and uses its own distant land; it needs the game's first Plugin (normally FalloutNV.esm) to be present. Turning this off applies at the next generate, which builds the loose files again. It is new and not proven in the game: leave it off unless you want to try it.";
     /// Drop faces under the terrain.
     pub const DROP_UNDER_TERRAIN: &str = "Leave out object faces under the land";
     /// Drop faces under the terrain, explained.
@@ -275,7 +279,7 @@ macro_rules! level_rows {
 
 const LEVEL_ROWS: [Descriptor; 24] = level_rows!("4", "8", "16", "32");
 
-const BASE_ROWS: [Descriptor; 20] = [
+const BASE_ROWS: [Descriptor; 21] = [
     row(
         "worlds",
         1,
@@ -439,11 +443,19 @@ const BASE_ROWS: [Descriptor; 20] = [
         catalogue::TEXTURE_SCALES,
         catalogue::TEXTURE_SCALES_HELP,
     ),
+    row(
+        "output.pack",
+        3,
+        Kind::Switch,
+        NONE,
+        catalogue::PACK,
+        catalogue::PACK_HELP,
+    ),
 ];
 
 /// Every option, in the order a view lists them: tier 1, then the advanced ones.
-pub const OPTIONS: [Descriptor; 44] = {
-    let mut all = [BASE_ROWS[0]; 44];
+pub const OPTIONS: [Descriptor; 45] = {
+    let mut all = [BASE_ROWS[0]; 45];
     let mut i = 0;
     while i < BASE_ROWS.len() {
         all[i] = BASE_ROWS[i];
@@ -480,6 +492,7 @@ fn generator_key(key: &str) -> Option<String> {
         | "terrain.water_shared_vertices"
         | "terrain.water_polygons"
         | "terrain.texture_scales"
+        | "output.pack"
         | "inclusion.exclude_plugins"
         | "inclusion.only_plugins"
         | "inclusion.exclude_records"
@@ -1754,6 +1767,35 @@ mod tests {
         }
         let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
         assert_eq!(back, none);
+    }
+
+    /// The pack row is tier 3, off by default, written to the request only when set (under `output`) and gone from it
+    /// again after a restore; a generator that does not list it hides it.
+    #[test]
+    fn the_pack_row_is_experimental_off_by_default_and_restores_the_request() {
+        let dir = TempDir::new("raul-lodset-pack");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        let d = descriptor("output.pack").unwrap();
+        assert_eq!((d.tier, d.kind), (3, Kind::Switch));
+        assert!(d.label.contains("experimental"));
+        assert!(d.help.contains("Experimental, off by default"));
+        assert!(listed_in(generator(), d));
+        assert_eq!(default_value("output.pack"), Some(json!(false)));
+        assert!(none.get("output").is_none());
+        set(&at, "output.pack", &json!(true)).unwrap();
+        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        assert_eq!(on["output"], json!({ "pack": true }));
+        assert_eq!(
+            set(&at, "output.pack", &json!("yes")).unwrap_err().code,
+            RefusalCode::WrongType
+        );
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
+        let mut without = generator().clone();
+        without.options.retain(|o| o.key != "output.pack");
+        assert!(!listed_in(&without, d), "an older generator hides the row");
     }
 
     /// The depth under water is a tier 3 number with no default: absent from the request until set, in range when set.

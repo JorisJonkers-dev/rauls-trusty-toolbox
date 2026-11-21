@@ -528,6 +528,7 @@ impl LodSettings {
                 "terrain.water_shared_vertices",
                 "terrain.water_polygons",
                 "terrain.texture_scales",
+                "output.pack",
             ] {
                 if let Some(i) = self.index(key)
                     && field(ui, t, &mut self.state.fields[i], open, busy)
@@ -1025,5 +1026,6 @@ mod tests {
             assert_eq!(h.query_all_by_label(label).count(), 1, "{label}");
         }
         assert_eq!(h.query_all_by_label(c::TEXTURE_SCALES).count(), 1);
+        assert_eq!(h.query_all_by_label(c::PACK).count(), 1);
     }
 }

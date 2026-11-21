@@ -56,6 +56,10 @@ pub struct Fingerprint {
     pub settings_digest: String,
     /// The active plugins in Load order.
     pub plugins: Vec<PluginPrint>,
+    /// The run packed the LOD into an archive (`output.pack`). Not in the settings digest, so switching it is told
+    /// apart from a change that rebuilds blocks; a fingerprint written before it existed was a loose run.
+    #[serde(default)]
+    pub pack: bool,
 }
 
 /// How out of date the LOD is.
@@ -177,6 +181,7 @@ impl Fingerprint {
             request_digest: request_digest.to_owned(),
             settings_digest: settings_digest(&plan.request),
             plugins: prints(plan)?,
+            pack: plan.request["output"]["pack"].as_bool().unwrap_or(false),
         })
     }
 }
@@ -216,6 +221,16 @@ fn answer(state: State, reason: impl Into<String>) -> Staleness {
 pub fn classify(then: &Fingerprint, now: &Fingerprint) -> Staleness {
     if then.settings_digest != now.settings_digest {
         return answer(State::Must, "The LOD settings changed since the last run.");
+    }
+    if then.pack != now.pack {
+        return answer(
+            State::Must,
+            if now.pack {
+                "Packing was turned on since the last run."
+            } else {
+                "Packing was turned off since the last run."
+            },
+        );
     }
     let names = |f: &Fingerprint| f.plugins.iter().map(|p| p.name.clone()).collect::<Vec<_>>();
     let find = |f: &Fingerprint, n: &str| f.plugins.iter().find(|p| p.name == n).cloned();
@@ -300,6 +315,7 @@ mod tests {
             request_digest: "sha256:r".to_owned(),
             settings_digest: settings.to_owned(),
             plugins,
+            pack: false,
         }
     }
 
@@ -312,6 +328,29 @@ mod tests {
                 p("c.esp", "3", false),
             ],
         )
+    }
+
+    #[test]
+    fn switching_packing_must_regenerate_and_says_which_way() {
+        let mut on = base();
+        on.pack = true;
+        let turned_on = classify(&base(), &on);
+        assert_eq!(turned_on.state, State::Must);
+        assert!(turned_on.reason.contains("turned on"));
+        let turned_off = classify(&on, &base());
+        assert_eq!(turned_off.state, State::Must);
+        assert!(turned_off.reason.contains("turned off"));
+        assert_eq!(classify(&on, &on).state, State::Current);
+    }
+
+    #[test]
+    fn packing_stays_out_of_the_settings_digest_and_a_fingerprint_without_it_reads_as_loose() {
+        let loose = json!({ "terrain": {}, "objects": {} });
+        let mut packed = loose.clone();
+        packed["output"] = json!({ "pack": true });
+        assert_eq!(settings_digest(&loose), settings_digest(&packed));
+        let old = r#"{"schema_version":1,"request_digest":"d","settings_digest":"s","plugins":[]}"#;
+        assert!(!serde_json::from_str::<Fingerprint>(old).unwrap().pack);
     }
 
     #[test]

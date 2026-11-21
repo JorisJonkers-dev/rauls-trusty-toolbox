@@ -583,6 +583,89 @@ fn a_run_records_what_it_was_built_from_and_a_settings_change_marks_the_lod_out_
     assert_eq!(stale_of(&f).0, "current");
 }
 
+/// The names of the files of the LOD Mod that are not its `meta.ini`, relative to it, sorted.
+fn mod_files(f: &Fixture) -> Vec<String> {
+    fn walk(dir: &Path, base: &Path, out: &mut Vec<String>) {
+        for entry in std::fs::read_dir(dir).unwrap().flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                walk(&path, base, out);
+            } else {
+                out.push(
+                    path.strip_prefix(base)
+                        .unwrap()
+                        .to_string_lossy()
+                        .replace('\\', "/"),
+                );
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(&f.lod_mod(), &f.lod_mod(), &mut out);
+    out.retain(|n| n != "meta.ini");
+    out.sort();
+    out
+}
+
+#[test]
+fn packing_gives_a_mod_of_one_archive_and_its_stub_and_switching_it_either_way_marks_the_lod_out_of_date()
+ {
+    let f = Fixture::new("raul-lodgen-pack");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    let loose = mod_files(&f);
+    assert!(
+        loose.iter().any(|n| n.starts_with("meshes/landscape/lod/")),
+        "{loose:?}"
+    );
+    assert_eq!(stale_of(&f).0, "current");
+
+    f.settings("[output]\npack = true\n");
+    let (state, reason) = stale_of(&f);
+    assert_eq!(state, "must", "{reason}");
+    assert!(reason.contains("Packing was turned on"), "{reason}");
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["up_to_date"], false, "{result}");
+    assert_eq!(
+        mod_files(&f),
+        ["Lodwright LOD.bsa", "Lodwright LOD.esp"],
+        "the archive and its stub and no loose file"
+    );
+    assert_eq!(stale_of(&f).0, "current");
+    assert_eq!(mod_names(&f), [MOD], "one Mod");
+    assert_eq!(enabled_lines(&f), 1);
+    // The stub is the run's own output: it is not an input of the next request, so the next run is up to date.
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["up_to_date"], true, "{result}");
+    let plugins =
+        std::fs::read_to_string(f.instance().join("profiles/Default/plugins.txt")).unwrap();
+    assert!(
+        plugins
+            .lines()
+            .any(|l| l.trim_start_matches('*') == "Lodwright LOD.esp"),
+        "the stub is in the Load order: {plugins}"
+    );
+
+    f.settings("");
+    let (state, reason) = stale_of(&f);
+    assert_eq!(state, "must", "{reason}");
+    assert!(reason.contains("Packing was turned off"), "{reason}");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    assert_eq!(
+        mod_files(&f),
+        loose,
+        "loose files again and no archive or stub"
+    );
+    let plugins =
+        std::fs::read_to_string(f.instance().join("profiles/Default/plugins.txt")).unwrap();
+    assert!(
+        !plugins.contains("Lodwright LOD"),
+        "the stub went with the packed form: {plugins}"
+    );
+    assert_eq!(stale_of(&f).0, "current");
+}
+
 #[test]
 fn a_changed_plugin_with_a_world_marks_the_lod_out_of_date() {
     let f = Fixture::new("raul-lodgen-stale-plugin");
