@@ -22,7 +22,7 @@
   "timezone": "Etc/UTC",
   "minimumReleaseAge": null,
   "prHourlyLimit": 0,
-  "prConcurrentLimit": 0,
+  "prConcurrentLimit": 1,
   "branchPrefix": "renovate-components/",
   "rebaseWhen": "behind-base-branch",
   "automerge": true,
