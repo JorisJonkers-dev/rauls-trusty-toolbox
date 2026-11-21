@@ -391,6 +391,8 @@ impl Runner {
     fn run_inner(&self, call: &Call) -> Result<Output, ToolError> {
         Self::verify(call)?;
         let mut command = self.command(call);
+        // A group of its own, so that a timeout, the output cap or a cancel ends the programs the tool started too.
+        crate::stream::own_group(&mut command);
         let mut child = spawn(&mut command).map_err(|e| {
             failed(
                 call,
@@ -433,6 +435,7 @@ impl Runner {
                     Err(e) => return Err(failed(call, format!("cannot wait for the tool: {e}"))),
                 }
             }
+            crate::stream::signal_group(child.id(), true);
             let _ = child.kill();
             break child
                 .wait()
@@ -556,6 +559,48 @@ mod tests {
             "{why}"
         );
         assert_eq!(why.exit_code(), 4);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn a_timeout_ends_the_programs_the_tool_started_too() {
+        let dir = TempDir::new("run-timeout-tree");
+        let marker = dir.path().join("grandchild-alive");
+        // A child of the tool that would write the marker if it outlived the tool.
+        let p = script(
+            &dir,
+            "t",
+            &format!("(sleep 2; touch {m}) & exec sleep 30", m = marker.display()),
+        );
+        let runner = Runner {
+            timeout: Duration::from_millis(300),
+            ..Runner::default()
+        };
+        assert!(runner.run(&Call::new("slow", &p, &[])).is_err());
+        std::thread::sleep(Duration::from_millis(2500));
+        assert!(
+            !marker.exists(),
+            "the tool's own child outlived the timeout"
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn the_output_cap_ends_the_programs_the_tool_started_too() {
+        let dir = TempDir::new("run-cap-tree");
+        let marker = dir.path().join("grandchild-alive");
+        let p = script(
+            &dir,
+            "t",
+            &format!("(sleep 2; touch {m}) & exec yes", m = marker.display()),
+        );
+        let runner = Runner {
+            max_output: 1000,
+            ..fast()
+        };
+        assert!(runner.run(&Call::new("loud", &p, &[])).is_err());
+        std::thread::sleep(Duration::from_millis(2500));
+        assert!(!marker.exists(), "the tool's own child outlived the cap");
     }
 
     #[test]
