@@ -348,3 +348,51 @@ fn a_plugin_is_turned_off_and_on_from_its_switch_and_the_stub_of_a_packed_lod_as
     assert!(active(&f).contains(&"Lodwright LOD.esp".to_owned()));
     assert!(!h.state().dialogs().is_open());
 }
+
+#[test]
+fn turning_on_a_plugin_whose_master_is_off_says_what_to_turn_on_first_and_names_no_flag() {
+    let f = Fixture::new();
+    let jobs = Jobs::new(Arc::new(f.exec())).with_context(f.context());
+    let app = App::new(jobs);
+    let mut h = Harness::builder()
+        .with_size([1280.0, 800.0])
+        .build_eframe(|cc| {
+            raul_gui::set_up(&cc.egui_ctx);
+            app
+        });
+    settle(&mut h);
+    h.get_all_by_label(msg::PAGE_LOAD_ORDER)
+        .next()
+        .unwrap()
+        .click();
+    settle(&mut h);
+    let click = |h: &mut Harness<'static, App>, row: usize| {
+        h.get_all_by_role(egui::accesskit::Role::CheckBox)
+            .nth(row)
+            .unwrap()
+            .click();
+    };
+    // Rows: FalloutNV.esm, Patch.esp, Base.esp, Other.esp. Patch needs Base: turn both off, then Patch on again.
+    click(&mut h, 1);
+    settle(&mut h);
+    click(&mut h, 2);
+    settle(&mut h);
+    click(&mut h, 1);
+    settle(&mut h);
+    assert!(
+        h.query_all_by_label_contains("Turn those plugins on first")
+            .next()
+            .is_some(),
+        "the window says what to do"
+    );
+    assert!(
+        h.query_all_by_label_contains("--with-masters")
+            .next()
+            .is_none(),
+        "no flag in the text"
+    );
+    assert!(
+        !active(&f).contains(&"Patch.esp".to_owned()),
+        "nothing was turned on"
+    );
+}

@@ -584,8 +584,46 @@ pub(crate) fn waiting(ui: &mut egui::Ui, t: &Tokens, what: &str, _command: &Comm
 /// An error where it occurred (UI-RULES W3, G4): what went wrong, the plain detail, and what the command said.
 /// The shared error widget draws it, so its text is selectable and it has a "Copy details" button.
 pub(crate) fn error_block(ui: &mut egui::Ui, t: &Tokens, e: &ErrorText, said: Option<&str>) {
-    // `e.detail` is drawn once, above the headline; the lines below it are only what the command said.
-    shell::error_widget(ui, t, e.detail, e.what, said.unwrap_or_default());
+    // `e.detail` is drawn once, above the headline; the lines below it are only what the command said, without the
+    // hints it gives for a command line.
+    let said = without_command_hints(said.unwrap_or_default());
+    shell::error_widget(ui, t, e.detail, e.what, &said);
+}
+
+/// The hints that end a refusal for the command line, and what a person does in the window instead.
+const COMMAND_HINTS: &[(&str, &str)] = &[
+    (
+        "; pass --force to remove it anyway",
+        ". Turn those Mods off or remove them first.",
+    ),
+    (
+        "; enable them first or pass --with-masters",
+        ". Turn those plugins on first.",
+    ),
+    (
+        "; run `nvmod rollback`",
+        ". Check the Instance with the Doctor on the Home page.",
+    ),
+    ("; run `raul sort`", ". Sort the Load order on its page."),
+    ("; `raul ttw --resume` continues", ". Resume continues it."),
+    (
+        "; remove it with `raul mods remove`",
+        ". Remove it on the Mods page.",
+    ),
+    (
+        "; disable or remove it with `raul mods`",
+        ". Turn it off or remove it on the Mods page.",
+    ),
+];
+
+/// What a command said, with the hints for a command line rewritten into what to do in the window (a window text
+/// names no flag and no command).
+pub(crate) fn without_command_hints(said: &str) -> String {
+    COMMAND_HINTS
+        .iter()
+        .fold(said.to_owned(), |text, (hint, instead)| {
+            text.replace(hint, instead)
+        })
 }
 
 /// The states the snapshot tests render.
@@ -752,5 +790,28 @@ mod tests {
             h.query_by_label(SAVED_FALLOUT3).is_some(),
             "the footer says it was saved"
         );
+    }
+
+    #[test]
+    fn the_hints_for_a_command_line_become_what_to_do_in_the_window() {
+        for (said, shown) in [
+            (
+                "`Patch.esp` needs master(s) that are not active: Base.esp; enable them first or pass --with-masters",
+                "`Patch.esp` needs master(s) that are not active: Base.esp. Turn those plugins on first.",
+            ),
+            (
+                "active plugin(s) of other Mods need a plugin of `X`: A.esp; pass --force to remove it anyway",
+                "active plugin(s) of other Mods need a plugin of `X`: A.esp. Turn those Mods off or remove them first.",
+            ),
+            (
+                "cancelled; `raul ttw --resume` continues",
+                "cancelled. Resume continues it.",
+            ),
+            ("nothing to hint", "nothing to hint"),
+        ] {
+            let got = without_command_hints(said);
+            assert_eq!(got, shown);
+            assert!(!got.contains("--") && !got.contains("`raul") && !got.contains("`nvmod"));
+        }
     }
 }
