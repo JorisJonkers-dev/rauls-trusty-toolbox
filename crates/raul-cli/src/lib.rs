@@ -13,6 +13,7 @@ mod program_name;
 mod setup;
 mod sort;
 mod space;
+mod support_bundle;
 mod target;
 mod ttw;
 mod update;
@@ -54,6 +55,7 @@ pub const OWN_COMMANDS: &[&str] = &[
     "setup",
     "ttw",
     "lod",
+    "support-bundle",
     "target",
     "install-nv-rs",
     "help",
@@ -147,6 +149,11 @@ usage:
                               the file as it was in raul-lod.toml.previous; --dry-run names what it would remove
   raul lod settings undo [--instance <dir>] [--profile <name>] [--json]
                               put back the file the last reset kept (one level; a later set or unset ends it)
+  raul support-bundle [--instance <dir>] [--hide-names] [--out <file>] [--apply] [--json]
+                              what a bug report needs, in one zip: versions, system, the folders of `raul config`,
+                              the Instance's Mods, plugins and Doctor report, and the last run logs. Without --apply
+                              it prints the plan; nothing is sent and no game file's contents are read. The home
+                              folder is written as `~`; --hide-names also replaces Mod and plugin names with hashes
   raul run --stop --instance <dir> [--profile <name>] [--json]
                               ask the running game to stop between two frames (the play mode's stop file)
   raul <nvmod command> ...    every nvmod command (install, sort, run, profile, doctor, ...);
@@ -173,6 +180,7 @@ pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn
         Some("setup") => setup::run(&args[1..], out, err),
         Some("ttw") => ttw::run(ctx, &args[1..], out, err),
         Some("lod") => lod::run(ctx, &args[1..], out, err),
+        Some("support-bundle") => support_bundle::run(ctx, &args[1..], out, err),
         Some("install-nv-rs") => gone_install_nv_rs(err),
         Some("target") => target::run(args, out, err),
         Some("run") if args.iter().any(|a| a == "--stop") => play::stop(&args[1..], out, err),
