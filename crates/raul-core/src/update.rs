@@ -177,7 +177,10 @@ pub fn runner() -> Runner {
 ///
 /// When `curl` cannot be started, fails, runs too long or writes too much, or its answer is not a release list.
 pub fn check(runner: &Runner, curl: &Path, current: &str) -> Result<Option<Release>, String> {
-    let args = curl_args(RELEASES_URL);
+    let args: Vec<std::ffi::OsString> = curl_args(RELEASES_URL)
+        .into_iter()
+        .map(Into::into)
+        .collect();
     let out = runner
         .run(&Call::new("curl", curl, &args))
         .map_err(|e| e.to_string())?;

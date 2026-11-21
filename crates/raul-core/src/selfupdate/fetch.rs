@@ -2,6 +2,7 @@
 //! The real [`Fetch`]: `curl` through the Runner, HTTPS only, nothing sent that identifies the person (ADR-0005,
 //! ADR-0020). It runs only when the caller asks for a download.
 
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -21,8 +22,8 @@ pub fn release_url(tag: &str) -> String {
 /// The `curl` arguments that write `url` to `to`: the person's `.curlrc` ignored, HTTPS only (redirects too), a time
 /// limit, and a size limit that makes `curl` stop at `limit` bytes.
 #[must_use]
-pub fn curl_args(url: &str, to: &Path, limit: u64) -> Vec<String> {
-    [
+pub fn curl_args(url: &str, to: &Path, limit: u64) -> Vec<OsString> {
+    let mut args: Vec<OsString> = [
         // Must come first: ignore the person's `.curlrc`.
         "--disable",
         "--silent",
@@ -40,11 +41,13 @@ pub fn curl_args(url: &str, to: &Path, limit: u64) -> Vec<String> {
         "--header",
         "Accept: application/octet-stream, application/vnd.github+json",
         "--output",
-        &to.to_string_lossy(),
-        url,
     ]
-    .map(str::to_owned)
-    .to_vec()
+    .map(OsString::from)
+    .to_vec();
+    // The path goes as it is: a name that is not UTF-8 stays what it is.
+    args.push(to.as_os_str().to_owned());
+    args.push(url.into());
+    args
 }
 
 /// `curl` as a [`Fetch`].
@@ -84,7 +87,7 @@ impl CurlFetch {
     fn run(
         &self,
         runner: &Runner,
-        args: &[String],
+        args: &[OsString],
         url: &str,
         to: &Path,
         limit: u64,
@@ -144,9 +147,10 @@ mod tests {
             assert!(args.windows(2).any(|w| w == pair), "{pair:?}");
         }
         assert_eq!(args.last().unwrap(), "https://github.com/x");
-        assert!(!args.iter().any(
-            |a| a.to_lowercase().contains("cookie") || a.to_lowercase().contains("user-agent")
-        ));
+        assert!(!args.iter().any(|a| {
+            let a = a.to_string_lossy().to_lowercase();
+            a.contains("cookie") || a.contains("user-agent")
+        }));
     }
 
     #[cfg(unix)]

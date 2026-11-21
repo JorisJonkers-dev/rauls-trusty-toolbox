@@ -98,9 +98,9 @@ fn listed_files_match(root: &Path, list: &str, problems: &mut Vec<String>) {
 /// One plain line when the program cannot start, runs past [`TIMEOUT`], exits with an error, or answers that a check did
 /// not pass; the first problem it names is included.
 pub fn run_child(program: &Path, expect: &str) -> Result<(), String> {
-    let args: Vec<String> = ["update", "self-check", "--expect", expect, "--json"]
+    let args: Vec<std::ffi::OsString> = ["update", "self-check", "--expect", expect, "--json"]
         .iter()
-        .map(|w| (*w).to_owned())
+        .map(std::ffi::OsString::from)
         .collect();
     let runner = Runner {
         timeout: TIMEOUT,
