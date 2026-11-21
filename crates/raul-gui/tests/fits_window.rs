@@ -42,7 +42,15 @@ fn overflowing(size: [f32; 2]) -> Vec<(String, String)> {
     for fixture in pages::fixtures() {
         let view = fixture.page.view().slug().to_owned();
         let name = format!("{view}-{}", fixture.name);
-        let app = App::fixture(fixture, Jobs::new(Arc::new(Quiet)));
+        let app = App::fixture(
+            fixture,
+            Jobs::new(Arc::new(Quiet)).scripted(&[
+                "config-list",
+                "config-get",
+                "config-set",
+                "config-unset",
+            ]),
+        );
         let mut h = Harness::builder().with_size(size).build_eframe(|cc| {
             raul_gui::set_up(&cc.egui_ctx);
             app

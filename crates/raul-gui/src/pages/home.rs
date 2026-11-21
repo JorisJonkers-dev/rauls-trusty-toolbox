@@ -1233,7 +1233,15 @@ mod tests {
     }
 
     fn show(fixture: Fixture) -> Harness<'static, App> {
-        let app = App::fixture(fixture, Jobs::new(Arc::new(Recording::default())));
+        let app = App::fixture(
+            fixture,
+            Jobs::new(Arc::new(Recording::default())).scripted(&[
+                "config-list",
+                "config-get",
+                "config-set",
+                "config-unset",
+            ]),
+        );
         Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {

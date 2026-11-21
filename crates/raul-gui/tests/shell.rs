@@ -27,7 +27,12 @@ impl Exec for Quiet {
 }
 
 fn app() -> App {
-    App::new(Jobs::new(Arc::new(Quiet)))
+    App::new(Jobs::new(Arc::new(Quiet)).scripted(&[
+        "config-list",
+        "config-get",
+        "config-set",
+        "config-unset",
+    ]))
 }
 
 fn harness(width: f32, app: App) -> Harness<'static, App> {

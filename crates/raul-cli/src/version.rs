@@ -21,3 +21,14 @@ pub(crate) fn run(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> 
 pub fn document() -> serde_json::Value {
     serde_json::json!({ "raul": env!("CARGO_PKG_VERSION") })
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn the_document_names_this_build() {
+        assert_eq!(
+            super::document(),
+            serde_json::json!({ "raul": env!("CARGO_PKG_VERSION") })
+        );
+    }
+}
