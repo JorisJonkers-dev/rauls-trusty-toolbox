@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795220935114,
+  "lastUpdate": 1795221464460,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8182,6 +8182,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.670968,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3308f4df359182041f5532878af100a61013842a",
+          "message": "fix(gui): the line under a page title follows the page when the page changes it while drawing (#459) (#462)",
+          "timestamp": "2026-11-21T00:35:53Z",
+          "tree_id": "381beaea3c506595f5632b876e8c61865a4b3a6f",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3308f4df359182041f5532878af100a61013842a"
+        },
+        "date": 1795221463608,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.092419,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.7306919999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.360246999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.497785,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.027661,
             "unit": "ms"
           }
         ]
