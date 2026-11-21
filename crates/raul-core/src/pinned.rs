@@ -107,7 +107,7 @@ impl Fetcher for CurlFetcher {
         }
         .inherit(NETWORK_ENV)
         .inherit(&["HOME"]);
-        let args = Self::args(url);
+        let args: Vec<std::ffi::OsString> = Self::args(url).into_iter().map(Into::into).collect();
         let out = runner
             .run_any(&Call::new("curl", &self.program, &args))
             .map_err(|e| match e {
