@@ -329,6 +329,9 @@ pub fn for_command_in(
         "lod-generate" => Some(
             raul_cli::lod_generate_job_in(rest, ctx).map_or_else(DirectJob::usage, lod_generate),
         ),
+        "plugins-enable" | "plugins-disable" => Some(
+            plugins_change_request(id, rest).map_or_else(DirectJob::usage, |r| plugins_change(&r)),
+        ),
         "mods-list" => {
             Some(mods_list_request(rest).map_or_else(DirectJob::usage, |r| mods_list(&r)))
         }
@@ -656,6 +659,50 @@ fn plugins_list_request(rest: &[String]) -> nvmod_api::plugins::ListRequest {
 pub fn plugins_list(request: &nvmod_api::plugins::ListRequest) -> DirectJob {
     let request = request.clone();
     DirectJob::reading(move |progress, cancel| nvmod_api::plugins::list(&request, progress, cancel))
+}
+
+/// The request of `raul plugins enable|disable` from the words after the subcommand, for the registry command `id`:
+/// the plugin, then `--instance` and `--profile`.
+fn plugins_change_request(
+    id: &str,
+    rest: &[String],
+) -> Result<nvmod_api::plugins::ChangeRequest, String> {
+    let verb = id.trim_start_matches("plugins-");
+    let Some(name) = positional(rest, &["--instance", "--profile"]) else {
+        return Err(format!("plugins {verb}: give the plugin"));
+    };
+    let names = vec![name.to_owned()];
+    let change = if verb == "enable" {
+        nvmod_api::plugins::Change::Enable {
+            names,
+            with_masters: false,
+        }
+    } else {
+        nvmod_api::plugins::Change::Disable { names }
+    };
+    Ok(nvmod_api::plugins::ChangeRequest {
+        instance: PathBuf::from(value_of(rest, "--instance")),
+        profile: option_of(rest, "--profile"),
+        change,
+        dry_run: false,
+    })
+}
+
+/// `nvmod_api::plugins::change`: turns plugins of a profile on or off. Its document is the report, as
+/// `raul plugins enable|disable --json` prints it; a change holds the Instance lock while it runs.
+pub fn plugins_change(request: &nvmod_api::plugins::ChangeRequest) -> DirectJob {
+    let instance = request.instance.clone();
+    let dry_run = request.dry_run;
+    let profile = request.profile.clone();
+    let request = request.clone();
+    let run = move |progress: &mut dyn Progress, cancel: &CancelToken| {
+        nvmod_api::plugins::change(&request, progress, cancel)
+    };
+    if dry_run {
+        DirectJob::reading(run)
+    } else {
+        DirectJob::writing(instance, "plugins", run).snapshotting(profile)
+    }
 }
 
 /// The request of `raul mods list` from the words after it; a category that is not a number is its usage message.

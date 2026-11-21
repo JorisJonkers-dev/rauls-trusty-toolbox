@@ -44,6 +44,24 @@ pub fn apply_command(instance: &str) -> Command {
     )
 }
 
+/// `raul plugins enable <plugin> --instance <dir>`: turns one plugin on in the Profile.
+pub fn enable_command(instance: &str, name: &str) -> Command {
+    Command::write(
+        "plugins-enable",
+        2,
+        &["plugins", "enable", name, "--instance", instance],
+    )
+}
+
+/// `raul plugins disable <plugin> --instance <dir>`: turns one plugin off in the Profile.
+pub fn disable_command(instance: &str, name: &str) -> Command {
+    Command::write(
+        "plugins-disable",
+        2,
+        &["plugins", "disable", name, "--instance", instance],
+    )
+}
+
 /// `raul rollback --instance <dir>`: undoes the last change of the Instance, here the applied sort.
 pub fn undo_command(instance: &str) -> Command {
     Command::write("rollback", 1, &["rollback", "--instance", instance])
@@ -170,6 +188,8 @@ pub enum Phase {
     Applied,
     /// The applied sort is being undone.
     Undoing,
+    /// One plugin is being turned on or off.
+    Changing,
 }
 
 /// Why the last step did not work.
@@ -312,11 +332,24 @@ impl State {
         self.phase = Phase::Loading;
     }
 
+    /// A plugin is being turned on or off.
+    pub fn changing(&mut self) {
+        self.phase = Phase::Changing;
+        self.problem = None;
+    }
+
+    /// The plugin was turned on or off. That change is now the last one of the Instance, so `raul rollback` no longer
+    /// takes back the sort: its Undo is not offered, and the list is read again.
+    pub fn changed(&mut self) {
+        self.journal = None;
+        self.phase = Phase::Loading;
+    }
+
     /// The step that ran failed: back to where it started, with the problem shown.
     pub fn failed(&mut self, problem: Problem) {
         self.phase = match self.phase {
             Phase::Applying => Phase::Preview,
-            Phase::Loading | Phase::Sorting | Phase::Undoing => self.resting(),
+            Phase::Loading | Phase::Sorting | Phase::Undoing | Phase::Changing => self.resting(),
             other => other,
         };
         self.problem = Some(problem);
@@ -326,7 +359,7 @@ impl State {
     pub fn busy(&self) -> bool {
         matches!(
             self.phase,
-            Phase::Loading | Phase::Sorting | Phase::Applying | Phase::Undoing
+            Phase::Loading | Phase::Sorting | Phase::Applying | Phase::Undoing | Phase::Changing
         )
     }
 
@@ -529,5 +562,38 @@ mod tests {
         assert_eq!(s.phase, Phase::Listed);
         assert_eq!(MessageKind::parse("say"), MessageKind::Note);
         assert_eq!(MessageKind::parse("ERROR"), MessageKind::Error);
+    }
+
+    #[test]
+    fn turning_a_plugin_on_or_off_ends_with_the_list_read_again_and_no_sort_to_undo() {
+        let mut s = State::default();
+        s.listed("Default".into(), list(&["A.esm", "B.esp"]));
+        s.applied(Some("j".into()));
+        assert!(s.journal.is_some());
+        s.changing();
+        assert!(s.busy());
+        assert_eq!(s.phase, Phase::Changing);
+        s.changed();
+        assert_eq!(s.phase, Phase::Loading);
+        assert!(
+            s.journal.is_none(),
+            "the last change is the switch, not the sort"
+        );
+        s.changing();
+        s.failed(problem());
+        assert_eq!(s.phase, Phase::Listed, "a failed change rests on the list");
+        assert!(!s.busy());
+        assert!(s.problem.is_some());
+    }
+
+    #[test]
+    fn the_switch_commands_name_the_plugin_and_the_instance() {
+        let on = enable_command("/i", "A.esp");
+        assert_eq!(on.id, "plugins-enable");
+        assert!(on.writes);
+        assert_eq!(on.rest(), ["A.esp", "--instance", "/i"]);
+        let off = disable_command("/i", "A.esp");
+        assert_eq!(off.id, "plugins-disable");
+        assert_eq!(off.rest(), ["A.esp", "--instance", "/i"]);
     }
 }

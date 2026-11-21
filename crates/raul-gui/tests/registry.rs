@@ -83,6 +83,11 @@ impl Fixture {
             (Action::Mods, ["reorder"]) => {
                 vec!["Alpha", "--position", "1", "--instance", &instance]
             }
+            // The Load order page turns a plugin off and on; a plugin that is not there is refused, which the command
+            // understood.
+            (Action::Plugins, ["enable" | "disable"]) => {
+                vec!["Missing.esp", "--instance", &instance]
+            }
             // In the registry's order: set one LOD option, unset another one (nothing to change), Restore defaults
             // removes the first and keeps a restore point, and Undo puts it back; each succeeds.
             (Action::Lod, ["settings", "set"]) => {
@@ -157,6 +162,8 @@ fn expected(command: &Command) -> i32 {
         Action::Ttw | Action::Run | Action::Profile | Action::InstallMod => 2,
         // lodwright is linked in: the fixture's plugin defines no worldspace with terrain, so the generation fails.
         Action::Lod if command.words.first() == Some(&"generate") => 4,
+        // A plugin that is not in the Load order is refused, after the command understood the words.
+        Action::Plugins if matches!(command.words.first(), Some(&"enable" | &"disable")) => 2,
         Action::Doctor => 1,
         // No engine is installed in the fixture, so the install does not verify.
         Action::Verify => 3,
