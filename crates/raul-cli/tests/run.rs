@@ -83,6 +83,9 @@ impl Run {
     }
 
     fn play(&self, viewer: &Path) -> (i32, String, String) {
+        // On Windows the run starts in the engine's folder of the Instance (`<instance>/nv-rs`), which the engine's own
+        // install makes; a build without the engine has none, so the stand-in's test makes the folder.
+        std::fs::create_dir_all(self.instance.join("nv-rs")).unwrap();
         let i = self.instance.to_string_lossy().into_owned();
         let v = viewer.to_string_lossy().into_owned();
         self.raul(&["run", "nv-rs", "--instance", &i, "--viewer", &v, "--wait"])
