@@ -172,6 +172,18 @@ pub mod catalogue {
     pub const TEXTURE_SCALES: &str = "How often a land texture repeats";
     /// Texture scales, explained.
     pub const TEXTURE_SCALES_HELP: &str = "For a land texture, how many times it repeats across a quarter of a cell in the colour textures. Give the land texture's record id and the number, like 0012AB34=2, separated by commas. A texture that is not listed repeats once.";
+    /// Walls at the shore of the water planes.
+    pub const WATER_WALLS: &str = "Water walls (experimental)";
+    /// Water walls, explained.
+    pub const WATER_WALLS_HELP: &str = "Experimental, off by default. Writes a vertical wall along the edge of distant water. It is new and not proven in the game: turn it on only to look at the result.";
+    /// Shared water vertices.
+    pub const WATER_SHARED_VERTICES: &str = "Shared water corners (experimental)";
+    /// Shared water vertices, explained.
+    pub const WATER_SHARED_VERTICES_HELP: &str = "Experimental, off by default. Lets neighbouring water faces share their corners. It is new and not proven in the game: turn it on only to look at the result.";
+    /// Water polygons.
+    pub const WATER_POLYGONS: &str = "Water polygons (experimental)";
+    /// Water polygons, explained.
+    pub const WATER_POLYGONS_HELP: &str = "Experimental, off by default. Builds distant water from polygons that follow the water's shape. It is new and not proven in the game: turn it on only to look at the result.";
     /// Drop faces under the terrain.
     pub const DROP_UNDER_TERRAIN: &str = "Leave out object faces under the land";
     /// Drop faces under the terrain, explained.
@@ -263,7 +275,7 @@ macro_rules! level_rows {
 
 const LEVEL_ROWS: [Descriptor; 24] = level_rows!("4", "8", "16", "32");
 
-const BASE_ROWS: [Descriptor; 17] = [
+const BASE_ROWS: [Descriptor; 20] = [
     row(
         "worlds",
         1,
@@ -396,6 +408,30 @@ const BASE_ROWS: [Descriptor; 17] = [
         catalogue::TERRAIN_DROP_UNDER_WATER_HELP,
     ),
     row(
+        "terrain.water_walls",
+        3,
+        Kind::Switch,
+        NONE,
+        catalogue::WATER_WALLS,
+        catalogue::WATER_WALLS_HELP,
+    ),
+    row(
+        "terrain.water_shared_vertices",
+        3,
+        Kind::Switch,
+        NONE,
+        catalogue::WATER_SHARED_VERTICES,
+        catalogue::WATER_SHARED_VERTICES_HELP,
+    ),
+    row(
+        "terrain.water_polygons",
+        3,
+        Kind::Switch,
+        NONE,
+        catalogue::WATER_POLYGONS,
+        catalogue::WATER_POLYGONS_HELP,
+    ),
+    row(
         "terrain.texture_scales",
         3,
         Kind::Scales,
@@ -406,8 +442,8 @@ const BASE_ROWS: [Descriptor; 17] = [
 ];
 
 /// Every option, in the order a view lists them: tier 1, then the advanced ones.
-pub const OPTIONS: [Descriptor; 41] = {
-    let mut all = [BASE_ROWS[0]; 41];
+pub const OPTIONS: [Descriptor; 44] = {
+    let mut all = [BASE_ROWS[0]; 44];
     let mut i = 0;
     while i < BASE_ROWS.len() {
         all[i] = BASE_ROWS[i];
@@ -440,6 +476,9 @@ fn generator_key(key: &str) -> Option<String> {
         | "objects.drop_under_terrain"
         | "objects.drop_under_water"
         | "terrain.drop_under_water"
+        | "terrain.water_walls"
+        | "terrain.water_shared_vertices"
+        | "terrain.water_polygons"
         | "terrain.texture_scales"
         | "inclusion.exclude_plugins"
         | "inclusion.only_plugins"
@@ -1684,6 +1723,35 @@ mod tests {
             RefusalCode::WrongType
         );
         reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
+    }
+
+    /// The three experimental water switches are tier 3, off by default, written to the request only when set and
+    /// gone from it again after a restore.
+    #[test]
+    fn the_experimental_water_rows_are_off_by_default_and_restore_the_request() {
+        let dir = TempDir::new("raul-lodset-water");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        for key in ["water_walls", "water_shared_vertices", "water_polygons"] {
+            let key = format!("terrain.{key}");
+            let d = descriptor(&key).unwrap();
+            assert_eq!((d.tier, d.kind), (3, Kind::Switch), "{key}");
+            assert!(d.help.contains("Experimental, off by default"), "{key}");
+            assert!(listed_in(generator(), d), "{key}");
+            assert_eq!(default_value(&key), Some(json!(false)), "{key}");
+            let bare = key.trim_start_matches("terrain.");
+            assert!(none["terrain"].get(bare).is_none(), "{key}");
+            set(&at, &key, &json!(true)).unwrap();
+            let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+            assert_eq!(on["terrain"][bare], json!(true), "{key}");
+            assert_eq!(
+                set(&at, &key, &json!(1)).unwrap_err().code,
+                RefusalCode::WrongType
+            );
+            reset(&at, false).unwrap();
+        }
         let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
         assert_eq!(back, none);
     }

@@ -59,6 +59,21 @@ pub(crate) struct Run {
 /// `objects` or `trees`); any other event, of a step this build may not know, starts its step.
 fn map(event: &ProgressEvent) -> Event {
     let phase = event.label_key().trim_start_matches("lod.").to_owned();
+    // lodwright 0.14.0 reports the run as a whole on every event (`run_done` of `run_total`, which never goes back):
+    // that is the bar. The step is the label, so a block's own count moves into the message. An older library sends
+    // neither field, and then the step's own count and name stay as they were.
+    if let (Some(done), Some(of)) = (event.run_done, event.run_total) {
+        let message = event.world.as_deref().map(|world| match (event.step, event.level) {
+            (Step::Terrain, Some(level)) => format!("{world} level {level}"),
+            _ => world.to_owned(),
+        });
+        return Event::Progress {
+            phase,
+            done,
+            of,
+            message,
+        };
+    }
     match (event.done, event.total) {
         (Some(done), Some(of)) => {
             let world = event.world.as_deref().unwrap_or("?");
@@ -170,6 +185,37 @@ mod tests {
     use nvmod_testkit::TempDir;
 
     use super::*;
+
+    #[test]
+    fn the_run_wide_count_is_the_bar_when_the_library_reports_it() {
+        let mut event = ProgressEvent::start(Step::Objects, Some("Island"));
+        event.run_done = Some(4200);
+        event.run_total = Some(10_000);
+        event.done = Some(1);
+        event.total = Some(7);
+        assert_eq!(
+            map(&event),
+            Event::Progress {
+                phase: "objects".to_owned(),
+                done: 4200,
+                of: 10_000,
+                message: Some("Island".to_owned()),
+            }
+        );
+        // A step that has only started still moves the bar.
+        let mut start = ProgressEvent::start(Step::Trees, None);
+        start.run_done = Some(7000);
+        start.run_total = Some(10_000);
+        assert_eq!(
+            map(&start),
+            Event::Progress {
+                phase: "trees".to_owned(),
+                done: 7000,
+                of: 10_000,
+                message: None,
+            }
+        );
+    }
 
     #[test]
     fn a_block_is_progress_and_a_start_is_a_phase() {

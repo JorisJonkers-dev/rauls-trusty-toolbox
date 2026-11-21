@@ -524,6 +524,9 @@ impl LodSettings {
                 "objects.drop_under_terrain",
                 "objects.drop_under_water",
                 "terrain.drop_under_water",
+                "terrain.water_walls",
+                "terrain.water_shared_vertices",
+                "terrain.water_polygons",
                 "terrain.texture_scales",
             ] {
                 if let Some(i) = self.index(key)
@@ -1018,6 +1021,9 @@ mod tests {
             "one for each level"
         );
         assert_eq!(h.query_all_by_label(c::TERRAIN_DROP_UNDER_WATER).count(), 1);
+        for label in [c::WATER_WALLS, c::WATER_SHARED_VERTICES, c::WATER_POLYGONS] {
+            assert_eq!(h.query_all_by_label(label).count(), 1, "{label}");
+        }
         assert_eq!(h.query_all_by_label(c::TEXTURE_SCALES).count(), 1);
     }
 }

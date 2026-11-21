@@ -221,6 +221,15 @@ pub fn request_parts(settings: &Settings) -> Value {
     if let Some(depth) = settings.terrain.drop_under_water {
         terrain["drop_under_water"] = json!(depth);
     }
+    for (key, on) in [
+        ("water_walls", settings.terrain.water_walls),
+        ("water_shared_vertices", settings.terrain.water_shared_vertices),
+        ("water_polygons", settings.terrain.water_polygons),
+    ] {
+        if on {
+            terrain[key] = json!(true);
+        }
+    }
     if !settings.terrain.texture_scales.is_empty() {
         terrain["texture_scales"] = json!(settings.terrain.texture_scales);
     }
@@ -269,6 +278,12 @@ pub struct Inclusion {
 pub struct TerrainOptions {
     /// Leave out faces whose corners all lie at least this many world units below the water plane; unset keeps all.
     pub drop_under_water: Option<f32>,
+    /// Experimental: a vertical wall along the edge of the water planes (off unless set).
+    pub water_walls: bool,
+    /// Experimental: neighbouring water faces share their corners (off unless set).
+    pub water_shared_vertices: bool,
+    /// Experimental: water built from polygons that follow its shape (off unless set).
+    pub water_polygons: bool,
     /// How often a land texture repeats across a cell quadrant in the diffuse maps, by its record id; a texture not
     /// listed repeats once.
     pub texture_scales: std::collections::BTreeMap<String, f32>,

@@ -192,6 +192,39 @@
       "value": null
     },
     {
+      "default": false,
+      "key": "terrain.water_walls",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
+    },
+    {
+      "default": false,
+      "key": "terrain.water_shared_vertices",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
+    },
+    {
+      "default": false,
+      "key": "terrain.water_polygons",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
+    },
+    {
       "default": {},
       "key": "terrain.texture_scales",
       "kind": "scales",
