@@ -16,7 +16,9 @@ use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText};
 use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobId, JobState, Outcome};
+use raul_ui_model::pages::home::TTW_MOD;
 use raul_ui_model::pages::load_order::Problem;
+use raul_ui_model::pages::mods::{list_command, parse_list};
 use raul_ui_model::pages::settings::{Answer, Command, Fetch, Key};
 use raul_ui_model::pages::ttw::{
     DOWNLOAD_URL, Found, NEEDED_BYTES, PackageInfo, Progress, Redirected, Report, Settling,
@@ -219,6 +221,8 @@ enum Job {
     Save,
     /// `raul space`: the free space where the Instance is.
     Space,
+    /// `raul mods list`: whether the Mod a finished install shows is still in the Instance.
+    Mods,
 }
 
 impl Ttw {
@@ -252,6 +256,7 @@ impl Ttw {
             Job::Sources | Job::Refresh => Command::config_list(),
             Job::Check => check_command(i),
             Job::Space => space_command(i),
+            Job::Mods => list_command(i),
             Job::Install => install_command(i, self.state.resuming),
             Job::Save => {
                 let file = self.state.wizard.package()?;
@@ -270,7 +275,7 @@ impl Ttw {
                 self.state.loading();
                 Ok(())
             }
-            Job::Refresh => Ok(()),
+            Job::Refresh | Job::Mods => Ok(()),
             Job::Space => {
                 self.state.space_loading();
                 Ok(())
@@ -303,8 +308,8 @@ impl Ttw {
                         self.state.sources_failed(e.what.to_owned());
                         Ok(())
                     }
-                    // The flow keeps the sources it has.
-                    Job::Refresh => Ok(()),
+                    // The flow keeps the sources it has, and the result it shows.
+                    Job::Refresh | Job::Mods => Ok(()),
                     Job::Space => {
                         self.state.space_failed(e.what.to_owned());
                         Ok(())
@@ -455,14 +460,32 @@ impl Ttw {
         if cx.shell.instance == self.state.instance || self.state.busy() {
             return;
         }
-        self.state = State::new(cx.shell.instance.clone());
+        self.start_over(cx.shell.instance.clone());
+        if self.state.instance.is_some() {
+            self.run(cx, Job::Sources);
+        }
+    }
+
+    /// The flow from its first step, for `instance`; the sources are read again on the next frame.
+    fn start_over(&mut self, instance: Option<String>) {
+        self.state = State::new(instance);
         self.install = None;
         self.search = None;
         self.watch = None;
         self.save_failed = None;
         self.unsaved_from = None;
-        if self.state.instance.is_some() {
-            self.run(cx, Job::Sources);
+        self.visits.loaded = false;
+    }
+
+    /// What the mod list says about the Mod a finished install shows: when it is gone (removed on the Mods page), the
+    /// page follows the Instance and starts again at Sources, so a new install can be run.
+    fn read_mods(&mut self, result: &Result<Output, String>) {
+        if let Ok(out) = result
+            && let Ok((_, mods)) = parse_list(&out.stdout)
+            && self.state.finished_install()
+            && !mods.iter().any(|m| m.name == TTW_MOD)
+        {
+            self.start_over(self.state.instance.clone());
         }
     }
 
@@ -486,6 +509,10 @@ impl Ttw {
                     if let Ok(c) = read_config(&result) {
                         self.state.refreshed(Sources::of(&c));
                     }
+                    Ok(())
+                }
+                Job::Mods => {
+                    self.read_mods(&result);
                     Ok(())
                 }
                 Job::Space => {
@@ -1011,6 +1038,10 @@ impl Page for Ttw {
         } else if back && self.state.sources.ready().is_some() && !self.state.busy() {
             // Shown again: the sources may have changed in Settings; the flow starts over only if they did.
             self.run(cx, Job::Refresh);
+        }
+        if back && self.state.finished_install() {
+            // Shown again after an install: the Mod may have been removed since.
+            self.run(cx, Job::Mods);
         }
         self.take_answers(cx);
         self.follow_install(cx);
@@ -1572,6 +1603,51 @@ mod tests {
         r#"{"schema_version":1,"contract":"raul-events","seq":1,"command":"ttw","event":"result","result":{"schema_version":1,"contract":"raul-ttw-result","status":"cancelled","dry_run":false,"resumed":false,"instance":"/i","profile":"Default","mod":null,"plugins_enabled":[],"files":null,"staging":"/i/s","resumable":true,"tool":{"name":"ttwright","path":"/t","sha256":"00","version":"0.3.0"},"ttwright":null,"error":{"code":"cancelled","message":"stopped","ttwright_code":"cancelled"}}}"#,
         "\n{\"schema_version\":1,\"contract\":\"raul-events\",\"seq\":2,\"command\":\"ttw\",\"event\":\"finished\",\"status\":\"cancelled\",\"exit_code\":4,\"code\":\"cancelled\",\"message\":\"stopped\",\"resumable\":true,\"changed\":false}"
     );
+
+    #[test]
+    fn a_mod_list_without_the_ttw_mod_sends_a_finished_install_back_to_sources() {
+        let list = |mods: &[&str]| {
+            let rows: Vec<String> = mods
+                .iter()
+                .enumerate()
+                .map(|(i, name)| {
+                    format!(
+                        r#"{{"position":{i},"name":"{name}","state":"enabled","kind":"mod","installed":true}}"#
+                    )
+                })
+                .collect();
+            Ok(output(
+                0,
+                &format!(r#"{{"profile":"Default","mods":[{}]}}"#, rows.join(",")),
+            ))
+        };
+        let mut done = installing(1, Some(1));
+        done.installed(
+            Report::of(Status::Success, false),
+            problem(&INSTALL_FAILED, ""),
+        )
+        .unwrap();
+        assert!(done.finished_install());
+        let mut page = Ttw::with(done);
+        page.visits.loaded = true;
+        page.read_mods(&list(&[TTW_MOD, "Other"]));
+        assert!(
+            page.state.finished_install(),
+            "the Mod is there: the page keeps its result"
+        );
+        page.read_mods(&Err("no answer".to_owned()));
+        assert!(
+            page.state.finished_install(),
+            "an unreadable answer changes nothing"
+        );
+        page.read_mods(&list(&["Other"]));
+        assert!(!page.state.finished_install() && page.state.step == Step::Sources);
+        assert!(
+            !page.visits.loaded,
+            "the sources are read again on the next frame"
+        );
+        assert!(page.state.instance.is_some(), "the Instance stays");
+    }
 
     #[test]
     fn a_ttw_stream_becomes_the_report_the_page_shows() {

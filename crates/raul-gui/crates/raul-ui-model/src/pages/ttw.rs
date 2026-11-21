@@ -685,6 +685,15 @@ impl State {
         self.wizard.flow.step() == FlowStep::Done
     }
 
+    /// Whether an install ended in success: the page then shows a Mod that the Instance must still hold.
+    pub fn finished_install(&self) -> bool {
+        self.done()
+            && self
+                .result
+                .as_ref()
+                .is_some_and(|r| r.status == Status::Success && !r.dry_run)
+    }
+
     /// How the install ended, once it has.
     pub fn outcome(&self) -> Option<Outcome> {
         self.wizard.flow.result().map(|(_, outcome)| outcome)

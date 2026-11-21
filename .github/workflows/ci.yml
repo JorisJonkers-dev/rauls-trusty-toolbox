@@ -73,6 +73,30 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: crates/raul-gui
         run: mise exec -- cargo nextest run --workspace --locked
+      # The start of the window that gui.yml makes on Linux (#69): `raul` with no arguments opens it and RAUL_GUI_SMOKE closes it
+      # after its first frames. A hosted Windows runner has no GPU and only the generic OpenGL 1.1 of the system, which the
+      # toolkit refuses ("requires opengl 2.0+"): that one answer is a reported skip with its reason, anything else fails.
+      - name: Start the GUI and close it again
+        if: ${{ !cancelled() }}
+        shell: bash
+        timeout-minutes: 5
+        working-directory: crates/raul-gui
+        env:
+          RAUL_GUI_SMOKE: "1"
+        run: |
+          set -uo pipefail
+          cargo build --locked --bin raul
+          code=0
+          out=$(target/debug/raul 2>&1) || code=$?
+          echo "$out"
+          echo "exit code: $code"
+          if [ "$code" -eq 0 ] && [ "$out" = "raul: the window opened and closed" ]; then exit 0; fi
+          if [[ "$out" == *"requires opengl 2.0"* ]]; then
+            echo "::warning title=GUI start skipped::this runner offers no OpenGL 2.0 (hosted ${{ matrix.os }}): the window was not opened here; Linux (gui.yml) opens it on Mesa"
+            echo "GUI start skipped on ${{ matrix.os }}: no OpenGL 2.0 on the runner." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          exit 1
 
   # The GUI workspace (crates/raul-gui) has its own lock file; gui.yml runs it, as a reusable workflow so that
   # Pipeline Complete can wait for it and fail with it (#440).
