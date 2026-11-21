@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795243264471,
+  "lastUpdate": 1795243390026,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9554,6 +9554,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.277716999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1db3c7f1635416c4a9d63dc3f268f19e0cf6ed9e",
+          "message": "feat(gui): Undo for the last change on the Mods page, through the journal raul rollback uses (#500) (#503)",
+          "timestamp": "2026-11-21T06:41:14Z",
+          "tree_id": "0c272459bb37489c7c78c730825b319ef8185a5a",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/1db3c7f1635416c4a9d63dc3f268f19e0cf6ed9e"
+        },
+        "date": 1795243389515,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.2904,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.62811,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.675398,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.181373000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.524647,
             "unit": "ms"
           }
         ]
