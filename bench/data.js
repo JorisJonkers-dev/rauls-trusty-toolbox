@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795250203978,
+  "lastUpdate": 1795250517269,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9799,6 +9799,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.097961,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "996b04c4bc1b7b257129d19c3804403b171fecfa",
+          "message": "feat(lod): the LOD bar follows the whole run, and rows for the three experimental water switches (closes #502) (#509)\n\n* feat(lod): the LOD bar follows the whole run, and rows for the three experimental water switches (#502)\n\n* fix(lod): a step that only starts stays a phase; a finished block carries the run-wide count; formatting",
+          "timestamp": "2026-11-21T08:39:52Z",
+          "tree_id": "8383248c489d9efc03fe188c79ad5ae8d8704a82",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/996b04c4bc1b7b257129d19c3804403b171fecfa"
+        },
+        "date": 1795250516671,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.457636,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.2006179999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.37527,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.140838,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.033559,
             "unit": "ms"
           }
         ]
