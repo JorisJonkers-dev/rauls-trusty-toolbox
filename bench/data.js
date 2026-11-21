@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795228617859,
+  "lastUpdate": 1795228896678,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -8770,6 +8770,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.169089,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "305589e9b5f864f796ffb7aaa2729432ed774061",
+          "message": "test: every asset is listed in the notice file and no game-style file is in the repository (#479)\n\n* test: every asset is listed and no game-style file is in the repository (#94)\n\n* test: walk the working tree for the asset check instead of starting git",
+          "timestamp": "2026-11-21T02:39:54Z",
+          "tree_id": "2f7376434a75ddeb9f20b4ed3831b5c159309133",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/305589e9b5f864f796ffb7aaa2729432ed774061"
+        },
+        "date": 1795228895825,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.896032,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.606001000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 35.92412100000001,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.928393,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.05307,
             "unit": "ms"
           }
         ]
