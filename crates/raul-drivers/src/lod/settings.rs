@@ -168,6 +168,10 @@ pub mod catalogue {
     pub const TERRAIN_DROP_UNDER_WATER: &str = "Leave out land faces deep under the water";
     /// Drop terrain faces under the water, explained.
     pub const TERRAIN_DROP_UNDER_WATER_HELP: &str = "Distant land loses the faces that lie at least this far below the water, in game units, which nobody sees through it. The files get smaller. Empty keeps every face.";
+    /// How often a land texture repeats.
+    pub const TEXTURE_SCALES: &str = "How often a land texture repeats";
+    /// Texture scales, explained.
+    pub const TEXTURE_SCALES_HELP: &str = "For a land texture, how many times it repeats across a quarter of a cell in the colour textures. Give the land texture's record id and the number, like 0012AB34=2, separated by commas. A texture that is not listed repeats once.";
     /// Drop faces under the terrain.
     pub const DROP_UNDER_TERRAIN: &str = "Leave out object faces under the land";
     /// Drop faces under the terrain, explained.
@@ -194,6 +198,8 @@ pub enum Kind {
     Names,
     /// A list of record ids, eight hex digits each.
     Records,
+    /// A table of record id (eight hex digits) to a number, written `id=number`.
+    Scales,
 }
 
 /// One option of the LOD settings.
@@ -257,7 +263,7 @@ macro_rules! level_rows {
 
 const LEVEL_ROWS: [Descriptor; 24] = level_rows!("4", "8", "16", "32");
 
-const BASE_ROWS: [Descriptor; 16] = [
+const BASE_ROWS: [Descriptor; 17] = [
     row(
         "worlds",
         1,
@@ -389,11 +395,19 @@ const BASE_ROWS: [Descriptor; 16] = [
         catalogue::TERRAIN_DROP_UNDER_WATER,
         catalogue::TERRAIN_DROP_UNDER_WATER_HELP,
     ),
+    row(
+        "terrain.texture_scales",
+        3,
+        Kind::Scales,
+        (Some(0.0625), Some(16.0)),
+        catalogue::TEXTURE_SCALES,
+        catalogue::TEXTURE_SCALES_HELP,
+    ),
 ];
 
 /// Every option, in the order a view lists them: tier 1, then the advanced ones.
-pub const OPTIONS: [Descriptor; 40] = {
-    let mut all = [BASE_ROWS[0]; 40];
+pub const OPTIONS: [Descriptor; 41] = {
+    let mut all = [BASE_ROWS[0]; 41];
     let mut i = 0;
     while i < BASE_ROWS.len() {
         all[i] = BASE_ROWS[i];
@@ -426,6 +440,7 @@ fn generator_key(key: &str) -> Option<String> {
         | "objects.drop_under_terrain"
         | "objects.drop_under_water"
         | "terrain.drop_under_water"
+        | "terrain.texture_scales"
         | "inclusion.exclude_plugins"
         | "inclusion.only_plugins"
         | "inclusion.exclude_records"
@@ -482,6 +497,7 @@ pub fn default_value(key: &str) -> Option<Value> {
     }
     Some(match d.kind {
         Kind::Names | Kind::Records if info.default.is_null() => json!([]),
+        Kind::Scales if info.default.is_null() => json!({}),
         _ => info.default.clone(),
     })
 }
@@ -925,6 +941,22 @@ fn check_value(d: &Descriptor, v: &toml::Value) -> Result<(), Refusal> {
                 return refuse(RefusalCode::NotAPowerOfTwo);
             }
         }
+        Kind::Scales => {
+            let Some(entries) = v.as_table() else {
+                return refuse(RefusalCode::WrongType);
+            };
+            for (id, scale) in entries {
+                if id.len() != 8 || u32::from_str_radix(id, 16).is_err() {
+                    return refuse(RefusalCode::NotARecord);
+                }
+                let Some(n) = number(scale) else {
+                    return refuse(RefusalCode::WrongType);
+                };
+                if !n.is_finite() || d.min.is_some_and(|m| n < m) || d.max.is_some_and(|m| n > m) {
+                    return refuse(RefusalCode::OutOfRange);
+                }
+            }
+        }
         Kind::Names | Kind::Records => {
             let Some(items) = v.as_array() else {
                 return refuse(RefusalCode::WrongType);
@@ -1013,6 +1045,16 @@ fn to_toml(d: &Descriptor, v: &Value) -> Result<toml::Value, Refusal> {
             )
         }
         Kind::Number => toml::Value::Float(v.as_f64().ok_or_else(wrong)?),
+        Kind::Scales => {
+            let mut table = Table::new();
+            for (id, scale) in v.as_object().ok_or_else(wrong)? {
+                table.insert(
+                    id.clone(),
+                    toml::Value::Float(scale.as_f64().ok_or_else(wrong)?),
+                );
+            }
+            toml::Value::Table(table)
+        }
         Kind::Names | Kind::Records => toml::Value::Array(
             v.as_array()
                 .ok_or_else(wrong)?
@@ -1057,6 +1099,20 @@ pub fn parse_value(key: &str, words: &[String]) -> Result<Value, Refusal> {
             .map(|n| json!(n))
             .ok_or_else(wrong),
         Kind::Names | Kind::Records => Ok(json!(words)),
+        Kind::Scales => {
+            let mut entries = serde_json::Map::new();
+            for word in words {
+                let (id, scale) = word.split_once('=').ok_or_else(wrong)?;
+                let scale: f64 = scale
+                    .trim()
+                    .parse()
+                    .ok()
+                    .filter(|n: &f64| n.is_finite())
+                    .ok_or_else(wrong)?;
+                entries.insert(id.trim().to_ascii_uppercase(), json!(scale));
+            }
+            Ok(Value::Object(entries))
+        }
     }
 }
 
@@ -1654,6 +1710,71 @@ mod tests {
         }
         assert_eq!(
             set(&at, "terrain.drop_under_water", &json!("deep"))
+                .unwrap_err()
+                .code,
+            RefusalCode::WrongType
+        );
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
+    }
+
+    /// The texture scales row is a tier 3 table of record id to number, empty by default, written to the request only
+    /// when set, with each id and each number checked.
+    #[test]
+    fn the_texture_scales_row_takes_record_ids_with_numbers_in_range() {
+        let d = descriptor("terrain.texture_scales").unwrap();
+        assert_eq!((d.tier, d.kind), (3, Kind::Scales));
+        assert!(listed_in(generator(), d));
+        assert_eq!(default_value("terrain.texture_scales"), Some(json!({})));
+        let words = |w: &[&str]| w.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>();
+        let value = parse_value(
+            "terrain.texture_scales",
+            &words(&["0012ab34=2", "0012AB35=0.5"]),
+        )
+        .unwrap();
+        assert_eq!(value, json!({"0012AB34": 2.0, "0012AB35": 0.5}));
+        for bad in [&["oops"][..], &["0012AB34=x"], &["0012AB34"]] {
+            assert_eq!(
+                parse_value("terrain.texture_scales", &words(bad))
+                    .unwrap_err()
+                    .code,
+                RefusalCode::WrongType,
+                "{bad:?}"
+            );
+        }
+        let dir = TempDir::new("raul-lodset-scales");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        assert!(none["terrain"].get("texture_scales").is_none());
+        set(&at, "terrain.texture_scales", &value).unwrap();
+        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        assert_eq!(
+            on["terrain"]["texture_scales"],
+            json!({"0012AB34": 2.0, "0012AB35": 0.5})
+        );
+        assert_eq!(
+            set(&at, "terrain.texture_scales", &json!({"oak": 2}))
+                .unwrap_err()
+                .code,
+            RefusalCode::NotARecord
+        );
+        for scale in [0.01, 17.0] {
+            assert_eq!(
+                set(&at, "terrain.texture_scales", &json!({"0012AB34": scale}))
+                    .unwrap_err()
+                    .code,
+                RefusalCode::OutOfRange
+            );
+        }
+        assert_eq!(
+            set(&at, "terrain.texture_scales", &json!({"0012AB34": "big"}))
+                .unwrap_err()
+                .code,
+            RefusalCode::WrongType
+        );
+        assert_eq!(
+            set(&at, "terrain.texture_scales", &json!([1]))
                 .unwrap_err()
                 .code,
             RefusalCode::WrongType

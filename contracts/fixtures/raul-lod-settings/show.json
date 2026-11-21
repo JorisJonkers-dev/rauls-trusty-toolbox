@@ -183,6 +183,17 @@
       "value": null
     },
     {
+      "default": {},
+      "key": "terrain.texture_scales",
+      "kind": "scales",
+      "max": 16.0,
+      "min": 0.0625,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": {}
+    },
+    {
       "default": 10.0,
       "key": "levels.4.quality",
       "kind": "number",

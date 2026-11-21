@@ -70,6 +70,8 @@ pub enum Kind {
     Names,
     /// A list of record ids.
     Records,
+    /// A table of record id to number.
+    Scales,
 }
 
 /// One option as the command lists it.
@@ -190,6 +192,12 @@ pub fn text_of(value: &Value) -> String {
             .map(|i| i.as_str().map_or_else(|| i.to_string(), str::to_owned))
             .collect::<Vec<_>>()
             .join(", "),
+        // a table of record id to number: `0012AB34=2, 0012AB35=0.5`
+        Value::Object(entries) => entries
+            .iter()
+            .map(|(id, n)| format!("{id}={n}"))
+            .collect::<Vec<_>>()
+            .join(", "),
         other => other.to_string(),
     }
 }
@@ -229,7 +237,7 @@ impl Field {
             return unset_command(instance, key);
         }
         let values: Vec<String> = match self.row.kind {
-            Kind::Names | Kind::Records => draft
+            Kind::Names | Kind::Records | Kind::Scales => draft
                 .split(',')
                 .map(str::trim)
                 .filter(|v| !v.is_empty())
@@ -368,6 +376,34 @@ mod tests {
             list.command("/i").rest(),
             ["worlds", "--instance", "/i"],
             "an empty list is a value of its own"
+        );
+    }
+
+    #[test]
+    fn a_table_of_scales_shows_as_id_equals_number_and_saves_each_pair_as_a_word() {
+        let mut f = Field::of(row(
+            "terrain.texture_scales",
+            Kind::Scales,
+            json!({"0012AB34": 2.0, "0012AB35": 0.5}),
+            true,
+        ));
+        assert_eq!(f.draft, "0012AB34=2.0, 0012AB35=0.5");
+        "0012AB34=4 , 0012AB36=1".clone_into(&mut f.draft);
+        assert_eq!(
+            f.command("/i").rest(),
+            [
+                "terrain.texture_scales",
+                "0012AB34=4",
+                "0012AB36=1",
+                "--instance",
+                "/i"
+            ]
+        );
+        f.draft.clear();
+        assert_eq!(
+            f.command("/i").id,
+            "lod-settings-unset",
+            "an emptied table takes the default (none) again"
         );
     }
 

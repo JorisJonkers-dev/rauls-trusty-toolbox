@@ -101,6 +101,11 @@
           "const": "records",
           "description": "A list of record ids, eight hex digits each.",
           "type": "string"
+        },
+        {
+          "const": "scales",
+          "description": "A table of record id (eight hex digits) to a number, written `id=number`.",
+          "type": "string"
         }
       ]
     },
