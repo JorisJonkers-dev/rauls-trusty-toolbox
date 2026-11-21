@@ -729,7 +729,9 @@ mod tests {
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
         std::thread::sleep(std::time::Duration::from_millis(50));
-        h.run();
+        // The result arrives from a thread, so the frames that follow depend on timing: step a fixed number of frames
+        // instead of until the window settles within the default four.
+        h.run_steps(10);
         assert_eq!(
             exec.calls.lock().unwrap().first().cloned(),
             Some(
