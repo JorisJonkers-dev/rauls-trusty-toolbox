@@ -224,6 +224,7 @@ fn execute(
                 instance,
                 profile,
                 copy: req.copy,
+                full: false,
             };
             let r = api::stage::stage(&request, &mut detail(step, progress), cancel);
             Ok(finish(step, r)?.is_some())
@@ -234,6 +235,7 @@ fn execute(
                 profile,
                 masterlist: req.masterlist.clone(),
                 apply: true,
+                mode: api::loadorder::SortMode::Full,
             };
             let r = api::loadorder::sort(&request, &mut detail(step, progress), cancel);
             Ok(finish(step, r)?.is_some())
