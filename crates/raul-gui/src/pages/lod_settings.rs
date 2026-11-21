@@ -51,6 +51,7 @@ crate::texts!(TEXTS {
     DEFAULT_RUN_TIME = "Default: decided at run time";
     DEFAULT_EMPTY = "Default: none";
     LIST_HINT = "Separate names with commas";
+    SCALES_HINT = "Record id and number, like 0012AB34=2, with commas between";
     MARK_SET = "Changed";
     MARK_SAVING = "Saving";
     MARK_NOT_SAVED = "Not saved";
@@ -523,6 +524,7 @@ impl LodSettings {
                 "objects.drop_under_terrain",
                 "objects.drop_under_water",
                 "terrain.drop_under_water",
+                "terrain.texture_scales",
             ] {
                 if let Some(i) = self.index(key)
                     && field(ui, t, &mut self.state.fields[i], open, busy)
@@ -661,7 +663,9 @@ fn field(ui: &mut egui::Ui, t: &Tokens, f: &mut Field, enabled: bool, busy: bool
             .color(t.muted.color()),
     );
     if f.row.kind != Kind::Switch {
-        let hint = if matches!(f.row.kind, Kind::Names | Kind::Records) {
+        let hint = if f.row.kind == Kind::Scales {
+            SCALES_HINT
+        } else if matches!(f.row.kind, Kind::Names | Kind::Records) {
             LIST_HINT
         } else {
             ""
@@ -703,6 +707,7 @@ fn row(key: &str, value: Value, overridden: bool) -> OptionRow {
         raul_drivers::lod::settings::Kind::TextureSize => Kind::TextureSize,
         raul_drivers::lod::settings::Kind::Names => Kind::Names,
         raul_drivers::lod::settings::Kind::Records => Kind::Records,
+        raul_drivers::lod::settings::Kind::Scales => Kind::Scales,
     };
     let default = raul_drivers::lod::settings::default_value(key).unwrap_or(Value::Null);
     OptionRow {
@@ -878,6 +883,7 @@ mod tests {
             Kind::TextureSize => "texture_size",
             Kind::Names => "names",
             Kind::Records => "records",
+            Kind::Scales => "scales",
         }
     }
 
@@ -985,5 +991,6 @@ mod tests {
             "one for each level"
         );
         assert_eq!(h.query_all_by_label(c::TERRAIN_DROP_UNDER_WATER).count(), 1);
+        assert_eq!(h.query_all_by_label(c::TEXTURE_SCALES).count(), 1);
     }
 }

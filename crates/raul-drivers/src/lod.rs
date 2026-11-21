@@ -221,6 +221,9 @@ pub fn request_parts(settings: &Settings) -> Value {
     if let Some(depth) = settings.terrain.drop_under_water {
         terrain["drop_under_water"] = json!(depth);
     }
+    if !settings.terrain.texture_scales.is_empty() {
+        terrain["texture_scales"] = json!(settings.terrain.texture_scales);
+    }
     json!({
         "terrain": terrain,
         "objects": objects,
@@ -266,6 +269,9 @@ pub struct Inclusion {
 pub struct TerrainOptions {
     /// Leave out faces whose corners all lie at least this many world units below the water plane; unset keeps all.
     pub drop_under_water: Option<f32>,
+    /// How often a land texture repeats across a cell quadrant in the diffuse maps, by its record id; a texture not
+    /// listed repeats once.
+    pub texture_scales: std::collections::BTreeMap<String, f32>,
 }
 
 /// What object LOD leaves out of what it builds (options the generator added after its first release).
