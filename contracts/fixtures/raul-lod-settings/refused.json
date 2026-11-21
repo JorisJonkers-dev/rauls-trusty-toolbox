@@ -178,6 +178,17 @@
       "value": false
     },
     {
+      "default": null,
+      "key": "terrain.drop_under_water",
+      "kind": "number",
+      "max": 100000.0,
+      "min": 0.0,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": null
+    },
+    {
       "default": 10.0,
       "key": "levels.4.quality",
       "kind": "number",
@@ -224,6 +235,17 @@
     {
       "default": false,
       "key": "levels.4.specular_alpha",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
+    },
+    {
+      "default": false,
+      "key": "levels.4.skirts",
       "kind": "switch",
       "max": null,
       "min": null,
@@ -288,6 +310,17 @@
       "value": false
     },
     {
+      "default": false,
+      "key": "levels.8.skirts",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
+    },
+    {
       "default": 20.0,
       "key": "levels.16.quality",
       "kind": "number",
@@ -343,6 +376,17 @@
       "value": false
     },
     {
+      "default": false,
+      "key": "levels.16.skirts",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
+    },
+    {
       "default": 25.0,
       "key": "levels.32.quality",
       "kind": "number",
@@ -389,6 +433,17 @@
     {
       "default": false,
       "key": "levels.32.specular_alpha",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": false
+    },
+    {
+      "default": false,
+      "key": "levels.32.skirts",
       "kind": "switch",
       "max": null,
       "min": null,

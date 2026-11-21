@@ -78,6 +78,8 @@ pub struct Settings {
     pub output: Output,
     /// What object LOD leaves out, beyond the inclusion rules.
     pub objects: ObjectOptions,
+    /// What terrain LOD leaves out.
+    pub terrain: TerrainOptions,
     /// Worker threads; lodwright decides when unset.
     pub threads: Option<u32>,
     /// An advisory memory budget in MiB.
@@ -136,6 +138,8 @@ pub struct Level {
     pub normal_size: Option<u32>,
     /// Write the land textures' specular into the alpha of the normal maps (off unless set).
     pub specular_alpha: Option<bool>,
+    /// Hang a skirt under every border vertex of the level's blocks (off unless set).
+    pub skirts: Option<bool>,
 }
 
 /// The terrain levels of the request: none (the generator's defaults) when the settings change no level and not
@@ -174,8 +178,11 @@ pub fn levels_of(settings: &Settings, always: bool) -> Vec<lodwright_contract::L
                         .and_then(|v| v.as_bool())
                         .unwrap_or_default()
                 }),
-                // The Skirts row is a later change (#346); until then the request keeps the default.
-                skirts: false,
+                skirts: set.skirts.unwrap_or_else(|| {
+                    settings::default_value(&format!("levels.{level}.skirts"))
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or_default()
+                }),
             }
         })
         .collect()
@@ -204,13 +211,18 @@ pub fn request_parts(settings: &Settings) -> Value {
     if settings.objects.drop_under_water {
         objects.insert("drop_under_water".into(), true.into());
     }
+    // absent by default and written only when set, like the object switches
+    let mut terrain = json!({
+        "enabled": o.terrain,
+        "levels": levels_of(settings, false),
+        "land_textures": o.land_textures,
+        "water": o.water,
+    });
+    if let Some(depth) = settings.terrain.drop_under_water {
+        terrain["drop_under_water"] = json!(depth);
+    }
     json!({
-        "terrain": {
-            "enabled": o.terrain,
-            "levels": levels_of(settings, false),
-            "land_textures": o.land_textures,
-            "water": o.water,
-        },
+        "terrain": terrain,
         "objects": objects,
         "trees": { "enabled": o.trees },
         "inclusion": {
@@ -246,6 +258,14 @@ pub struct Inclusion {
     pub exclude_records: Vec<String>,
     /// Leave out models matching these patterns.
     pub exclude_models: Vec<String>,
+}
+
+/// What terrain LOD leaves out of what it builds (options the generator added after its first release).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct TerrainOptions {
+    /// Leave out faces whose corners all lie at least this many world units below the water plane; unset keeps all.
+    pub drop_under_water: Option<f32>,
 }
 
 /// What object LOD leaves out of what it builds (options the generator added after its first release).

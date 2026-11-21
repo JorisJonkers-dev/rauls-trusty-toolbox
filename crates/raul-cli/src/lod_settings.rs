@@ -190,8 +190,11 @@ fn finish(
     crate::write_or_fail(out, err, &text(verb, &doc))
 }
 
-fn shown(v: &Value) -> String {
+/// A value as a line shows it. Nothing set is `(none)` for a number that keeps everything when empty (the water
+/// depth) and `(decided at run time)` for the settings the program decides itself (workers, memory budget).
+fn shown(key: &str, v: &Value) -> String {
     match v {
+        Value::Null if key == "terrain.drop_under_water" => "(none)".to_owned(),
         Value::Null => "(decided at run time)".to_owned(),
         Value::Array(items) if items.is_empty() => "[]".to_owned(),
         other => other.to_string(),
@@ -249,8 +252,8 @@ fn text(verb: &str, doc: &SettingsDoc) -> String {
                 t,
                 "{mark} {} = {}  (default {}{note})",
                 o.key,
-                shown(&o.value),
-                shown(&o.default)
+                shown(&o.key, &o.value),
+                shown(&o.key, &o.default)
             );
         }
         t.push_str("  * set in the file; Restore defaults (`raul lod settings reset`) removes every one but allow_in_repo\n");
