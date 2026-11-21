@@ -10,13 +10,14 @@ use super::home::{Mark, icon};
 use super::settings::{Pending, Visits, error_block, failure_of, start, waiting};
 use super::{Fixture, Page, PageCx, ShellState};
 use crate::catalogue::{self as msg, ErrorText};
+use crate::dialog::{Answer, Dialog};
 use crate::shell;
 use crate::theme::Tokens;
 use eframe::egui::{self, RichText};
 use raul_ui_model::pages::home::{doctor_command, parse_order_errors};
 use raul_ui_model::pages::load_order::{
-    Message, MessageKind, Phase, Plugin, Problem, State, apply_command, list_command,
-    preview_command, undo_command,
+    Message, MessageKind, Phase, Plugin, Problem, State, apply_command, disable_command,
+    enable_command, list_command, preview_command, undo_command,
 };
 use raul_ui_model::pages::settings::Command;
 use raul_ui_model::pages::{Attention, PageId, Severity, View};
@@ -36,6 +37,7 @@ crate::texts!(TEXTS {
     STATE_APPLYING = "Applying the sorted order";
     STATE_APPLIED = "Applied · Undo restores the old order";
     STATE_UNDOING = "Restoring the old order";
+    STATE_CHANGING = "Changing a plugin";
     SORT = "Sort";
     APPLY = "Apply {n} moves";
     APPLY_ONE = "Apply 1 move";
@@ -55,6 +57,14 @@ crate::texts!(TEXTS {
     UNSORTED_DETAIL = "Sort shows what it would change first. Nothing changes until Apply.";
     SORTED_NOTE = "The plugins are already in the masterlist's order.";
     APPLIED_NOTE = "The sorted order is written. Undo puts the old one back.";
+    COL_ON = "On";
+    SWITCH_HOVER = "Turns {name} on or off in your load order.";
+    CHANGING = "Changing the plugin in your load order";
+    ENABLED_STATUS = "{name} is on.";
+    DISABLED_STATUS = "{name} is off.";
+    SWITCH_TITLE = "Turn off {name}?";
+    SWITCH_COST = "{name} registers the packed LOD archive. With it off the game does not open the archive and uses its own distant land, until you turn it on again or generate the LOD again.";
+    SWITCH_ACTION = "Turn off";
     COL_POSITION = "#";
     COL_PLUGIN = "Plugin";
     COL_MOVE = "Move";
@@ -74,7 +84,7 @@ crate::texts!(TEXTS {
     TAG_GENERATED = "Generated LOD";
     GENERATED_HOVER = "{name} · generated LOD";
     GENERATED_NOTE = "{name} is written by the LOD generator: it registers the packed LOD archive. Keep it on, or the game does not open the archive and uses its own distant land.";
-    GENERATED_OFF = "{name} is off, so the game does not open the packed LOD archive and uses its own distant land. Generate the LOD again to put it back on.";
+    GENERATED_OFF = "{name} is off, so the game does not open the packed LOD archive and uses its own distant land. Turn it on here, or generate the LOD again.";
 });
 
 crate::errors!(ERRORS {
@@ -94,6 +104,10 @@ crate::errors!(ERRORS {
         "The old order could not be restored",
         "The sorted order is still in place. The line below says why."
     );
+    CHANGE_FAILED = (
+        "The plugin could not be changed",
+        "Nothing changed. The line below says why."
+    );
     UNDO_OTHER = (
         "Undo took back another change",
         "The last change of the Instance was not this sort. Run the Doctor and check the Load order."
@@ -107,6 +121,8 @@ pub struct LoadOrder {
     pub state: State,
     pending: Pending<Job>,
     visits: Visits,
+    /// The plugin a switch or the open question is about.
+    target: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -116,7 +132,12 @@ enum Job {
     Apply,
     Undo,
     Doctor,
+    Enable,
+    Disable,
 }
+
+/// The id of the dialog that asks before the stub of a packed LOD is turned off.
+const SWITCH_DIALOG: &str = "load-order-generated-off";
 
 impl LoadOrder {
     /// The page in `state`, as a fixture shows it; it reads nothing by itself until its Instance changes.
@@ -135,6 +156,8 @@ impl LoadOrder {
             Job::Apply => apply_command(i),
             Job::Undo => undo_command(i),
             Job::Doctor => doctor_command(i),
+            Job::Enable => enable_command(i, self.target.as_deref()?),
+            Job::Disable => disable_command(i, self.target.as_deref()?),
         })
     }
 
@@ -148,6 +171,7 @@ impl LoadOrder {
             Job::Preview => self.state.sorting(),
             Job::Apply => self.state.applying(),
             Job::Undo => self.state.undoing(),
+            Job::Enable | Job::Disable => self.state.changing(),
             // Read in the background: it changes nothing the person sees until it answers.
             Job::Doctor => {}
         }
@@ -200,6 +224,25 @@ impl LoadOrder {
                         .ok()
                         .and_then(|out| parse_order_errors(&out.stdout).ok());
                 }
+                Job::Enable | Job::Disable => {
+                    match parse(&result, serde_json::from_value::<serde_json::Value>) {
+                        Ok(_) => {
+                            let name = self.target.take().unwrap_or_default();
+                            let status = if job == Job::Enable {
+                                ENABLED_STATUS
+                            } else {
+                                DISABLED_STATUS
+                            };
+                            cx.shell.status = Some(status.replace("{name}", &name));
+                            self.state.changed();
+                            self.run(cx, Job::List);
+                        }
+                        Err(why) => {
+                            self.target = None;
+                            self.state.failed(problem(&CHANGE_FAILED, why));
+                        }
+                    }
+                }
                 Job::Preview => match parse(&result, serde_json::from_value::<SortReport>) {
                     Ok(r) => {
                         let (proposed, notes) = preview_of(&r);
@@ -241,7 +284,10 @@ impl LoadOrder {
         }
     }
 
-    fn table(&self, ui: &mut egui::Ui, t: &Tokens) {
+    /// The plugin table; the answer is the plugin whose switch the person changed, and whether it is now on.
+    fn table(&self, ui: &mut egui::Ui, t: &Tokens) -> Option<(String, bool)> {
+        let mut toggled = None;
+        let can_switch = matches!(self.state.phase, Phase::Listed | Phase::Applied);
         let preview = matches!(self.state.phase, Phase::Preview | Phase::Applying);
         let rows: &[Plugin] = if preview {
             &self.state.proposed
@@ -254,14 +300,17 @@ impl LoadOrder {
         };
         // The plugin column takes what the others leave, so a long name truncates instead of scrolling sideways.
         let narrow = ui.available_width() < 480.0;
-        let plugin_width =
-            (ui.available_width() * 0.36).clamp(if narrow { 64.0 } else { 120.0 }, 420.0);
+        // The switch column takes its width from the plugin column in a narrow window.
+        let plugin_width = (ui.available_width() * 0.36)
+            .clamp(if narrow { 64.0 } else { 120.0 }, 420.0)
+            - if narrow { 26.0 } else { 0.0 };
         egui::Grid::new("load-order-plugins")
-            .num_columns(if preview { 5 } else { 4 })
+            .num_columns(if preview { 6 } else { 5 })
             .spacing([if narrow { 8.0 } else { 18.0 }, 10.0])
             .min_row_height(28.0)
             .show(ui, |ui| {
                 header(ui, COL_POSITION);
+                header(ui, COL_ON);
                 header(ui, COL_PLUGIN);
                 if preview {
                     header(ui, COL_MOVE);
@@ -272,6 +321,14 @@ impl LoadOrder {
                 for (i, p) in rows.iter().enumerate() {
                     let moved = pending.iter().find(|m| m.name == p.name);
                     ui.label(RichText::new((i + 1).to_string()).color(t.muted.color()));
+                    let mut on = p.active;
+                    let hover = SWITCH_HOVER.replace("{name}", &p.name);
+                    let switch = ui
+                        .add_enabled(can_switch, egui::Checkbox::without_text(&mut on))
+                        .on_hover_text(hover);
+                    if switch.changed() {
+                        toggled = Some((p.name.clone(), on));
+                    }
                     let name = RichText::new(&p.name).monospace();
                     let name = if moved.is_some() {
                         name.strong().color(t.text.color())
@@ -323,6 +380,25 @@ impl LoadOrder {
                     ui.end_row();
                 }
             });
+        toggled
+    }
+
+    /// A switch was changed: turning the stub of a packed LOD off asks first; anything else is done at once.
+    fn switched(&mut self, cx: &mut PageCx<'_>, instance: &str, name: String, on: bool) {
+        if !on && is_generated_lod(&name) {
+            let cost = SWITCH_COST.replace("{name}", &name);
+            let title = SWITCH_TITLE.replace("{name}", &name);
+            let command = disable_command(instance, &name).shown();
+            cx.dialogs.open(
+                Dialog::confirm(SWITCH_DIALOG, title, cost, SWITCH_ACTION)
+                    .with_command(command)
+                    .danger(),
+            );
+            self.target = Some(name);
+            return;
+        }
+        self.target = Some(name);
+        self.run(cx, if on { Job::Enable } else { Job::Disable });
     }
 
     /// One line under the list when it holds the stub of a packed LOD Mod: what it is, and what happens when it is off.
@@ -357,6 +433,21 @@ impl LoadOrder {
             Phase::Sorting => waiting(ui, t, SORTING, &preview_command(instance)),
             Phase::Applying => waiting(ui, t, STATE_APPLYING, &apply_command(instance)),
             Phase::Undoing => waiting(ui, t, STATE_UNDOING, &undo_command(instance)),
+            Phase::Changing => {
+                if let Some(name) = &self.target {
+                    let on = self
+                        .state
+                        .current
+                        .iter()
+                        .any(|p| p.name == *name && p.active);
+                    let command = if on {
+                        disable_command(instance, name)
+                    } else {
+                        enable_command(instance, name)
+                    };
+                    waiting(ui, t, CHANGING, &command);
+                }
+            }
             Phase::Preview => match self.state.moves().len() {
                 0 => note(ui, t, Mark::Ok, SORTED_NOTE, None),
                 n => {
@@ -414,6 +505,7 @@ impl Page for LoadOrder {
             Phase::Applying => STATE_APPLYING.to_owned(),
             Phase::Applied => STATE_APPLIED.to_owned(),
             Phase::Undoing => STATE_UNDOING.to_owned(),
+            Phase::Changing => STATE_CHANGING.to_owned(),
         }
     }
 
@@ -484,6 +576,16 @@ impl Page for LoadOrder {
             self.run(cx, Job::List);
         }
         self.take_answers(cx);
+        // The answer counts only while the list rests as it was read, and for the plugin the dialog named.
+        if let Some(answer) = cx.dialogs.take_answer(SWITCH_DIALOG) {
+            if answer == Answer::Confirmed
+                && matches!(self.state.phase, Phase::Listed | Phase::Applied)
+            {
+                self.run(cx, Job::Disable);
+            } else {
+                self.target = None;
+            }
+        }
         let Some(instance) = self.state.instance.clone() else {
             ui.label(NO_INSTANCE);
             ui.add_space(8.0);
@@ -520,8 +622,11 @@ impl Page for LoadOrder {
         if self.state.current.is_empty() && self.state.proposed.is_empty() {
             ui.label(RichText::new(EMPTY).color(t.muted.color()));
         } else {
-            self.table(ui, &t);
+            let toggled = self.table(ui, &t);
             self.generated_note(ui, &t);
+            if let Some((name, on)) = toggled {
+                self.switched(cx, &instance, name, on);
+            }
         }
     }
 

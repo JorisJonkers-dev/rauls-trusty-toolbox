@@ -4,13 +4,16 @@
 //! file written here: the fixture's command passes it where the page asks for the pinned one, so nothing is fetched.
 #![cfg(unix)]
 
+use eframe::egui;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, write_file};
 use raul_core::context::Context;
 use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
-use raul_gui::pages::load_order::{APPLIED_STATUS, SORT, UNDO, UNDONE_STATUS};
+use raul_gui::pages::load_order::{
+    APPLIED_STATUS, DISABLED_STATUS, ENABLED_STATUS, SORT, SWITCH_ACTION, UNDO, UNDONE_STATUS,
+};
 use raul_gui::shell::App;
 use raul_ui_service::{CancelHandle, Exec, InProcessExec, Output};
 use std::path::PathBuf;
@@ -239,4 +242,109 @@ fn sort_preview_apply_then_undo_restores_the_lists_byte_for_byte() {
         !words.iter().any(|w| w == "rollback"),
         "Undo runs in process, as a typed job, not as a command line: {words:?}"
     );
+}
+
+/// The stub of a packed LOD, last in both lists, as the generator leaves it.
+fn add_stub(f: &Fixture) {
+    let instance = f.path("storage/instance");
+    write_file(
+        &instance,
+        "mods/Lodwright LOD/Lodwright LOD.esp",
+        &PluginBuilder::new().requires("FalloutNV.esm").build(),
+    );
+    for name in ["plugins.txt", "loadorder.txt"] {
+        let path = instance.join("profiles/Default").join(name);
+        let mut text = std::fs::read_to_string(&path).unwrap();
+        text.push_str("Lodwright LOD.esp\r\n");
+        std::fs::write(path, text).unwrap();
+    }
+    let modlist = instance.join("profiles/Default/modlist.txt");
+    let mut text = std::fs::read_to_string(&modlist).unwrap();
+    text.push_str("+Lodwright LOD\r\n");
+    std::fs::write(modlist, text).unwrap();
+    f.raul(&["stage", "--instance", &f.s("storage/instance")]);
+}
+
+fn active(f: &Fixture) -> Vec<String> {
+    String::from_utf8(f.lists().0)
+        .unwrap()
+        .lines()
+        .map(|l| l.trim_start_matches('*').to_owned())
+        .collect()
+}
+
+#[test]
+fn a_plugin_is_turned_off_and_on_from_its_switch_and_the_stub_of_a_packed_lod_asks_first() {
+    let f = Fixture::new();
+    add_stub(&f);
+    let jobs = Jobs::new(Arc::new(f.exec())).with_context(f.context());
+    let app = App::new(jobs);
+    let mut h = Harness::builder()
+        .with_size([1280.0, 800.0])
+        .build_eframe(|cc| {
+            raul_gui::set_up(&cc.egui_ctx);
+            app
+        });
+    settle(&mut h);
+    h.get_all_by_label(msg::PAGE_LOAD_ORDER)
+        .next()
+        .unwrap()
+        .click();
+    settle(&mut h);
+    let switches =
+        |h: &Harness<'static, App>| h.get_all_by_role(egui::accesskit::Role::CheckBox).count();
+    assert_eq!(switches(&h), 5, "one switch for each plugin");
+
+    // Rows: FalloutNV.esm, Patch.esp, Base.esp, Other.esp, Lodwright LOD.esp.
+    let click = |h: &mut Harness<'static, App>, row: usize| {
+        h.get_all_by_role(egui::accesskit::Role::CheckBox)
+            .nth(row)
+            .unwrap()
+            .click();
+    };
+    click(&mut h, 3);
+    settle(&mut h);
+    assert!(
+        !active(&f).contains(&"Other.esp".to_owned()),
+        "{:?}",
+        active(&f)
+    );
+    assert_eq!(
+        h.state_mut().shell_mut().status.as_deref(),
+        Some(DISABLED_STATUS.replace("{name}", "Other.esp").as_str())
+    );
+    assert!(h.query_by_label("5 plugins, 4 active").is_some());
+    click(&mut h, 3);
+    settle(&mut h);
+    assert!(active(&f).contains(&"Other.esp".to_owned()));
+    assert_eq!(
+        h.state_mut().shell_mut().status.as_deref(),
+        Some(ENABLED_STATUS.replace("{name}", "Other.esp").as_str())
+    );
+
+    // The stub: the question first, and Cancel changes nothing.
+    let before = f.lists();
+    click(&mut h, 4);
+    h.run_steps(4);
+    assert!(
+        h.state().dialogs().is_open(),
+        "turning the stub off asks first"
+    );
+    h.get_by_label(msg::CANCEL).click();
+    settle(&mut h);
+    assert_eq!(f.lists(), before, "Cancel writes nothing");
+    click(&mut h, 4);
+    h.run_steps(4);
+    h.get_all_by_label(SWITCH_ACTION).last().unwrap().click();
+    settle(&mut h);
+    assert!(!active(&f).contains(&"Lodwright LOD.esp".to_owned()));
+    assert!(
+        active(&f).contains(&"Other.esp".to_owned()),
+        "only the stub went off"
+    );
+    // Turning it on needs no question.
+    click(&mut h, 4);
+    settle(&mut h);
+    assert!(active(&f).contains(&"Lodwright LOD.esp".to_owned()));
+    assert!(!h.state().dialogs().is_open());
 }
