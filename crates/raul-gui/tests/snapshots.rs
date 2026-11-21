@@ -59,6 +59,11 @@ fn every_page_fixture_matches_its_snapshot() {
                 "config-get",
                 "config-set",
                 "config-unset",
+                "update-check",
+                "update-status",
+                "update-download",
+                "update-install",
+                "update-rollback",
             ]),
         ));
         h.run();
@@ -80,6 +85,11 @@ fn the_shell_dialogs_match_their_snapshots() {
             "config-get",
             "config-set",
             "config-unset",
+            "update-check",
+            "update-status",
+            "update-download",
+            "update-install",
+            "update-rollback",
         ])));
         h.run();
         // The Instance lookup at start ends before the picture, so the footer shows no running job.

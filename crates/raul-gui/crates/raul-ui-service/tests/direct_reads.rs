@@ -390,3 +390,25 @@ fn lod_settings_actions_print_what_the_command_line_prints() {
         assert_same(&direct_output(&id, &rest), &cli_output(&cli));
     }
 }
+
+#[test]
+fn update_status_prints_what_the_command_line_prints_and_a_refused_step_ends_alike() {
+    // A test binary is not an installed raul: the status says so, and the steps that change an install refuse.
+    assert_same(
+        &direct_output("update-status", &[]),
+        &cli_output(&["update", "status", "--json"]),
+    );
+    for verb in ["install", "rollback"] {
+        let direct = direct_output(&format!("update-{verb}"), &[]);
+        let cli = cli_output(&["update", verb, "--json"]);
+        assert_eq!(direct.code, cli.code, "{verb}: {direct:?} / {cli:?}");
+        assert!(
+            direct.stderr.contains(&format!("raul update {verb}")),
+            "{verb}: {direct:?}"
+        );
+    }
+    // A download of a named release is refused before anything is fetched.
+    let direct = direct_output("update-download", &["--tag", "v0.0.1"]);
+    let cli = cli_output(&["update", "download", "--tag", "v0.0.1", "--json"]);
+    assert_eq!(direct.code, cli.code, "{direct:?} / {cli:?}");
+}

@@ -52,6 +52,11 @@ fn no_page_fixture_shows_a_command_line() {
                 "config-get",
                 "config-set",
                 "config-unset",
+                "update-check",
+                "update-status",
+                "update-download",
+                "update-install",
+                "update-rollback",
             ]),
         );
         let mut h = Harness::builder()

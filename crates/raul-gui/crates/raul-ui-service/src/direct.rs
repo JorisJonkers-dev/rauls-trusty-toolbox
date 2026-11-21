@@ -311,6 +311,8 @@ pub fn for_command_in(
         }
         "lod-settings-show" | "lod-settings-set" | "lod-settings-unset" | "lod-settings-reset"
         | "lod-settings-undo" => Some(lod_settings(id, rest, ctx)),
+        "update-check" | "update-status" | "update-download" | "update-install"
+        | "update-rollback" => Some(update(id, rest)),
         "lod-plan" => Some(lod_read(rest, ctx, raul_cli::lod_plan_document)),
         "lod-mods" => Some(lod_read(rest, ctx, raul_cli::lod_mods_document)),
         "version" => Some(version()),
@@ -419,6 +421,37 @@ pub fn lod_settings(id: &str, rest: &[String], ctx: &raul_core::context::Context
                     exit: *exit,
                 },
             ))
+        },
+    )
+}
+
+/// `raul update check|status|download|install|rollback`: the update steps of `raul-core`, run in process. The document
+/// is the one `--json` prints; a step that did not go through is a refusal or a failure with the command's words and
+/// class (an install that cannot update itself is a refusal, a failed fetch a failure).
+pub fn update(id: &str, rest: &[String]) -> DirectJob {
+    let verb = id.strip_prefix("update-").unwrap_or(id).to_owned();
+    let rest = rest.to_vec();
+    DirectJob::reading(
+        move |_, _| -> Result<Outcome<serde_json::Value>, JobError> {
+            let Some(step) = raul_cli::update_answer(&verb, &rest) else {
+                return Err(JobError::new(
+                    ErrorKind::Refused,
+                    "update.usage",
+                    format!("update {verb}: the words after it are not understood"),
+                ));
+            };
+            match step {
+                Ok((doc, _)) => Ok(Outcome::Done(doc)),
+                Err(f) => Err(JobError::new(
+                    if f.code == raul_cli::REFUSED {
+                        ErrorKind::Refused
+                    } else {
+                        ErrorKind::Failed
+                    },
+                    "update.step",
+                    f.line,
+                )),
+            }
         },
     )
 }

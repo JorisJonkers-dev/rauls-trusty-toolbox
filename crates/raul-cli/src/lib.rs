@@ -27,6 +27,7 @@ pub use lod::{
 };
 pub use lod_settings::answer as lod_settings_answer;
 pub use ttw::{TtwJob, install_job as ttw_install_job, install_job_in as ttw_install_job_in};
+pub use update::{Failure as UpdateFailure, answer as update_answer};
 pub use version::document as version_document;
 
 use std::io::Write;

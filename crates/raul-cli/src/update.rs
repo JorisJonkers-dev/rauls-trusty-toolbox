@@ -98,47 +98,77 @@ fn say(
     out: &mut dyn Write,
     err: &mut dyn Write,
 ) -> u8 {
-    let line = if json {
-        format!("{value}\n")
-    } else {
-        format!("{text}\n")
-    };
-    crate::write_or_fail(out, err, &line)
+    emit(json, Ok((value.clone(), text.to_owned())), out, err)
 }
 
-/// Say why a step failed, on standard error and, with `--json`, as a document on standard output.
-fn fail(json: bool, what: &str, e: &flow::Error, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    let _ = writeln!(err, "raul update {what}: {e}");
-    if json {
-        let doc = serde_json::json!({ "ok": false, "error": e.to_string(), "detail": e.detail() });
-        let _ = writeln!(out, "{doc}");
+/// Why an update step did not go through: the line for standard error, the document `--json` also prints, and the
+/// exit code.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Failure {
+    /// What the command prints on standard error.
+    pub line: String,
+    /// The document `--json` prints on standard output, when the command prints one.
+    pub doc: Option<serde_json::Value>,
+    /// The exit code the command ends with.
+    pub code: u8,
+}
+
+/// What an update step ends with: its document and the plain sentence for the person, or why it did not go through.
+pub type Step = Result<(serde_json::Value, String), Failure>;
+
+/// Say the step's outcome: its sentence on standard output, or its document with `--json`; a failure on standard
+/// error and, with `--json`, its document on standard output.
+fn emit(json: bool, step: Step, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    match step {
+        Ok((doc, text)) => {
+            let line = if json {
+                format!("{doc}\n")
+            } else {
+                format!("{text}\n")
+            };
+            crate::write_or_fail(out, err, &line)
+        }
+        Err(f) => {
+            let _ = writeln!(err, "{}", f.line);
+            if json && let Some(doc) = &f.doc {
+                let _ = writeln!(out, "{doc}");
+            }
+            f.code
+        }
     }
-    match e {
-        flow::Error::NotHere(_) | flow::Error::NothingStaged => crate::REFUSED,
-        _ => crate::FAILED,
+}
+
+/// A flow error as the step's failure.
+fn failure(what: &str, e: &flow::Error) -> Failure {
+    Failure {
+        line: format!("raul update {what}: {e}"),
+        doc: Some(serde_json::json!({ "ok": false, "error": e.to_string(), "detail": e.detail() })),
+        code: match e {
+            flow::Error::NotHere(_) | flow::Error::NothingStaged => crate::REFUSED,
+            _ => crate::FAILED,
+        },
     }
+}
+
+fn status_step() -> Step {
+    let s = flow::status(&layout_here()).map_err(|e| failure("status", &e))?;
+    let text = if let Some(reason) = &s.reason {
+        reason.clone()
+    } else {
+        let mut parts = vec![format!("raul {RUNNING}")];
+        if let Some(v) = &s.staged {
+            parts.push(format!("version {v} is downloaded and ready to install"));
+        }
+        if let Some(v) = &s.previous {
+            parts.push(format!("version {v} is kept to go back to"));
+        }
+        parts.join("; ")
+    };
+    Ok((serde_json::json!({ "current": RUNNING, "status": s }), text))
 }
 
 fn status(json: bool, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    match flow::status(&layout_here()) {
-        Ok(s) => {
-            let text = if let Some(reason) = &s.reason {
-                reason.clone()
-            } else {
-                let mut parts = vec![format!("raul {RUNNING}")];
-                if let Some(v) = &s.staged {
-                    parts.push(format!("version {v} is downloaded and ready to install"));
-                }
-                if let Some(v) = &s.previous {
-                    parts.push(format!("version {v} is kept to go back to"));
-                }
-                parts.join("; ")
-            };
-            let doc = serde_json::json!({ "current": RUNNING, "status": s });
-            say(json, &doc, &text, out, err)
-        }
-        Err(e) => fail(json, "status", &e, out, err),
-    }
+    emit(json, status_step(), out, err)
 }
 
 /// `download [--tag <tag>] [--allow-older] [--json]`: the newest release unless a tag is named.
@@ -156,93 +186,98 @@ fn download(rest: &[&str], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
             other => return crate::usage(err, &format!("unknown option {other}")),
         }
     }
+    emit(json, download_step(tag, allow_older), out, err)
+}
+
+fn download_step(tag: Option<String>, allow_older: bool) -> Step {
     let layout = layout_here();
     // Say at once that this install cannot be updated, before anything is fetched.
     if let Layout::NotHere(reason) = &layout {
-        return fail(
-            json,
-            "download",
-            &flow::Error::NotHere(reason.plain()),
-            out,
-            err,
-        );
+        return Err(failure("download", &flow::Error::NotHere(reason.plain())));
     }
     let tag = match tag {
         Some(t) => t,
         None => match update::check(&update::runner(), Path::new("curl"), RUNNING) {
             Ok(Some(r)) => format!("v{}", r.version),
             Ok(None) => {
-                let doc = serde_json::json!({ "ok": true, "newer": null, "current": RUNNING });
-                return say(
-                    json,
-                    &doc,
-                    &format!("raul {RUNNING} is the newest release"),
-                    out,
-                    err,
-                );
+                return Ok((
+                    serde_json::json!({ "ok": true, "newer": null, "current": RUNNING }),
+                    format!("raul {RUNNING} is the newest release"),
+                ));
             }
             Err(e) => {
-                let _ = writeln!(err, "raul update download: {e}");
-                if json {
-                    let doc = serde_json::json!({ "ok": false, "error": e, "detail": e });
-                    let _ = writeln!(out, "{doc}");
-                }
-                return crate::FOUND;
+                return Err(Failure {
+                    line: format!("raul update download: {e}"),
+                    doc: Some(serde_json::json!({ "ok": false, "error": e, "detail": e })),
+                    code: crate::FOUND,
+                });
             }
         },
     };
-    match flow::download(&CurlFetch::default(), &layout, &tag, RUNNING, allow_older) {
-        Ok(s) => {
-            let doc = serde_json::json!({ "ok": true, "staged": s });
-            say(
-                json,
-                &doc,
-                &format!(
-                    "version {} is downloaded and checked; it is ready to install",
-                    s.to
-                ),
-                out,
-                err,
-            )
-        }
-        Err(e) => fail(json, "download", &e, out, err),
-    }
+    let s = flow::download(&CurlFetch::default(), &layout, &tag, RUNNING, allow_older)
+        .map_err(|e| failure("download", &e))?;
+    Ok((
+        serde_json::json!({ "ok": true, "staged": s }),
+        format!(
+            "version {} is downloaded and checked; it is ready to install",
+            s.to
+        ),
+    ))
+}
+
+fn install_step() -> Step {
+    let s = flow::install(&layout_here(), &|program, version| {
+        selfcheck::run_child(program, version)
+    })
+    .map_err(|e| failure("install", &e))?;
+    let text = format!("version {} is installed; start raul again to use it", s.to);
+    Ok((serde_json::json!({ "ok": true, "installed": s }), text))
 }
 
 fn install(json: bool, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    match flow::install(&layout_here(), &|program, version| {
-        selfcheck::run_child(program, version)
-    }) {
-        Ok(s) => {
-            let doc = serde_json::json!({ "ok": true, "installed": s });
-            say(
-                json,
-                &doc,
-                &format!("version {} is installed; start raul again to use it", s.to),
-                out,
-                err,
-            )
-        }
-        Err(e) => fail(json, "install", &e, out, err),
-    }
+    emit(json, install_step(), out, err)
+}
+
+fn rollback_step() -> Step {
+    let j = flow::rollback(&layout_here()).map_err(|e| failure("rollback", &e))?;
+    let text = format!(
+        "went back to version {}; start raul again to use it",
+        j.from
+    );
+    Ok((serde_json::json!({ "ok": true, "back_to": j.from }), text))
 }
 
 fn rollback(json: bool, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    match flow::rollback(&layout_here()) {
-        Ok(j) => {
-            let doc = serde_json::json!({ "ok": true, "back_to": j.from });
-            say(
-                json,
-                &doc,
-                &format!(
-                    "went back to version {}; start raul again to use it",
-                    j.from
-                ),
-                out,
-                err,
-            )
+    emit(json, rollback_step(), out, err)
+}
+
+/// The update step `verb` (`status`, `check`, `download`, `install`, `rollback`) with the words after it, as the
+/// window's direct job runs it: the document `--json` prints, or why it did not go through. `None` is a usage error.
+#[must_use]
+pub fn answer(verb: &str, rest: &[String]) -> Option<Step> {
+    let words: Vec<&str> = rest
+        .iter()
+        .map(String::as_str)
+        .filter(|w| *w != "--json")
+        .collect();
+    match (verb, words.as_slice()) {
+        ("status", []) => Some(status_step()),
+        ("check", []) => Some(check_step()),
+        ("install", []) => Some(install_step()),
+        ("rollback", []) => Some(rollback_step()),
+        ("download", flags) => {
+            let (mut allow_older, mut tag) = (false, None);
+            let mut it = flags.iter();
+            while let Some(w) = it.next() {
+                match *w {
+                    "--allow-older" => allow_older = true,
+                    "--tag" => tag = Some((*it.next()?).to_owned()),
+                    _ => return None,
+                }
+            }
+            Some(download_step(tag, allow_older))
         }
-        Err(e) => fail(json, "rollback", &e, out, err),
+        _ => None,
     }
 }
 
@@ -280,28 +315,30 @@ fn self_check(rest: &[&str], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     code
 }
 
-fn check(json: bool, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+fn check_step() -> Step {
     let current = env!("CARGO_PKG_VERSION");
     // `curl` is found on the `PATH`; the Runner passes only that, the proxy and certificate variables, and limits.
-    let result = update::check(&update::runner(), Path::new("curl"), current);
-    match result {
-        Ok(newer) if json => {
-            let v = serde_json::json!({ "current": current, "newer": newer });
-            crate::write_or_fail(out, err, &format!("{v}\n"))
+    match update::check(&update::runner(), Path::new("curl"), current) {
+        Ok(newer) => {
+            let text = match &newer {
+                Some(r) => format!("raul {} is out (you run {current}): {}", r.version, r.url),
+                None => format!("raul {current} is the newest release"),
+            };
+            Ok((
+                serde_json::json!({ "current": current, "newer": newer }),
+                text,
+            ))
         }
-        Ok(Some(r)) => crate::write_or_fail(
-            out,
-            err,
-            &format!("raul {} is out (you run {current}): {}\n", r.version, r.url),
-        ),
-        Ok(None) => {
-            crate::write_or_fail(out, err, &format!("raul {current} is the newest release\n"))
-        }
-        Err(e) => {
-            let _ = writeln!(err, "raul update check: {e}");
-            crate::FOUND
-        }
+        Err(e) => Err(Failure {
+            line: format!("raul update check: {e}"),
+            doc: None,
+            code: crate::FOUND,
+        }),
     }
+}
+
+fn check(json: bool, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    emit(json, check_step(), out, err)
 }
 
 /// See [`crate::settle_update_at_start`].

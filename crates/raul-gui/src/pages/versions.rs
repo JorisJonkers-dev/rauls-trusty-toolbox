@@ -691,7 +691,16 @@ mod tests {
     /// The page in fixture `name`, with every command answered and recorded.
     fn harness(name: &str, exec: Arc<Recording>) -> Harness<'static, App> {
         let fixture = fixtures().into_iter().find(|f| f.name == name).unwrap();
-        let app = App::fixture(fixture, Jobs::new(exec));
+        let app = App::fixture(
+            fixture,
+            Jobs::new(exec).scripted(&[
+                "update-check",
+                "update-status",
+                "update-download",
+                "update-install",
+                "update-rollback",
+            ]),
+        );
         Harness::builder()
             .with_size([1280.0, 800.0])
             .build_eframe(|cc| {
