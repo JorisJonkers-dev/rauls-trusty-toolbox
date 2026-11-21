@@ -174,6 +174,8 @@ pub fn levels_of(settings: &Settings, always: bool) -> Vec<lodwright_contract::L
                         .and_then(|v| v.as_bool())
                         .unwrap_or_default()
                 }),
+                // The Skirts row is a later change (#346); until then the request keeps the default.
+                skirts: false,
             }
         })
         .collect()
