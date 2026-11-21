@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795240511682,
+  "lastUpdate": 1795240933884,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9407,6 +9407,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.356122999999998,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bc9d6c860901c4b1a58a789923020fa1be229958",
+          "message": "refactor(gui): lod settings actions are typed in-process jobs (#406) (#496)\n\n* refactor(gui): lod settings show, set, unset, reset and undo are typed in-process jobs (#406)\n\n* test: an action that is not converted yet is update-check, as lod settings are converted now (#406)",
+          "timestamp": "2026-11-21T06:00:28Z",
+          "tree_id": "743276edbb71e095bbbd9c330d06974a20279555",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/bc9d6c860901c4b1a58a789923020fa1be229958"
+        },
+        "date": 1795240933035,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.164361,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.956402000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 23.755470000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.727861,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.512807,
             "unit": "ms"
           }
         ]
