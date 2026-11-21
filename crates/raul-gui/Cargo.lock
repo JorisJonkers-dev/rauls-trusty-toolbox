@@ -764,6 +764,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be95d4a884358a21a199689323c29e9256b4a1b315e22f183d155422041d3a9a"
 
 [[package]]
+name = "constant_time_eq"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9eb6feb175df65d0a3ccd3e73484e940d0ac664e8034f0519fd49a93db3071d9"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -995,6 +1004,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "deflate64"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac6b926516df9c60bfa16e107b21086399f8285a44ca9711344b9e553c5146e2"
+
+[[package]]
 name = "deranged"
 version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1118,6 +1133,16 @@ name = "dpi"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
+
+[[package]]
+name = "ds-mix"
+version = "0.1.0"
+dependencies = [
+ "cpal",
+ "fork-log",
+ "libloading",
+ "qos",
+]
 
 [[package]]
 name = "dyn-clone"
@@ -1541,18 +1566,19 @@ name = "engine-platform"
 version = "0.1.0"
 dependencies = [
  "bink",
- "cpal",
  "d3d9-stream",
  "d3d9-wgpu",
  "d3dx-shader",
  "d3dx-tex",
+ "ds-mix",
  "engine-core",
  "fork-hitch",
  "fork-log",
  "fork-window",
- "libloading",
+ "libc",
  "mp3",
  "qos",
+ "raw-window-handle",
  "vorbis",
  "windows 0.58.0",
 ]
@@ -1816,6 +1842,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
+name = "fomod"
+version = "0.1.0"
+
+[[package]]
 name = "font-types"
 version = "0.12.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1890,7 +1920,9 @@ dependencies = [
  "fork-presence",
  "game-folders",
  "host",
+ "mod-chooser",
  "mod-install",
+ "nvse",
 ]
 
 [[package]]
@@ -1907,10 +1939,12 @@ version = "0.1.0"
 dependencies = [
  "fork-log",
  "raw-window-handle",
+ "raw-window-metal",
  "wayland-client",
  "wayland-protocols",
  "wgpu",
  "winit",
+ "x11rb",
 ]
 
 [[package]]
@@ -2288,6 +2322,7 @@ dependencies = [
  "qos",
  "showoff",
  "stewie",
+ "ttw-nvse",
  "uio",
  "zlib-rs",
 ]
@@ -2879,6 +2914,25 @@ checksum = "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c"
 dependencies = [
  "adler2",
  "simd-adler32",
+]
+
+[[package]]
+name = "mod-archive"
+version = "0.1.0"
+dependencies = [
+ "sevenz-rust2",
+ "unicode-normalization",
+ "zip",
+]
+
+[[package]]
+name = "mod-chooser"
+version = "0.1.0"
+dependencies = [
+ "fomod",
+ "libc",
+ "mod-archive",
+ "mod-install",
 ]
 
 [[package]]
@@ -5583,6 +5637,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ttw-nvse"
+version = "0.1.0"
+dependencies = [
+ "engine-core",
+ "nvse",
+]
+
+[[package]]
 name = "ttwright-contract"
 version = "0.5.0"
 dependencies = [
@@ -5697,6 +5759,15 @@ name = "unicode-ident"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
+
+[[package]]
+name = "unicode-normalization"
+version = "0.1.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75cd3fb03d5288b3ba9a1ee103ac7e9cbb59f0b03d64f8ddfcc04dd42758a85d"
+dependencies = [
+ "tinyvec",
+]
 
 [[package]]
 name = "unicode-properties"
@@ -6816,12 +6887,34 @@ dependencies = [
 ]
 
 [[package]]
-name = "zip"
-version = "9.4.1"
+name = "zeroize"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23f17fbc870bfac28c6228aed7d6e6df352e26bf7015c4313727e16a7a01ce5e"
+checksum = "e13084392c5e4bc371903e2935a5eaeed24905a7511356b883835e18a78f6879"
 dependencies = [
+ "zeroize_derive",
+]
+
+[[package]]
+name = "zeroize_derive"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c50655cbb0fe3fc43170059e702f1ce5e19b84cec58dc87b037a09935c2f328"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "zip"
+version = "9.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3476fd497ac8af5b1ec7b51acab7bef380f7e8dd8e0487595bafd839417a302"
+dependencies = [
+ "constant_time_eq",
  "crc32fast",
+ "deflate64",
  "flate2",
  "getrandom 0.4.3",
  "indexmap",
@@ -6830,6 +6923,7 @@ dependencies = [
  "nix",
  "typed-path",
  "windows-sys 0.61.2",
+ "zeroize",
  "zopfli",
 ]
 
