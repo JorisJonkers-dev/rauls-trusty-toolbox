@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795238611772,
+  "lastUpdate": 1795238746560,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -9309,6 +9309,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.127154,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "57f42ef19e9e8c6f29c688e09189db8281cf76db",
+          "message": "ci: the follower holds nv-rs out until its bump #384 can land, so it no longer blocks the other Components (#472) (#495)",
+          "timestamp": "2026-11-21T05:23:50Z",
+          "tree_id": "25cb19e48930d301245cc0bd6f2d0d44c36202ed",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/57f42ef19e9e8c6f29c688e09189db8281cf76db"
+        },
+        "date": 1795238745953,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.289197,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.435557999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.861450999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.149529,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.158661,
             "unit": "ms"
           }
         ]
