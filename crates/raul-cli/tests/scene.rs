@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! `raul scene` and `raul bench game` on synthetic data: a fake tool program stands in for the engine's scene tool (and
-//! so for the game child). It records the words it was started with and makes empty "pictures", so what is checked is
-//! what raul resolves from the Profile: the Mods in priority order, the Plugins in Load order, the variants, the
-//! output folder, the label and the cap, and that `raul bench` itself is untouched. No game and no engine is involved.
+//! `raul scene` and `raul bench game` on synthetic data: a fake viewer (a shell script) stands in for the game child. The
+//! engine's scene library runs in raul's own process; the viewer records what it was started with and makes empty
+//! "pictures" and the log lines of a soak, so what is checked is what raul resolves from the Profile: the Mods in
+//! priority order, the Plugins in Load order, the variants, the output folder, the label and the cap, and that
+//! `raul bench` itself is untouched. No game and no engine is involved.
 // These tests start the built binary, which is not a tool call (see clippy.toml).
 #![allow(clippy::disallowed_methods)]
 #![cfg(unix)]
@@ -33,6 +34,9 @@ impl Fixture {
             let out = f.raul(args, &[]);
             assert!(out.status.success(), "{args:?}: {out:?}");
         }
+        let textures = inst.join("mods").join("Textures").join("textures");
+        std::fs::create_dir_all(&textures).unwrap();
+        std::fs::write(textures.join("t.dds"), "x").unwrap();
         if with_lod {
             let out = f.raul(&["mods", "create", LOD_MOD, "--instance", s(&inst)], &[]);
             assert!(out.status.success(), "{out:?}");
@@ -41,6 +45,9 @@ impl Fixture {
                 "[raulGeneratedLod]\ngenerated=true\nprofile=\"Default\"\nrequestDigest=\"x\"\nlodwrightVersion=\"0.15.1\"\n",
             )
             .unwrap();
+            let lod = inst.join("mods").join(LOD_MOD).join("meshes");
+            std::fs::create_dir_all(&lod).unwrap();
+            std::fs::write(lod.join("lod.nif"), "x").unwrap();
         }
         f
     }
@@ -62,14 +69,25 @@ impl Fixture {
         c.output().expect("raul runs")
     }
 
-    /// A tool that records its words, one line a start, and makes one picture for each `run`.
-    fn tool(&self) -> PathBuf {
+    /// A viewer that records its words and the folders it was given, one line a start, and plays the part of the
+    /// engine: one picture, and the log lines of a soak for each place of the file.
+    fn viewer(&self) -> PathBuf {
         use std::os::unix::fs::PermissionsExt;
-        let file = self.path("fake-scene-tool");
-        let log = self.path("tool.log");
+        let png = self.path("one.png");
+        std::fs::write(&png, fork_scene::png::encode_rgb(2, 2, &[7; 12]).unwrap()).unwrap();
+        let file = self.path("fake-viewer");
+        let log = self.path("viewer.log");
         let text = format!(
-            "#!/bin/sh\necho \"$@\" >> '{}'\nif [ \"$1\" = run ]; then\n  while [ $# -gt 0 ]; do\n    case \"$1\" in --out) out=\"$2\";; --variant) v=\"${{2%%=*}}\";; esac\n    shift\n  done\n  mkdir -p \"$out/$v/pictures\" && echo png > \"$out/$v/pictures/goodsprings.png\"\nfi\nexit ${{FAKE_EXIT:-0}}\n",
-            log.display()
+            "#!/bin/sh\necho \"$NV_SCENE_PLACES|$NV_SCENE|$NV_SCENE_OUT|$*\" >> '{log}'\n\
+             if [ -n \"$NV_SCENE_OUT\" ]; then mkdir -p \"$NV_SCENE_OUT\" && cp '{png}' \"$NV_SCENE_OUT/goodsprings.png\"; fi\n\
+             places=\"$NV_SCENE_PLACES\"\n\
+             [ -z \"$places\" ] && places=$(sed -n 's/^name *= *\"\\(.*\\)\"/\\1/p' \"$NV_SCENE\" | tr '\\n' ',')\n\
+             for p in $(echo \"$places\" | tr ',' ' '); do\n\
+             echo '{{\"level\":\"info\",\"message\":\"scene: sending the player to '$p' from the Menu screen\"}}' >> \"$NV_LOG_JSON\"\n\
+             echo '{{\"level\":\"info\",\"message\":\"scene: soak '$p' frames 10 avg_ms 5.00 p99_ms 6.00 max_ms 7.00 low1_fps 150.0\"}}' >> \"$NV_LOG_JSON\"\n\
+             done\nexit ${{FAKE_EXIT:-0}}\n",
+            log = log.display(),
+            png = png.display()
         );
         std::fs::write(&file, text).unwrap();
         std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o755)).unwrap();
@@ -77,16 +95,16 @@ impl Fixture {
     }
 
     fn calls(&self) -> Vec<String> {
-        std::fs::read_to_string(self.path("tool.log"))
+        std::fs::read_to_string(self.path("viewer.log"))
             .unwrap_or_default()
             .lines()
             .map(str::to_owned)
             .collect()
     }
 
-    /// `raul scene <args>` with the fake tool, the instance, a game folder and a made viewer name.
+    /// `raul scene <args>` with the fake viewer, the instance, a game folder and no card to read.
     fn scene(&self, args: &[&str], extra_env: &[(&str, &str)]) -> Output {
-        let tool = self.tool();
+        let viewer = self.viewer();
         let inst = self.path("instance");
         let game = self.path("FalloutNV");
         let mut all = args.to_vec();
@@ -96,12 +114,23 @@ impl Fixture {
             "--game",
             s(&game),
             "--viewer",
-            "/the/viewer",
+            s(&viewer),
+            "--gpu-sysfs",
+            "/nonexistent",
             "--no-cap",
         ]);
-        let mut env = vec![("RAUL_SCENE_TOOL", s(&tool))];
-        env.extend_from_slice(extra_env);
-        self.raul(&all, &env)
+        self.raul(&all, extra_env)
+    }
+
+    /// The run's folder under raul's data folder (the one run of a test).
+    fn run_dir(&self, who: &str) -> PathBuf {
+        let parent = self.path("data/scene").join(who);
+        let mut runs: Vec<PathBuf> = std::fs::read_dir(&parent)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .collect();
+        runs.sort();
+        runs.pop().unwrap()
     }
 }
 
@@ -117,41 +146,48 @@ fn text(o: &Output) -> String {
     )
 }
 
+/// Whether the folder the game child was started in (the staged copy of the game) holds `rel` under Data.
+fn staged_has(run: &Path, variant: &str, rel: &str) -> bool {
+    run.join(variant).join("game/Data").join(rel).exists()
+}
+
 #[test]
 fn a_profile_with_a_generated_lod_mod_gets_the_pair_and_the_difference() {
     let f = Fixture::new("scene-pair", true);
     let out = f.scene(&["scene", "run", "--places", "mojave-day"], &[]);
     assert_eq!(out.status.code(), Some(0), "{}", text(&out));
     let calls = f.calls();
-    assert_eq!(calls.len(), 3, "two starts and one compare: {calls:?}");
-    let (with, without, compare) = (&calls[0], &calls[1], &calls[2]);
-    // The Profile as it is lays both Mods over the game, the lowest priority first; without the LOD Mod only one.
-    assert!(with.contains("--variant with-lod="), "{with}");
-    assert!(
-        with.contains("Textures") && with.contains(LOD_MOD),
-        "{with}"
+    assert_eq!(
+        calls.len(),
+        2,
+        "two starts, the comparison needs none: {calls:?}"
     );
-    assert!(without.contains("--variant without-lod="), "{without}");
+    // The results are under raul's data folder, named by the Profile; the viewer got the staged game as its folder.
+    let run = f.run_dir("Default");
     assert!(
-        without.contains("Textures") && !without.contains(LOD_MOD),
-        "{without}"
+        calls[0].contains(&format!("{}|", s(&run.join("mojave-day.toml")))),
+        "{calls:?}"
     );
     assert!(
-        with.contains("--label raul-scene-run-Default --who raul"),
-        "{with}"
+        calls[0].ends_with(s(&run.join("with-lod/game"))),
+        "{calls:?}"
     );
     assert!(
-        with.contains("--places") && with.contains("mojave-day.toml"),
-        "{with}"
+        calls[1].ends_with(s(&run.join("without-lod/game"))),
+        "{calls:?}"
     );
-    assert!(compare.starts_with("compare "), "{compare}");
+    // The Profile as it is lays both Mods over the game; without the LOD Mod only the other one.
     assert!(
-        compare.contains("with-lod/pictures") && compare.contains("without-lod/pictures"),
-        "{compare}"
+        staged_has(&run, "with-lod", "textures/t.dds")
+            && staged_has(&run, "with-lod", "meshes/lod.nif")
     );
-    // The results are under raul's data folder, named by the Profile.
-    assert!(with.contains(s(&f.path("data/scene/Default"))), "{with}");
-    assert!(text(&out).contains("Open both pictures"), "{}", text(&out));
+    assert!(
+        staged_has(&run, "without-lod", "textures/t.dds")
+            && !staged_has(&run, "without-lod", "meshes/lod.nif")
+    );
+    let said = text(&out);
+    assert!(said.contains("--- without-lod against with-lod"), "{said}");
+    assert!(said.contains("Open both pictures"), "{said}");
 }
 
 #[test]
@@ -171,10 +207,9 @@ fn a_profile_without_a_lod_mod_gets_one_variant_and_no_comparison() {
     assert_eq!(out.status.code(), Some(0), "{}", text(&out));
     let calls = f.calls();
     assert_eq!(calls.len(), 1, "{calls:?}");
-    assert!(
-        calls[0].contains("--variant profile=") && calls[0].contains("--only night-novac"),
-        "{calls:?}"
-    );
+    assert!(calls[0].starts_with("night-novac|"), "{calls:?}");
+    assert!(f.run_dir("Default").join("profile").is_dir());
+    assert!(!text(&out).contains("against"), "{}", text(&out));
 }
 
 #[test]
@@ -194,7 +229,9 @@ fn named_variants_replace_the_default_and_a_bad_source_is_refused_before_any_sta
         &[],
     );
     assert_eq!(out.status.code(), Some(0), "{}", text(&out));
-    assert!(f.calls()[0].contains("--variant plain "), "{:?}", f.calls());
+    let run = f.run_dir("Default");
+    assert!(!staged_has(&run, "plain", "textures/t.dds"));
+    assert!(staged_has(&run, "mine", "textures/t.dds"));
     let bad = f.scene(
         &[
             "scene",
@@ -212,7 +249,7 @@ fn named_variants_replace_the_default_and_a_bad_source_is_refused_before_any_sta
         "{}",
         text(&bad)
     );
-    assert_eq!(f.calls().len(), 3, "the refusal started nothing");
+    assert_eq!(f.calls().len(), 2, "the refusal started nothing");
 }
 
 #[test]
@@ -225,21 +262,34 @@ fn a_failed_start_stops_the_run_and_says_where_its_folder_is() {
     assert_ne!(out.status.code(), Some(0));
     assert_eq!(f.calls().len(), 1, "no second start, no comparison");
     assert!(text(&out).contains("did not finish"), "{}", text(&out));
+    assert!(text(&out).contains("status 2"), "{}", text(&out));
 }
 
 #[test]
-fn a_missing_tool_is_said_plainly() {
-    let f = Fixture::new("scene-notool", false);
-    let out = f.scene(
-        &["scene", "run", "--places", "mojave-day"],
-        &[("RAUL_SCENE_TOOL", "/no/such/tool")],
+fn a_viewer_that_is_not_there_is_said_plainly() {
+    let f = Fixture::new("scene-noviewer-file", false);
+    let inst = f.path("instance");
+    let game = f.path("FalloutNV");
+    let out = f.raul(
+        &[
+            "scene",
+            "run",
+            "--places",
+            "mojave-day",
+            "--instance",
+            s(&inst),
+            "--game",
+            s(&game),
+            "--viewer",
+            "/no/such/viewer",
+            "--gpu-sysfs",
+            "/nonexistent",
+            "--no-cap",
+        ],
+        &[],
     );
     assert_ne!(out.status.code(), Some(0));
-    assert!(
-        text(&out).contains("is not installed here"),
-        "{}",
-        text(&out)
-    );
+    assert!(text(&out).contains("did not finish"), "{}", text(&out));
 }
 
 #[test]
@@ -265,7 +315,7 @@ fn without_the_engine_or_a_viewer_the_run_is_refused() {
 }
 
 #[test]
-fn a_soak_and_a_bench_start_once_over_the_staging_tree_and_the_bench_takes_the_lock_by_name() {
+fn a_soak_and_a_bench_start_once_over_the_staging_tree_and_the_bench_takes_the_lock() {
     let f = Fixture::new("scene-soak", false);
     let staged = f.raul(
         &["stage", "--instance", s(&f.path("instance")), "--copy"],
@@ -277,28 +327,31 @@ fn a_soak_and_a_bench_start_once_over_the_staging_tree_and_the_bench_takes_the_l
         &[],
     );
     assert_eq!(out.status.code(), Some(0), "{}", text(&out));
+    assert!(text(&out).contains("goodsprings"), "{}", text(&out));
+    assert_eq!(f.calls().len(), 1, "{:?}", f.calls());
     let out = f.scene(
         &["bench", "game", "--suite", "quick", "--baseline", "mine"],
         &[],
     );
     assert_eq!(out.status.code(), Some(0), "{}", text(&out));
-    let calls = f.calls();
+    assert_eq!(f.calls().len(), 2, "{:?}", f.calls());
+    let bench_dir = f.run_dir("Default");
     assert!(
-        calls[0].starts_with("soak ")
-            && calls[0].contains("--frames 50")
-            && calls[0].contains("--overlay"),
-        "{calls:?}"
+        std::fs::read_dir(&bench_dir)
+            .unwrap()
+            .flatten()
+            .any(|e| e.file_name().to_string_lossy().starts_with("suite-quick")),
+        "the suite file is written beside the results"
     );
-    assert!(
-        calls[1].starts_with("bench ")
-            && calls[1].contains("--suite quick")
-            && calls[1].contains("--lock")
-            && calls[1].contains("--baseline mine"),
-        "{calls:?}"
-    );
-    let compare = f.scene(&["bench", "game", "compare", "a.json", "b.json"], &[]);
-    assert_eq!(compare.status.code(), Some(0), "{}", text(&compare));
-    assert_eq!(f.calls()[2], "bench-compare a.json b.json");
+    assert!(text(&out).contains("summary:"), "{}", text(&out));
+}
+
+#[test]
+fn two_bench_summaries_are_compared_and_a_missing_one_is_said() {
+    let f = Fixture::new("scene-bench-compare", false);
+    let bad = f.scene(&["bench", "game", "compare", "a.json", "b.json"], &[]);
+    assert_ne!(bad.status.code(), Some(0));
+    assert!(text(&bad).contains("a.json"), "{}", text(&bad));
 }
 
 #[test]
@@ -327,9 +380,9 @@ fn the_place_files_raul_carries_are_written_and_never_overwritten() {
 }
 
 #[test]
-fn the_synthetic_bench_is_unchanged_and_never_reaches_the_scene_tool() {
+fn the_synthetic_bench_is_unchanged_and_never_starts_the_game() {
     let f = Fixture::new("scene-bench-untouched", false);
-    let out = f.raul(&["bench", "compare"], &[("RAUL_SCENE_TOOL", s(&f.tool()))]);
+    let out = f.raul(&["bench", "compare"], &[]);
     assert_eq!(out.status.code(), Some(5), "{}", text(&out));
     assert!(
         text(&out).contains("bench compare needs <base.json> <head.json>"),

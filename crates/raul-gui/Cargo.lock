@@ -1918,6 +1918,7 @@ dependencies = [
  "fork-log",
  "fork-memlog",
  "fork-presence",
+ "fork-scene-run",
  "game-folders",
  "host",
  "mod-chooser",
@@ -1931,6 +1932,25 @@ version = "0.1.0"
 dependencies = [
  "discord-rich-presence",
  "fork-log",
+]
+
+[[package]]
+name = "fork-scene"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+]
+
+[[package]]
+name = "fork-scene-run"
+version = "0.1.0"
+dependencies = [
+ "d3d9-wgpu",
+ "engine",
+ "engine-core",
+ "fork-log",
+ "fork-scene",
+ "host",
 ]
 
 [[package]]
@@ -2316,9 +2336,11 @@ dependencies = [
  "game-profile",
  "jg",
  "jip",
+ "johnnyguitar",
  "mcm",
  "nvse",
  "play-patch",
+ "plugin-host",
  "qos",
  "showoff",
  "stewie",
@@ -2496,6 +2518,14 @@ checksum = "1c00acbd29eabad4a2392fa0e921c874934dbbf4194312ad20f04a0ed67a3cb3"
 dependencies = [
  "getrandom 0.4.3",
  "libc",
+]
+
+[[package]]
+name = "johnnyguitar"
+version = "0.1.0"
+dependencies = [
+ "engine-core",
+ "nvse",
 ]
 
 [[package]]
@@ -4179,6 +4209,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "plugin-host"
+version = "0.1.0"
+dependencies = [
+ "engine-core",
+ "nvse",
+]
+
+[[package]]
 name = "png"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4354,6 +4392,7 @@ name = "raul-cli"
 version = "0.0.0"
 dependencies = [
  "ctrlc",
+ "fork-scene",
  "nvmod-api",
  "nvmod-cli",
  "nvmod-core",

@@ -17,7 +17,8 @@ machine and do not enter the CI history.
 
 ## Consequences
 
-- Until the engine publishes library entry points, `raul` runs the engine's tool as a program behind one trait
-  (`raul_cli::scene::SceneEngine`). This is a recorded exception to ADR-0016 (nothing but the game is started), to be
-  removed when the entry points land; the start goes through `raul-runner` as every other.
+- The engine's scene library (`fork-scene`) is linked into `raul` and runs in its process, as ADR-0016 asks of every
+  Component. The only child process is the game, started from `raul`'s own binary in the play mode through
+  `raul-runner`, with the run label and the memory cap. The first version ran the engine's tool as a program behind a
+  seam; that exception to ADR-0016 is gone.
 - The tool is Linux only for now (`flock`, systemd scopes).
