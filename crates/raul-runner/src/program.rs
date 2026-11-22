@@ -81,3 +81,35 @@ pub fn start_program(
         .map(Started)
         .map_err(|e| format!("could not start {program}: {e}"))
 }
+
+/// Start a program whose output goes to `log` and return the child itself, for a caller that waits for it, reads its
+/// memory and stops it by its own rules (the engine's picture, soak and bench tool). `words` is the whole command:
+/// the program first, then its arguments. `env` entries are set on top of the caller's environment; the program runs in
+/// `cwd`.
+///
+/// # Errors
+/// There is no program in `words`, the log cannot be copied, or the program could not be started.
+pub fn start_logged(
+    words: &[std::ffi::OsString],
+    env: &[(String, String)],
+    cwd: &Path,
+    log: std::fs::File,
+) -> Result<Child, String> {
+    let (program, args) = words.split_first().ok_or("no program to start")?;
+    // The same place as start_program: the one place the Toolbox starts a long-lived program (ADR-0007).
+    #[allow(clippy::disallowed_methods)]
+    let mut command = Command::new(program);
+    command
+        .args(args)
+        .current_dir(cwd)
+        .stdin(Stdio::null())
+        .stdout(log.try_clone().map_err(|e| e.to_string())?)
+        .stderr(log);
+    for (key, value) in env {
+        command.env(key, value);
+    }
+    crate::runner::count_started();
+    command
+        .spawn()
+        .map_err(|e| format!("could not start {}: {e}", program.to_string_lossy()))
+}

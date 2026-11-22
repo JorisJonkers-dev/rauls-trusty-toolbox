@@ -12,7 +12,7 @@ mod runner;
 mod sha256;
 mod stream;
 
-pub use program::{Started, start_program};
+pub use program::{Started, start_logged, start_program};
 pub use runner::{
     Call, EXIT_REFUSED, EXIT_TOOL_FAILED, EXIT_VERIFICATION, NETWORK_ENV, Output, Runner,
     ToolError, programs_started,

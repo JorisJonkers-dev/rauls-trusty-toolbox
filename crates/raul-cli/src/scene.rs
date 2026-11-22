@@ -3,25 +3,17 @@
 //!
 //! raul resolves what the bare tool wants by hand: the game folder (`raul config`), the Profile's Mods laid over it in
 //! priority order, its active Plugins in Load order, the output folder under raul's data folder, the label and the
-//! memory cap of the game start. The work itself is the engine's, behind [`SceneEngine`].
-//!
-//! The seam: the engine's library entry points do not exist yet, so [`CliTool`] runs the `nv-rs-scene` program (the
-//! only implementation). When the entry points land, the full raul registers an in-process [`SceneEngine`] with
-//! [`install`] (as it does for the play mode) and [`CliTool`] goes away; nothing else in this file changes.
+//! memory cap of the game start. The work itself is the engine's scene library (`fork_scene::tool`), linked into raul
+//! and called in this process; only the game is a child process, and that is raul's own binary in the play mode (see
+//! [`SceneLauncher`]).
 
-use std::collections::BTreeMap;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
 
+use fork_scene::tool;
 use nvmod_instance::NvmodInstance;
 use raul_core::config::{Config, Key};
 use raul_core::context::Context;
-
-/// The program the seam runs, and the variable that names another one.
-pub const TOOL: &str = "nv-rs-scene";
-/// The variable that names the tool program instead of `nv-rs-scene` beside raul or on the path.
-pub const TOOL_ENV: &str = "RAUL_SCENE_TOOL";
 
 const USAGE_LINE: &str = "scene takes `run`, `compare`, `soak`, `sweep` or `places`; `bench game` takes `--suite` or `compare`";
 
@@ -39,6 +31,8 @@ pub const BUILT_IN_PLACES: &[(&str, &str)] = &[
 pub struct Start {
     /// The program the game starts as (raul's own binary in the play mode, or a viewer the person names).
     pub viewer: PathBuf,
+    /// The viewer is raul's own binary: it is started with the play-mode word first.
+    pub play_mode: bool,
     /// The game folder.
     pub game: PathBuf,
     /// The place file.
@@ -67,6 +61,8 @@ pub struct Start {
     pub mem: String,
     /// No memory cap (the person asked, or the capping program is not there).
     pub no_cap: bool,
+    /// Where the card's memory is read for the start check; `None`: the engine's default (`/sys/class/drm`).
+    pub gpu_sysfs: Option<PathBuf>,
     /// The lock file every game start of this machine takes (shared; a bench takes it exclusively).
     pub lock: Option<PathBuf>,
     /// A bench: the suite and the baselines.
@@ -106,217 +102,202 @@ pub enum Request {
     },
 }
 
-/// The engine's scene tool. The one implementation today is [`CliTool`].
-pub trait SceneEngine: Send + Sync {
-    /// Runs one request, writing what the person should read to `out`/`err`; returns the exit code (0 fine, 1 the run
-    /// ran and found a problem, anything else the request could not be run).
-    ///
-    /// # Errors
-    /// Why the request could not be started at all.
-    fn execute(
-        &self,
-        request: &Request,
-        out: &mut dyn Write,
-        err: &mut dyn Write,
-    ) -> Result<i32, String>;
+/// Runs one request in this process, through the engine's scene library, and writes what the person should read to
+/// `out`. Returns the exit code (0 fine, 1 the run ran and found a problem).
+///
+/// # Errors
+/// Why the request could not be carried out at all.
+fn execute(request: &Request, out: &mut dyn Write, err: &mut dyn Write) -> Result<i32, String> {
+    // What the library says while it works (the memory cap, a start's memory, a hang) goes to the person at once.
+    let say = |line: &str| {
+        let _ = writeln!(std::io::stderr(), "{line}");
+    };
+    let ok = |ok: bool| i32::from(!ok);
+    match request {
+        Request::Run(s) => {
+            let launcher = SceneLauncher::new(s);
+            let mut req = tool::RunRequest::new(lib_start(s));
+            req.variants = vec![tool::Variant {
+                name: s.variant.clone(),
+                overlays: s.overlays.clone(),
+            }];
+            req.jobs = 1;
+            if !s.resolution.is_empty() {
+                req.resolution.clone_from(&s.resolution);
+            }
+            req.quick = s.quick;
+            let r = tool::run(&req, &launcher, &say)?;
+            let _ = write!(out, "{}", r.summary());
+            Ok(ok(r.ok))
+        }
+        Request::Compare { a, b, noise } => {
+            let r = tool::compare(&tool::CompareRequest {
+                a: a.clone(),
+                b: b.clone(),
+                noise: noise.clone(),
+                ..tool::CompareRequest::default()
+            })?;
+            let _ = writeln!(out, "{}", r.summary());
+            Ok(ok(r.ok))
+        }
+        Request::Soak(s) => {
+            let launcher = SceneLauncher::new(s);
+            let r = tool::soak(&soak_request(s), &launcher, &say)?;
+            let _ = write!(out, "{}", r.summary());
+            Ok(ok(r.ok))
+        }
+        Request::Sweep(s) => {
+            let launcher = SceneLauncher::new(s);
+            let req = tool::SweepRequest {
+                soak: sweep_soak(s),
+            };
+            let r = tool::sweep(&req, &launcher, &say)?;
+            let _ = writeln!(out, "{}", r.markdown);
+            let _ = writeln!(out, "sweep report: {}", r.report.display());
+            Ok(ok(r.ok))
+        }
+        Request::Bench(s) => {
+            let Some(lock) = s.lock.clone() else {
+                return Err(
+                    "a bench needs the game lock file (--game-lock, or a data folder for raul)"
+                        .into(),
+                );
+            };
+            let launcher = SceneLauncher::new(s);
+            let mut req = tool::BenchRequest::new(lib_start(s), lock);
+            req.soak = soak_request(s);
+            req.soak.realtime = true;
+            req.soak.exclusive = true;
+            req.soak.passes = Some(5);
+            req.suite = Some(s.suite.clone()).filter(|n| !n.is_empty());
+            req.baseline.clone_from(&s.baseline);
+            req.save_baseline.clone_from(&s.save_baseline);
+            let r = tool::bench(&req, &launcher, &say)?;
+            let _ = writeln!(out, "{}", r.markdown);
+            let _ = writeln!(out, "summary: {}", r.summary.display());
+            Ok(ok(r.ok))
+        }
+        Request::BenchCompare { a, b } => {
+            let r = tool::bench_compare(&tool::BenchCompareRequest {
+                a: a.clone(),
+                b: b.clone(),
+            })?;
+            let _ = writeln!(out, "{}", r.summary());
+            Ok(0)
+        }
+    }
+    .inspect(|_| {
+        let _ = err.flush();
+    })
 }
 
-static ENGINE: OnceLock<Box<dyn SceneEngine>> = OnceLock::new();
+/// The library's start for what raul resolved.
+fn lib_start(s: &Start) -> tool::Start {
+    let mut start = tool::Start::new(
+        s.viewer.clone(),
+        s.game.clone(),
+        s.places.clone(),
+        s.out.clone(),
+    );
+    start.plugins.clone_from(&s.plugins);
+    start.only.clone_from(&s.only);
+    if s.grids > 0 {
+        start
+            .ini
+            .push(("uGridsToLoad".to_owned(), s.grids.to_string()));
+    }
+    start.game_lock.clone_from(&s.lock);
+    if let Some(root) = &s.gpu_sysfs {
+        start.gpu_sysfs.clone_from(root);
+    }
+    start
+}
 
-/// Registers the in-process engine. The first call wins; without one, [`CliTool`] is used.
-pub fn install(engine: Box<dyn SceneEngine>) {
-    let _ = ENGINE.set(engine);
+/// The soak the request describes: the frames, and the one data folder laid over the game.
+fn soak_request(s: &Start) -> tool::SoakRequest {
+    let mut req = tool::SoakRequest::new(lib_start(s));
+    if s.frames > 0 {
+        req.frames = s.frames;
+    }
+    req.overlay = s.overlays.first().cloned();
+    req
+}
+
+/// The soak of a sweep: the sweep's own defaults (300 frames, a shorter timeout, a stall limit) with the same changes.
+fn sweep_soak(s: &Start) -> tool::SoakRequest {
+    let mut req = tool::SweepRequest::new(lib_start(s)).soak;
+    if s.frames > 0 {
+        req.frames = s.frames;
+    }
+    req.overlay = s.overlays.first().cloned();
+    req
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The seam: the command-line tool.
+// The game child: raul's own binary in the play mode.
 
-/// Runs `nv-rs-scene`. Replaced by an in-process engine when the library entry points exist.
-#[derive(Debug, Clone, Default)]
-pub struct CliTool {
-    program: Option<PathBuf>,
+/// Starts the game for the engine's tool: `raul --play-mode <folder>` (the engine is linked into raul, ADR-0016), or
+/// the program the person named with `--viewer`, through raul's runner, with the run's label and memory cap.
+struct SceneLauncher {
+    cap: tool::Cap,
+    /// The viewer is raul itself in the play mode: its first argument is the play-mode word.
+    play_mode: bool,
 }
 
-impl CliTool {
-    /// Runs the program at `program` instead of looking for it.
-    #[must_use]
-    pub fn at(program: impl Into<PathBuf>) -> Self {
-        Self {
-            program: Some(program.into()),
+impl SceneLauncher {
+    fn new(s: &Start) -> SceneLauncher {
+        SceneLauncher {
+            cap: tool::Cap {
+                label: s.label.clone(),
+                who: "raul".to_owned(),
+                mem: s.mem.clone(),
+                off: s.no_cap,
+            },
+            play_mode: s.play_mode,
         }
-    }
-
-    fn program(&self) -> PathBuf {
-        if let Some(p) = &self.program {
-            return p.clone();
-        }
-        if let Some(p) = std::env::var_os(TOOL_ENV).filter(|v| !v.is_empty()) {
-            return PathBuf::from(p);
-        }
-        let name = format!("{TOOL}{}", std::env::consts::EXE_SUFFIX);
-        let beside = std::env::current_exe()
-            .ok()
-            .and_then(|e| e.parent().map(|d| d.join(&name)))
-            .filter(|p| p.is_file());
-        beside.unwrap_or_else(|| PathBuf::from(name))
     }
 }
 
-/// The words after `nv-rs-scene` for a request. Pure, so a test can read them.
-#[must_use]
-#[allow(clippy::too_many_lines)]
-pub fn tool_args(request: &Request) -> Vec<String> {
-    fn push(v: &mut Vec<String>, flag: &str, value: impl Into<String>) {
-        v.push(flag.to_owned());
-        v.push(value.into());
-    }
-    fn display(p: &Path) -> String {
-        p.display().to_string()
-    }
-    fn start_words(v: &mut Vec<String>, s: &Start) {
-        push(v, "--game", display(&s.game));
-        push(v, "--places", display(&s.places));
-        push(v, "--out", display(&s.out));
-        if s.grids > 0 {
-            push(v, "--grids", s.grids.to_string());
-        }
-        if !s.plugins.is_empty() {
-            push(v, "--plugins", s.plugins.join(","));
-        }
-        if !s.label.is_empty() {
-            push(v, "--label", s.label.clone());
-            push(v, "--who", "raul");
-        }
-        if s.no_cap {
-            v.push("--no-cap".into());
-        } else if !s.mem.is_empty() {
-            push(v, "--mem", s.mem.clone());
-        }
-    }
-    let mut v = Vec::new();
-    match request {
-        Request::Run(s) => {
-            v.push("run".into());
-            push(&mut v, "--viewer", display(&s.viewer));
-            start_words(&mut v, s);
-            let overlays: Vec<String> = s.overlays.iter().map(|p| display(p)).collect();
-            if overlays.is_empty() {
-                push(&mut v, "--variant", s.variant.clone());
-            } else {
-                push(
-                    &mut v,
-                    "--variant",
-                    format!("{}={}", s.variant, overlays.join("+")),
-                );
-            }
-            if !s.only.is_empty() {
-                push(&mut v, "--only", s.only.join(","));
-            }
-            if !s.resolution.is_empty() {
-                push(&mut v, "--resolution", s.resolution.clone());
-            }
-            if s.quick {
-                v.push("--quick".into());
-            }
-            if let Some(lock) = &s.lock {
-                push(&mut v, "--game-lock", display(lock));
-            }
-        }
-        Request::Soak(s) | Request::Sweep(s) => {
-            v.push(
-                if matches!(request, Request::Soak(_)) {
-                    "soak"
-                } else {
-                    "sweep"
-                }
-                .into(),
-            );
-            push(&mut v, "--viewer", display(&s.viewer));
-            start_words(&mut v, s);
-            if s.frames > 0 {
-                push(&mut v, "--frames", s.frames.to_string());
-            }
-            if let Some(o) = s.overlays.first() {
-                push(&mut v, "--overlay", display(o));
-            }
-            if let Some(lock) = &s.lock {
-                push(&mut v, "--game-lock", display(lock));
-            }
-        }
-        Request::Bench(s) => {
-            v.push("bench".into());
-            push(&mut v, "--viewer", display(&s.viewer));
-            start_words(&mut v, s);
-            push(&mut v, "--suite", s.suite.clone());
-            if let Some(o) = s.overlays.first() {
-                push(&mut v, "--overlay", display(o));
-            }
-            if let Some(lock) = &s.lock {
-                push(&mut v, "--lock", display(lock));
-            }
-            if let Some(name) = &s.baseline {
-                push(&mut v, "--baseline", name.clone());
-            }
-            if let Some(name) = &s.save_baseline {
-                push(&mut v, "--save-baseline", name.clone());
-            }
-        }
-        Request::Compare { a, b, noise } => {
-            v.push("compare".into());
-            if let Some(n) = noise {
-                push(&mut v, "--noise", display(n));
-            }
-            v.push(display(a));
-            v.push(display(b));
-        }
-        Request::BenchCompare { a, b } => {
-            v.push("bench-compare".into());
-            v.push(display(a));
-            v.push(display(b));
-        }
-    }
-    v
+/// Whether a program of this name is in a folder of the path.
+fn on_path(name: &str) -> bool {
+    std::env::var_os("PATH")
+        .is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(name).is_file()))
 }
 
-impl SceneEngine for CliTool {
-    fn execute(
-        &self,
-        request: &Request,
-        _out: &mut dyn Write,
-        _err: &mut dyn Write,
-    ) -> Result<i32, String> {
-        let program = self.program();
-        let cwd = std::env::current_dir().map_err(|e| e.to_string())?;
-        // Attached: the tool's own progress lines go straight to the person's terminal.
-        let started = raul_runner::start_program(
-            &program.to_string_lossy(),
-            &tool_args(request),
-            &BTreeMap::new(),
-            &cwd,
-            true,
-            None,
-        )
-        .map_err(|why| {
-            format!(
-                "{why}; the engine's picture tool `{TOOL}` is not installed here (put it beside raul or on the path, or \
-                 name it in {TOOL_ENV})"
-            )
-        })?;
-        started.wait()
+impl tool::Launcher for SceneLauncher {
+    fn describe(&self, concurrent: usize) -> String {
+        self.cap.describe(&[], concurrent)
     }
-}
 
-fn execute(
-    request: &Request,
-    tool: Option<&PathBuf>,
-    out: &mut dyn Write,
-    err: &mut dyn Write,
-) -> Result<i32, String> {
-    if let Some(engine) = ENGINE.get() {
-        return engine.execute(request, out, err);
+    fn launch(&self, spec: &tool::StartSpec, log: std::fs::File) -> Result<tool::Launched, String> {
+        use std::ffi::OsString;
+        let mut words: Vec<OsString> = Vec::new();
+        let mut scope_prefix = None;
+        // The lock and the cap are programs of the Unix desktop the engine runs on; elsewhere the start has neither.
+        if cfg!(unix) {
+            // macOS ships no `flock`: a start there takes no lock.
+            if let Some(lock) = spec.lock.as_ref().filter(|_| on_path("flock")) {
+                words.push("flock".into());
+                words.push(if lock.exclusive { "-x" } else { "-s" }.into());
+                words.push((&lock.path).into());
+            }
+            let cap = self
+                .cap
+                .words(&spec.kind, &spec.name, &[], spec.concurrent)?;
+            scope_prefix = cap.get(1).map(|label| format!("nvgame-{label}-"));
+            words.extend(cap.into_iter().map(OsString::from));
+        }
+        words.push((&spec.viewer).into());
+        if self.play_mode {
+            words.push(crate::play::PLAY_MODE_ARG.into());
+        }
+        words.push((&spec.game_dir).into());
+        let child = raul_runner::start_logged(&words, &spec.env, &spec.game_dir, log)?;
+        Ok(tool::Launched {
+            child,
+            scope_prefix,
+        })
     }
-    let cli = tool.map_or_else(CliTool::default, CliTool::at);
-    cli.execute(request, out, err)
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -478,8 +459,8 @@ struct Flags {
     quick: bool,
     frames: u32,
     viewer: Option<PathBuf>,
-    tool: Option<PathBuf>,
     lock: Option<PathBuf>,
+    gpu_sysfs: Option<PathBuf>,
     mem: String,
     no_cap: bool,
     suite: Option<String>,
@@ -527,8 +508,8 @@ fn parse(args: &[String]) -> Result<Flags, String> {
                     .map_err(|_| "--frames needs a number".to_owned())?;
             }
             "--viewer" => f.viewer = Some(PathBuf::from(value()?)),
-            "--tool" => f.tool = Some(PathBuf::from(value()?)),
             "--game-lock" => f.lock = Some(PathBuf::from(value()?)),
+            "--gpu-sysfs" => f.gpu_sysfs = Some(PathBuf::from(value()?)),
             "--mem" => f.mem = value()?,
             "--no-cap" => f.no_cap = true,
             "--suite" => f.suite = Some(value()?),
@@ -591,7 +572,6 @@ pub(crate) fn bench_game(
                 a: a.into(),
                 b: b.into(),
             },
-            flags.tool.as_ref(),
             out,
             err,
         );
@@ -603,8 +583,8 @@ pub(crate) fn bench_game(
 }
 
 /// Runs a request and turns its result into the exit code, saying plainly what went wrong.
-fn go(request: &Request, tool: Option<&PathBuf>, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
-    let result = execute(request, tool, out, err);
+fn go(request: &Request, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
+    let result = execute(request, out, err);
     finish(err, result)
 }
 
@@ -661,7 +641,6 @@ fn compare(flags: &Flags, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
             b: b.into(),
             noise: flags.noise.clone(),
         },
-        flags.tool.as_ref(),
         out,
         err,
     );
@@ -697,6 +676,38 @@ struct Setup {
     run_dir: PathBuf,
 }
 
+/// Where one run writes: `--out`, or a folder named by the Profile and the second under raul's data folder.
+fn run_folder(f: &Flags, who: &str) -> Result<PathBuf, String> {
+    let stamp = {
+        let secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs());
+        let minute = raul_drivers::lod::utc_minute(secs)
+            .replace(" UTC", "")
+            .replace(' ', "T")
+            .replace(':', "");
+        format!("{minute}{:02}Z", secs % 60)
+    };
+    let run_dir = match &f.out {
+        Some(o) => std::path::absolute(o).map_err(|e| format!("{}: {e}", o.display()))?,
+        None => raul_core::data::folder()
+            .ok_or("raul has no data folder here (set RAUL_DATA_DIR to an absolute folder, or pass --out)")?
+            .join("scene")
+            .join(who)
+            .join(&stamp),
+    };
+    // Two runs in the same second get folders of their own.
+    let run_dir = if f.out.is_none() && run_dir.exists() {
+        (2..100)
+            .map(|n| PathBuf::from(format!("{}-{n}", run_dir.display())))
+            .find(|p| !p.exists())
+            .ok_or("raul has run too many scenes in this second")?
+    } else {
+        run_dir
+    };
+    Ok(run_dir)
+}
+
 fn setup(ctx: &Context, verb: &str, f: &Flags) -> Result<Setup, String> {
     let instance_root = f.instance.clone().or_else(|| {
         ctx.config_file()
@@ -729,26 +740,10 @@ fn setup(ctx: &Context, verb: &str, f: &Flags) -> Result<Setup, String> {
                 .and_then(|c| c.get(Key::GameNewVegas))
         })
         .ok_or("no game folder: pass --game <dir> or run `raul config set game.newvegas <dir>`")?;
-    let stamp = {
-        let secs = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_or(0, |d| d.as_secs());
-        raul_drivers::lod::utc_minute(secs)
-            .replace(" UTC", "Z")
-            .replace(' ', "T")
-            .replace(':', "")
-    };
     let who = instance
         .as_ref()
         .map_or("game".to_owned(), |(_, p)| p.clone());
-    let run_dir = match &f.out {
-        Some(o) => std::path::absolute(o).map_err(|e| format!("{}: {e}", o.display()))?,
-        None => raul_core::data::folder()
-            .ok_or("raul has no data folder here (set RAUL_DATA_DIR to an absolute folder, or pass --out)")?
-            .join("scene")
-            .join(&who)
-            .join(&stamp),
-    };
+    let run_dir = run_folder(f, &who)?;
     let places = match &f.places {
         Some(w) => places_file(w, &run_dir)?,
         None if verb == "bench" => PathBuf::new(),
@@ -758,10 +753,12 @@ fn setup(ctx: &Context, verb: &str, f: &Flags) -> Result<Setup, String> {
             );
         }
     };
-    // The game child is raul's own binary in the play mode, through a one-line launcher the tool can start as a viewer.
-    let viewer = match &f.viewer {
-        Some(v) => v.clone(),
-        None if crate::play::enabled() => launcher(&run_dir)?,
+    // The game child is raul's own binary in the play mode, unless the person names a program.
+    let (viewer, play_mode) = match &f.viewer {
+        Some(v) => (v.clone(), false),
+        None if crate::play::enabled() => {
+            (std::env::current_exe().map_err(|e| e.to_string())?, true)
+        }
         None => {
             return Err("this raul has no engine in it: pass --viewer <program> naming a game viewer, or use the full raul".into());
         }
@@ -780,6 +777,7 @@ fn setup(ctx: &Context, verb: &str, f: &Flags) -> Result<Setup, String> {
         run_dir: run_dir.clone(),
         start: Start {
             viewer,
+            play_mode,
             game,
             places,
             out: run_dir,
@@ -792,6 +790,7 @@ fn setup(ctx: &Context, verb: &str, f: &Flags) -> Result<Setup, String> {
             mem,
             no_cap,
             lock,
+            gpu_sysfs: f.gpu_sysfs.clone(),
             suite: f.suite.clone().unwrap_or_default(),
             baseline: f.baseline.clone(),
             save_baseline: f.save_baseline.clone(),
@@ -805,31 +804,6 @@ fn gamerun_present() -> bool {
     std::env::var_os("HOME")
         .map(|h| Path::new(&h).join(".local/bin/gamerun"))
         .is_some_and(|p| p.is_file())
-}
-
-/// A launcher the tool starts as the viewer: it runs raul's own binary in the play mode with the folder the tool gives.
-fn launcher(run_dir: &Path) -> Result<PathBuf, String> {
-    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    std::fs::create_dir_all(run_dir).map_err(|e| format!("{}: {e}", run_dir.display()))?;
-    let (file, text) = if cfg!(windows) {
-        (
-            run_dir.join("raul-play.cmd"),
-            format!("@\"{}\" --play-mode %*\r\n", exe.display()),
-        )
-    } else {
-        (
-            run_dir.join("raul-play.sh"),
-            format!("#!/bin/sh\nexec '{}' --play-mode \"$@\"\n", exe.display()),
-        )
-    };
-    std::fs::write(&file, text).map_err(|e| format!("{}: {e}", file.display()))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o755))
-            .map_err(|e| e.to_string())?;
-    }
-    Ok(file)
 }
 
 #[allow(clippy::too_many_lines)]
@@ -902,7 +876,7 @@ fn run_variants(ctx: &Context, f: &Flags, out: &mut dyn Write, err: &mut dyn Wri
         start.overlays = r.overlays;
         start.plugins = r.plugins;
         let _ = writeln!(out, "raul scene run: {} ...", r.name);
-        let c = go(&Request::Run(start), f.tool.as_ref(), out, err);
+        let c = go(&Request::Run(start), out, err);
         if c != crate::OK {
             let _ = writeln!(
                 err,
@@ -925,7 +899,6 @@ fn run_variants(ctx: &Context, f: &Flags, out: &mut dyn Write, err: &mut dyn Wri
                     b: s.run_dir.join(name).join("pictures"),
                     noise: None,
                 },
-                f.tool.as_ref(),
                 out,
                 err,
             );
@@ -992,7 +965,7 @@ fn one_start(ctx: &Context, verb: &str, f: &Flags, out: &mut dyn Write, err: &mu
         "raul scene {verb}: results under {}",
         s.run_dir.display()
     );
-    go(&request, f.tool.as_ref(), out, err)
+    go(&request, out, err)
 }
 
 #[cfg(test)]
@@ -1015,51 +988,79 @@ mod tests {
     }
 
     #[test]
-    fn a_run_names_its_overlays_in_one_variant_and_its_plugins_in_load_order() {
-        let a = tool_args(&Request::Run(start())).join(" ");
-        assert!(
-            a.starts_with("run --viewer /v --game /game --places /p.toml --out /out"),
-            "{a}"
+    fn the_library_start_carries_the_plugins_in_load_order_the_grids_and_the_lock() {
+        let mut s = start();
+        s.grids = 7;
+        s.only = vec!["goodsprings".into()];
+        let l = lib_start(&s);
+        assert_eq!(l.plugins, ["A.esm", "B.esp"]);
+        assert_eq!(l.only, ["goodsprings"]);
+        assert_eq!(l.ini, [("uGridsToLoad".to_owned(), "7".to_owned())]);
+        assert_eq!(l.game_lock, Some(PathBuf::from("/l")));
+        assert_eq!(
+            (l.viewer, l.game, l.places, l.out),
+            ("/v".into(), "/game".into(), "/p.toml".into(), "/out".into())
         );
-        assert!(a.contains("--plugins A.esm,B.esp"), "{a}");
-        assert!(a.contains("--variant a=/m1+/m2"), "{a}");
-        assert!(a.contains("--label raul-scene-run-P-a --who raul"), "{a}");
-        assert!(a.contains("--game-lock /l"), "{a}");
-        assert!(!a.contains("--no-cap"), "{a}");
     }
 
     #[test]
-    fn a_variant_without_overlays_is_the_game_alone_and_no_cap_is_passed_on() {
+    fn a_soak_takes_the_first_data_folder_and_the_frames_and_a_sweep_keeps_its_own_defaults() {
         let mut s = start();
-        s.overlays.clear();
+        s.frames = 40;
+        let soak = soak_request(&s);
+        assert_eq!((soak.frames, soak.overlay), (40, Some("/m1".into())));
+        s.frames = 0;
+        assert_eq!(soak_request(&s).frames, 600);
+        assert_eq!(sweep_soak(&s).frames, 300);
+    }
+
+    #[test]
+    fn the_cap_follows_the_label_the_memory_limit_and_no_cap() {
+        let mut s = start();
+        s.mem = "10G".into();
+        let l = SceneLauncher::new(&s);
+        assert_eq!(l.cap.label, "raul-scene-run-P-a");
+        assert_eq!(l.cap.who, "raul");
+        assert!(tool::Launcher::describe(&l, 1).contains("10G"));
         s.no_cap = true;
-        let a = tool_args(&Request::Run(s)).join(" ");
-        assert!(a.contains("--variant a "), "{a}");
-        assert!(a.contains("--no-cap"), "{a}");
+        assert!(tool::Launcher::describe(&SceneLauncher::new(&s), 1).contains("OFF"));
     }
 
+    #[cfg(unix)]
     #[test]
-    fn a_bench_takes_the_lock_exclusively_by_name_and_the_baselines() {
+    fn the_launcher_starts_the_play_mode_of_the_viewer_in_the_game_folder_with_the_environment() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = nvmod_testkit::TempDir::new("scene-launcher");
+        let viewer = dir.path().join("viewer.sh");
+        std::fs::write(&viewer, "#!/bin/sh\necho \"$@\" \"$MARK\" $(pwd)\n").unwrap();
+        std::fs::set_permissions(&viewer, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let game = dir.path().join("game");
+        std::fs::create_dir_all(&game).unwrap();
         let mut s = start();
-        s.suite = "quick".into();
-        s.baseline = Some("mine".into());
-        let a = tool_args(&Request::Bench(s)).join(" ");
-        assert!(a.starts_with("bench "), "{a}");
-        assert!(
-            a.contains("--suite quick") && a.contains("--lock /l") && a.contains("--baseline mine"),
-            "{a}"
+        s.no_cap = true;
+        s.play_mode = true;
+        let spec = tool::StartSpec {
+            kind: "run".into(),
+            name: "a".into(),
+            viewer,
+            game_dir: game.clone(),
+            env: vec![("MARK".into(), "marked".into())],
+            concurrent: 1,
+            lock: None,
+        };
+        let log = dir.path().join("log");
+        let mut launched = tool::Launcher::launch(
+            &SceneLauncher::new(&s),
+            &spec,
+            std::fs::File::create(&log).unwrap(),
+        )
+        .unwrap();
+        assert!(launched.child.wait().unwrap().success());
+        let line = std::fs::read_to_string(&log).unwrap();
+        assert_eq!(
+            line.trim(),
+            format!("--play-mode {} marked {}", game.display(), game.display())
         );
-        assert!(!a.contains("--game-lock"), "{a}");
-    }
-
-    #[test]
-    fn compare_puts_the_noise_run_before_the_two_folders() {
-        let a = tool_args(&Request::Compare {
-            a: "/a".into(),
-            b: "/b".into(),
-            noise: Some("/n".into()),
-        });
-        assert_eq!(a, ["compare", "--noise", "/n", "/a", "/b"]);
     }
 
     #[test]

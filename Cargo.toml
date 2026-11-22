@@ -29,6 +29,8 @@ raul-runner = { path = "crates/raul-runner" }
 raul-drivers = { path = "crates/raul-drivers" }
 # The same source and tag nvmod v0.8.1 links, so Cargo builds one copy (the lock file fixes the version).
 loot-rs = { git = "https://github.com/JorisJonkers-dev/loot-rs", tag = "v0.9.0" }
+# The engine's picture, soak, sweep and bench tool as a library (ADR-0022): pure, no engine code and no game data.
+fork-scene = { path = "components/nv-rs/crates/fork-scene" }
 nvmod-api = { path = "components/nvmod-rs/crates/nvmod-api" }
 nvmod-cli = { path = "components/nvmod-rs/crates/nvmod-cli" }
 nvmod-core = { path = "components/nvmod-rs/crates/nvmod-core" }
