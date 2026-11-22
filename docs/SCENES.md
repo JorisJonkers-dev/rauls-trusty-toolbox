@@ -2,8 +2,8 @@
 
 `raul scene` and `raul bench game` start the game straight at a place, with no main menu, in a frozen world (fixed
 hour and weather, no moving creatures), and take pictures, hold places for a number of frames, sweep many places or
-measure frame times. The work is the engine's own tool (`nv-rs-scene`, described in nv-rs `docs/fork/SCENE.md`); `raul`
-resolves what the bare tool wants by hand. Terms: [Place, Place file, Variant](../GLOSSARY.md). The decision
+measure frame times. The work is the engine's own scene library (`fork-scene`, described in nv-rs `docs/fork/SCENE.md`), linked into
+`raul` and run in its process; `raul` resolves what the bare tool wants by hand. Terms: [Place, Place file, Variant](../GLOSSARY.md). The decision
 is [ADR-0022](adr/0022-scene-runs-and-the-in-game-bench-are-raul-commands.md).
 
 ## Take a picture pair of your modded game with and without generated LOD
@@ -63,12 +63,12 @@ measurement. Two runs of the same build differ by a few per cent: a change below
 - Every game start carries a label (`raul-scene-<command>-<Profile>-<variant>`) and, where the machine's capping
   program (`gamerun`) is installed, a hard memory limit with no swap; without it raul says so and starts uncapped
   (`--no-cap` asks for that, `--mem 8G` changes the limit).
-- The game is a child process started from raul's own binary in the play mode; a build without the engine refuses unless
-  you pass `--viewer <program>`.
+- The game is a child process started from raul's own binary in the play mode, with the label and the memory cap above;
+  a build without the engine refuses unless you pass `--viewer <program>`.
 
 ## Limits of this first version
 
 - Linux only: the tool takes locks with `flock` and limits memory with systemd scopes. Other systems get a plain refusal.
-- The engine's tool is started as a program (`nv-rs-scene`, beside `raul` or named in `RAUL_SCENE_TOOL`) behind one
-  seam (`raul_cli::scene::SceneEngine`); when the engine publishes library entry points the seam is replaced.
+- The engine's scene library is linked into `raul` and runs in its process (there is no `nv-rs-scene` program to find and
+  no `RAUL_SCENE_TOOL`); a sweep therefore has no supervising child, only the game is a child process.
 - No `--json` yet; the window has no Scene page yet.
