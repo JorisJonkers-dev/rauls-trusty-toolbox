@@ -64,3 +64,10 @@ A bump changes the submodule pointer and the lock files only. One pull request m
 and it merges once the full pipeline and the end-to-end run pass on it.
 
 Security vulnerabilities must be reported privately as described in `SECURITY.md`.
+
+## Pictures, soaks and benches of the game
+
+Never write a script that starts the game. `raul scene run|compare|soak|sweep` and `raul bench game` are the way: they
+take the Profile's Mods, the game folder, the memory cap and the label from `raul`. How to use them, and what to check
+before saying a picture pair is equal (open both pictures), is in [`docs/SCENES.md`](docs/SCENES.md). At most three games
+run at once on a machine; a bench takes the game lock exclusively. No picture of game content is committed.

@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Four Mojave views of the base game's world by day. Coordinates, map markers and offsets are the engine's own scene files
+# (nv-rs docs/fork/scenes: bench-quick.toml, mojave-far.toml); there is no game data in this file.
+version = 1
+
+[[place]]
+name = "goodsprings"
+world = "WastelandNV"
+x = -70200
+y = 2560
+z = 8356
+heading = 90
+
+[[place]]
+name = "novac"
+world = "WastelandNV"
+x = 21836
+y = -31072
+z = 6973
+heading = 0
+
+# The Strip from the south: the casino towers and the monorail are far object LOD; a bare horizon means they are missing.
+
+[[place]]
+name = "strip-skyline-from-south"
+world = "WastelandNV"
+ref = "SharecropperFarmsMapMarker"
+dx = 0
+dy = -14000
+dz = 800
+look_at = "FreesideMapMarker"
+
+# Hoover Dam's downstream face from the south: the dam wall and its towers are far objects, the canyon wall far terrain.
+
+[[place]]
+name = "hoover-dam-from-the-south"
+world = "WastelandNV"
+ref = "VHDMapMarkerREF"
+dx = -6000
+dy = -12000
+dz = 600
+look_at = "VHDMapMarkerREF"
+

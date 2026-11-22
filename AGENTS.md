@@ -5,6 +5,7 @@ Guidance for any coding agent working in this repository.
 - Agent contract: [CLAUDE.md](CLAUDE.md)
 - Estate conventions: https://github.com/JorisJonkers-dev/workspace/blob/main/CLAUDE.md
 - Plan: [docs/PLAN.md](docs/PLAN.md)
+- Pictures, soaks, sweeps and benches of the game: [docs/SCENES.md](docs/SCENES.md) (`raul scene`, `raul bench game`; no scripts that start the game)
 
 ## Build and test
 
