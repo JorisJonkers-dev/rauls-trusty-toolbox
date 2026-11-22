@@ -734,10 +734,9 @@ fn setup(ctx: &Context, verb: &str, f: &Flags) -> Result<Setup, String> {
             .duration_since(std::time::UNIX_EPOCH)
             .map_or(0, |d| d.as_secs());
         raul_drivers::lod::utc_minute(secs)
+            .replace(" UTC", "Z")
             .replace(' ', "T")
             .replace(':', "")
-            .replace("UTC", "Z")
-            .replace("TT", "T")
     };
     let who = instance
         .as_ref()
@@ -902,7 +901,6 @@ fn run_variants(ctx: &Context, f: &Flags, out: &mut dyn Write, err: &mut dyn Wri
         start.variant.clone_from(&r.name);
         start.overlays = r.overlays;
         start.plugins = r.plugins;
-        start.label = format!("{}-{}", start.label, r.name);
         let _ = writeln!(out, "raul scene run: {} ...", r.name);
         let c = go(&Request::Run(start), f.tool.as_ref(), out, err);
         if c != crate::OK {

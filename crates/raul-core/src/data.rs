@@ -43,22 +43,23 @@ mod tests {
 
     #[test]
     fn the_named_folder_wins_and_a_relative_one_is_refused() {
-        let named = folder_from(|k| (k == FOLDER_ENV).then(|| PathBuf::from("/the/data")));
-        assert_eq!(named, Some(PathBuf::from("/the/data")));
+        let named = std::env::temp_dir().join("the-data");
+        let found = folder_from(|k| (k == FOLDER_ENV).then(|| named.clone()));
+        assert_eq!(found, Some(named));
         let relative = folder_from(|k| (k == FOLDER_ENV).then(|| PathBuf::from("data")));
         assert_eq!(relative, None);
     }
 
     #[test]
     fn without_a_variable_the_platform_folder_is_used() {
+        let home = std::env::temp_dir().join("home-of-p");
         let found = folder_from(|k| match k {
-            "XDG_DATA_HOME" => Some(PathBuf::from("/x/share")),
-            "HOME" | "LOCALAPPDATA" => Some(PathBuf::from("/home/p")),
+            "XDG_DATA_HOME" | "HOME" | "LOCALAPPDATA" => Some(home.clone()),
             _ => None,
         });
         let found = found.unwrap();
         assert!(found.ends_with("raul"));
-        assert!(found.is_absolute());
+        assert!(found.starts_with(&home));
         assert_eq!(folder_from(|_| None), None);
     }
 }

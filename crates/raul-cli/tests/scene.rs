@@ -137,7 +137,7 @@ fn a_profile_with_a_generated_lod_mod_gets_the_pair_and_the_difference() {
         "{without}"
     );
     assert!(
-        with.contains("--label raul-scene-run-Default-with-lod --who raul"),
+        with.contains("--label raul-scene-run-Default --who raul"),
         "{with}"
     );
     assert!(
