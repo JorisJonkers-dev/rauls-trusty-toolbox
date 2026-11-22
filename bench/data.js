@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795296209496,
+  "lastUpdate": 1795380147833,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10632,6 +10632,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.3329320000000004,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d0c4ba0e18e73741e6e31e22c2c7ca8e9005813a",
+          "message": "feat(scene): raul scene and raul bench game, the engine's picture, soak, sweep and bench tool through a Profile (#546)\n\n* feat(scene): raul scene and raul bench game run the engine's picture, soak, sweep and bench tool through a Profile (#545)\n\n* fix(scene): lock file of the GUI workspace, absolute paths in the data folder tests on Windows, run folder name and one variant name in the label (#545)",
+          "timestamp": "2026-11-22T21:38:36+01:00",
+          "tree_id": "8cb3913ce55c853ff8a58b58ff846237ae60ec6b",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d0c4ba0e18e73741e6e31e22c2c7ca8e9005813a"
+        },
+        "date": 1795380146872,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.598733,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.360436,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.818797,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.0142880000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.662534,
             "unit": "ms"
           }
         ]
