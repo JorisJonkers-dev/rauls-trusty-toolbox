@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795380147833,
+  "lastUpdate": 1795382537104,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10681,6 +10681,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.662534,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "604fe87605b21ad3365f3c9acab0208a6094c7ac",
+          "message": "feat(scene): link the engine's scene library in process (#555)\n\n* chore(deps): bump nv-rs to 0.21.0\n\n* feat(scene): link the engine's scene library into raul and start the game child from raul's own binary (#545)\n\n* build(gui): lock file of the GUI workspace gains the engine's scene library (#545)\n\n* docs(scene): the engine's scene library is linked in process (#545)\n\n* fix(scene): the launcher test compares the child's folder with its resolved path (#545)",
+          "timestamp": "2026-11-22T22:17:26+01:00",
+          "tree_id": "0a2a26b5bab4c877519c8b9a8d074d8f3e0bc1ed",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/604fe87605b21ad3365f3c9acab0208a6094c7ac"
+        },
+        "date": 1795382536554,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.299567,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.512988,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.286039,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.120516,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.264211,
             "unit": "ms"
           }
         ]
