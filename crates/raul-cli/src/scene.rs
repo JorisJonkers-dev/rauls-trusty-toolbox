@@ -1057,9 +1057,12 @@ mod tests {
         .unwrap();
         assert!(launched.child.wait().unwrap().success());
         let line = std::fs::read_to_string(&log).unwrap();
+        // The child's working folder is printed by `pwd`, which resolves links (macOS keeps temp folders under /var,
+        // a link to /private/var).
+        let real = game.canonicalize().unwrap();
         assert_eq!(
             line.trim(),
-            format!("--play-mode {} marked {}", game.display(), game.display())
+            format!("--play-mode {} marked {}", game.display(), real.display())
         );
     }
 
