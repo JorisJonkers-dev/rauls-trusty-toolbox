@@ -53,3 +53,9 @@ VRAM watchdog on), runs with unlimited frame rate, and marks the run noisy when 
 
 Micro-benchmarks inside the Components (plugin parsing, BSA reads, LOD steps) are proposed as Component pull
 requests and wait for the agreed order (docs/PLAN.md, section 8).
+
+## In-game benchmarks
+
+`raul bench game` measures frame times in the game itself (see [SCENES.md](SCENES.md)). It is separate from the synthetic
+suite above: it needs a game start and the exclusive game lock, so CI never runs it, and its summaries and baselines
+stay on the machine and do not enter the history on `gh-pages`.

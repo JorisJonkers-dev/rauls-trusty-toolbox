@@ -140,6 +140,20 @@ _Avoid_: Launcher (that word is for starting the game), executor
 A ticket kept open but outside every milestone until the condition written on it is met.
 _Avoid_: Backlog, wontfix, someday
 
+### Scene runs
+
+**Place**:
+A named spot in the game's world, an exterior position or an interior cell or door, with a heading, an optional free camera, and the hour and weather it is shown at.
+_Avoid_: Location, spot, waypoint
+
+**Place file**:
+A TOML file of Places that `raul scene` and `raul bench game` visit; `raul` carries two examples (`mojave-day`, `mojave-night`).
+_Avoid_: Scene file, view list
+
+**Variant**:
+One way of drawing the same Places: a Profile as it is, a Profile without its generated LOD Mod, the game's own data, or a folder laid over the game. A scene run draws every Place once per Variant, from one run with the same engine and settings.
+_Avoid_: Mode, configuration, build
+
 ### Interface
 
 **Install skin**:

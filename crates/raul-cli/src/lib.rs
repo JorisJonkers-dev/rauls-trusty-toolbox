@@ -10,6 +10,7 @@ mod lod_settings;
 pub mod play;
 mod printer;
 mod program_name;
+pub mod scene;
 mod setup;
 mod sort;
 mod space;
@@ -52,6 +53,7 @@ pub const OWN_COMMANDS: &[&str] = &[
     "detect",
     "space",
     "bench",
+    "scene",
     "update",
     "config",
     "setup",
@@ -96,6 +98,26 @@ usage:
                               the LOD case stays skipped until a synthetic plan fixture exists
   raul bench compare <base.json> <head.json> [--threshold <percent>]
                               compare two reports; slower cases are warnings, never failures
+  raul scene run --places <file|mojave-day|mojave-night> [--instance <dir>] [--profile <name>]
+                 [--variant <name>=profile|profile-without-lod|game|<folder>]... [--only <place>,<place>]
+                 [--out <dir>] [--resolution WxH] [--grids <n>] [--quick] [--game <dir>] [--no-cap]
+                              pictures of the places, one game start per variant, then the difference between the
+                              variants. With a Profile that has a generated LOD Mod and no --variant: the Profile
+                              with it (with-lod) and without it (without-lod). Pictures go under raul's data folder
+                              unless --out says otherwise. Open both pictures before you say they are equal
+  raul scene compare <a> <b> [--noise <a2>]
+                              the difference between two pictures, or two folders of pictures by name
+  raul scene soak --places <file> [--frames <n>] [--instance <dir>] [--profile <name>]
+                              hold every place for n frames and count stops, errors and warnings
+  raul scene sweep --places <file> [--instance <dir>] [--profile <name>]
+                              the stability sweep: a place that stops or hangs is recorded and the sweep goes on
+  raul scene places [--out <dir>]
+                              write the place files raul carries (mojave-day, mojave-night) to edit
+  raul bench game --suite quick|mojave|soak|capital [--baseline <name> | --save-baseline <name>] [--instance <dir>]
+                  [--profile <name>]
+                              the in-engine benchmark: starts the game, takes the machine's game lock exclusively and
+                              is never run by CI. raul bench game compare <a.json> <b.json> compares two summaries.
+                              `raul bench` and `raul bench compare` (the synthetic suite) are unchanged
   raul update check [--json]  look for a newer Toolbox release on GitHub (nothing is downloaded or sent)
   raul update status [--json] whether this install can update itself, and what is downloaded or kept
   raul update download [--tag <tag>] [--allow-older] [--json]
@@ -176,7 +198,11 @@ pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn
         Some("version") => version::run(&args[1..], out, err),
         Some("detect") => detect::run(&args[1..], out, err),
         Some("space") => space::run(&args[1..], out, err),
+        Some("bench") if args.get(1).map(String::as_str) == Some("game") => {
+            scene::bench_game(ctx, &args[2..], out, err)
+        }
         Some("bench") => bench::run(&args[1..], out, err),
+        Some("scene") => scene::run(ctx, &args[1..], out, err),
         Some("update") => update::run(ctx, &args[1..], out, err),
         Some("config") => config::run(ctx, &args[1..], out, err),
         Some("setup") => setup::run(&args[1..], out, err),
