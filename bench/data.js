@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795470499750,
+  "lastUpdate": 1795472097540,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11171,6 +11171,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.787268,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0bc0fa34dc0f3eec87d7fa9a3c165c443ad732b8",
+          "message": "feat(lod): pass far-shape rules for known load orders to lodwright (#604)\n\n* chore(deps): bump lodwright-rs to 0.16.0\n\n* feat(lod): pass far-shape rules for known load orders to lodwright\n\nThe rules are data and reach the request only for a load order that has their world, so any other load order keeps its request and digest. Closes #600\n\n* test(lod): state the far-shape rule checks in the form the lints ask for\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-23T23:12:42+01:00",
+          "tree_id": "cb8c2c9111dfd907ab4bcfc019cc0781dc3d7211",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/0bc0fa34dc0f3eec87d7fa9a3c165c443ad732b8"
+        },
+        "date": 1795472096280,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.4044699999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.417104,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.437694,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.1843510000000004,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.10281,
             "unit": "ms"
           }
         ]
