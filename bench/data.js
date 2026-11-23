@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795468338984,
+  "lastUpdate": 1795470499750,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11122,6 +11122,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 4.989821999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bf8a803a35924b5f2e61a35c62eaae47e2fca4c7",
+          "message": "chore(deps): bump lodwright-rs to 0.16.3 (#606)\n\n* chore(deps): bump lodwright-rs to 0.16.3\n\n* fix(lod): expect the override marker in a packed LOD Mod and state its limit\n\nlodwright 0.16.3 writes an empty override marker beside the packed\narchive. The packing test now expects it and checks that loose output\nremoves it. The README and the setting's help say it was checked on one\nview in the engine port and needs JIP LN on the original game.\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-23T22:46:27+01:00",
+          "tree_id": "d08c7ef19188a857a41ebc6526de79d958b5d942",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/bf8a803a35924b5f2e61a35c62eaae47e2fca4c7"
+        },
+        "date": 1795470498779,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.1469589999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 5.052195,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 23.338528,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.687639,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.787268,
             "unit": "ms"
           }
         ]
