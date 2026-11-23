@@ -8,6 +8,12 @@
       "matchManagers": ["cargo"],
       "matchDepNames": ["loot-rs"],
       "enabled": false
+    },
+    {
+      "description": "The Component follower installs Renovate from .github/renovate-runner with `npm ci` on a GitHub runner, which reads the lock's resolved URLs as they are. Lock maintenance and updates written through the package mirror point every URL at the mirror, which the runner cannot read (E401, Toolbox #597); that folder is bumped by hand (see components.yml).",
+      "matchManagers": ["npm"],
+      "matchFileNames": [".github/renovate-runner/**"],
+      "enabled": false
     }
   ]
 }
