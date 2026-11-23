@@ -10,6 +10,13 @@
       "enabled": false
     },
     {
+      "description": "crates/raul-gui/Cargo.lock holds the engine's wgpu family and gpu-allocator at the versions nv-rs's own lock pins (scripts/component-locks.allow, tools/check-component-locks). Lock file maintenance deletes and re-resolves the whole lock, which moved them past nv-rs's pins (Toolbox #599) and broke the Engine link check. The lock moves with an engine pointer bump or a reviewed dependency update only.",
+      "matchManagers": ["cargo"],
+      "matchFileNames": ["crates/raul-gui/Cargo.toml", "crates/raul-gui/Cargo.lock"],
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "enabled": false
+    },
+    {
       "description": "The Component follower installs Renovate from .github/renovate-runner with `npm ci` on a GitHub runner, which reads the lock's resolved URLs as they are. Lock maintenance and updates written through the package mirror point every URL at the mirror, which the runner cannot read (E401, Toolbox #597); that folder is bumped by hand (see components.yml).",
       "matchManagers": ["npm"],
       "matchFileNames": [".github/renovate-runner/**"],
