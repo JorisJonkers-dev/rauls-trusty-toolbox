@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795403885958,
+  "lastUpdate": 1795423349306,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10779,6 +10779,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.139348,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5bc55124c04c11386419c826e0958e96a805ce6b",
+          "message": "fix(ci): install the Component follower's Renovate from public registry URLs again (#598)\n\nLock file maintenance (#597) rewrote every resolved URL in\n.github/renovate-runner/package-lock.json to the package mirror. The\nComponents workflow installs from that lock with npm ci on a GitHub\nrunner, which has no login for the mirror, so every run since 06:24 UTC\nstops at 'Install Renovate' with E401 and no Component bump is opened.\n\nRestore the lock as it was before #597 (Renovate 44.224.1, registry\nURLs, the state the workflow last ran green with) and keep Renovate's\nnpm updates and lock maintenance out of that folder, which is bumped\nby hand as components.yml says.",
+          "timestamp": "2026-11-23T09:38:48+01:00",
+          "tree_id": "a84045e502745b1eb687e113c90922e02b352509",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/5bc55124c04c11386419c826e0958e96a805ce6b"
+        },
+        "date": 1795423348323,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.607229,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.312652,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.103728999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.009019,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.220002,
             "unit": "ms"
           }
         ]
