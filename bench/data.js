@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795450798892,
+  "lastUpdate": 1795451715189,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10926,6 +10926,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.354997000000001,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9d345c49d4c3c2da4a2df76a9c9312261d4e0483",
+          "message": "chore(renovate): leave the GUI lock out of lock file maintenance (#601)\n\nLock file maintenance re-resolves the whole crates/raul-gui/Cargo.lock and moved the\nengine's wgpu family and gpu-allocator past the versions nv-rs's lock pins (#599).\nThe lock now moves only with an engine pointer bump or a reviewed update.",
+          "timestamp": "2026-11-23T17:31:52+01:00",
+          "tree_id": "88b33a8d60c753511c21db173dfc14ff56a011db",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/9d345c49d4c3c2da4a2df76a9c9312261d4e0483"
+        },
+        "date": 1795451714388,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.518105,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.926884,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.021606000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 3.9620109999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.296742999999999,
             "unit": "ms"
           }
         ]
