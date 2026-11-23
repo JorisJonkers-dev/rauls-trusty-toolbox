@@ -959,8 +959,10 @@ version = "0.1.0"
 dependencies = [
  "d3d9-stream",
  "esm",
+ "fork-gfx",
  "fork-hitch",
  "fork-log",
+ "fork-overlay",
  "fork-window",
  "naga",
  "qos",
@@ -1893,6 +1895,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "fork-gfx"
+version = "0.1.0"
+
+[[package]]
 name = "fork-hitch"
 version = "0.1.0"
 dependencies = [
@@ -1906,6 +1912,16 @@ version = "0.1.0"
 [[package]]
 name = "fork-memlog"
 version = "0.1.0"
+
+[[package]]
+name = "fork-overlay"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "egui-wgpu",
+ "fork-gfx",
+ "wgpu",
+]
 
 [[package]]
 name = "fork-play"
@@ -2330,6 +2346,7 @@ dependencies = [
  "engine-core",
  "engine-platform",
  "esm",
+ "fork-gfx",
  "fork-hitch",
  "fork-log",
  "game-folders",
@@ -2448,6 +2465,7 @@ name = "jip"
 version = "0.1.0"
 dependencies = [
  "engine-core",
+ "fork-log",
  "nvse",
  "uio",
 ]
