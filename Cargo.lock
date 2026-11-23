@@ -314,7 +314,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0b1fab2ae45819af2d0731d60f2afe17227ebb1a1538a236da84c93e9a60162"
 dependencies = [
  "dispatch2",
- "nix",
+ "nix 0.31.3",
  "windows-sys",
 ]
 
@@ -1077,6 +1077,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nix"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77730ed34f01f4990cb2ea67fec715ecebc6fab9a6396cf83c5529b13f581bdc"
+dependencies = [
+ "bitflags",
+ "cfg-if 1.0.5",
+ "cfg_aliases",
+ "libc",
+]
+
+[[package]]
 name = "nom"
 version = "8.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1444,7 +1456,7 @@ dependencies = [
 name = "nvmod-run"
 version = "0.17.0"
 dependencies = [
- "nix",
+ "nix 0.31.3",
  "nvmod-core",
  "nvmod-formats",
  "nvmod-instance",
@@ -1770,7 +1782,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "sysinfo 0.39.6",
+ "sysinfo",
  "tar",
  "toml",
  "zip",
@@ -2419,18 +2431,6 @@ dependencies = [
 
 [[package]]
 name = "sysinfo"
-version = "0.39.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2071df9448915b71c4fe6d25deaf1c22f12bd234f01540b77312bb8e41361e6"
-dependencies = [
- "libc",
- "objc2-core-foundation",
- "objc2-io-kit",
- "windows",
-]
-
-[[package]]
-name = "sysinfo"
 version = "0.40.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a86bac2f7d06e6384984118ad727f5694110f0ec44d924d05c8fdec3d030bee6"
@@ -2706,7 +2706,7 @@ dependencies = [
  "serde_json",
  "sha1",
  "symphonia",
- "sysinfo 0.40.3",
+ "sysinfo",
  "time",
  "tracing",
  "tracing-appender",
@@ -3127,9 +3127,9 @@ dependencies = [
 
 [[package]]
 name = "zip"
-version = "9.5.1"
+version = "9.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3476fd497ac8af5b1ec7b51acab7bef380f7e8dd8e0487595bafd839417a302"
+checksum = "80cc68510ea7553c30a69c732de5278e94183f68765af6c642dbccefd6ec777e"
 dependencies = [
  "constant_time_eq",
  "crc32fast",
@@ -3138,7 +3138,7 @@ dependencies = [
  "indexmap",
  "libc",
  "memchr",
- "nix",
+ "nix 0.32.0",
  "typed-path",
  "windows-sys",
  "zeroize",

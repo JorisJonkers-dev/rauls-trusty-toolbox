@@ -48,9 +48,8 @@ pub fn free_space(folder: &Path) -> Result<Space, SpaceError> {
         .find(|p| !p.as_os_str().is_empty() && p.exists())
         .ok_or(SpaceError::NoFolder)?;
     let real = plain(existing.canonicalize().map_err(|_| SpaceError::NoFolder)?);
-    let disks = Disks::new_with_refreshed_list();
+    let disks = Disks::new_with_refreshed_list().map_err(|_| SpaceError::Unknown)?;
     let best = disks
-        .list()
         .iter()
         .filter(|d| real.starts_with(d.mount_point()))
         .max_by_key(|d| d.mount_point().components().count())
