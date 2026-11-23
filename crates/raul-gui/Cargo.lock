@@ -959,8 +959,10 @@ version = "0.1.0"
 dependencies = [
  "d3d9-stream",
  "esm",
+ "fork-gfx",
  "fork-hitch",
  "fork-log",
+ "fork-overlay",
  "fork-window",
  "naga",
  "qos",
@@ -1893,6 +1895,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "fork-gfx"
+version = "0.1.0"
+
+[[package]]
 name = "fork-hitch"
 version = "0.1.0"
 dependencies = [
@@ -1906,6 +1912,16 @@ version = "0.1.0"
 [[package]]
 name = "fork-memlog"
 version = "0.1.0"
+
+[[package]]
+name = "fork-overlay"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "egui-wgpu",
+ "fork-gfx",
+ "wgpu",
+]
 
 [[package]]
 name = "fork-play"
@@ -2330,6 +2346,7 @@ dependencies = [
  "engine-core",
  "engine-platform",
  "esm",
+ "fork-gfx",
  "fork-hitch",
  "fork-log",
  "game-folders",
@@ -2448,6 +2465,7 @@ name = "jip"
 version = "0.1.0"
 dependencies = [
  "engine-core",
+ "fork-log",
  "nvse",
  "uio",
 ]
@@ -3036,9 +3054,9 @@ dependencies = [
 
 [[package]]
 name = "naga-types"
-version = "30.0.2"
+version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14474170feb673cfb18b3565111a9869797cc1d290fb9ec969c53f5e1e231c6d"
+checksum = "590afbf58a6f4f62873cd5cff4468061844bafa1cdf399cc954537c22d768d49"
 dependencies = [
  "hashbrown 0.17.1",
  "indexmap",
@@ -6181,9 +6199,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "30.0.2"
+version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad661da2ee99f208c30090b585284b2ab5b8bf2358ddf2d2215592808ec62f1a"
+checksum = "14c018fce9b6270aa203c2fdd56f3cce996713534bd757e4ea58c8560b121f14"
 dependencies = [
  "arrayvec",
  "bit-set 0.10.0",
@@ -6216,9 +6234,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core-deps-apple"
-version = "30.0.2"
+version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d3f2f24aee039ffe9ef527300daf6b7428c58edeefdaa1700f4fa0fd754df16"
+checksum = "061f3d319a40d39d00b1ecc2c33b89fe21d4e6fe01859df3500a3a8ecccd6b68"
 dependencies = [
  "wgpu-hal",
 ]
@@ -6243,9 +6261,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core-deps-windows-linux-android"
-version = "30.0.2"
+version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1331b08fa2362c5d454eccc4448e6e4f01eccfea569a00e310adbfc4415f2bdc"
+checksum = "7586165fd5f6d881cb9ce4bb71f40d6caab2c0f1837e3fc1d9788a197fb6004f"
 dependencies = [
  "wgpu-hal",
 ]
@@ -6306,9 +6324,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-naga-bridge"
-version = "30.0.2"
+version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44a62ead68aad7cd40ac9e2cd2b8ec64f32dfbad2765f429b9fb74b8b735869f"
+checksum = "d2f62e73117bb7a62bfd9c5a5841438a823f6566c6442a808ee269d2d055c081"
 dependencies = [
  "naga",
  "wgpu-types",
@@ -6316,9 +6334,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "30.0.2"
+version = "30.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9f6ee0bd50f5ab79fb8c25e3f33afb27126f034af4ba5909c7a0967058659e6"
+checksum = "99dad6f1fbdbbdb4c278a6508b059d44688f5cebddf78d005a46a31340269286"
 dependencies = [
  "bitflags 2.13.2",
  "bytemuck",
