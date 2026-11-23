@@ -4,6 +4,8 @@ date: 2026-11-17
 ---
 # First-party packages are published on ghcr.io; linked crates stay git tag dependencies
 
+Amended by [ADR-0018](0018-the-submodule-pins-are-the-set.md): the "Yank" rule below names a `known-good.toml` `withdrawn` entry; that file is removed, so a withdrawal can no longer be an entry there. How a withdrawal is recorded is not decided by this note.
+
 Programs are published as OCI artifacts on ghcr.io. Libraries that `raul` links are not published to any registry:
 `raul` keeps consuming them as Cargo git dependencies pinned by tag, as it does for loot-rs today (ADR-0015).
 
