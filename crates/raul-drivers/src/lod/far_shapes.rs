@@ -78,7 +78,7 @@ mod tests {
     #[test]
     fn every_rule_names_a_world_and_models() {
         let rules = known_rules();
-        assert!(!rules.is_empty());
+        assert_ne!(rules.len(), 0);
         assert!(
             rules
                 .iter()
@@ -96,8 +96,14 @@ mod tests {
             select(vec![rule("World")], &names(&["WORLD"]), &[]).len(),
             1
         );
-        assert!(select(vec![rule("World")], &names(&["Other"]), &[]).is_empty());
-        assert!(select(vec![rule("World")], &names(&["World"]), &names(&["Other"])).is_empty());
+        assert_eq!(
+            select(vec![rule("World")], &names(&["Other"]), &[]).len(),
+            0
+        );
+        assert_eq!(
+            select(vec![rule("World")], &names(&["World"]), &names(&["Other"])).len(),
+            0
+        );
         assert_eq!(
             select(vec![rule("World")], &names(&["World"]), &names(&["world"])).len(),
             1
