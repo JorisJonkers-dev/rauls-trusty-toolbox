@@ -87,9 +87,34 @@
       "description": "How the run ended.",
       "$ref": "#/$defs/Status"
     },
+    "steps": {
+      "description": "Time, CPU time and peak memory per step of a `generate` run, in the order the steps ran; omitted when the run\ndid not generate.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/StepProfile"
+      }
+    },
+    "tiles": {
+      "description": "Diffuse tiles of a `generate` run: how many were left to the game's own far-land tiles and how many were\ncomposed; omitted when the run composes every tile (`terrain.compose_shipped_tiles`) or wrote no land tiles.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TileCounts"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "tool": {
       "description": "The tool that printed this document.",
       "$ref": "#/$defs/ToolInfo"
+    },
+    "warning_counts": {
+      "description": "How many warnings of each kind the run had, sorted by kind; the full list is in `warnings_file`. Omitted\nwhen the run had none.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/WarningCount"
+      }
     },
     "warnings": {
       "description": "Things that did not go in and why, at most twenty lines (a missing texture, a model without LOD).",
@@ -97,6 +122,13 @@
       "items": {
         "type": "string"
       }
+    },
+    "warnings_file": {
+      "description": "Relative name of the file with every warning, one record each ([`WarningsFile`]), beside the manifest;\nomitted when the run had no warning.",
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "written": {
       "description": "What was written.",
@@ -180,6 +212,87 @@
         }
       ]
     },
+    "StepProfile": {
+      "description": "Where a run spent its time and memory: one entry per step, and per world where the step runs once for each.",
+      "type": "object",
+      "properties": {
+        "bytes": {
+          "description": "Bytes the step wrote.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "cpu_ms": {
+          "description": "CPU time of the whole process during the step in milliseconds, all threads together; omitted where the\nplatform cannot say. More than `wall_ms` when the step used several threads.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "files": {
+          "description": "Files the step wrote.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "peak_memory_mib": {
+          "description": "Peak resident memory of the process during the step in MiB; omitted where the platform cannot say.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "step": {
+          "description": "The step: `read_plugins`, `terrain`, `objects`, `trees`, `pack` or `manifest` (a finer phase of a step is\nnamed `<step>.<phase>`, for example `objects.models`).",
+          "type": "string"
+        },
+        "wall_ms": {
+          "description": "Wall clock time in milliseconds.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "world": {
+          "description": "The world the step ran for; omitted for a step of the whole run.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "step",
+        "wall_ms",
+        "files",
+        "bytes"
+      ]
+    },
+    "TileCounts": {
+      "description": "Diffuse tiles left to the game and composed.",
+      "type": "object",
+      "properties": {
+        "composed": {
+          "description": "Tiles composed from the land textures.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "kept": {
+          "description": "Tiles not written because the game ships its own and no plugin outside the game's own masters changed the\nland under it.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "kept",
+        "composed"
+      ]
+    },
     "ToolInfo": {
       "description": "The tool that produced a document.",
       "type": "object",
@@ -196,6 +309,26 @@
       "required": [
         "name",
         "version"
+      ]
+    },
+    "WarningCount": {
+      "description": "How many warnings of one kind a run had.",
+      "type": "object",
+      "properties": {
+        "count": {
+          "description": "Warnings of that kind.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "kind": {
+          "description": "The kind, as in [`WarningRecord::kind`].",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "count"
       ]
     },
     "Written": {

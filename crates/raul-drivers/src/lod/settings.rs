@@ -159,7 +159,7 @@ pub mod catalogue {
     /// Specular in the alpha of the shading texture.
     pub const SPECULAR_ALPHA: &str = "Shine in the shading texture";
     /// Specular in alpha, explained.
-    pub const SPECULAR_ALPHA_HELP: &str = "Stores how shiny each land texture is in the shading texture, so distant land can shine like the land near you. Off by default; it is new, so look at the result in the game.";
+    pub const SPECULAR_ALPHA_HELP: &str = "Stores how shiny each land texture is in the shading texture, so distant land can shine like the land near you. On by default.";
     /// Skirts at the borders of a level's blocks.
     pub const SKIRTS: &str = "Close the gaps between blocks";
     /// Skirts, explained.
@@ -173,9 +173,9 @@ pub mod catalogue {
     /// Texture scales, explained.
     pub const TEXTURE_SCALES_HELP: &str = "For a land texture, how many times it repeats across a quarter of a cell in the colour textures. Give the land texture's record id and the number, like 0012AB34=2, separated by commas. A texture that is not listed repeats once.";
     /// Walls at the shore of the water planes.
-    pub const WATER_WALLS: &str = "Water walls (experimental)";
+    pub const WATER_WALLS: &str = "Water walls";
     /// Water walls, explained.
-    pub const WATER_WALLS_HELP: &str = "Experimental, off by default. Writes a vertical wall along the edge of distant water. It is new and not proven in the game: turn it on only to look at the result.";
+    pub const WATER_WALLS_HELP: &str = "On by default. Writes a vertical wall along the edge of distant water, so no gap shows between the water and the land beside it.";
     /// Shared water vertices.
     pub const WATER_SHARED_VERTICES: &str = "Shared water corners (experimental)";
     /// Shared water vertices, explained.
@@ -1707,34 +1707,34 @@ mod tests {
         assert!(none["objects"].get("drop_under_terrain").is_none());
     }
 
-    /// The skirts row of each terrain level is a tier 3 switch that is off, reaches the request of its own level only
-    /// when set, and leaves the digest of a Profile with no file when restored.
+    /// The skirts row of each terrain level is a tier 3 switch that is on, reaches the request of its own level only
+    /// when turned off, and leaves the digest of a Profile with no file when restored.
     #[test]
-    fn the_skirts_row_is_per_level_off_by_default_and_restores_the_request() {
+    fn the_skirts_row_is_per_level_on_by_default_and_restores_the_request() {
         for level in LEVELS {
             let key = format!("levels.{level}.skirts");
             let d = descriptor(&key).unwrap();
             assert_eq!((d.tier, d.kind), (3, Kind::Switch));
             assert!(listed_in(generator(), d), "{key}");
-            assert_eq!(default_value(&key), Some(json!(false)), "{key}");
+            assert_eq!(default_value(&key), Some(json!(true)), "{key}");
         }
         let dir = TempDir::new("raul-lodset-skirts");
         let at = at(&dir);
         let none = super::super::request_parts(&Settings::default());
-        set(&at, "levels.8.skirts", &json!(true)).unwrap();
-        let on = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
-        let on_at: Vec<(u64, bool)> = on["terrain"]["levels"]
+        set(&at, "levels.8.skirts", &json!(false)).unwrap();
+        let off = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        let on_at: Vec<(u64, bool)> = off["terrain"]["levels"]
             .as_array()
             .unwrap()
             .iter()
             .map(|l| {
                 (
                     l["level"].as_u64().unwrap(),
-                    l["skirts"].as_bool().unwrap_or(false),
+                    l["skirts"].as_bool().unwrap_or(true),
                 )
             })
             .collect();
-        assert_eq!(on_at, [(4, false), (8, true), (16, false), (32, false)]);
+        assert_eq!(on_at, [(4, true), (8, false), (16, true), (32, true)]);
         assert_eq!(
             set(&at, "levels.4.skirts", &json!(1)).unwrap_err().code,
             RefusalCode::WrongType
@@ -1744,14 +1744,35 @@ mod tests {
         assert_eq!(back, none);
     }
 
-    /// The three experimental water switches are tier 3, off by default, written to the request only when set and
+    /// Water walls are on in the generator: the request names them only when they are turned off, and a restore
+    /// takes that out again.
+    #[test]
+    fn water_walls_are_on_by_default_and_only_turning_them_off_reaches_the_request() {
+        let dir = TempDir::new("raul-lodset-walls");
+        let at = at(&dir);
+        let none = super::super::request_parts(&Settings::default());
+        let d = descriptor("terrain.water_walls").unwrap();
+        assert_eq!((d.tier, d.kind), (3, Kind::Switch));
+        assert!(listed_in(generator(), d));
+        assert_eq!(default_value("terrain.water_walls"), Some(json!(true)));
+        assert!(Settings::default().terrain.water_walls);
+        assert!(none["terrain"].get("water_walls").is_none());
+        set(&at, "terrain.water_walls", &json!(false)).unwrap();
+        let off = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        assert_eq!(off["terrain"]["water_walls"], json!(false));
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, none);
+    }
+
+    /// The two experimental water switches are tier 3, off by default, written to the request only when set and
     /// gone from it again after a restore.
     #[test]
     fn the_experimental_water_rows_are_off_by_default_and_restore_the_request() {
         let dir = TempDir::new("raul-lodset-water");
         let at = at(&dir);
         let none = super::super::request_parts(&Settings::default());
-        for key in ["water_walls", "water_shared_vertices", "water_polygons"] {
+        for key in ["water_shared_vertices", "water_polygons"] {
             let key = format!("terrain.{key}");
             let d = descriptor(&key).unwrap();
             assert_eq!((d.tier, d.kind), (3, Kind::Switch), "{key}");
