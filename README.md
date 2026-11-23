@@ -11,7 +11,9 @@ launches the game through the nv-rs engine port, all from one window or one comm
 Two Wastelands, Mods, Load order, distant LOD and Play, on Linux, Windows and macOS. The installers are built and
 smoke-tested for all three systems; Windows and macOS have not yet had a full run on real hardware. The Windows and macOS
 packages are unsigned, the icon is a placeholder, and the generated LOD is packed into one archive by default (the
-LOD settings can turn that off). The plan is in [`docs/PLAN.md`](docs/PLAN.md) and the reorganisation that refines it in [`docs/REORG.md`](docs/REORG.md), the design in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), decisions in
+LOD settings can turn that off). An empty `.override` file beside that archive lets it replace the same paths in earlier
+archives. This has been checked on one view in the engine port; on the original game it needs the JIP LN plugin, and
+without it the far view can show the earlier archive's files unless packing is off. The plan is in [`docs/PLAN.md`](docs/PLAN.md) and the reorganisation that refines it in [`docs/REORG.md`](docs/REORG.md), the design in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), decisions in
 [`docs/adr`](docs/adr) and terms in [`GLOSSARY.md`](GLOSSARY.md).
 
 <!-- Screenshots go here. -->
