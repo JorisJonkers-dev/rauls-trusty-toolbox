@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795423349306,
+  "lastUpdate": 1795449573104,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10828,6 +10828,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.220002,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6bd943b39f7faecb7797c817b8b22fac937b36c7",
+          "message": "chore(deps): bump nv-rs to 0.23.0 (#599)\n\n* chore(deps): bump nv-rs to 0.23.0\n\n* fix(deps): bring the GUI lock to nv-rs 0.23.0's engine versions and fill the scene variant's env\n\nThe GUI lock held wgpu-core, its platform deps, wgpu-naga-bridge, wgpu-types\nand naga-types at 30.0.2 where nv-rs 0.23.0 pins 30.0.1, and bumpalo and errno\none patch ahead. Lowered with cargo update --precise. cc stays at 1.8.0 because\na dependency requires it below 1.9: the allow list says so, and drops the\naccepted cc and shlex lines that no longer apply.\n\nnv-rs 0.23.0 added env to fork_scene::tool::Variant; raul scene run passes none.\n\n* fix(deps): keep the rest of the GUI lock as it was when bringing wgpu to nv-rs's versions\n\nLowering the engine families re-resolved gpu-allocator to windows 0.58, whose\ntypes do not match the windows 0.62 that nv-rs's vendored wgpu-hal uses, so the\nWindows build failed. Restore the unrelated entries (gpu-allocator's windows\n0.62.2, the windows-sys picks) and accept the patch-release drift of bumpalo\nand errno in the allow list instead of lowering them.\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-23T16:54:26+01:00",
+          "tree_id": "908df14527bdc18155ea38a54fdc154228f156d0",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6bd943b39f7faecb7797c817b8b22fac937b36c7"
+        },
+        "date": 1795449572403,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.271468,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.329021000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.130339,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.080007999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.054316,
             "unit": "ms"
           }
         ]
