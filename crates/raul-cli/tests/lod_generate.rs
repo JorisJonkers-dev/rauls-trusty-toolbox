@@ -641,8 +641,19 @@ fn packing_gives_a_mod_of_one_archive_and_its_stub_and_switching_it_either_way_m
     assert_eq!(result["up_to_date"], false, "{result}");
     assert_eq!(
         mod_files(&f),
-        ["Lodwright LOD.bsa", "Lodwright LOD.esp"],
-        "the archive and its stub and no loose file"
+        [
+            "Lodwright LOD.bsa",
+            "Lodwright LOD.esp",
+            "Lodwright LOD.override"
+        ],
+        "the archive, its stub, its override marker and no loose file"
+    );
+    assert_eq!(
+        std::fs::metadata(f.lod_mod().join("Lodwright LOD.override"))
+            .unwrap()
+            .len(),
+        0,
+        "the marker is empty"
     );
     assert_eq!(stale_of(&f).0, "current");
     assert_eq!(mod_names(&f), [MOD], "one Mod");
@@ -668,7 +679,7 @@ fn packing_gives_a_mod_of_one_archive_and_its_stub_and_switching_it_either_way_m
     assert_eq!(
         mod_files(&f),
         loose,
-        "loose files again and no archive or stub"
+        "loose files again and no archive, stub or marker"
     );
     let plugins =
         std::fs::read_to_string(f.instance().join("profiles/Default/plugins.txt")).unwrap();

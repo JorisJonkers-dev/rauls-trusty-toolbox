@@ -187,7 +187,7 @@ pub mod catalogue {
     /// Pack the generated LOD into one archive.
     pub const PACK: &str = "Pack the generated LOD into one archive";
     /// Packing, explained.
-    pub const PACK_HELP: &str = "On by default. The next generate ends by writing the LOD into one archive (a .bsa file) and a small Plugin of the same name that registers it, in place of the loose files; the LOD Mod then holds the archive, the Plugin and no loose files. The Plugin takes one of the game's 255 plugin slots and stays on in the Load order, or the game does not open the archive and uses its own distant land; it needs the game's first Plugin (normally FalloutNV.esm) to be present. Turning this off applies at the next generate, which builds the loose files again.";
+    pub const PACK_HELP: &str = "On by default. The next generate ends by writing the LOD into one archive (a .bsa file) and a small Plugin of the same name that registers it, in place of the loose files; the LOD Mod then holds the archive, the Plugin, an empty .override file and no loose files. The .override file lets the archive replace the same paths in earlier archives; on the original game that needs the JIP LN plugin, and without it turn packing off if the far view shows the older files. The Plugin takes one of the game's 255 plugin slots and stays on in the Load order, or the game does not open the archive and uses its own distant land; it needs the game's first Plugin (normally FalloutNV.esm) to be present. Turning this off applies at the next generate, which builds the loose files again.";
     /// Drop faces under the terrain.
     pub const DROP_UNDER_TERRAIN: &str = "Leave out object faces under the land";
     /// Drop faces under the terrain, explained.
