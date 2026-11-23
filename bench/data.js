@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795449573104,
+  "lastUpdate": 1795450798892,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10877,6 +10877,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.054316,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "708d740762b57a25a864cc143acd06ae1d736129",
+          "message": "fix(deps): update minor and patch dependencies (#596)\n\n* fix(deps): update minor and patch dependencies\n\n* fix(core): read disks through the sysinfo 0.40 listing API\n\nListing disks can now fail. Report that as unknown free space, the result this function already has for storage it cannot read.\n\n* fix(deps): refresh the GUI lock for the sysinfo and zip bumps\n\nThe lock no longer matched the manifests after the sysinfo 0.40 and zip 9.6.0 bumps\n(--locked refused it). Refreshed without moving the wgpu family or gpu-allocator;\nzip 9.6.0 and the nix 0.32 it needs are accepted drift in the allow list.\n\n---------\n\nCo-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-23T16:15:05Z",
+          "tree_id": "5c0ae74ef0b45f293355777351d56ee874f3081f",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/708d740762b57a25a864cc143acd06ae1d736129"
+        },
+        "date": 1795450797967,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.301347,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.441875999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 47.60941,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.158356,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.354997000000001,
             "unit": "ms"
           }
         ]
