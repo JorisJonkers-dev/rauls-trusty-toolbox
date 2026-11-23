@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use lodwright_api::{CancelToken, GenerateOutcome, GenerateRequest};
-use lodwright_contract::{Request as LodwrightRequest, Status as LodwrightStatus};
+use lodwright_contract::{Request as LodwrightRequest, Status as LodwrightStatus, WARNINGS_FILE};
 use nvmod_instance::{NvmodInstance, find_ci};
 use nvmod_modinstall::lifecycle::{self, Action};
 use nvmod_modinstall::mods::{Change, ModsError, Place};
@@ -133,13 +133,14 @@ fn typed(request: &Value) -> Result<LodwrightRequest, String> {
     serde_json::from_value(request.clone()).map_err(|e| e.to_string())
 }
 
-/// Copy `from` into `to`, leaving out lodwright's manifest (it describes lodwright's folder, not the Mod).
+/// Copy `from` into `to`, leaving out lodwright's manifest and warnings file (they describe lodwright's run and stay in
+/// its folder; they are not game files).
 fn copy_output(from: &Path, to: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(to)?;
     for entry in std::fs::read_dir(from)? {
         let entry = entry?;
         let (source, name) = (entry.path(), entry.file_name());
-        if from.join(MANIFEST_FILE) == source {
+        if from.join(MANIFEST_FILE) == source || from.join(WARNINGS_FILE) == source {
             continue;
         }
         let kind = entry.file_type()?;

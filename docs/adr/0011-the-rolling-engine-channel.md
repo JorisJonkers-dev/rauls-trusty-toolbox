@@ -4,6 +4,8 @@ date: 2026-11-16
 ---
 # The Rolling engine channel
 
+Amended by [ADR-0018](0018-the-submodule-pins-are-the-set.md): there is no chain of Known-good sets or `known-good.toml` any more. "The newest Known-good set" and "the current set" below mean the Component versions the submodule pins and the lock files fix; the Rolling channel itself stands.
+
 nv-rs builds may be offered ahead of the newest Known-good set, because the fork publishes several builds a day and
 the owner runs the newest. Before a newer build is offered, the Toolbox checks compatibility: the `capabilities.json`
 difference, that the Load order is still covered, and that every Contract version the build emits is one the current

@@ -627,6 +627,10 @@ fn packing_gives_a_mod_of_one_archive_and_its_stub_and_switching_it_either_way_m
         loose.iter().any(|n| n.starts_with("meshes/landscape/lod/")),
         "{loose:?}"
     );
+    assert!(
+        !loose.iter().any(|n| n == "lodwright-warnings.json"),
+        "the run's warnings stay out of the Mod: {loose:?}"
+    );
     assert_eq!(stale_of(&f).0, "current");
 
     f.settings("");

@@ -4,6 +4,8 @@ date: 2026-11-16
 ---
 # The Toolbox repository is the product umbrella; the private workshop stays private
 
+Superseded in part by [ADR-0018](0018-the-submodule-pins-are-the-set.md): the Toolbox no longer owns a `known-good.toml`; the submodule pins and the lock files are the set.
+
 The Toolbox pins the five Components as submodules, owns the GUI, the `raul` program, `known-good.toml`, the
 end-to-end run and the release of installers. `compat/`, `e2e/` and the release gate move here from the owner's private
 workshop, which stays private (MO2 state, harness, research). Product decisions and the canonical glossary live

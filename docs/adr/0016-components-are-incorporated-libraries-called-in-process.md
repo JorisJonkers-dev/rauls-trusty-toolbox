@@ -1,8 +1,10 @@
 ---
-status: accepted, amended by ADR-0019
+status: accepted, amended by ADR-0019 and ADR-0018
 date: 2026-11-17
 ---
 # Components are incorporated: raul links and calls them in process
+
+Amended by [ADR-0018](0018-the-submodule-pins-are-the-set.md) on one point: `known-good.toml` does not stay as a record of passed sets. It was removed; the submodule pins and the lock files are the set, and CI tests those pins (the "Precedence of compatibility checks" below names `known-good.toml` for sets).
 
 nvmod, lodwright-rs, ttwright-rs, loot-rs (through nvmod) and nv-rs are libraries that `raul` links and calls in
 process. `raul` does not start them as commands, and nothing the person sees (a screen, a message, a log line) shows

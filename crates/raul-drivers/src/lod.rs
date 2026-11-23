@@ -228,8 +228,11 @@ pub fn request_parts(settings: &Settings) -> Value {
     if let Some(depth) = settings.terrain.drop_under_water {
         terrain["drop_under_water"] = json!(depth);
     }
+    // on in the generator unless the request turns it off
+    if !settings.terrain.water_walls {
+        terrain["water_walls"] = json!(false);
+    }
     for (key, on) in [
-        ("water_walls", settings.terrain.water_walls),
         (
             "water_shared_vertices",
             settings.terrain.water_shared_vertices,
@@ -289,12 +292,12 @@ pub struct Inclusion {
 }
 
 /// What terrain LOD leaves out of what it builds (options the generator added after its first release).
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct TerrainOptions {
     /// Leave out faces whose corners all lie at least this many world units below the water plane; unset keeps all.
     pub drop_under_water: Option<f32>,
-    /// Experimental: a vertical wall along the edge of the water planes (off unless set).
+    /// A vertical wall along the edge of the water planes (on unless turned off, as in the generator).
     pub water_walls: bool,
     /// Experimental: neighbouring water faces share their corners (off unless set).
     pub water_shared_vertices: bool,
@@ -313,6 +316,18 @@ pub struct ObjectOptions {
     pub drop_under_terrain: bool,
     /// Leave out faces that lie wholly under the water.
     pub drop_under_water: bool,
+}
+
+impl Default for TerrainOptions {
+    fn default() -> TerrainOptions {
+        TerrainOptions {
+            drop_under_water: None,
+            water_walls: true,
+            water_shared_vertices: false,
+            water_polygons: false,
+            texture_scales: std::collections::BTreeMap::new(),
+        }
+    }
 }
 
 /// What lodwright writes.
