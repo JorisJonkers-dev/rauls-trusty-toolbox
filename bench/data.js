@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795453683411,
+  "lastUpdate": 1795456414268,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11024,6 +11024,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.080069,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0e2d3d273869a46182c57e0dd6ecca4584706ebd",
+          "message": "chore(deps): bump lodwright-rs to 0.16.1 (#602)\n\n* chore(deps): bump lodwright-rs to 0.16.0\n\n* fix(lod): keep lodwright's warnings file out of the generated Mod\n\nlodwright 0.16.0 writes lodwright-warnings.json beside its manifest. It describes the run and is not a game file, so it stays in lodwright's output folder.\n\n* chore(deps): bump lodwright-rs to 0.16.1\n\n0.16.1 stops a run from reading the packed output of an earlier run as the game's archive, which lost far-land tiles on 0.16.0.\n\n* fix(lod): follow lodwright's on-by-default water walls and skirts\n\nlodwright now turns water walls and block skirts on unless a request turns them off. raul never wrote a false value for water walls, so a Profile could not turn them off, and its settings text still said both were off by default. The contract snapshots follow the pinned release.\n\n* test(gui): the LOD settings page shows water walls on by default\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-23T18:51:46+01:00",
+          "tree_id": "86e63bd031e3152fabd98922bb00e514b05d1370",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/0e2d3d273869a46182c57e0dd6ecca4584706ebd"
+        },
+        "date": 1795456413360,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.893713,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.589818000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 35.772049,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.1000630000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.393083,
             "unit": "ms"
           }
         ]
