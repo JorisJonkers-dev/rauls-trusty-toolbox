@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795382537104,
+  "lastUpdate": 1795403885958,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10730,6 +10730,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.264211,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "427dc7efadf876a30b3f940ee8f959f71dd946f7",
+          "message": "chore(deps): lock file maintenance (#597)\n\nCo-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-23T03:13:14Z",
+          "tree_id": "299f3dab7eb3c1d1f651fdad653a4a84d942395f",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/427dc7efadf876a30b3f940ee8f959f71dd946f7"
+        },
+        "date": 1795403885205,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.293399,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.382684,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.210899999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.1705309999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.139348,
             "unit": "ms"
           }
         ]
