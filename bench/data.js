@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795451715189,
+  "lastUpdate": 1795453683411,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -10975,6 +10975,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.296742999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6835ab05eed7bf0e2b283f3a1cf7acd57be83043",
+          "message": "docs(adr): mark where ADR-0018 supersedes known-good.toml (#603)\n\nADR-0005 and ADR-0008 already say they are superseded by ADR-0018, which removed\nknown-good.toml. ADR-0001, 0011, 0015, 0016 and 0017 still name the file or the\nchain of sets without saying so. Each gets a dated-by-reference note; no text is rewritten.",
+          "timestamp": "2026-11-23T18:05:52+01:00",
+          "tree_id": "db98617639daf81a6b0b993179b26f076156dcca",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6835ab05eed7bf0e2b283f3a1cf7acd57be83043"
+        },
+        "date": 1795453682383,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.3051999999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.524138,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 47.086869,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.467229,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 10.080069,
             "unit": "ms"
           }
         ]
