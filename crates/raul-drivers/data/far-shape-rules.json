@@ -1,0 +1,25 @@
+[
+  {
+    "world": "Wasteland",
+    "models": [
+      "clutter/tombstone/tombstone01.nif",
+      "clutter/tombstone/tombstone02.nif",
+      "clutter/tombstone/tombstone03.nif",
+      "clutter/tombstone/tombstone04.nif",
+      "clutter/tombstone/tombstone05.nif",
+      "architecture/wasteland/gasstation01.nif",
+      "architecture/suburban/houseruined01.nif",
+      "architecture/urban/buildingkits/bld06mid02.nif",
+      "architecture/urban/buildingkits/bld05corner01.nif",
+      "architecture/urban/buildingkits/bld12corner01.nif",
+      "architecture/urban/buildingkits/bldangledstrdouble01.nif",
+      "architecture/urban/buildingkits/bldangledcor01.nif",
+      "architecture/urban/buildingkits/bld07corner01.nif",
+      "architecture/urban/buildingkits/bld12incorner01.nif",
+      "architecture/urban/buildingkits/bld06corner03.nif",
+      "architecture/urban/buildingkits/bld02cornervarient01.nif",
+      "architecture/urban/hotelwall01.nif",
+      "architecture/urban/signage/signbarber01.nif"
+    ]
+  }
+]

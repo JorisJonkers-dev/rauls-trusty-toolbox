@@ -4,6 +4,7 @@
 //! and the manifest lodwright leaves in its output folder. [`generate`] calls lodwright's library API in process with
 //! that request and keeps its output as one Mod per Profile, marked as generated LOD in its `meta.ini`.
 
+mod far_shapes;
 mod generate;
 mod inproc;
 mod marker;
@@ -478,6 +479,12 @@ pub fn plan(
     });
     if !parts["output"].is_null() {
         request["output"] = parts["output"].clone();
+    }
+    if settings.output.objects {
+        let rules = far_shapes::rules_for_load_order(&data_folder, &plugins, &worlds);
+        if !rules.is_empty() {
+            request["objects"]["shapes_from_shipped_blocks"] = json!(rules);
+        }
     }
     check_request(&request)?;
     Ok(Plan {

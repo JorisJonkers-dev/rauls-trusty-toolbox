@@ -59,13 +59,18 @@ struct Fixture {
 impl Fixture {
     /// An Instance whose game master is a synthetic world of four cells with terrain.
     fn new(label: &str) -> Fixture {
+        Fixture::with_world(label, "Island")
+    }
+
+    /// The same Instance with the world named `world`.
+    fn with_world(label: &str, world: &str) -> Fixture {
         let f = Fixture {
             root: TempDir::new(label),
         };
         BaseBuilder::steam()
             .exe_version([1, 4, 0, 525])
             .write(&f.path("FalloutNV"));
-        let world = SyntheticWorld::new(0xB00, "Island")
+        let world = SyntheticWorld::new(0xB00, world)
             .cell(2, 2, Heights::flat(16.0))
             .cell(3, 2, Heights::flat(24.0))
             .cell(2, 3, Heights::flat(32.0))
@@ -1097,4 +1102,43 @@ fn lod_generate_never_reaches_nvmod() {
         "{out:?}"
     );
     assert!(!logs.exists(), "nvmod ran");
+}
+
+/// The far-shape rules in raul's data reach the request only for a load order that has the rule's world.
+#[test]
+fn far_shape_rules_are_requested_only_for_a_load_order_with_their_world() {
+    let plan = |f: &Fixture, extra: &[&str]| -> Value {
+        let inst = f.instance();
+        let mut args = vec!["lod", "plan", "--json", "--instance", s(&inst)];
+        args.extend_from_slice(extra);
+        let out = f.raul(&args);
+        assert!(out.status.success(), "{out:?}");
+        serde_json::from_slice(&out.stdout).unwrap()
+    };
+    let with = Fixture::with_world("raul-lodgen-rules-on", "Wasteland");
+    let request = plan(&with, &[]);
+    lod::check_request(&request).unwrap();
+    let rules = request["objects"]["shapes_from_shipped_blocks"]
+        .as_array()
+        .expect("the rules are in the request");
+    assert_eq!(rules.len(), 1, "{request}");
+    assert_eq!(rules[0]["world"], "Wasteland");
+    assert_eq!(rules[0]["models"].as_array().unwrap().len(), 18);
+
+    // A run limited to another world does not name it.
+    let other = plan(&with, &["--world", "Elsewhere"]);
+    assert!(other["objects"].get("shapes_from_shipped_blocks").is_none());
+    // With object LOD off there is nothing to apply them to.
+    with.settings("[output]\nobjects = false\n");
+    let off = plan(&with, &[]);
+    assert!(off["objects"].get("shapes_from_shipped_blocks").is_none());
+
+    // A load order without the world gets exactly the request it had without rules.
+    let without = Fixture::with_world("raul-lodgen-rules-off", "Island");
+    let request = plan(&without, &[]);
+    assert_eq!(
+        request["objects"],
+        serde_json::json!({ "enabled": true }),
+        "{request}"
+    );
 }
