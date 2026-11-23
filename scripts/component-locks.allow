@@ -15,9 +15,9 @@ wasm-bindgen-macro-support 0.2.130 0.2.129
 wasm-bindgen-shared 0.2.130 0.2.129
 web-sys 0.3.107 0.3.106
 #
-# Another release line, each lock keeping the one its own resolution chose (cc and shlex are the C compiler driver, used
-# while building only):
-cc 1.2.62 1.11.1
+# Another release line, each lock keeping the one its own resolution chose (cc is the C compiler driver, used while
+# building only; the GUI lock cannot move it to nv-rs's 1.11.1 because a dependency in its tree requires cc below 1.9, as
+# `cargo update -p cc --precise 1.11.1` reports):
+cc 1.8.0 1.11.1
 ordered-float 5.5.1 4.6.0
-shlex 1.3.0 2.0.1
 unicode-width 0.2.3 0.1.14

@@ -120,6 +120,7 @@ fn execute(request: &Request, out: &mut dyn Write, err: &mut dyn Write) -> Resul
             req.variants = vec![tool::Variant {
                 name: s.variant.clone(),
                 overlays: s.overlays.clone(),
+                env: Vec::new(),
             }];
             req.jobs = 1;
             if !s.resolution.is_empty() {
