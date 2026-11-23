@@ -163,7 +163,7 @@
           "format": "float"
         },
         "skirts": {
-          "description": "Close the gap between neighbouring blocks with a skirt under every border vertex, as the game's own blocks\ndo (`docs/spec/terrain-lod.md`). Off by default and written only when set.",
+          "description": "Close the gap between neighbouring blocks with a skirt under every border vertex, as the game's own blocks\ndo (`docs/spec/terrain-lod.md`). On by default (without them the game shows the background through the cracks\nbetween blocks of different levels); written only when off.",
           "type": "boolean"
         },
         "specular_alpha": {
@@ -193,7 +193,7 @@
           "minimum": 0
         },
         "threads": {
-          "description": "Worker threads; omitted means the machine decides (at most four).",
+          "description": "Worker threads; omitted means every core of the machine.",
           "type": [
             "integer",
             "null"
@@ -219,6 +219,13 @@
           "description": "Write object LOD.",
           "type": "boolean",
           "default": true
+        },
+        "shapes_from_shipped_blocks": {
+          "description": "Objects whose far shape is taken from the far blocks the games ship, by world and model. Only enabled\nreferences without an enable parent are taken. Empty by default; written only when set.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ShippedShapeRule"
+          }
         }
       }
     },
@@ -232,10 +239,35 @@
         }
       }
     },
+    "ShippedShapeRule": {
+      "description": "One world's models whose far shape is taken from the far blocks the games ship.",
+      "type": "object",
+      "properties": {
+        "models": {
+          "description": "Model paths relative to `meshes`, in any case and with either separator.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "world": {
+          "description": "The worldspace's editor id, in any case. A world the load order does not have is ignored.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "world",
+        "models"
+      ]
+    },
     "TerrainRequest": {
       "description": "Terrain settings.",
       "type": "object",
       "properties": {
+        "compose_shipped_tiles": {
+          "description": "Compose every diffuse tile from the land textures, also where the game ships its own far-land tile and no plugin\noutside the game's own masters changed the land under it (`docs/spec/terrain-lod.md`). Off by default: such a\ntile is left out of the output and the game's own is the one drawn; written only when on.",
+          "type": "boolean"
+        },
         "drop_under_water": {
           "description": "Leave out terrain faces that cannot be seen under water: a face whose three corners all lie at least this many\nworld units below the water plane of the cell it is in (own design, `docs/spec/terrain-lod.md`). Absent by\ndefault, which keeps every face; written only when set.",
           "type": [
@@ -248,6 +280,10 @@
           "description": "Write terrain LOD.",
           "type": "boolean",
           "default": true
+        },
+        "land_light": {
+          "description": "Darken the composed far land as the near land is lit: each land texture's colours times the mean up component\nof its normal map, and a game tile is used only where it is already that dark (`docs/spec/terrain-lod.md`).\nOn by default; off gives the output the generator wrote before this option existed. Written only when off.",
+          "type": "boolean"
         },
         "land_textures": {
           "description": "Blend the land textures into the diffuse maps (off: vertex colours only).",
@@ -284,7 +320,7 @@
           "type": "boolean"
         },
         "water_walls": {
-          "description": "Write walls under the outline of the water planes, from the water down to the height the game's outlines drop\nto (own design, `docs/spec/terrain-lod.md`). Off by default; written only when on.",
+          "description": "Write the game's water borders: a wall on every block border where the water meets it, from the water down to\nthe height the game's outlines drop to, and at level 4 a plane that overlaps its neighbours by 32 units\n(`docs/spec/terrain-lod.md`). On by default (without them the lake shows a pale band and a dotted line at every\nblock seam); written only when off.",
           "type": "boolean"
         }
       }

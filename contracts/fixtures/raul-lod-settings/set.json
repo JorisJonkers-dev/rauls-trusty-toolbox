@@ -192,7 +192,7 @@
       "value": null
     },
     {
-      "default": false,
+      "default": true,
       "key": "terrain.water_walls",
       "kind": "switch",
       "max": null,
@@ -200,7 +200,7 @@
       "overridden": false,
       "restores": true,
       "tier": 3,
-      "value": false
+      "value": true
     },
     {
       "default": false,
@@ -302,7 +302,7 @@
       "value": false
     },
     {
-      "default": false,
+      "default": true,
       "key": "levels.4.skirts",
       "kind": "switch",
       "max": null,
@@ -310,7 +310,7 @@
       "overridden": false,
       "restores": true,
       "tier": 3,
-      "value": false
+      "value": true
     },
     {
       "default": 15.0,
@@ -368,7 +368,7 @@
       "value": false
     },
     {
-      "default": false,
+      "default": true,
       "key": "levels.8.skirts",
       "kind": "switch",
       "max": null,
@@ -376,7 +376,7 @@
       "overridden": false,
       "restores": true,
       "tier": 3,
-      "value": false
+      "value": true
     },
     {
       "default": 20.0,
@@ -434,7 +434,7 @@
       "value": false
     },
     {
-      "default": false,
+      "default": true,
       "key": "levels.16.skirts",
       "kind": "switch",
       "max": null,
@@ -442,7 +442,7 @@
       "overridden": false,
       "restores": true,
       "tier": 3,
-      "value": false
+      "value": true
     },
     {
       "default": 25.0,
@@ -500,7 +500,7 @@
       "value": false
     },
     {
-      "default": false,
+      "default": true,
       "key": "levels.32.skirts",
       "kind": "switch",
       "max": null,
@@ -508,7 +508,7 @@
       "overridden": false,
       "restores": true,
       "tier": 3,
-      "value": false
+      "value": true
     }
   ],
   "profile": "Default",
