@@ -1,0 +1,8 @@
+[
+  {
+    "plugin": "Street Lights TTW.esm",
+    "models": "*",
+    "record_type": "STAT",
+    "generate": { "keep": 0.25, "max_error": 0.05 }
+  }
+]

@@ -6,6 +6,7 @@
 
 mod far_shapes;
 mod generate;
+mod include_rules;
 mod inproc;
 mod marker;
 mod mods;
@@ -484,6 +485,10 @@ pub fn plan(
         let rules = far_shapes::rules_for_load_order(&data_folder, &plugins, &worlds);
         if !rules.is_empty() {
             request["objects"]["shapes_from_shipped_blocks"] = json!(rules);
+        }
+        let include = include_rules::rules_for_load_order(&plugins);
+        if !include.is_empty() {
+            request["inclusion"]["include_rules"] = json!(include);
         }
     }
     check_request(&request)?;
