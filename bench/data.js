@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795472097540,
+  "lastUpdate": 1795501585456,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11220,6 +11220,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.10281,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6c900e4796dd07b5da586a5a7c6ac51b1f83c779",
+          "message": "fix(deps): update minor and patch dependencies (#607)\n\n* fix(deps): update minor and patch dependencies\n\n* fix(deps): take zip 9.6.1 and sysinfo 0.40.4 into the GUI workspace lock\n\nThe GUI workspace has its own Cargo.lock, which the update left at the old\nversions, so every --locked step failed on macOS, Windows and the GUI job.\nOnly the two package entries change; the rest of the lock is as it was.\n\n* fix(deps): accept zip 9.6.1 against nv-rs's 9.5.1 in the engine lock check\n\nThe accepted drift named 9.6.0, so the Engine link check reported the new pin\nas unaccepted and the old line as stale. Checked with check-component-locks.\n\n---------\n\nCo-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-24T06:23:18Z",
+          "tree_id": "f934d910a33776cba38e9cb35deb094a7f8e3b62",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6c900e4796dd07b5da586a5a7c6ac51b1f83c779"
+        },
+        "date": 1795501584263,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.413775,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 11.355766999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 51.238833,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.902609,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 11.546397,
             "unit": "ms"
           }
         ]
