@@ -64,6 +64,12 @@ impl Fixture {
 
     /// The same Instance with the world named `world`.
     fn with_world(label: &str, world: &str) -> Fixture {
+        Fixture::with_world_and_plugin(label, world, None)
+    }
+
+    /// The same Instance with the world named `world` and, when given, one more plugin (empty, on the game master)
+    /// of that name in the game's Data folder, active at the end of the Default Profile's Load order.
+    fn with_world_and_plugin(label: &str, world: &str, plugin: Option<&str>) -> Fixture {
         let f = Fixture {
             root: TempDir::new(label),
         };
@@ -80,6 +86,12 @@ impl Fixture {
             world_plugin(&[], &world, false),
         )
         .unwrap();
+        if let Some(name) = plugin {
+            let bytes = lodwright_testkit::plugin::PluginBuilder::new()
+                .master("FalloutNV.esm")
+                .build();
+            std::fs::write(f.path("FalloutNV/Data").join(name), bytes).unwrap();
+        }
         let (base, inst) = (f.path("FalloutNV"), f.instance());
         for args in [
             &["init", "--base", s(&base), "--instance", s(&inst)][..],
@@ -88,6 +100,15 @@ impl Fixture {
         ] {
             let out = f.raul(args);
             assert!(out.status.success(), "{args:?}: {out:?}");
+        }
+        if let Some(name) = plugin {
+            for file in ["plugins.txt", "loadorder.txt"] {
+                let path = f.instance().join("profiles/Default").join(file);
+                let mut text = std::fs::read_to_string(&path).unwrap_or_default();
+                text.push_str(name);
+                text.push_str("\r\n");
+                std::fs::write(path, text).unwrap();
+            }
         }
         f
     }
@@ -1139,6 +1160,61 @@ fn far_shape_rules_are_requested_only_for_a_load_order_with_their_world() {
     assert_eq!(
         request["objects"],
         serde_json::json!({ "enabled": true }),
+        "{request}"
+    );
+}
+
+/// The include rules in raul's data reach the request: those for the base game's lamp posts for every load order, the
+/// rule of a plugin only for a load order that has it; the request still passes lodwright's schema.
+#[test]
+fn include_rules_are_requested_only_for_a_load_order_with_their_plugin() {
+    let plan = |f: &Fixture| -> Value {
+        let out = f.raul(&["lod", "plan", "--json", "--instance", s(&f.instance())]);
+        assert!(out.status.success(), "{out:?}");
+        serde_json::from_slice(&out.stdout).unwrap()
+    };
+    let rules_of = |request: &Value| -> Vec<Value> {
+        request["inclusion"]["include_rules"]
+            .as_array()
+            .unwrap_or_else(|| panic!("the rules are in the request: {request}"))
+            .clone()
+    };
+    let with = Fixture::with_world_and_plugin(
+        "raul-lodgen-include-on",
+        "Island",
+        Some("Street Lights TTW.esm"),
+    );
+    let request = plan(&with);
+    lod::check_request(&request).unwrap();
+    let with_rules = rules_of(&request);
+    let by_plugin: Vec<&Value> = with_rules
+        .iter()
+        .filter(|r| r.get("plugin").is_some())
+        .collect();
+    assert_eq!(by_plugin.len(), 1, "{request}");
+    assert_eq!(by_plugin[0]["plugin"], "Street Lights TTW.esm");
+    assert!(
+        with_rules.iter().all(|r| r["generate"]["keep"].is_number()),
+        "{request}"
+    );
+    assert!(
+        with_rules
+            .iter()
+            .any(|r| r["models"] == "architecture/strip/nvstripstreetlamp*.nif"),
+        "{request}"
+    );
+    // With object LOD off there is nothing to apply them to.
+    with.settings("[output]\nobjects = false\n");
+    assert!(plan(&with)["inclusion"].get("include_rules").is_none());
+
+    // A load order without the plugin gets the base game's rules only.
+    let without = Fixture::new("raul-lodgen-include-off");
+    let request = plan(&without);
+    lod::check_request(&request).unwrap();
+    let general = rules_of(&request);
+    assert_eq!(general.len(), with_rules.len() - 1, "{request}");
+    assert!(
+        general.iter().all(|r| r.get("plugin").is_none()),
         "{request}"
     );
 }
