@@ -23,7 +23,7 @@ jsonschema = { workspace = true }
 # The same versions nvmod-modinstall links, so Cargo builds one copy: only the list of names of an archive is read here
 # (the TTW package is found by what its archive holds); unpacking is nvmod's extractor.
 sevenz-rust2 = { version = "=0.25.0", default-features = false }
-zip = { version = "=9.6.0", default-features = false }
+zip = { version = "=9.6.1", default-features = false }
 toml = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
