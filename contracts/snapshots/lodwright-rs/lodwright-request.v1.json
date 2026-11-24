@@ -91,6 +91,64 @@
     "output_dir"
   ],
   "$defs": {
+    "FullModelShapes": {
+      "description": "How far a full model is simplified into a far shape: it stops at whichever limit it reaches first.",
+      "type": "object",
+      "properties": {
+        "keep": {
+          "description": "Share of each shape's triangles to keep, above 0 and at most 1.",
+          "type": "number",
+          "format": "float"
+        },
+        "max_error": {
+          "description": "Largest error allowed, as a share of the shape's size, from 0 to 1.",
+          "type": "number",
+          "format": "float"
+        }
+      },
+      "required": [
+        "keep",
+        "max_error"
+      ]
+    },
+    "IncludeRule": {
+      "description": "One rule of `inclusion.include_rules`: which placed objects to take into object LOD.",
+      "type": "object",
+      "properties": {
+        "generate": {
+          "description": "Draw the objects this rule matches that have no LOD model with a simplified copy of their full model, at\nthese limits. Only the objects the rule matches get such a shape; other objects follow\n`objects.shapes_from_full_models`. Not set by default; written only when set.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FullModelShapes"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "models": {
+          "description": "The model path (relative to `meshes`, any case, either separator) as a pattern; `*` matches any run of\ncharacters.",
+          "type": "string"
+        },
+        "plugin": {
+          "description": "Only objects whose reference or base object comes from this plugin (file name, any case).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "record_type": {
+          "description": "Only base objects of this record type: four capital letters or digits, such as `STAT`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "models"
+      ]
+    },
     "Inclusion": {
       "description": "Which objects enter object LOD, beyond the game's own rule (visible when distant).",
       "type": "object",
@@ -117,6 +175,13 @@
           "default": [],
           "items": {
             "type": "string"
+          }
+        },
+        "include_rules": {
+          "description": "Take objects that nothing marks visible from far into object LOD when they match one of these rules. Only\nreferences enabled at the start and without an enable parent are taken; the exclusion rules above still win.\nEmpty by default and written only when set, so a request without rules keeps its digest.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IncludeRule"
           }
         },
         "only_plugins": {
@@ -219,6 +284,17 @@
           "description": "Write object LOD.",
           "type": "boolean",
           "default": true
+        },
+        "shapes_from_full_models": {
+          "description": "Draw objects that have no LOD model with a simplified copy of their full model. Off by default, because the\ngame's own LOD is the standard; written only when set.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FullModelShapes"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "shapes_from_shipped_blocks": {
           "description": "Objects whose far shape is taken from the far blocks the games ship, by world and model. Only enabled\nreferences without an enable parent are taken. Empty by default; written only when set.",
