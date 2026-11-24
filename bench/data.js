@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795511843112,
+  "lastUpdate": 1795513126511,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11318,6 +11318,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.686617,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "35fcb43c515d3b528919e99fbb702e36b41e602d",
+          "message": "feat(lod): put the base game's lamp posts into the far view for every load order (#610)\n\n* feat(lod): pass include rules for load orders that carry their plugin to lodwright\n\n* feat(lod): put the base game's lamp posts into the far view for every load order\n\nraul's include rules now name the base game's own street lamp and lamp-post\nmodels (Strip lamps, street lights, lamp posts, parking lot lights, the\nCapital's traffic-light street lights, the Lamplight lamp) with a far shape\nmade from each full model, for any load order. The rule for Street Lights\nTTW.esm stays and applies only when that plugin is loaded.\n\nThe rules are serialised through their own types before entering the request,\nso a limit reads 0.05 there and not the f64 nearest its f32 value.",
+          "timestamp": "2026-11-24T10:36:35+01:00",
+          "tree_id": "1b7671245a66bca0f0a93ec11dcfc0f4de5d78e8",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/35fcb43c515d3b528919e99fbb702e36b41e602d"
+        },
+        "date": 1795513125544,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.293453,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.543017,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.653012,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.135072,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.017589,
             "unit": "ms"
           }
         ]
