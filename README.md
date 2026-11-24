@@ -5,8 +5,8 @@
 Raul's tRusty Toolbox (`raul`) is one program for Fallout: New Vegas on Linux, Windows and macOS. It finds your game,
 sets up Tale of Two Wastelands if you want it, installs and sorts your mods, builds the distant land (LOD) for your
 load order, and starts the game on [nv-rs](https://github.com/JorisJonkers-dev/nv-rs), a Rust rebuild of the game's
-engine. Everything happens in one window, and the same steps are commands on the command line. Your game folder is
-never changed: raul keeps its own copy of what it needs.
+engine. Everything happens in one window, and the same steps are commands on the command line. Mods go into raul's
+own Instance folder, not into your game folder.
 
 **[Download the latest release](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/latest)** (see
 [Install](#install) for which file to take and how to check it).
@@ -41,7 +41,7 @@ you want Tale of Two Wastelands, make the Instance (raul's own folder for the ga
 ### Mods
 
 Install a mod from its archive; a mod with an installer (FOMOD) asks its questions in the window. Mods can be turned
-on and off, moved up and down, and removed, and every change can be undone. This page is
+on and off, moved up and down, and removed, and the last change can be undone. This page is
 [nvmod-rs](https://github.com/JorisJonkers-dev/nvmod-rs) at work.
 
 <p align="center">
@@ -163,6 +163,7 @@ raul is made of five Components, each in its own repository with its own history
 line), and releases when it is ready. raul links them all into one program and calls them in its own process; only the
 game itself runs as a separate process, started from raul's own binary. A raul release pins one set of Component
 versions that were tested together ([ADR-0001](docs/adr/0001-the-toolbox-is-the-product-umbrella.md),
+[ADR-0018](docs/adr/0018-the-submodule-pins-are-the-set.md),
 [ADR-0016](docs/adr/0016-components-are-incorporated-libraries-called-in-process.md),
 [ADR-0019](docs/adr/0019-raul-orchestrates-nvmod-manages-mods.md)).
 
