@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795546839984,
+  "lastUpdate": 1795548325372,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11612,6 +11612,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.0991800000000005,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "27084d322aea6811d6dee6d06ea6e4b003496220",
+          "message": "docs: short visual README; tour, install, usage and parts move to docs/ (#619)\n\n* docs: short visual README; tour, install, usage and parts move to docs/\n\n* docs: README in plainer words: TTW explained, unsigned download, install guide",
+          "timestamp": "2026-11-24T20:21:53+01:00",
+          "tree_id": "b30dcfabfed69dbce5fe963f5d6a4da0f82e7f44",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/27084d322aea6811d6dee6d06ea6e4b003496220"
+        },
+        "date": 1795548324527,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.6706480000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.7745180000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.04404,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.523064000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.771757,
             "unit": "ms"
           }
         ]
