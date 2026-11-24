@@ -47,6 +47,9 @@ pub struct Made {
 const HEADER: usize = 24;
 const COMPRESSED: u32 = 0x0004_0000;
 
+/// The largest record body read: far above any base object of the game's plugins.
+const MAX_RECORD: usize = 16 << 20;
+
 fn u32_at(b: &[u8], at: usize) -> Option<u32> {
     Some(u32::from_le_bytes(b.get(at..at + 4)?.try_into().ok()?))
 }
@@ -155,10 +158,22 @@ fn copy_record(
     let body = if flags & COMPRESSED == 0 {
         raw.to_vec()
     } else {
+        // The first four bytes say how large the record is unpacked; more than that, or more than any real record
+        // holds, is refused, so a damaged or hostile plugin cannot fill the memory.
+        let declared = u32_at(raw, 0).ok_or("a compressed record is cut short")? as usize;
+        if declared > MAX_RECORD {
+            return Err(format!(
+                "a compressed record says it holds {declared} bytes, more than {MAX_RECORD}"
+            ));
+        }
         let mut out = Vec::new();
-        flate2::read::ZlibDecoder::new(raw.get(4..).ok_or("a compressed record is cut short")?)
+        flate2::read::ZlibDecoder::new(&raw[4..])
+            .take(declared as u64 + 1)
             .read_to_end(&mut out)
             .map_err(|e| format!("a compressed record cannot be read: {e}"))?;
+        if out.len() != declared {
+            return Err("a compressed record does not unpack to the size it states".to_owned());
+        }
         flags &= !COMPRESSED;
         out
     };
@@ -504,6 +519,22 @@ mod tests {
         let a = override_plugin(&plain, "S.esm", &rules(), "raul", "t").unwrap();
         let b = override_plugin(&bytes, "S.esm", &rules(), "raul", "t").unwrap();
         assert_eq!(a, b);
+        // A record that unpacks to more than it states, or states more than any record holds, is refused.
+        let at = first + HEADER;
+        let mut lying = bytes.clone();
+        lying[at..at + 4].copy_from_slice(&3_u32.to_le_bytes());
+        assert!(
+            override_plugin(&lying, "S.esm", &rules(), "raul", "t")
+                .unwrap_err()
+                .contains("does not unpack")
+        );
+        let mut huge = bytes;
+        huge[at..at + 4].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert!(
+            override_plugin(&huge, "S.esm", &rules(), "raul", "t")
+                .unwrap_err()
+                .contains("more than")
+        );
     }
 
     #[test]

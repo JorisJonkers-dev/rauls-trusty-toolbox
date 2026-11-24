@@ -293,7 +293,9 @@ made from the player's own copy of the trigger plugin, so no game or mod file sh
 lines `raul setup`, `raul run` and `raul scene` print when they apply the add-ons along the way. The Mod's `meta.ini`
 carries the marker `[raulGeneratedAddon]` (`generated`, `addon`, `version`, `sourceDigest`); the Profile remembers in
 `raul-addons.json` which add-ons it was given, so a Mod the player turned off or removed is not added back. When the
-trigger plugin is no longer active, an enabled add-on Mod is turned off and comes back with the trigger. Exit code 0
+trigger plugin is no longer active, an enabled add-on Mod is turned off and comes back with the trigger. The Mod folder
+is the Instance's, shared by its Profiles: a Profile with another copy of the trigger plugin makes it again for itself
+at its next apply (before its next game start). Exit code 0
 unless an add-on failed (4); an Instance or Profile that cannot be opened is refused (2) with no document.
 
 ## `raul-lod-mods`
