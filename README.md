@@ -15,7 +15,8 @@ It works on Linux, Windows and macOS, and it never changes your game folder.
   <img src="docs/images/raul-journey.svg" alt="raul's six steps: find your game, Tale of Two Wastelands (optional), add mods, sort the load order, build the distant view, play on the nv-rs engine" width="100%">
 </p>
 
-raul does each step for you in one window. Skip what you do not need; Tale of Two Wastelands is optional.
+raul does each step for you in one window. Tale of Two Wastelands, a mod that joins Fallout 3 and New Vegas into one
+game, is optional.
 
 ## A distant view that matches your mods
 
@@ -33,11 +34,11 @@ Mods change the world, but the game's own far view stays the old one. raul build
 
 ## How far along it is
 
-- ✅ Setup, mods, load order, distant view, Tale of Two Wastelands and Play work on all three systems.
-- 🔨 Early releases (0.x): Windows and macOS still need a full test on real computers, and the downloads are not
-  signed yet.
+- ✅ Setup, mods, load order, distant view, Tale of Two Wastelands and Play work on Linux, Windows and macOS.
+- 🔨 These are early versions. Windows and macOS still need a full test on real computers, and your computer may
+  warn that the download comes from an unknown maker, because it is not signed yet.
 
-The game engine inside raul, counted from its code after every change:
+How much of the game engine inside raul is rebuilt; the chart updates itself with every change to the engine:
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/JorisJonkers-dev/nv-rs/fork/docs/media/fork-progress-engine.svg" alt="Progress of the nv-rs engine port" width="100%">
@@ -53,9 +54,9 @@ Splitting the work this way lets each part be tested on its own. [More about the
 
 ## Install
 
-**[Download raul](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/latest)**: take the file for
-your system (Linux `.AppImage` or `.deb`, Windows `-setup.exe`, macOS `.dmg`). Which file to pick, how to check it and
-how to build raul yourself: [docs/INSTALL.md](docs/INSTALL.md).
+**[Download raul](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/latest)** and pick the file for
+your computer: Linux, Windows or macOS. The [install guide](docs/INSTALL.md) names the exact file, shows how to check
+the download, and how to build raul yourself.
 
 You need your own copy of Fallout: New Vegas (and of Fallout 3 for Tale of Two Wastelands).
 
@@ -67,5 +68,5 @@ You need your own copy of Fallout: New Vegas (and of Fallout 3 for Tale of Two W
 - [How it is built](docs/ARCHITECTURE.md) and [the plan](docs/PLAN.md)
 
 raul ships no game files and is not affiliated with Bethesda Softworks, ZeniMax Media or Obsidian Entertainment.
-The game pictures in `docs/images` are screenshots taken with the engine for this page. Licence: GPL-3.0-only
+The game pictures in `docs/images` are screenshots taken with the engine for this page. Licence: GPL-3.0-only, a free licence
 ([LICENSE](LICENSE), [legal notes](docs/INSTALL.md#legal)).
