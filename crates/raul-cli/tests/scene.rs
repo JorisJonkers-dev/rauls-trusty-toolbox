@@ -315,7 +315,11 @@ fn without_game_the_run_pictures_the_instances_base_not_the_game_setting() {
     );
     assert_eq!(named.status.code(), Some(0), "{}", text(&named));
     assert!(staged_has(&named_dir, "profile", "OnlyInTheSetting.esm"));
-    assert!(!staged_has(&named_dir, "profile", "TaleOfTwoWastelands.esm"));
+    assert!(!staged_has(
+        &named_dir,
+        "profile",
+        "TaleOfTwoWastelands.esm"
+    ));
 }
 
 #[test]
