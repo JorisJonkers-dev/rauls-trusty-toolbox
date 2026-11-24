@@ -1242,7 +1242,7 @@ fn far_shape_rules_are_requested_only_for_a_load_order_with_their_world() {
     let request = plan(&without, &[]);
     assert_eq!(
         request["objects"],
-        serde_json::json!({ "enabled": true, "far_lights": true, "far_model_without_flag": true }),
+        serde_json::json!({ "enabled": true, "far_lights": true, "far_model_without_flag": true, "far_glow": true }),
         "{request}"
     );
 }
