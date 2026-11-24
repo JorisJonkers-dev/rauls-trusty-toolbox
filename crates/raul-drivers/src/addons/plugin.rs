@@ -257,10 +257,12 @@ pub fn override_plugin(
             at += HEADER;
             continue;
         }
-        if let Some((record, made)) = copy_record(&src, at, rules)? {
-            let (label, stamp) = stack
-                .first()
-                .map_or((*b"ACTI", [0; 8]), |(_, l, s)| (*l, *s));
+        // Only records right inside a top group: a base object such as an activator, never a placed reference or
+        // anything else below a cell or a world.
+        if stack.len() == 1
+            && let Some((record, made)) = copy_record(&src, at, rules)?
+        {
+            let (_, label, stamp) = stack[0];
             match groups.iter_mut().find(|(l, _, _)| *l == label) {
                 Some((_, _, body)) => body.extend_from_slice(&record),
                 None => groups.push((label, stamp, record)),
@@ -502,6 +504,30 @@ mod tests {
         let a = override_plugin(&plain, "S.esm", &rules(), "raul", "t").unwrap();
         let b = override_plugin(&bytes, "S.esm", &rules(), "raul", "t").unwrap();
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn a_matching_record_below_a_nested_group_is_not_copied() {
+        // The source's ACTI group, then a top group whose child group holds a record of the same type and model.
+        let plain = source();
+        let (_, end) = read_header(&plain).unwrap();
+        let acti_group = u32_at(&plain, end + 4).unwrap() as usize;
+        let record = &plain
+            [end + HEADER..end + HEADER + 24 + u32_at(&plain, end + HEADER + 4).unwrap() as usize];
+        let group = |label: &[u8], kind: i32, body: &[u8]| {
+            let mut g = b"GRUP".to_vec();
+            g.extend_from_slice(&u32::try_from(HEADER + body.len()).unwrap().to_le_bytes());
+            g.extend_from_slice(label);
+            g.extend_from_slice(&kind.to_le_bytes());
+            g.extend_from_slice(&[0; 8]);
+            g.extend_from_slice(body);
+            g
+        };
+        let nested = group(b"CELL", 0, &group(&[1, 0, 0, 0], 6, record));
+        let mut bytes = plain[..end + acti_group].to_vec();
+        bytes.extend_from_slice(&nested);
+        let made = override_plugin(&bytes, "S.esm", &rules(), "raul", "t").unwrap();
+        assert_eq!(made.records.len(), 2, "only the two in the ACTI group");
     }
 
     #[test]
