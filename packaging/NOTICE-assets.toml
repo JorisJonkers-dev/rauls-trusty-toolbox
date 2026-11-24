@@ -51,3 +51,21 @@ path = "docs/images/lod-plain-hoover.jpg"
 what = "README picture: Hoover Dam from above on the plain game, the game's own far view against lodwright's"
 source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (README-screenshot exception of 2026-11-24: README docs only, docs/images/, small JPEG)"
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
+
+[[asset]]
+path = "docs/images/lod-overpasses-freeside.jpg"
+what = "README picture: the I-15 overpasses north of Freeside at mid distance, before and after lodwright keeps large far objects in view"
+source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (README-screenshot exception of 2026-11-24: README docs only, docs/images/, small JPEG)"
+license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
+
+[[asset]]
+path = "docs/images/raul-journey.svg"
+what = "README diagram: raul's six steps from finding the game to playing"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/images/raul-parts.svg"
+what = "README diagram: raul and its five Components"
+source = "this repository"
+license = "GPL-3.0-only"
