@@ -753,6 +753,13 @@ fn a_new_packed_lod_keeps_its_stub_active_and_last() {
     assert_eq!(code, Some(0), "{result}");
     assert_eq!(result["lodwright"]["code"], "generated", "{result}");
     assert_stub_active_and_last(&f, "Default");
+    // An up-to-date run puts back a stub that was turned off, and says it changed the Instance.
+    raul_ok(&f, &["plugins", "disable", "Lodwright LOD.esp"]);
+    let (code, result, finished) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["up_to_date"], true, "{result}");
+    assert_eq!(finished["changed"], true, "{finished}");
+    assert_stub_active_and_last(&f, "Default");
     // A stub moved away from the end goes back there on the next new Mod.
     raul_ok(&f, &["plugins", "move", "Lodwright LOD.esp", "--top"]);
     f.settings("[output]\nwater = true\n");

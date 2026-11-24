@@ -339,66 +339,63 @@ fn replace_mod(
     ))
 }
 
-/// The plugins at the top of the Mod folder `name` (a packed LOD's stub), by file name.
-fn mod_plugins(instance: &NvmodInstance, name: &str) -> Vec<String> {
-    let Some(dir) = find_ci(&instance.root.join("mods"), name) else {
-        return Vec::new();
-    };
-    let mut names: Vec<String> = std::fs::read_dir(dir)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .filter(|e| e.path().is_file())
-        .map(|e| e.file_name().to_string_lossy().into_owned())
-        .filter(|n| {
-            Path::new(n).extension().is_some_and(|x| {
-                ["esp", "esm", "esl"]
-                    .iter()
-                    .any(|w| x.eq_ignore_ascii_case(w))
-            })
+/// The stub plugin of a packed LOD Mod, when the Mod folder `name` holds one (a loose LOD Mod has no plugin).
+fn stub_of(instance: &NvmodInstance, name: &str) -> Option<String> {
+    let dir = find_ci(&instance.root.join("mods"), name)?;
+    find_ci(&dir, super::PACKED_PLUGIN)
+        .filter(|p| p.is_file())
+        .map(|p| {
+            p.file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned()
         })
-        .collect();
-    names.sort();
-    names
 }
 
-/// An enabled LOD Mod's plugins are active and last in the Load order, so the game registers the archive they name
-/// and its files win over every other far view. Installing a Mod does not activate a plugin the Profile already knew
-/// (an earlier LOD Mod's stub of the same name, kept inactive after that Mod was turned off or replaced), so this is
-/// done here. Returns a warning for each plugin it could not place; the Mod is in either way.
-fn activate_plugins(instance: &NvmodInstance, profile: &str, name: &str) -> Vec<String> {
+/// What [`activate_stub`] did.
+#[derive(Default)]
+struct Activated {
+    /// The Load order changed.
+    changed: bool,
+    /// One line for a stub that could not be placed.
+    warnings: Vec<String>,
+}
+
+/// An enabled packed LOD Mod's stub is active and last in the Load order, so the game registers the archive it names
+/// and the archive's files win over every other far view. Installing a Mod does not activate a plugin the Profile
+/// already knew (an earlier LOD Mod's stub of the same name, kept inactive after that Mod was turned off or
+/// replaced), so this is done here. A stub that cannot be placed gives a warning; the Mod is in either way.
+fn activate_stub(instance: &NvmodInstance, profile: &str, name: &str) -> Activated {
+    let mut out = Activated::default();
     if listed(instance, profile, name) != Some(true) {
-        return Vec::new();
+        return out;
     }
-    let say = |plugin: &str, e: PluginsError| {
-        let why = match e {
-            PluginsError::Refused(w) | PluginsError::Failed(w) => w,
-        };
-        format!(
-            "the LOD Mod's plugin `{plugin}` could not be made active and last in the Load order, so the game may not \
-             load the new far view: {why}"
-        )
+    let Some(stub) = stub_of(instance, name) else {
+        return out;
     };
-    let mut warnings = Vec::new();
-    for plugin in mod_plugins(instance, name) {
-        let edits = [
-            Edit::Enable {
-                names: vec![plugin.clone()],
-                with_masters: false,
-            },
-            Edit::Move {
-                name: plugin.clone(),
-                to: PluginPlace::Bottom,
-            },
-        ];
-        for edit in &edits {
-            if let Err(e) = nvmod_plugins::apply(instance, profile, edit, false) {
-                warnings.push(say(&plugin, e));
+    let edits = [
+        Edit::Enable {
+            names: vec![stub.clone()],
+            with_masters: false,
+        },
+        Edit::Move {
+            name: stub.clone(),
+            to: PluginPlace::Bottom,
+        },
+    ];
+    for edit in &edits {
+        match nvmod_plugins::apply(instance, profile, edit, false) {
+            Ok(report) => out.changed |= report.status == "changed",
+            Err(PluginsError::Refused(why) | PluginsError::Failed(why)) => {
+                out.warnings.push(format!(
+                    "the LOD Mod's plugin `{stub}` could not be made active and last in the Load order, so the game \
+                     may not load the new far view: {why}"
+                ));
                 break;
             }
         }
     }
-    warnings
+    out
 }
 
 /// Takes the replaced Mod out once the new one is in place: the Profile's renamed-aside copy is removed; the old
@@ -683,13 +680,16 @@ fn generate_stopped(
         && let Some(dir) = find_ci(&mods, &name)
     {
         r.up_to_date = true;
-        for message in activate_plugins(&instance, &profile, &name) {
+        // An up-to-date run changes nothing, except a stub that was left off or moved: that is put back, and the run
+        // says it changed the Instance.
+        let stub = activate_stub(&instance, &profile, &name);
+        for message in stub.warnings {
             emit(Event::Warning { message });
         }
         keep_fingerprint(&instance, &profile, &plan, &manifest, emit);
         r.mod_name = Some(name);
         r.files = Some(count_files(&dir) - u64::from(find_ci(&dir, META_FILE).is_some()));
-        return done(r, false);
+        return done(r, stub.changed);
     }
     emit(Event::Phase {
         phase: "add_mod".to_owned(),
@@ -720,7 +720,7 @@ fn generate_stopped(
     let _ = clear(&copy);
     match replaced {
         Ok((files, mut warnings)) => {
-            warnings.extend(activate_plugins(&instance, &profile, &name));
+            warnings.extend(activate_stub(&instance, &profile, &name).warnings);
             for message in warnings {
                 emit(Event::Warning { message });
             }
