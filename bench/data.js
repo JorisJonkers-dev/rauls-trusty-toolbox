@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795532068660,
+  "lastUpdate": 1795533254780,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11514,6 +11514,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.011653,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ed8fd6adb45453d790eed461927b43c20581980f",
+          "message": "fix(lod): a generated LOD Mod's stub plugin is active and last after every run (#617)\n\n* fix(lod): a generated LOD Mod's stub plugin is active and last after every run\n\nInstalling a Mod does not activate a plugin the profile already knew, so\nafter the old LOD Mod was turned off (a copied profile) the new Mod's\nLodwright LOD.esp stayed inactive and its archive never loaded.\n\nCloses #614\n\n* fix(lod): only the packed stub is placed, and an up-to-date run that puts it back says so\n\nReview findings: an up-to-date run that re-activated the stub reported no\nchange; the step acted on every plugin file of the Mod rather than the\nstub.",
+          "timestamp": "2026-11-24T16:11:57+01:00",
+          "tree_id": "25666e3bafa77095cda681f4056b78c119fb016e",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ed8fd6adb45453d790eed461927b43c20581980f"
+        },
+        "date": 1795533253934,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.470313,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.782897,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 31.972120999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.196605,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.002213,
             "unit": "ms"
           }
         ]
