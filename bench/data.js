@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795514256528,
+  "lastUpdate": 1795529235673,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11416,6 +11416,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.432956,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "560f901e5eeb67a02fc232b92ed58598c1c6ed24",
+          "message": "fix(scene): picture the Instance's base game, not the game.newvegas setting (#615)\n\n* fix(scene): picture the Instance's base game, not the game.newvegas setting\n\nCloses #613\n\n* style(scene): format the base-game test\n\n* fix(scene): refuse a game folder that is not a folder before any start; test the soak's game folder",
+          "timestamp": "2026-11-24T15:05:05+01:00",
+          "tree_id": "2cc83601a46418b919d3b464eaf87df8e404f861",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/560f901e5eeb67a02fc232b92ed58598c1c6ed24"
+        },
+        "date": 1795529235011,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.249575,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.325656,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.111672999999996,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.036611,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.152386,
             "unit": "ms"
           }
         ]
