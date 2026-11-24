@@ -1761,6 +1761,7 @@ dependencies = [
  "nvmod-instance",
  "nvmod-loadorder",
  "nvmod-run",
+ "nvmod-stage",
  "nvmod-testkit",
  "raul-bench",
  "raul-core",
