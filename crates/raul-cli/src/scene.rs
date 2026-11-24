@@ -398,6 +398,11 @@ pub fn resolve(
     let fail = |e: nvmod_stage::StageError| match e {
         nvmod_stage::StageError::Refused(w) | nvmod_stage::StageError::Failed(w) => w,
     };
+    // Staging changes trees a running game reads: it takes the Instance lock `raul run` holds while the game plays.
+    let _lock = nvmod_run::InstanceLock::acquire(&instance.root, &format!("scene stage {profile}"))
+        .map_err(|e| {
+            format!("the Instance is in use, so `{profile}` cannot be staged for pictures now: {e}")
+        })?;
     if without_lod {
         let lod: Vec<String> = raul_drivers::lod::generated_mods(instance, profile)
             .mods

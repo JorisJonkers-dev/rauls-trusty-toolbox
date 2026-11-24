@@ -563,3 +563,17 @@ fn a_real_profile_is_pictured_on_its_staging_tree_with_shared_folders_in_any_cas
     assert!(inst.join(".raul/scene/Default-without-lod/data").is_dir());
     assert!(inst.join("staging/Default/data/meshes/lod.nif").is_file());
 }
+
+#[test]
+fn a_profile_is_not_staged_for_pictures_while_another_program_holds_the_instance() {
+    let f = Fixture::new("scene-locked", true);
+    let inst = f.path("instance");
+    let lock = nvmod_run::InstanceLock::acquire(&inst, "run test").unwrap();
+    let out = f.scene(&["scene", "run", "--places", "mojave-day"], &[]);
+    assert_ne!(out.status.code(), Some(0), "{}", text(&out));
+    assert!(text(&out).contains("in use"), "{}", text(&out));
+    assert!(f.calls().is_empty(), "no game was started");
+    drop(lock);
+    let out = f.scene(&["scene", "run", "--places", "mojave-day"], &[]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out));
+}
