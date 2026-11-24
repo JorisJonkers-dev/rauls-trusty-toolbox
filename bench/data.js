@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795548325372,
+  "lastUpdate": 1795556407779,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11661,6 +11661,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.771757,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3ab0e9d685fc1195ecdad4b3379d8f51c31a68c7",
+          "message": "feat(addons): small lamp glow add-on for Street Lights TTW, made on the player's machine (#620)\n\nReviewed and red-teamed; tests in the PR.",
+          "timestamp": "2026-11-24T22:37:48+01:00",
+          "tree_id": "7e5c986c2065ac4b1b29bf74e4dba2f35c446ebb",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3ab0e9d685fc1195ecdad4b3379d8f51c31a68c7"
+        },
+        "date": 1795556406609,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.407433,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.380564,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.743375999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.126621,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.815887,
             "unit": "ms"
           }
         ]
