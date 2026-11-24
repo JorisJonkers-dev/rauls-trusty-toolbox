@@ -743,6 +743,13 @@ fn setup(ctx: &Context, verb: &str, f: &Flags) -> Result<Setup, String> {
                 .and_then(|c| c.get(Key::GameNewVegas))
         })
         .ok_or("no game folder: pass --game <dir> or --instance <dir>, or run `raul config set game.newvegas <dir>`")?;
+    // Said here, before a game folder is built from it, rather than by the game child later.
+    if !game.is_dir() {
+        return Err(format!(
+            "the game folder {} is not a folder: pass --game <dir>, or fix the Instance's base",
+            game.display()
+        ));
+    }
     let who = instance
         .as_ref()
         .map_or("game".to_owned(), |(_, p)| p.clone());

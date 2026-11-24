@@ -291,6 +291,36 @@ fn without_game_the_run_pictures_the_instances_base_not_the_game_setting() {
         !staged_has(&run, "profile", "OnlyInTheSetting.esm"),
         "the game.newvegas folder is not pictured"
     );
+    // A soak takes the same game folder: the base's plugin is in the folder the game child is started in.
+    let staged = f.raul(
+        &["stage", "--instance", s(&f.path("instance")), "--copy"],
+        &[],
+    );
+    assert!(staged.status.success(), "{staged:?}");
+    let soak = f.raul(
+        &[
+            "scene",
+            "soak",
+            "--places",
+            "mojave-day",
+            "--instance",
+            s(&f.path("instance")),
+            "--viewer",
+            s(&viewer),
+            "--gpu-sysfs",
+            "/nonexistent",
+            "--no-cap",
+        ],
+        &[],
+    );
+    assert_eq!(soak.status.code(), Some(0), "{}", text(&soak));
+    let calls = f.calls();
+    let started_in = PathBuf::from(calls.last().unwrap().rsplit('|').next().unwrap());
+    assert!(
+        started_in.join("Data/TaleOfTwoWastelands.esm").exists(),
+        "{calls:?}"
+    );
+    assert!(!started_in.join("Data/OnlyInTheSetting.esm").exists());
     // `--game` still names another folder.
     let named_dir = f.path("named");
     let named = f.raul(
@@ -320,6 +350,33 @@ fn without_game_the_run_pictures_the_instances_base_not_the_game_setting() {
         "profile",
         "TaleOfTwoWastelands.esm"
     ));
+}
+
+#[test]
+fn a_game_folder_that_is_not_there_is_refused_before_any_start() {
+    let f = Fixture::new("scene-nobase", false);
+    let viewer = f.viewer();
+    let out = f.raul(
+        &[
+            "scene",
+            "soak",
+            "--places",
+            "mojave-day",
+            "--instance",
+            s(&f.path("instance")),
+            "--game",
+            s(&f.path("gone")),
+            "--viewer",
+            s(&viewer),
+            "--gpu-sysfs",
+            "/nonexistent",
+            "--no-cap",
+        ],
+        &[],
+    );
+    assert_eq!(out.status.code(), Some(2), "{}", text(&out));
+    assert!(text(&out).contains("is not a folder"), "{}", text(&out));
+    assert!(f.calls().is_empty(), "nothing was started");
 }
 
 #[test]
