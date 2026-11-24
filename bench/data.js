@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795529235673,
+  "lastUpdate": 1795532068660,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11465,6 +11465,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.152386,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d0fc468b05cd1a51da16486f4a791d0006024487",
+          "message": "docs: rewrite the README with a tour of raul's pages and LOD pictures (#616)\n\n* docs: rewrite the README with a tour of raul's pages and LOD pictures\n\nThe README now walks through setup, Mods, Load order, LOD, Tale of Two Wastelands and Play with\nthe reviewed page snapshots of crates/raul-gui/tests/snapshots, shows two before/after pictures of\nthe far view lodwright generates for a modded load order, and says in a short paragraph why the\nwork is split into Components. docs/images holds the LOD pictures, also for the Component READMEs.\n\n* docs: tighten three README claims found in review\n\nMods go into the Instance (no wider promise about the game folder), the Mods page undoes the last\nchange, and the pinned set cites ADR-0018 beside ADR-0001.\n\n* docs: list the README's three game pictures in the asset notice\n\nThe asset guard (ADR-0014) refuses an unlisted picture. The three far-view pictures in docs/images\nare listed with what they show, where they come from and that they are kept for the README only;\nthe guard stays as strict for every other file.",
+          "timestamp": "2026-11-24T15:52:34+01:00",
+          "tree_id": "ead9fb893c9027964e301b46747e2b624caef432",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d0fc468b05cd1a51da16486f4a791d0006024487"
+        },
+        "date": 1795532068176,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.050747,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.626168,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.333701,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.500778,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.011653,
             "unit": "ms"
           }
         ]
