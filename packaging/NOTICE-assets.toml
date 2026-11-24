@@ -33,3 +33,21 @@ path = "crates/raul-gui/assets/fonts/OFL.txt"
 what = "the SIL Open Font License 1.1 text that comes with Inter, shown in the About dialog"
 source = "https://github.com/rsms/inter/releases/tag/v4.1"
 license = "OFL-1.1"
+
+[[asset]]
+path = "docs/images/lod-modded-black-mountain.jpg"
+what = "README picture: Black Mountain from above, a modded load order without and with the far view lodwright generated"
+source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (README-screenshot exception of 2026-11-24: README docs only, docs/images/, small JPEG)"
+license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
+
+[[asset]]
+path = "docs/images/lod-modded-strip.jpg"
+what = "README picture: the Strip from above, a modded load order without and with the far view lodwright generated"
+source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (README-screenshot exception of 2026-11-24: README docs only, docs/images/, small JPEG)"
+license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
+
+[[asset]]
+path = "docs/images/lod-plain-hoover.jpg"
+what = "README picture: Hoover Dam from above on the plain game, the game's own far view against lodwright's"
+source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (README-screenshot exception of 2026-11-24: README docs only, docs/images/, small JPEG)"
+license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
