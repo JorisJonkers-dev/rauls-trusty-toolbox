@@ -3288,7 +3288,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-api"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "loot-rs",
  "nvmod-backup",
@@ -3316,7 +3316,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-backup"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "nvmod-core",
  "nvmod-instance",
@@ -3329,14 +3329,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-bsa"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "nvmod-catalog"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "serde",
  "toml",
@@ -3344,7 +3344,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-cli"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "ctrlc",
  "loot-rs",
@@ -3374,7 +3374,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-conflicts"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "nvmod-bsa",
  "nvmod-core",
@@ -3387,7 +3387,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-core"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "schemars",
  "serde",
@@ -3396,7 +3396,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-doctor"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "nvmod-catalog",
  "nvmod-conflicts",
@@ -3412,7 +3412,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-downloads"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "md-5",
  "nvmod-formats",
@@ -3424,7 +3424,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-formats"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "flate2",
  "nvmod-core",
@@ -3432,7 +3432,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-import"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "nvmod-core",
  "nvmod-formats",
@@ -3443,7 +3443,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-instance"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "nvmod-core",
  "serde",
@@ -3452,7 +3452,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-journal"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "nvmod-instance",
  "nvmod-stage",
@@ -3462,7 +3462,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-loadorder"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "loot-rs",
  "nvmod-core",
@@ -3474,7 +3474,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-modinstall"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "bzip2",
  "flate2",
@@ -3496,14 +3496,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-pe"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "nvmod-plugins"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "nvmod-conflicts",
  "nvmod-core",
@@ -3518,7 +3518,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-profile"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "nvmod-backup",
  "nvmod-core",
@@ -3532,9 +3532,9 @@ dependencies = [
 
 [[package]]
 name = "nvmod-run"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
- "nix 0.31.3",
+ "nix 0.32.0",
  "nvmod-core",
  "nvmod-formats",
  "nvmod-instance",
@@ -3546,7 +3546,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-runlog"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -3556,7 +3556,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-runner"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "nvmod-core",
  "nvmod-runlog",
@@ -3566,7 +3566,7 @@ dependencies = [
 
 [[package]]
 name = "nvmod-saves"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "nvmod-backup",
  "nvmod-core",
@@ -3580,8 +3580,9 @@ dependencies = [
 
 [[package]]
 name = "nvmod-stage"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
+ "nvmod-bsa",
  "nvmod-core",
  "nvmod-formats",
  "nvmod-instance",
@@ -3592,14 +3593,14 @@ dependencies = [
 
 [[package]]
 name = "nvmod-testkit"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "winapi-util",
 ]
 
 [[package]]
 name = "nvmod-tools"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "jsonschema",
  "nvmod-core",
