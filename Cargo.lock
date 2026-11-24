@@ -1810,6 +1810,7 @@ dependencies = [
  "nvmod-instance",
  "nvmod-loadorder",
  "nvmod-modinstall",
+ "nvmod-plugins",
  "nvmod-runlog",
  "nvmod-testkit",
  "schemars",

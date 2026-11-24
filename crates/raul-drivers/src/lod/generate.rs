@@ -13,6 +13,7 @@ use nvmod_instance::{NvmodInstance, find_ci};
 use nvmod_modinstall::lifecycle::{self, Action};
 use nvmod_modinstall::mods::{Change, ModsError, Place};
 use nvmod_modinstall::{InstallError, Limits, OnConflict, Request};
+use nvmod_plugins::{Edit, Place as PluginPlace, PluginsError};
 use serde_json::Value;
 
 use super::inproc;
@@ -338,6 +339,68 @@ fn replace_mod(
     ))
 }
 
+/// The plugins at the top of the Mod folder `name` (a packed LOD's stub), by file name.
+fn mod_plugins(instance: &NvmodInstance, name: &str) -> Vec<String> {
+    let Some(dir) = find_ci(&instance.root.join("mods"), name) else {
+        return Vec::new();
+    };
+    let mut names: Vec<String> = std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter(|e| e.path().is_file())
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .filter(|n| {
+            Path::new(n).extension().is_some_and(|x| {
+                ["esp", "esm", "esl"]
+                    .iter()
+                    .any(|w| x.eq_ignore_ascii_case(w))
+            })
+        })
+        .collect();
+    names.sort();
+    names
+}
+
+/// An enabled LOD Mod's plugins are active and last in the Load order, so the game registers the archive they name
+/// and its files win over every other far view. Installing a Mod does not activate a plugin the Profile already knew
+/// (an earlier LOD Mod's stub of the same name, kept inactive after that Mod was turned off or replaced), so this is
+/// done here. Returns a warning for each plugin it could not place; the Mod is in either way.
+fn activate_plugins(instance: &NvmodInstance, profile: &str, name: &str) -> Vec<String> {
+    if listed(instance, profile, name) != Some(true) {
+        return Vec::new();
+    }
+    let say = |plugin: &str, e: PluginsError| {
+        let why = match e {
+            PluginsError::Refused(w) | PluginsError::Failed(w) => w,
+        };
+        format!(
+            "the LOD Mod's plugin `{plugin}` could not be made active and last in the Load order, so the game may not \
+             load the new far view: {why}"
+        )
+    };
+    let mut warnings = Vec::new();
+    for plugin in mod_plugins(instance, name) {
+        let edits = [
+            Edit::Enable {
+                names: vec![plugin.clone()],
+                with_masters: false,
+            },
+            Edit::Move {
+                name: plugin.clone(),
+                to: PluginPlace::Bottom,
+            },
+        ];
+        for edit in &edits {
+            if let Err(e) = nvmod_plugins::apply(instance, profile, edit, false) {
+                warnings.push(say(&plugin, e));
+                break;
+            }
+        }
+    }
+    warnings
+}
+
 /// Takes the replaced Mod out once the new one is in place: the Profile's renamed-aside copy is removed; the old
 /// shared Mod is removed, or only disabled in this Profile while another Profile lists it. Returns a warning for each
 /// step that did not work (the new Mod is in either way).
@@ -620,6 +683,9 @@ fn generate_stopped(
         && let Some(dir) = find_ci(&mods, &name)
     {
         r.up_to_date = true;
+        for message in activate_plugins(&instance, &profile, &name) {
+            emit(Event::Warning { message });
+        }
         keep_fingerprint(&instance, &profile, &plan, &manifest, emit);
         r.mod_name = Some(name);
         r.files = Some(count_files(&dir) - u64::from(find_ci(&dir, META_FILE).is_some()));
@@ -653,7 +719,8 @@ fn generate_stopped(
     let replaced = replace_mod(&instance, &profile, &name, &copy);
     let _ = clear(&copy);
     match replaced {
-        Ok((files, warnings)) => {
+        Ok((files, mut warnings)) => {
+            warnings.extend(activate_plugins(&instance, &profile, &name));
             for message in warnings {
                 emit(Event::Warning { message });
             }
