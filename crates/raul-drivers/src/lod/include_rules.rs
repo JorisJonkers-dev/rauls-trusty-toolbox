@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! Which placed objects of a load order enter the far view although nothing marks them visible from far, and which of
-//! them get a far shape made from their full model. The list is data (`data/include-rules.json`); a rule that names a
-//! plugin applies only to a load order that has that plugin, so any other load order keeps the request, and the
-//! request digest, it had without rules.
+//! them get a far shape made from their full model. The list is data (`data/include-rules.json`): rules without a
+//! plugin name models of the base game (its street lamps and lamp posts) and apply to every load order; a rule that
+//! names a plugin applies only to a load order that has that plugin, so a load order without it keeps the request,
+//! and the request digest, it had without that rule.
 
 use lodwright_contract::IncludeRule;
 
@@ -24,9 +25,16 @@ fn select(rules: Vec<IncludeRule>, plugins: &[String]) -> Vec<IncludeRule> {
         .collect()
 }
 
-/// The include rules for this load order.
-pub(super) fn rules_for_load_order(plugins: &[String]) -> Vec<IncludeRule> {
+/// The include rules for this load order, as the request carries them. They go through their own serialisation, so a
+/// limit reads as written (`0.05`) and not as the nearest `f64` of its `f32` value.
+pub(super) fn rules_for_load_order(plugins: &[String]) -> Vec<serde_json::Value> {
     select(known_rules(), plugins)
+        .iter()
+        .map(|rule| {
+            let text = serde_json::to_string(rule).expect("a rule serialises");
+            serde_json::from_str(&text).expect("a rule reads back")
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -38,19 +46,46 @@ mod tests {
     }
 
     #[test]
-    fn every_rule_names_a_plugin_and_a_model_pattern_and_is_valid() {
+    fn every_rule_names_a_model_pattern_and_a_far_shape_and_is_valid() {
         let rules = known_rules();
         assert_ne!(rules.len(), 0);
         for rule in &rules {
-            assert!(
-                rule.plugin.is_some(),
-                "a rule without a plugin applies to every load order"
-            );
-            assert!(!rule.models.trim().is_empty());
+            assert_ne!(rule.models.trim(), "");
+            assert_eq!(rule.record_type.as_deref(), Some("STAT"), "{rule:?}");
+            // The lamps have no LOD model: without a far shape of their own a rule would draw nothing.
+            assert!(rule.generate.is_some(), "{rule:?}");
+            if rule.plugin.is_none() {
+                // A rule for every load order names models, never every model.
+                assert!(!rule.models.starts_with('*'), "{rule:?}");
+                assert!(
+                    std::path::Path::new(&rule.models)
+                        .extension()
+                        .is_some_and(|e| e.eq_ignore_ascii_case("nif")),
+                    "{rule:?}"
+                );
+            }
         }
         let mut request = lodwright_contract::Request::new("/data", &["FalloutNV.esm"], "/out");
         request.inclusion.include_rules = rules;
         assert_eq!(request.validate(), Ok(()));
+    }
+
+    #[test]
+    fn the_base_game_lamp_posts_are_named_for_every_load_order() {
+        let general = select(known_rules(), &names(&["FalloutNV.esm"]));
+        assert!(general.iter().all(|r| r.plugin.is_none()));
+        for model in [
+            "architecture/strip/nvstripstreetlamp*.nif",
+            "architecture/urban/streetdressing/streetlight0*.nif",
+            "dungeons/caves/lamplight/lamplightlamp.nif",
+        ] {
+            assert!(general.iter().any(|r| r.models == model), "{model}");
+        }
+        let with_mod = select(
+            known_rules(),
+            &names(&["FalloutNV.esm", "Street Lights TTW.esm"]),
+        );
+        assert_eq!(with_mod.len(), general.len() + 1);
     }
 
     #[test]

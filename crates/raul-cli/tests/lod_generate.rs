@@ -105,7 +105,8 @@ impl Fixture {
             for file in ["plugins.txt", "loadorder.txt"] {
                 let path = f.instance().join("profiles/Default").join(file);
                 let mut text = std::fs::read_to_string(&path).unwrap_or_default();
-                text.push_str(&format!("{name}\r\n"));
+                text.push_str(name);
+                text.push_str("\r\n");
                 std::fs::write(path, text).unwrap();
             }
         }
@@ -1163,14 +1164,20 @@ fn far_shape_rules_are_requested_only_for_a_load_order_with_their_world() {
     );
 }
 
-/// The include rules in raul's data reach the request only for a load order that has the rule's plugin, and the
-/// request still passes lodwright's schema.
+/// The include rules in raul's data reach the request: those for the base game's lamp posts for every load order, the
+/// rule of a plugin only for a load order that has it; the request still passes lodwright's schema.
 #[test]
 fn include_rules_are_requested_only_for_a_load_order_with_their_plugin() {
     let plan = |f: &Fixture| -> Value {
         let out = f.raul(&["lod", "plan", "--json", "--instance", s(&f.instance())]);
         assert!(out.status.success(), "{out:?}");
         serde_json::from_slice(&out.stdout).unwrap()
+    };
+    let rules_of = |request: &Value| -> Vec<Value> {
+        request["inclusion"]["include_rules"]
+            .as_array()
+            .unwrap_or_else(|| panic!("the rules are in the request: {request}"))
+            .clone()
     };
     let with = Fixture::with_world_and_plugin(
         "raul-lodgen-include-on",
@@ -1179,21 +1186,35 @@ fn include_rules_are_requested_only_for_a_load_order_with_their_plugin() {
     );
     let request = plan(&with);
     lod::check_request(&request).unwrap();
-    let rules = request["inclusion"]["include_rules"]
-        .as_array()
-        .unwrap_or_else(|| panic!("the rules are in the request: {request}"));
-    assert_eq!(rules.len(), 1, "{request}");
-    assert_eq!(rules[0]["plugin"], "Street Lights TTW.esm");
-    assert!(rules[0]["generate"]["keep"].is_number(), "{request}");
+    let with_rules = rules_of(&request);
+    let by_plugin: Vec<&Value> = with_rules
+        .iter()
+        .filter(|r| r.get("plugin").is_some())
+        .collect();
+    assert_eq!(by_plugin.len(), 1, "{request}");
+    assert_eq!(by_plugin[0]["plugin"], "Street Lights TTW.esm");
+    assert!(
+        with_rules.iter().all(|r| r["generate"]["keep"].is_number()),
+        "{request}"
+    );
+    assert!(
+        with_rules
+            .iter()
+            .any(|r| r["models"] == "architecture/strip/nvstripstreetlamp*.nif"),
+        "{request}"
+    );
     // With object LOD off there is nothing to apply them to.
     with.settings("[output]\nobjects = false\n");
     assert!(plan(&with)["inclusion"].get("include_rules").is_none());
 
-    // A load order without the plugin gets exactly the request it had without rules.
+    // A load order without the plugin gets the base game's rules only.
     let without = Fixture::new("raul-lodgen-include-off");
     let request = plan(&without);
+    lod::check_request(&request).unwrap();
+    let general = rules_of(&request);
+    assert_eq!(general.len(), with_rules.len() - 1, "{request}");
     assert!(
-        request["inclusion"].get("include_rules").is_none(),
+        general.iter().all(|r| r.get("plugin").is_none()),
         "{request}"
     );
 }

@@ -1,8 +1,83 @@
 [
   {
+    "models": "architecture/strip/nvstripstreetlamp*.nif",
+    "record_type": "STAT",
+    "generate": {
+      "keep": 0.25,
+      "max_error": 0.05
+    }
+  },
+  {
+    "models": "architecture/urban/streetdressing/streetlight0*.nif",
+    "record_type": "STAT",
+    "generate": {
+      "keep": 0.25,
+      "max_error": 0.05
+    }
+  },
+  {
+    "models": "architecture/urban/streetdressing/nvstreetlight0*.nif",
+    "record_type": "STAT",
+    "generate": {
+      "keep": 0.25,
+      "max_error": 0.05
+    }
+  },
+  {
+    "models": "architecture/urban/streetdressing/lamppost0*.nif",
+    "record_type": "STAT",
+    "generate": {
+      "keep": 0.25,
+      "max_error": 0.05
+    }
+  },
+  {
+    "models": "architecture/paradisefalls/parkinglot/parkinglotlight0*.nif",
+    "record_type": "STAT",
+    "generate": {
+      "keep": 0.25,
+      "max_error": 0.05
+    }
+  },
+  {
+    "models": "architecture/paradisefalls/parkinglot/nv_parkinglotlight0*.nif",
+    "record_type": "STAT",
+    "generate": {
+      "keep": 0.25,
+      "max_error": 0.05
+    }
+  },
+  {
+    "models": "dlc03/clutter/traffic lights/dlc03streetlight0*.nif",
+    "record_type": "STAT",
+    "generate": {
+      "keep": 0.25,
+      "max_error": 0.05
+    }
+  },
+  {
+    "models": "clutter/tranquilitylane/tllamppost01.nif",
+    "record_type": "STAT",
+    "generate": {
+      "keep": 0.25,
+      "max_error": 0.05
+    }
+  },
+  {
+    "models": "dungeons/caves/lamplight/lamplightlamp.nif",
+    "record_type": "STAT",
+    "generate": {
+      "keep": 0.25,
+      "max_error": 0.05
+    }
+  },
+  {
     "plugin": "Street Lights TTW.esm",
     "models": "*",
     "record_type": "STAT",
-    "generate": { "keep": 0.25, "max_error": 0.05 }
+    "generate": {
+      "keep": 0.25,
+      "max_error": 0.05
+    }
   }
 ]
