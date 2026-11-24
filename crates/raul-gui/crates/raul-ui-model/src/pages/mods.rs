@@ -3,9 +3,10 @@
 //! search and a filter over them, the selected Mod, and the one change at a time the page makes (enable, disable,
 //! move one place, remove).
 //!
-//! The page reads `raul mods list` and `raul lod mods`. The second names the generated LOD Mods, which get their own
-//! treatment: Regenerate on the LOD page instead of Remove and Update, no update check and no conflict warnings,
-//! with one line that says why. Every change is one `raul mods` command; the list is read again after it.
+//! The page reads `raul mods list`, `raul lod mods` and `raul addons list`. The second names the generated LOD Mods,
+//! which get their own treatment: Regenerate on the LOD page instead of Remove and Update, no update check and no
+//! conflict warnings, with one line that says why. The third names raul's add-on Mods, which are tagged as made by
+//! raul and otherwise are Mods like any other: turning one off keeps it off. Every change is one `raul mods` command; the list is read again after it.
 
 use super::settings::Command;
 use serde::Deserialize;
@@ -23,6 +24,15 @@ pub fn undo_command(instance: &str) -> Command {
 /// `raul lod mods --instance <dir>`: which of them are generated LOD.
 pub fn generated_command(instance: &str) -> Command {
     Command::read("lod-mods", 2, &["lod", "mods", "--instance", instance])
+}
+
+/// `raul addons list --instance <dir>`: which of them are raul's add-ons.
+pub fn addons_command(instance: &str) -> Command {
+    Command::read(
+        "addons-list",
+        2,
+        &["addons", "list", "--instance", instance],
+    )
 }
 
 /// `raul mods enable <mod> --instance <dir>`.
@@ -115,6 +125,8 @@ pub struct ModEntry {
     pub installed: bool,
     /// Set when it is generated LOD.
     pub generated: Option<Generated>,
+    /// It is one of raul's add-ons, made on this machine (`raul addons`).
+    pub addon: bool,
 }
 
 impl ModEntry {
@@ -128,6 +140,7 @@ impl ModEntry {
             foreign: false,
             installed: true,
             generated: None,
+            addon: false,
         }
     }
 
@@ -200,6 +213,8 @@ pub struct State {
     pub problem: Option<Problem>,
     /// The generated LOD Mods, as last read; the entries of the same names are marked.
     pub lod: GeneratedList,
+    /// The Mod names of raul's add-ons, as last read; the entries of the same names are marked.
+    pub addons: Vec<String>,
     /// What Undo would take back, in a plain line: the last change made on this page; `None` when there is nothing to
     /// undo.
     pub undo: Option<String>,
@@ -243,8 +258,15 @@ impl State {
         self.apply_marks();
     }
 
+    /// raul's add-on Mods arrived: they are marked, every other entry is not. The list may come before or after.
+    pub fn mark_addons(&mut self, names: Vec<String>) {
+        self.addons = names;
+        self.apply_marks();
+    }
+
     fn apply_marks(&mut self) {
         for m in &mut self.mods {
+            m.addon = !m.separator && self.addons.iter().any(|a| a.eq_ignore_ascii_case(&m.name));
             m.generated = self
                 .lod
                 .mods
@@ -409,6 +431,7 @@ pub fn parse_list(stdout: &str) -> Result<(String, Vec<ModEntry>), String> {
             position: r.position,
             name: r.name,
             generated: None,
+            addon: false,
         })
         .collect();
     Ok((doc.profile, mods))
@@ -482,9 +505,69 @@ pub fn parse_generated(stdout: &str) -> Result<GeneratedList, String> {
     })
 }
 
+#[derive(Deserialize)]
+struct AddonsDoc {
+    schema_version: u32,
+    contract: String,
+    addons: Vec<AddonRow>,
+}
+
+#[derive(Deserialize)]
+struct AddonRow {
+    name: String,
+    enabled: Option<bool>,
+}
+
+/// Reads what `raul addons list --json` printed: the names of the add-on Mods the Profile lists.
+///
+/// # Errors
+/// The output is not a `raul-addons` version 1 document, in words.
+pub fn parse_addons(stdout: &str) -> Result<Vec<String>, String> {
+    let doc: AddonsDoc =
+        serde_json::from_str(stdout.trim()).map_err(|e| format!("not a raul-addons: {e}"))?;
+    if doc.contract != "raul-addons" || doc.schema_version != 1 {
+        return Err(format!(
+            "{} version {} is not a raul-addons version 1",
+            doc.contract, doc.schema_version
+        ));
+    }
+    Ok(doc
+        .addons
+        .into_iter()
+        .filter(|a| a.enabled.is_some())
+        .map(|a| a.name)
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn add_on_mods_are_marked_by_name_whether_the_list_comes_first_or_last() {
+        let doc = r#"{"schema_version":1,"contract":"raul-addons","instance":"/i","profile":"Default","dry_run":true,
+            "addons":[{"id":"small-lamp-glow","version":1,"name":"Raul Small Lamp Glow","plugin":"Raul Small Lamp Glow.esp",
+            "trigger_plugin":"Street Lights TTW.esm","summary":"s","status":"up_to_date","enabled":false,"changes":[],"error":null},
+            {"id":"other","version":1,"name":"Not Listed","plugin":"x.esp","trigger_plugin":"y.esm","summary":"s",
+            "status":"not_needed","enabled":null,"changes":[],"error":null}]}"#;
+        let names = parse_addons(doc).unwrap();
+        assert_eq!(names, ["Raul Small Lamp Glow"]);
+        let mut s = listed();
+        s.mark_addons(names.clone());
+        assert!(s.mods.iter().all(|m| !m.addon), "no entry of that name yet");
+        let mut mods = s.mods.clone();
+        mods.push(ModEntry::named("raul small lamp glow", 5));
+        s.listed("Default".into(), mods);
+        assert!(
+            s.mods
+                .iter()
+                .any(|m| m.addon && m.name == "raul small lamp glow")
+        );
+        assert!(
+            parse_addons(r#"{"schema_version":2,"contract":"raul-addons","addons":[]}"#).is_err()
+        );
+        assert!(parse_addons("not json").is_err());
+    }
 
     fn listed() -> State {
         let mut s = State {

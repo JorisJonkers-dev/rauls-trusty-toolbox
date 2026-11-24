@@ -1,0 +1,158 @@
+{
+  "$defs": {
+    "AddonState": {
+      "description": "One add-on in a Profile.",
+      "properties": {
+        "changes": {
+          "description": "What this run changed, one sentence each; empty when nothing changed.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "enabled": {
+          "description": "Whether the Profile lists the Mod, and if so whether it enables it; `null` when it does not list it.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "error": {
+          "description": "Why it failed; `null` unless `status` is `failed`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "The add-on's id.",
+          "type": "string"
+        },
+        "name": {
+          "description": "The Mod's folder name.",
+          "type": "string"
+        },
+        "plugin": {
+          "description": "The plugin it writes.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/Status",
+          "description": "Where it stands."
+        },
+        "summary": {
+          "description": "One sentence for people.",
+          "type": "string"
+        },
+        "trigger_plugin": {
+          "description": "The plugin it is for.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Its version.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "changes",
+        "enabled",
+        "error",
+        "id",
+        "name",
+        "plugin",
+        "status",
+        "summary",
+        "trigger_plugin",
+        "version"
+      ],
+      "type": "object"
+    },
+    "Status": {
+      "description": "Where an add-on stands in a Profile.",
+      "oneOf": [
+        {
+          "const": "not_needed",
+          "description": "The Profile does not have the trigger plugin active; nothing of the add-on is in it.",
+          "type": "string"
+        },
+        {
+          "const": "up_to_date",
+          "description": "The Mod is in place and made from the trigger plugin the Profile has.",
+          "type": "string"
+        },
+        {
+          "const": "out_of_date",
+          "description": "Without `--dry-run` the add-on would be added or made again.",
+          "type": "string"
+        },
+        {
+          "const": "added",
+          "description": "This apply added the Mod to the Profile.",
+          "type": "string"
+        },
+        {
+          "const": "updated",
+          "description": "This apply made the Mod again (a new trigger plugin or a new version of the add-on).",
+          "type": "string"
+        },
+        {
+          "const": "turned_off",
+          "description": "The player turned the Mod off or removed it after raul added it; it stays so.",
+          "type": "string"
+        },
+        {
+          "const": "failed",
+          "description": "The add-on could not be applied; `error` says why. The Profile is as it was.",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "The add-ons of a Profile (Contract `raul-addons`, version 1).",
+  "properties": {
+    "addons": {
+      "description": "Every add-on raul knows, in the list's order.",
+      "items": {
+        "$ref": "#/$defs/AddonState"
+      },
+      "type": "array"
+    },
+    "contract": {
+      "const": "raul-addons",
+      "description": "Always `raul-addons`.",
+      "type": "string"
+    },
+    "dry_run": {
+      "description": "Nothing was written: `raul addons list`, or `apply --dry-run`.",
+      "type": "boolean"
+    },
+    "instance": {
+      "description": "The Instance.",
+      "type": "string"
+    },
+    "profile": {
+      "description": "The Profile.",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "description": "The document version; 1.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "addons",
+    "contract",
+    "dry_run",
+    "instance",
+    "profile",
+    "schema_version"
+  ],
+  "title": "AddonsReport",
+  "type": "object"
+}

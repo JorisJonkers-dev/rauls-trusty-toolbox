@@ -435,3 +435,53 @@ fn a_request_saved_with_the_removed_extract_tool_still_reads() {
     let read: Request = serde_json::from_value(value).expect("an old request");
     assert_eq!(read, s.request());
 }
+
+/// A Mod with Street Lights TTW's plugin gets raul's small lamp glow add-on before Staging, and the run says so; a
+/// setup without it gets no add-on and no note.
+#[test]
+fn a_setup_with_street_lights_adds_the_lamp_glow_add_on_and_says_so() {
+    let s = Scratch::new();
+    let lamps = s.work.path().join("Street Lights.zip");
+    let esm = raul_drivers::addons::plugin::synthetic_plugin(
+        &["FalloutNV.esm"],
+        &[(
+            "ACTI",
+            0x0100_0801,
+            "LampGlow",
+            "Effects\\Ambient\\FXGlowSimpFillRnd.nif",
+        )],
+    );
+    ZipBuilder::new()
+        .file("Street Lights TTW.esm", &esm)
+        .write(&lamps);
+    let mut request = s.request();
+    request.mods = vec![lamps];
+    let (result, events) = record(&request, &CancelToken::new());
+    done(result);
+    let notes: Vec<&String> = events
+        .iter()
+        .filter_map(|e| match e {
+            Event::Note {
+                step: Step::Stage,
+                text,
+            } => Some(text),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(notes.len(), 1, "{events:?}");
+    assert!(notes[0].contains("Raul Small Lamp Glow"), "{notes:?}");
+    let made = s.instance().join("mods/Raul Small Lamp Glow");
+    assert!(made.join("Raul Small Lamp Glow.esp").is_file());
+    assert!(
+        made.join("meshes/raul/effects/raulsmallglow01.nif")
+            .is_file()
+    );
+
+    let plain = Scratch::new();
+    let mut request = plain.request();
+    request.mods = vec![plain.archive("Better.zip")];
+    let (result, events) = record(&request, &CancelToken::new());
+    done(result);
+    assert!(!events.iter().any(|e| matches!(e, Event::Note { .. })));
+    assert!(!plain.instance().join("mods/Raul Small Lamp Glow").exists());
+}

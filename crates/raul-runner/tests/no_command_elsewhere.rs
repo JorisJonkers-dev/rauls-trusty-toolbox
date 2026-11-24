@@ -11,6 +11,10 @@ use std::path::{Path, PathBuf};
 /// Windows-only tool (`taskkill`) start through `raul-runner`, so they need no entry.
 const ALLOWED: &[(&str, &str)] = &[
     (
+        "raul-cli/tests/addons.rs",
+        "runs the built raul binary as a black box",
+    ),
+    (
         "raul-cli/tests/cli.rs",
         "runs the built raul binary as a black box",
     ),

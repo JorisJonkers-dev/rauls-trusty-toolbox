@@ -1802,6 +1802,7 @@ dependencies = [
 name = "raul-drivers"
 version = "0.0.0"
 dependencies = [
+ "flate2",
  "jsonschema",
  "lodwright-api",
  "lodwright-contract",
@@ -1818,6 +1819,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sevenz-rust2",
+ "sha2",
  "toml",
  "ttwright-contract",
  "ttwright-core",

@@ -1,0 +1,31 @@
+[
+  {
+    "id": "small-lamp-glow",
+    "version": 1,
+    "name": "Raul Small Lamp Glow",
+    "plugin": "Raul Small Lamp Glow.esp",
+    "trigger_plugin": "Street Lights TTW.esm",
+    "summary": "A small, soft halo on each street lamp bulb instead of the wide glow discs; the lamps' light and beams stay as they are.",
+    "meshes": [
+      {
+        "path": "raul\\effects\\raulsmallglow01.nif",
+        "glow_sphere": {
+          "radius": 34.0,
+          "alpha": 0.3,
+          "rgb": [1.0, 0.92, 0.7],
+          "rings": 6,
+          "segments": 12,
+          "texture": "textures\\effects\\FXSoftGlowSpot01.dds"
+        }
+      }
+    ],
+    "records": [
+      {
+        "record_type": "ACTI",
+        "model": "effects\\ambient\\fxglowsimpfillrnd.nif",
+        "new_model": "raul\\effects\\raulsmallglow01.nif",
+        "bounds": 36
+      }
+    ]
+  }
+]

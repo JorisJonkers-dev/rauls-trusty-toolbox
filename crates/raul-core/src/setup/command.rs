@@ -480,6 +480,12 @@ impl Progress for Reporter<'_, '_> {
                 );
             }
             Event::Detail { .. } => {}
+            Event::Note { step, text } => {
+                self.events.put(
+                    json!({"event": "note", "step": step.id(), "text": text}),
+                    format!("  {}: {text}", step.id()),
+                );
+            }
         }
     }
 }

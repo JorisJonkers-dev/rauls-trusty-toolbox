@@ -17,8 +17,8 @@ use crate::theme::Tokens;
 use eframe::egui::{self, RichText};
 use raul_ui_model::pages::mods::{
     Filter, GeneratedList, GeneratedRow, ModEntry, Phase, Problem, StaleRow, Staleness, State,
-    disable_command, enable_command, generated_command, list_command, move_command,
-    parse_generated, parse_list, remove_command, undo_command,
+    addons_command, disable_command, enable_command, generated_command, list_command, move_command,
+    parse_addons, parse_generated, parse_list, remove_command, undo_command,
 };
 use raul_ui_model::pages::mods_install::{self as install_model, Installed, Phase as InstallPhase};
 use raul_ui_model::pages::settings::Command;
@@ -50,6 +50,7 @@ crate::texts!(TEXTS {
     SELECT_HINT = "Select a Mod to change it.";
     ENABLE_HOVER = "Turns the Mod on or off.";
     TAG_GENERATED = "Generated";
+    TAG_ADDON = "Made by raul";
     TAG_SEPARATOR = "Separator";
     TAG_MISSING = "Folder missing";
     TAG_GAME = "Managed by the game";
@@ -186,6 +187,7 @@ pub struct Mods {
 enum Job {
     List,
     Generated,
+    Addons,
     Enable,
     Disable,
     Move,
@@ -205,13 +207,14 @@ impl Mods {
     fn command(&self, job: Job) -> Option<Command> {
         let i = self.state.instance.as_deref()?;
         let (name, to) = match (&self.target, job) {
-            (_, Job::List | Job::Generated | Job::Undo) => ("", 0),
+            (_, Job::List | Job::Generated | Job::Addons | Job::Undo) => ("", 0),
             (Some((name, to)), _) => (name.as_str(), *to),
             (None, _) => return None,
         };
         Some(match job {
             Job::List => list_command(i),
             Job::Generated => generated_command(i),
+            Job::Addons => addons_command(i),
             Job::Enable => enable_command(i, name),
             Job::Disable => disable_command(i, name),
             Job::Move => move_command(i, name, to),
@@ -236,7 +239,7 @@ impl Mods {
         };
         match job {
             Job::List => self.state.loading(),
-            Job::Generated => {}
+            Job::Generated | Job::Addons => {}
             _ => self.state.changing(),
         }
         match start(cx, &command) {
@@ -253,6 +256,7 @@ impl Mods {
     fn read(&mut self, cx: &mut PageCx<'_>) {
         self.run(cx, Job::List);
         self.run(cx, Job::Generated);
+        self.run(cx, Job::Addons);
     }
 
     /// Follows the Instance the shell knows: a new one is read, none clears the page. A command that runs for the
@@ -281,6 +285,7 @@ impl Mods {
                     Ok((profile, mods)) => self.state.listed(profile, mods),
                     Err(why) => self.state.failed(problem(&LIST_FAILED, why)),
                 },
+                Job::Addons => self.state.mark_addons(addon_names(&result)),
                 Job::Generated => {
                     match answer(&result).and_then(|out| parse_generated(&out.stdout)) {
                         Ok(g) => self.state.mark_generated(g),
@@ -622,10 +627,12 @@ impl Mods {
     }
 }
 
-/// The tag after a name: Generated, Separator, Folder missing, or Managed by the game.
+/// The tag after a name: Generated, Made by raul, Separator, Folder missing, or Managed by the game.
 fn tag(ui: &mut egui::Ui, t: &Tokens, m: &ModEntry) {
     let (text, colour) = if m.generated.is_some() {
         (TAG_GENERATED, t.info.color())
+    } else if m.addon {
+        (TAG_ADDON, t.info.color())
     } else if m.separator {
         (TAG_SEPARATOR, t.muted.color())
     } else if !m.installed {
@@ -637,6 +644,14 @@ fn tag(ui: &mut egui::Ui, t: &Tokens, m: &ModEntry) {
         return;
     };
     ui.label(RichText::new(text).small().color(colour));
+}
+
+/// The add-on Mods `raul addons list` named. An older raul without add-ons, or an answer that cannot be read, names
+/// none: the entries are then plain Mods, and no problem is shown.
+fn addon_names(result: &Result<Output, String>) -> Vec<String> {
+    answer(result)
+        .and_then(|out| parse_addons(&out.stdout))
+        .unwrap_or_default()
 }
 
 /// The output of a command that ran and exited 0, or why there is none.
