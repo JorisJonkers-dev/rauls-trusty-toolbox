@@ -8,8 +8,9 @@ is [ADR-0022](adr/0022-scene-runs-and-the-in-game-bench-are-raul-commands.md).
 
 ## Take a picture pair of your modded game with and without generated LOD
 
-You need a Profile that has a generated LOD Mod (`raul lod generate`), and a game folder in `raul config`
-(`game.newvegas`). Three commands:
+You need a Profile that has a generated LOD Mod (`raul lod generate`). The game is the Instance's base copy, the one
+`raul run` plays (`--game <dir>` names another; without an Instance the `game.newvegas` setting is used). Three
+commands:
 
 ```
 raul scene places                      # once: writes mojave-day.toml and mojave-night.toml here, to read or edit

@@ -732,15 +732,17 @@ fn setup(ctx: &Context, verb: &str, f: &Flags) -> Result<Setup, String> {
         }
         None => None,
     };
+    // The game an Instance plays is its base copy, as for `raul run`; the setting is only for runs without one.
     let game = f
         .game
         .clone()
+        .or_else(|| instance.as_ref().map(|(i, _)| i.config.base.clone()))
         .or_else(|| {
             ctx.config_file()
                 .and_then(|c| Config::load(&c).ok())
                 .and_then(|c| c.get(Key::GameNewVegas))
         })
-        .ok_or("no game folder: pass --game <dir> or run `raul config set game.newvegas <dir>`")?;
+        .ok_or("no game folder: pass --game <dir> or --instance <dir>, or run `raul config set game.newvegas <dir>`")?;
     let who = instance
         .as_ref()
         .map_or("game".to_owned(), |(_, p)| p.clone());

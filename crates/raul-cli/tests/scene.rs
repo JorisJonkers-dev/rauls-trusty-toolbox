@@ -252,6 +252,72 @@ fn named_variants_replace_the_default_and_a_bad_source_is_refused_before_any_sta
     assert_eq!(f.calls().len(), 2, "the refusal started nothing");
 }
 
+/// Regression (#613): with an Instance and no `--game`, the game folder came from the `game.newvegas` setting, so a
+/// Tale of Two Wastelands base was pictured as plain New Vegas. The base copy of the Instance is what `raul run` plays.
+#[test]
+fn without_game_the_run_pictures_the_instances_base_not_the_game_setting() {
+    let f = Fixture::new("scene-base", false);
+    let base_data = f.path("FalloutNV").join("Data");
+    std::fs::write(base_data.join("TaleOfTwoWastelands.esm"), "x").unwrap();
+    let other = f.path("PlainNV");
+    BaseBuilder::steam().write(&other);
+    std::fs::write(other.join("Data").join("OnlyInTheSetting.esm"), "x").unwrap();
+    let set = f.raul(&["config", "set", "game.newvegas", s(&other)], &[]);
+    assert!(set.status.success(), "{}", text(&set));
+    let viewer = f.viewer();
+    let out = f.raul(
+        &[
+            "scene",
+            "run",
+            "--places",
+            "mojave-day",
+            "--instance",
+            s(&f.path("instance")),
+            "--viewer",
+            s(&viewer),
+            "--gpu-sysfs",
+            "/nonexistent",
+            "--no-cap",
+        ],
+        &[],
+    );
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out));
+    let run = f.run_dir("Default");
+    assert!(
+        staged_has(&run, "profile", "TaleOfTwoWastelands.esm"),
+        "the base's plugin is in the pictured game"
+    );
+    assert!(
+        !staged_has(&run, "profile", "OnlyInTheSetting.esm"),
+        "the game.newvegas folder is not pictured"
+    );
+    // `--game` still names another folder.
+    let named_dir = f.path("named");
+    let named = f.raul(
+        &[
+            "scene",
+            "run",
+            "--places",
+            "mojave-day",
+            "--instance",
+            s(&f.path("instance")),
+            "--game",
+            s(&other),
+            "--out",
+            s(&named_dir),
+            "--viewer",
+            s(&viewer),
+            "--gpu-sysfs",
+            "/nonexistent",
+            "--no-cap",
+        ],
+        &[],
+    );
+    assert_eq!(named.status.code(), Some(0), "{}", text(&named));
+    assert!(staged_has(&named_dir, "profile", "OnlyInTheSetting.esm"));
+    assert!(!staged_has(&named_dir, "profile", "TaleOfTwoWastelands.esm"));
+}
+
 #[test]
 fn a_failed_start_stops_the_run_and_says_where_its_folder_is() {
     let f = Fixture::new("scene-fail", true);
