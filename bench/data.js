@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795533254780,
+  "lastUpdate": 1795546839984,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11563,6 +11563,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.002213,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d626fc94169eafa28196ca837305ddf899647be5",
+          "message": "fix(scene): picture a profile on its Staging tree, and without its far view on a tree staged without it (#618)\n\n* fix(scene): picture a profile on its Staging tree, and without its far view on a tree staged without it\n\nA profile variant laid one overlay per Mod, which failed on real\nprofiles (folders shared in another case, MO2 hidden files) and differed\nfrom the tree raul run plays. It now uses the profile's Staging tree;\nprofile-without-lod uses nvmod's stage_without into raul's own folder of\nthe Instance.\n\nCloses #612\n\n* chore(deps): point nvmod at a4bdd17 (stage_without, #280)\n\n* fix(scene): take the Instance lock while a profile is staged for pictures\n\nReview finding: staging changes the tree a running game reads; raul run\nholds the Instance lock for the game's lifetime.\n\n* test(scene): a named game folder lies under the profile's Staging tree, base files included\n\nThe tree raul run plays holds the Instance's base files; the old check\npassed on Linux only because the tree names files in lower case.",
+          "timestamp": "2026-11-24T19:56:12+01:00",
+          "tree_id": "f796f6b94cbdbd129038841f8c4362898f9bafc4",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d626fc94169eafa28196ca837305ddf899647be5"
+        },
+        "date": 1795546838815,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.270911,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 5.305993,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 24.694263,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.7895269999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.0991800000000005,
             "unit": "ms"
           }
         ]
