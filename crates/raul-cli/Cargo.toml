@@ -29,6 +29,7 @@ nvmod-instance = { workspace = true }
 nvmod-formats = { workspace = true }
 nvmod-loadorder = { workspace = true }
 nvmod-run = { workspace = true }
+nvmod-stage = { workspace = true }
 serde_json = { workspace = true }
 ctrlc = { version = "=3.5.2", features = ["termination"] }
 

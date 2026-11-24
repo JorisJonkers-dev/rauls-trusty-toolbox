@@ -355,15 +355,6 @@ pub struct Resolved {
     pub plugins: Vec<String>,
 }
 
-/// The names of the Profile's generated LOD Mods.
-fn lod_mod_names(instance: &NvmodInstance, profile: &str) -> Vec<String> {
-    raul_drivers::lod::generated_mods(instance, profile)
-        .mods
-        .into_iter()
-        .map(|m| m.name)
-        .collect()
-}
-
 /// Whether the Profile lists a generated LOD Mod that is enabled.
 #[must_use]
 pub fn has_lod_mod(instance: &NvmodInstance, profile: &str) -> bool {
@@ -401,46 +392,64 @@ pub fn resolve(
         Source::Profile => false,
         Source::ProfileWithoutLod => true,
     };
-    let dir = instance.profile_dir(profile);
-    let text = std::fs::read(dir.join("modlist.txt"))
-        .map_err(|e| format!("{}: {e}", dir.join("modlist.txt").display()))?;
-    let list = nvmod_formats::Modlist::parse(&nvmod_formats::text::decode(&text));
-    let skip = if without_lod {
-        lod_mod_names(instance, profile)
-    } else {
-        Vec::new()
+    // A profile is pictured on its Staging tree, the data `raul run` plays (built again where it is out of date);
+    // without its far view, on the same tree built without the enabled generated LOD Mods into a folder of raul's
+    // own beside the Instance's data. Either way the active plugins whose files are in that tree, in Load order.
+    let fail = |e: nvmod_stage::StageError| match e {
+        nvmod_stage::StageError::Refused(w) | nvmod_stage::StageError::Failed(w) => w,
     };
-    let mut overlays = Vec::new();
-    // The first line wins a conflict, so the lowest priority goes down first.
-    for e in list.entries.iter().rev() {
-        if e.state != nvmod_formats::ModState::Enabled
-            || e.kind != nvmod_formats::EntryKind::Mod
-            || skip.iter().any(|s| s == &e.name)
-        {
-            continue;
-        }
-        let folder = instance.mod_dir(&e.name);
-        if !folder.is_dir() {
-            return Err(format!(
-                "the Mod `{}` is enabled but has no folder at {}",
-                e.name,
-                folder.display()
-            ));
-        }
-        overlays.push(folder);
+    if without_lod {
+        let lod: Vec<String> = raul_drivers::lod::generated_mods(instance, profile)
+            .mods
+            .into_iter()
+            .filter(|m| m.enabled)
+            .map(|m| m.name)
+            .collect();
+        let dest = without_lod_tree(instance, profile);
+        let report = nvmod_stage::stage_without(
+            instance,
+            profile,
+            &lod,
+            &dest,
+            nvmod_stage::Options::default(),
+        )
+        .map_err(|e| {
+            format!(
+                "the profile without its far view could not be staged: {}",
+                fail(e)
+            )
+        })?;
+        return Ok(Resolved {
+            name,
+            overlays: vec![report.tree],
+            plugins: report.plugins,
+        });
     }
+    nvmod_stage::stage(instance, profile, nvmod_stage::Options::default())
+        .map_err(|e| format!("the profile could not be staged: {}", fail(e)))?;
+    let dir = instance.profile_dir(profile);
+    let tree = nvmod_loadorder::staging_data(instance, profile)
+        .map_err(|e| format!("the Staging tree of `{profile}` is missing: {e:?}"))?;
     let plugins = nvmod_loadorder::read_slots(&dir)
         .map_err(|e| format!("the Load order of `{profile}` cannot be read: {e:?}"))?
         .into_iter()
         .filter(|s| s.active)
         .map(|s| s.name)
-        .filter(|n| !(without_lod && n.eq_ignore_ascii_case(raul_drivers::lod::PACKED_PLUGIN)))
         .collect();
     Ok(Resolved {
         name,
-        overlays,
+        overlays: vec![tree],
         plugins,
     })
+}
+
+/// Where the tree of `profile` without its far view is built: raul's own folder of the Instance.
+#[must_use]
+pub fn without_lod_tree(instance: &NvmodInstance, profile: &str) -> PathBuf {
+    instance
+        .root
+        .join(".raul/scene")
+        .join(format!("{profile}-without-lod"))
 }
 
 // ---------------------------------------------------------------------------------------------------------------

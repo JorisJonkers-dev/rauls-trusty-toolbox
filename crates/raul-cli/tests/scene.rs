@@ -518,3 +518,48 @@ fn the_synthetic_bench_is_unchanged_and_never_starts_the_game() {
     );
     assert_eq!(f.calls().len(), 0);
 }
+
+#[test]
+fn a_real_profile_is_pictured_on_its_staging_tree_with_shared_folders_in_any_case() {
+    let f = Fixture::new("scene-shared", true);
+    let inst = f.path("instance");
+    // Three Mods share the extender's plugin folder, two of them in another case, and one file is hidden the MO2 way.
+    for (m, rel) in [
+        ("Alpha", "NVSE/Plugins/a.dll"),
+        ("Beta", "nvse/plugins/b.dll"),
+        ("Gamma", "nvse/Plugins/c.dll"),
+        ("Gamma", "nvse/Plugins/d.dll.mohidden"),
+    ] {
+        if !inst.join("mods").join(m).is_dir() {
+            let out = f.raul(&["mods", "create", m, "--instance", s(&inst)], &[]);
+            assert!(out.status.success(), "{out:?}");
+        }
+        let p = inst.join("mods").join(m).join(rel);
+        std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+        std::fs::write(p, "x").unwrap();
+    }
+    let out = f.scene(&["scene", "run", "--places", "mojave-day"], &[]);
+    assert_eq!(out.status.code(), Some(0), "{}", text(&out));
+    let run = f.run_dir("Default");
+    for variant in ["with-lod", "without-lod"] {
+        for dll in ["a.dll", "b.dll", "c.dll"] {
+            assert!(
+                staged_has(&run, variant, &format!("nvse/plugins/{dll}")),
+                "{variant} {dll}"
+            );
+        }
+        assert!(
+            !staged_has(&run, variant, "nvse/plugins/d.dll"),
+            "{variant}"
+        );
+        assert!(
+            !staged_has(&run, variant, "nvse/plugins/d.dll.mohidden"),
+            "{variant}"
+        );
+    }
+    assert!(staged_has(&run, "with-lod", "meshes/lod.nif"));
+    assert!(!staged_has(&run, "without-lod", "meshes/lod.nif"));
+    // The profile without its far view is built in raul's own folder of the Instance; the profile is not changed.
+    assert!(inst.join(".raul/scene/Default-without-lod/data").is_dir());
+    assert!(inst.join("staging/Default/data/meshes/lod.nif").is_file());
+}

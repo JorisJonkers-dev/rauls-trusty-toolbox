@@ -4439,6 +4439,7 @@ dependencies = [
  "nvmod-instance",
  "nvmod-loadorder",
  "nvmod-run",
+ "nvmod-stage",
  "raul-bench",
  "raul-core",
  "raul-drivers",
