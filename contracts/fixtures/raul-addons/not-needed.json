@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "contract": "raul-addons",
+  "instance": "/users/player/raul-storage/instance",
+  "profile": "Plain",
+  "dry_run": true,
+  "addons": [
+    {
+      "id": "small-lamp-glow",
+      "version": 1,
+      "name": "Raul Small Lamp Glow",
+      "plugin": "Raul Small Lamp Glow.esp",
+      "trigger_plugin": "Street Lights TTW.esm",
+      "summary": "A small, soft halo on each street lamp bulb instead of the wide glow discs; the lamps' light and beams stay as they are.",
+      "status": "not_needed",
+      "enabled": null,
+      "changes": [],
+      "error": null
+    }
+  ]
+}

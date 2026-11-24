@@ -2,6 +2,7 @@
 //! The `raul` command line. The Toolbox's own commands are handled here; every other command is nvmod's and is run
 //! by `nvmod_cli` in this process (ADR-0002), so everything the GUI does is reachable from a shell.
 
+pub mod addons;
 mod bench;
 mod config;
 mod detect;
@@ -59,6 +60,7 @@ pub const OWN_COMMANDS: &[&str] = &[
     "setup",
     "ttw",
     "lod",
+    "addons",
     "support-bundle",
     "target",
     "install-nv-rs",
@@ -173,6 +175,13 @@ usage:
                               the file as it was in raul-lod.toml.previous; --dry-run names what it would remove
   raul lod settings undo [--instance <dir>] [--profile <name>] [--json]
                               put back the file the last reset kept (one level; a later set or unset ends it)
+  raul addons list [--instance <dir>] [--profile <name>] [--json]
+                              raul's add-ons (small Mods raul makes on this machine for a mod the Profile has, such
+                              as a small lamp glow for Street Lights TTW) and where each stands; nothing is written
+  raul addons apply [--instance <dir>] [--profile <name>] [--dry-run] [--json]
+                              add or update them: a Profile with the add-on's plugin active gets its Mod, above
+                              that mod; one without it is not touched; one you turned off stays off. `raul setup`
+                              does this at its end, and `raul run` and `raul scene` check it before the game starts
   raul support-bundle [--instance <dir>] [--hide-names] [--out <file>] [--apply] [--json]
                               what a bug report needs, in one zip: versions, system, the folders of `raul config`,
                               the Instance's Mods, plugins and Doctor report, and the last run logs. Without --apply
@@ -208,15 +217,21 @@ pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn
         Some("setup") => setup::run(&args[1..], out, err),
         Some("ttw") => ttw::run(ctx, &args[1..], out, err),
         Some("lod") => lod::run(ctx, &args[1..], out, err),
+        Some("addons") => addons::run(ctx, &args[1..], out, err),
         Some("support-bundle") => support_bundle::run(ctx, &args[1..], out, err),
         Some("install-nv-rs") => gone_install_nv_rs(err),
         Some("target") => target::run(args, out, err),
         Some("run") if args.iter().any(|a| a == "--stop") => play::stop(&args[1..], out, err),
-        Some("run") if play::enabled() => run_in_play_mode(args, out, err),
+        Some("run") if play::enabled() => {
+            addons_before_run(args, err);
+            run_in_play_mode(args, out, err)
+        }
         Some("run") if args.iter().any(|a| a == "--json") => {
+            addons_before_run(args, err);
             play::run_plain(args, ctx.run_log(), out, err)
         }
         Some("run") => {
+            addons_before_run(args, err);
             let mut out = program_name::Renamed::new(out);
             let mut err = program_name::Renamed::new(err);
             play::run_plain(args, ctx.run_log(), &mut out, &mut err)
@@ -259,6 +274,27 @@ fn nvmod(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Writ
 }
 
 /// `raul run` with the game started as raul's own play mode, logged like every nvmod command.
+/// The add-ons check before `raul run` starts the game (not for a dry run): the Instance and Profile come from the
+/// command line; without `--instance` nvmod finds none either, and nothing is checked. It never stops the run.
+fn addons_before_run(args: &[String], err: &mut dyn Write) {
+    let value = |flag: &str| {
+        args.iter()
+            .position(|a| a == flag)
+            .and_then(|i| args.get(i + 1))
+    };
+    if args.iter().any(|a| a == "--dry-run") {
+        return;
+    }
+    if let Some(root) = value("--instance") {
+        addons::before_game(
+            std::path::Path::new(root),
+            value("--profile").map(String::as_str),
+            true,
+            err,
+        );
+    }
+}
+
 fn run_in_play_mode(args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     match nvmod_cli::begin_run_log(args) {
         Ok((rest, session)) => {

@@ -17,6 +17,7 @@ removing, renaming or retyping one is.
 | `raul-lod-result` | 1 | the `result` event of `raul lod generate --json` |
 | `raul-lod-mods` | 1 | `raul lod mods --json` |
 | `raul-lod-settings` | 1 | `raul lod settings show\|set\|unset\|reset\|undo --json` |
+| `raul-addons` | 1 | `raul addons list\|apply --json` |
 | `raul-journal` | 1 | the file `.raul/setup-journal.json` in an Instance (on disk) |
 
 `snapshots/` holds the schemas of the Component Contracts the Toolbox reads, as their releases published them:
@@ -269,6 +270,31 @@ between runs (that is how it knows a later run is `up_to_date`); the Mod is a co
 
 The tests run `raul lod generate` with the linked lodwright on a synthetic world (`crates/raul-cli/tests/lod_generate.rs`),
 and the cancel and resume cases call the same generation in process with a cancel token.
+
+## `raul-addons`
+
+`raul addons list --json` and `raul addons apply --json` print one document: raul's add-ons in the order of its list
+(`crates/raul-drivers/data/addons.json`) and where each stands in the Profile. An add-on is a small Mod raul makes on
+the player's machine for a plugin the Profile has (`trigger_plugin`): its meshes come from numbers and its plugin is
+made from the player's own copy of the trigger plugin, so no game or mod file ships. `list` writes nothing
+(`dry_run: true`); so does `apply --dry-run`.
+
+| `status` | Meaning |
+| --- | --- |
+| `not_needed` | the trigger plugin is not active; the Profile is not touched |
+| `up_to_date` | the Mod is in place and made from the trigger plugin the Profile has |
+| `out_of_date` | a dry run: `apply` would add the Mod or make it again |
+| `added` | this run added the Mod: right above the Mod that holds the trigger, its plugin right after the trigger |
+| `updated` | this run made the Mod again (a changed trigger plugin or a new add-on version), or turned it back on |
+| `turned_off` | the player turned the Mod off or removed it; raul leaves it so |
+| `failed` | it could not be applied; `error` says why and the Profile is as it was |
+
+`enabled` is `null` when the Profile does not list the Mod. `changes` holds one sentence per change of this run, the
+lines `raul setup`, `raul run` and `raul scene` print when they apply the add-ons along the way. The Mod's `meta.ini`
+carries the marker `[raulGeneratedAddon]` (`generated`, `addon`, `version`, `sourceDigest`); the Profile remembers in
+`raul-addons.json` which add-ons it was given, so a Mod the player turned off or removed is not added back. When the
+trigger plugin is no longer active, an enabled add-on Mod is turned off and comes back with the trigger. Exit code 0
+unless an add-on failed (4); an Instance or Profile that cannot be opened is refused (2) with no document.
 
 ## `raul-lod-mods`
 

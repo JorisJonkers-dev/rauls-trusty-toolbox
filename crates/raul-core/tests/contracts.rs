@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 
 use raul_core::config::{ConfigDoc, Key};
 use raul_core::contracts::OWN;
+use raul_drivers::addons::{AddonsReport, Status};
 use raul_drivers::events::{Event, EventLine};
 use raul_drivers::lod::{LodMods, LodResult};
 use raul_drivers::ttw::TtwResult;
@@ -246,6 +247,21 @@ fn lod_mods_fixtures_read_back() {
     );
     for doc in docs {
         assert_eq!(doc.own_name, raul_drivers::lod::mod_name(&doc.profile));
+    }
+}
+
+#[test]
+fn addons_fixtures_read_back() {
+    let docs = reads_back::<AddonsReport>("raul-addons");
+    let statuses: Vec<Status> = docs
+        .iter()
+        .flat_map(|d| d.addons.iter().map(|a| a.status))
+        .collect();
+    assert!(statuses.contains(&Status::Added) && statuses.contains(&Status::NotNeeded));
+    for doc in docs {
+        for a in &doc.addons {
+            assert_eq!(a.error.is_some(), a.status == Status::Failed, "{a:?}");
+        }
     }
 }
 

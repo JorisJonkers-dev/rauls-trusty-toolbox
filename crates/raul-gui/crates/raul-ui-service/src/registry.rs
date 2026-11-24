@@ -48,6 +48,8 @@ pub enum Action {
     Init,
     /// `raul lod`: plan and generate distant land with lodwright.
     Lod,
+    /// `raul addons`: raul's add-ons for the mods a profile has; the Mods page reads `addons list` to tag them.
+    Addons,
     /// `raul run`: start the game on nv-rs, only through the memory-capped run guard.
     Run,
     /// `raul version`: the Toolbox version.
@@ -65,7 +67,7 @@ pub enum Action {
 
 impl Action {
     /// Every action.
-    pub const ALL: [Action; 23] = [
+    pub const ALL: [Action; 24] = [
         Action::Setup,
         Action::ImportMo2,
         Action::InstallMod,
@@ -83,6 +85,7 @@ impl Action {
         Action::Config,
         Action::Init,
         Action::Lod,
+        Action::Addons,
         Action::Run,
         Action::Version,
         Action::Update,
@@ -111,6 +114,7 @@ impl Action {
             Self::Config => "config",
             Self::Init => "init",
             Self::Lod => "lod",
+            Self::Addons => "addons",
             Self::Run => "run",
             Self::Version => "version",
             Self::Update => "update",
@@ -150,6 +154,7 @@ impl Action {
             Self::Config => "Game folders",
             Self::Init => "Create the Instance",
             Self::Lod => "Distant land",
+            Self::Addons => "raul's add-ons",
             Self::Run => "Play",
             Self::Version => "Versions",
             Self::Update => "Check for updates",
@@ -572,6 +577,15 @@ pub const COMMANDS: &[Command] = &[
         id: "lod-mods",
         action: Action::Lod,
         words: &["mods"],
+        flags: &["--instance", "--profile", "--json"],
+        writes: false,
+        awaits: None,
+    },
+    Command {
+        // The Mods page tags raul's add-on Mods (`raul addons list`).
+        id: "addons-list",
+        action: Action::Addons,
+        words: &["list"],
         flags: &["--instance", "--profile", "--json"],
         writes: false,
         awaits: None,

@@ -59,6 +59,12 @@ source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's pictu
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 
 [[asset]]
+path = "docs/images/lamp-glow-capital.jpg"
+what = "README picture: Street Lights TTW lamps along the Potomac at night, the mod's own wide glow and raul's small lamp glow add-on"
+source = "a screenshot of Fallout: New Vegas with Tale of Two Wastelands taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (README-screenshot exception of 2026-11-24: README docs only, docs/images/, small JPEG)"
+license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
+
+[[asset]]
 path = "docs/images/raul-journey.svg"
 what = "README diagram: raul's six steps from finding the game to playing"
 source = "this repository"

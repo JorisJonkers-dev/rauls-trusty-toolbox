@@ -4,6 +4,7 @@
 //! The [`events`] and [`ttw`] modules hold the Toolbox's own Contracts of those commands; their schemas are in
 //! `contracts/` at the repository root.
 
+pub mod addons;
 pub mod events;
 pub mod lod;
 pub mod stop;

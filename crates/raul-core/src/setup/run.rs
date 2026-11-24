@@ -118,6 +118,35 @@ fn file_name(path: &Path) -> String {
         .into_owned()
 }
 
+/// raul's add-ons for the Profile, before Staging so the tree has them: each change and each add-on that could not
+/// be added is a note. An add-on never fails the setup: the Instance works without it.
+fn addons(req: &Request, step: &Step, progress: &mut dyn Progress) {
+    let note = |text: String| Event::Note {
+        step: step.clone(),
+        text,
+    };
+    let opened = nvmod_instance::NvmodInstance::open(&req.instance).and_then(|i| {
+        let profile = i.resolve_profile(req.profile.as_deref())?;
+        Ok((i, profile))
+    });
+    let (instance, profile) = match opened {
+        Ok(x) => x,
+        Err(e) => {
+            progress.report(&note(format!("the add-ons were not checked: {e}")));
+            return;
+        }
+    };
+    let report = raul_drivers::addons::apply(&instance, &profile, false);
+    for a in &report.addons {
+        for c in &a.changes {
+            progress.report(&note(format!("add-on {}: {c}", a.name)));
+        }
+        if let Some(e) = &a.error {
+            progress.report(&note(format!("add-on {} was not added: {e}", a.name)));
+        }
+    }
+}
+
 /// Run one step. `Ok(false)` means the step was cancelled.
 #[allow(clippy::too_many_lines)] // one arm per step
 fn execute(
@@ -220,6 +249,7 @@ fn execute(
             }
         }
         Step::Stage => {
+            addons(req, step, progress);
             let request = api::stage::StageRequest {
                 instance,
                 profile,

@@ -403,6 +403,8 @@ pub fn resolve(
         .map_err(|e| {
             format!("the Instance is in use, so `{profile}` cannot be staged for pictures now: {e}")
         })?;
+    // The add-ons are checked as before `raul run`, under the lock this holds; it never stops the pictures.
+    crate::addons::before_game(&instance.root, Some(profile), false, &mut std::io::stderr());
     if without_lod {
         let lod: Vec<String> = raul_drivers::lod::generated_mods(instance, profile)
             .mods

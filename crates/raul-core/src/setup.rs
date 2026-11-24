@@ -230,6 +230,14 @@ pub enum Event {
         /// The number of steps in the plan.
         total: usize,
     },
+    /// A line for people about something a step changed beside its own work: an add-on raul added to the Profile
+    /// before Staging (raul changes nothing without saying so).
+    Note {
+        /// The step.
+        step: Step,
+        /// The line.
+        text: String,
+    },
 }
 
 /// Where the setup's progress goes. A closure `FnMut(&Event)` is one.
