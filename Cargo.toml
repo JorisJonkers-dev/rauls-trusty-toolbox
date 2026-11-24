@@ -39,6 +39,7 @@ nvmod-instance = { path = "components/nvmod-rs/crates/nvmod-instance" }
 nvmod-loadorder = { path = "components/nvmod-rs/crates/nvmod-loadorder" }
 nvmod-modinstall = { path = "components/nvmod-rs/crates/nvmod-modinstall" }
 nvmod-pe = { path = "components/nvmod-rs/crates/nvmod-pe" }
+nvmod-plugins = { path = "components/nvmod-rs/crates/nvmod-plugins" }
 nvmod-run = { path = "components/nvmod-rs/crates/nvmod-run" }
 nvmod-runlog = { path = "components/nvmod-rs/crates/nvmod-runlog" }
 nvmod-stage = { path = "components/nvmod-rs/crates/nvmod-stage" }

@@ -716,6 +716,76 @@ fn packing_gives_a_mod_of_one_archive_and_its_stub_and_switching_it_either_way_m
     assert_eq!(stale_of(&f).0, "current");
 }
 
+/// The active plugins of `profile`, in Load order.
+fn active_plugins(f: &Fixture, profile: &str) -> Vec<String> {
+    std::fs::read_to_string(f.instance().join(format!("profiles/{profile}/plugins.txt")))
+        .unwrap_or_default()
+        .lines()
+        .map(|l| l.trim().trim_start_matches('*').to_owned())
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .collect()
+}
+
+/// The stub of a packed LOD is active and last in `profile`'s Load order, so the game registers its archive.
+fn assert_stub_active_and_last(f: &Fixture, profile: &str) {
+    let active = active_plugins(f, profile);
+    assert_eq!(
+        active.last().map(String::as_str),
+        Some("Lodwright LOD.esp"),
+        "the stub must be active and last: {active:?}"
+    );
+    assert_eq!(
+        active.iter().filter(|p| *p == "Lodwright LOD.esp").count(),
+        1,
+        "{active:?}"
+    );
+}
+
+#[test]
+fn a_new_packed_lod_keeps_its_stub_active_and_last() {
+    let f = Fixture::new("raul-lodgen-stub-rerun");
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_stub_active_and_last(&f, "Default");
+    // A changed request writes a new Mod in place of the old one; its stub has the same name.
+    f.settings("[output]\nwater = false\n");
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["lodwright"]["code"], "generated", "{result}");
+    assert_stub_active_and_last(&f, "Default");
+    // An up-to-date run puts back a stub that was turned off, and says it changed the Instance.
+    raul_ok(&f, &["plugins", "disable", "Lodwright LOD.esp"]);
+    let (code, result, finished) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["up_to_date"], true, "{result}");
+    assert_eq!(finished["changed"], true, "{finished}");
+    assert_stub_active_and_last(&f, "Default");
+    // A stub moved away from the end goes back there on the next new Mod.
+    raul_ok(&f, &["plugins", "move", "Lodwright LOD.esp", "--top"]);
+    f.settings("[output]\nwater = true\n");
+    let (code, result, _) = f.generate(&[]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_stub_active_and_last(&f, "Default");
+}
+
+#[test]
+fn a_copied_profile_whose_old_lod_mod_is_off_gets_its_own_stub_active() {
+    let f = Fixture::new("raul-lodgen-stub-copy");
+    assert_eq!(f.generate(&[]).0, Some(0));
+    raul_ok(&f, &["profile", "copy", "Default", "Copy"]);
+    raul_ok(&f, &["mods", "disable", MOD, "--profile", "Copy"]);
+    assert!(
+        !active_plugins(&f, "Copy").contains(&"Lodwright LOD.esp".to_owned()),
+        "turning the old Mod off takes its stub out"
+    );
+    raul_ok(&f, &["stage", "--profile", "Copy", "--copy"]);
+    let (code, result, _) = f.generate(&["--profile", "Copy"]);
+    assert_eq!(code, Some(0), "{result}");
+    assert_eq!(result["mod"], "Generated LOD (Copy)", "{result}");
+    assert_stub_active_and_last(&f, "Copy");
+    assert_stub_active_and_last(&f, "Default");
+}
+
 #[test]
 fn packing_is_refused_with_a_plain_sentence_when_no_plugin_slot_is_left_for_the_stub() {
     let f = Fixture::new("raul-lodgen-slots");

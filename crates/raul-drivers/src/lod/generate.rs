@@ -13,6 +13,7 @@ use nvmod_instance::{NvmodInstance, find_ci};
 use nvmod_modinstall::lifecycle::{self, Action};
 use nvmod_modinstall::mods::{Change, ModsError, Place};
 use nvmod_modinstall::{InstallError, Limits, OnConflict, Request};
+use nvmod_plugins::{Edit, Place as PluginPlace, PluginsError};
 use serde_json::Value;
 
 use super::inproc;
@@ -338,6 +339,65 @@ fn replace_mod(
     ))
 }
 
+/// The stub plugin of a packed LOD Mod, when the Mod folder `name` holds one (a loose LOD Mod has no plugin).
+fn stub_of(instance: &NvmodInstance, name: &str) -> Option<String> {
+    let dir = find_ci(&instance.root.join("mods"), name)?;
+    find_ci(&dir, super::PACKED_PLUGIN)
+        .filter(|p| p.is_file())
+        .map(|p| {
+            p.file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into_owned()
+        })
+}
+
+/// What [`activate_stub`] did.
+#[derive(Default)]
+struct Activated {
+    /// The Load order changed.
+    changed: bool,
+    /// One line for a stub that could not be placed.
+    warnings: Vec<String>,
+}
+
+/// An enabled packed LOD Mod's stub is active and last in the Load order, so the game registers the archive it names
+/// and the archive's files win over every other far view. Installing a Mod does not activate a plugin the Profile
+/// already knew (an earlier LOD Mod's stub of the same name, kept inactive after that Mod was turned off or
+/// replaced), so this is done here. A stub that cannot be placed gives a warning; the Mod is in either way.
+fn activate_stub(instance: &NvmodInstance, profile: &str, name: &str) -> Activated {
+    let mut out = Activated::default();
+    if listed(instance, profile, name) != Some(true) {
+        return out;
+    }
+    let Some(stub) = stub_of(instance, name) else {
+        return out;
+    };
+    let edits = [
+        Edit::Enable {
+            names: vec![stub.clone()],
+            with_masters: false,
+        },
+        Edit::Move {
+            name: stub.clone(),
+            to: PluginPlace::Bottom,
+        },
+    ];
+    for edit in &edits {
+        match nvmod_plugins::apply(instance, profile, edit, false) {
+            Ok(report) => out.changed |= report.status == "changed",
+            Err(PluginsError::Refused(why) | PluginsError::Failed(why)) => {
+                out.warnings.push(format!(
+                    "the LOD Mod's plugin `{stub}` could not be made active and last in the Load order, so the game \
+                     may not load the new far view: {why}"
+                ));
+                break;
+            }
+        }
+    }
+    out
+}
+
 /// Takes the replaced Mod out once the new one is in place: the Profile's renamed-aside copy is removed; the old
 /// shared Mod is removed, or only disabled in this Profile while another Profile lists it. Returns a warning for each
 /// step that did not work (the new Mod is in either way).
@@ -620,10 +680,16 @@ fn generate_stopped(
         && let Some(dir) = find_ci(&mods, &name)
     {
         r.up_to_date = true;
+        // An up-to-date run changes nothing, except a stub that was left off or moved: that is put back, and the run
+        // says it changed the Instance.
+        let stub = activate_stub(&instance, &profile, &name);
+        for message in stub.warnings {
+            emit(Event::Warning { message });
+        }
         keep_fingerprint(&instance, &profile, &plan, &manifest, emit);
         r.mod_name = Some(name);
         r.files = Some(count_files(&dir) - u64::from(find_ci(&dir, META_FILE).is_some()));
-        return done(r, false);
+        return done(r, stub.changed);
     }
     emit(Event::Phase {
         phase: "add_mod".to_owned(),
@@ -653,7 +719,8 @@ fn generate_stopped(
     let replaced = replace_mod(&instance, &profile, &name, &copy);
     let _ = clear(&copy);
     match replaced {
-        Ok((files, warnings)) => {
+        Ok((files, mut warnings)) => {
+            warnings.extend(activate_stub(&instance, &profile, &name).warnings);
             for message in warnings {
                 emit(Event::Warning { message });
             }
