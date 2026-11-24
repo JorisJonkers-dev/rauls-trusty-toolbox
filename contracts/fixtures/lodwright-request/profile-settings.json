@@ -6,7 +6,7 @@
   "worlds": ["SyntheticWorld"],
   "output_dir": "<output>",
   "terrain": { "enabled": true, "levels": [], "land_textures": true, "water": true },
-  "objects": { "enabled": true },
+  "objects": { "enabled": true, "far_glow": true },
   "trees": { "enabled": false },
   "inclusion": {
     "exclude_plugins": ["Noisy.esp"],
@@ -22,7 +22,8 @@
       { "models": "architecture/paradisefalls/parkinglot/nv_parkinglotlight0*.nif", "record_type": "STAT", "generate": { "keep": 0.25, "max_error": 0.05 } },
       { "models": "dlc03/clutter/traffic lights/dlc03streetlight0*.nif", "record_type": "STAT", "generate": { "keep": 0.25, "max_error": 0.05 } },
       { "models": "clutter/tranquilitylane/tllamppost01.nif", "record_type": "STAT", "generate": { "keep": 0.25, "max_error": 0.05 } },
-      { "models": "dungeons/caves/lamplight/lamplightlamp.nif", "record_type": "STAT", "generate": { "keep": 0.25, "max_error": 0.05 } }
+      { "models": "dungeons/caves/lamplight/lamplightlamp.nif", "record_type": "STAT", "generate": { "keep": 0.25, "max_error": 0.05 } },
+      { "models": "architecture/strip/*wl*.nif", "record_type": "ACTI", "generate": { "keep": 0.5, "max_error": 0.01 } }
     ]
   },
   "limits": { "threads": 2 },
