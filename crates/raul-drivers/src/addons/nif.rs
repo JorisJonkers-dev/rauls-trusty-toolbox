@@ -266,6 +266,8 @@ pub fn glow_mesh(glow: &GlowSphere, creator: &str) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    // The only tagged test here runs on Linux only.
+    #[cfg_attr(not(target_os = "linux"), allow(unused_imports))]
     use raul_testkit::{covers, ids};
 
     pub(crate) fn shipped() -> GlowSphere {

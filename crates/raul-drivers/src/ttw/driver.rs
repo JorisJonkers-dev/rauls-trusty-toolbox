@@ -716,6 +716,7 @@ mod details_tests {
 mod unpack_tests {
     use super::*;
     use nvmod_testkit::TempDir;
+    use raul_testkit::{covers, ids};
 
     fn request(free_space: Option<FreeSpace>, dry_run: bool, resume: bool) -> TtwRequest {
         TtwRequest {
