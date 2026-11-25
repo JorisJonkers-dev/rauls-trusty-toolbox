@@ -2354,6 +2354,7 @@ dependencies = [
  "jg",
  "jip",
  "johnnyguitar",
+ "knvse",
  "mcm",
  "nvse",
  "play-patch",
@@ -2636,6 +2637,14 @@ checksum = "0bb81a721ba76aa095b7f45deb180504f786904e56ca4b8e141f66eb89a78b75"
 dependencies = [
  "accesskit",
  "accesskit_consumer",
+]
+
+[[package]]
+name = "knvse"
+version = "0.1.0"
+dependencies = [
+ "engine-core",
+ "nvse",
 ]
 
 [[package]]
