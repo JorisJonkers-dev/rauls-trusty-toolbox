@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795556407779,
+  "lastUpdate": 1795595256514,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11710,6 +11710,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.815887,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "29139614+renovate[bot]@users.noreply.github.com",
+            "name": "renovate[bot]",
+            "username": "renovate[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "169c66046641179d46d308a7d8d3bb2f1207e6e3",
+          "message": "fix(deps): update rust crate zip to v9.7.0 (#621)\n\n* fix(deps): update rust crate zip to v9.7.0\n\n* fix(deps): move the GUI workspace lock to zip 9.7.0 too\n\nThe umbrella lock had zip 9.7.0 but crates/raul-gui/Cargo.lock still held 9.6.1, so the GUI build with --locked\nrefused to update it. Updated with cargo update -p zip --precise 9.7.0 through the package mirror; only zip moves.\n\n* fix(deps): accept zip 9.7.0 against nv-rs's 9.5.1 in the engine lock check\n\nThe accepted-drift line still named zip 9.6.1, so check-component-locks failed both ways after the bump.\nChecked with tools/check-component-locks: the GUI lock and manifest agree with nv-rs.\n\n---------\n\nCo-authored-by: renovate[bot] <29139614+renovate[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-25T08:23:48Z",
+          "tree_id": "c67f8ebbfb9f86250663bff727669acdfbe36e38",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/169c66046641179d46d308a7d8d3bb2f1207e6e3"
+        },
+        "date": 1795595255655,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.650644,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.439995,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 29.779080999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.274089,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.840536999999999,
             "unit": "ms"
           }
         ]
