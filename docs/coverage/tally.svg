@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1078" viewBox="0 0 800 1078" role="img" aria-label="raul: All areas: 169 items, 161 tagged, 161 passing, 135 covered; Benchmarks: 6 items, 5 tagged, 5 passing, 5 covered; Command line: 7 items, 7 tagged, 7 passing, 7 covered; Contracts: 7 items, 7 tagged, 7 passing, 7 covered; Game detection and configuration: 19 items, 18 tagged, 18 passing, 18 covered; What raul promises about how it works: 12 items, 11 tagged, 11 passing, 5 covered; The window: 15 items, 15 tagged, 15 passing, 10 covered; Distant view (LOD): 26 items, 25 tagged, 25 passing, 25 covered; Load order, mods and add-ons: 15 items, 15 tagged, 15 passing, 12 covered; Play and pictures: 12 items, 10 tagged, 10 passing, 7 covered; Packages: 1 items, 0 tagged, 0 passing, 0 covered; First-run setup: 19 items, 19 tagged, 19 passing, 19 covered; Tale of Two Wastelands: 12 items, 11 tagged, 11 passing, 3 covered; Updating raul: 18 items, 18 tagged, 18 passing, 17 covered">
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1062" viewBox="0 0 800 1062" role="img" aria-label="raul: All areas: 169 features, 161 have a test, 161 tested on some OSes, 135 tested on all OSes; Benchmarks: 6 features, 5 have a test, 5 tested on some OSes, 5 tested on all OSes; Command line: 7 features, 7 have a test, 7 tested on some OSes, 7 tested on all OSes; Contracts: 7 features, 7 have a test, 7 tested on some OSes, 7 tested on all OSes; Game detection and configuration: 19 features, 18 have a test, 18 tested on some OSes, 18 tested on all OSes; What raul promises about how it works: 12 features, 11 have a test, 11 tested on some OSes, 5 tested on all OSes; The window: 15 features, 15 have a test, 15 tested on some OSes, 10 tested on all OSes; Distant view (LOD): 26 features, 25 have a test, 25 tested on some OSes, 25 tested on all OSes; Load order, mods and add-ons: 15 features, 15 have a test, 15 tested on some OSes, 12 tested on all OSes; Play and pictures: 12 features, 10 have a test, 10 tested on some OSes, 7 tested on all OSes; Packages: 1 features, 0 have a test, 0 tested on some OSes, 0 tested on all OSes; First-run setup: 19 features, 19 have a test, 19 tested on some OSes, 19 tested on all OSes; Tale of Two Wastelands: 12 features, 11 have a test, 11 tested on some OSes, 3 tested on all OSes; Updating raul: 18 features, 18 have a test, 18 tested on some OSes, 17 tested on all OSes">
   <title>raul · feature catalogue</title>
-  <rect x="0" y="0" width="800" height="1078" rx="10" fill="#14110b"/>
-  <text x="20" y="30" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#f2c14e">RAUL · FEATURE CATALOGUE</text>
+  <rect x="0" y="0" width="800" height="1062" rx="10" fill="#14110b"/>
+  <text x="20" y="30" font-family="Consolas, 'Courier New', monospace" font-size="15" fill="#f2c14e">RAUL · FEATURES</text>
   <text x="20" y="58" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">All areas</text>
-  <text x="780" y="58" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">169 items · 79.9% covered</text>
+  <text x="780" y="58" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">169 features · 79.9% tested on all OSes</text>
   <clipPath id="c0"><rect x="20" y="66" width="760" height="12" rx="4"/></clipPath>
   <rect x="20" y="66" width="760" height="12" rx="4" fill="#2b2418"/>
   <rect x="20" y="66" width="607" height="12" fill="#f2c14e" clip-path="url(#c0)"/>
@@ -11,84 +11,84 @@
   <rect x="744" y="66" width="27" height="12" fill="#6a5632" clip-path="url(#c0)"/>
   <rect x="20" y="66" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
   <rect x="20" y="85" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="94" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">135 covered on all 3 systems</text>
-  <rect x="239" y="85" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="255" y="94" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">161 passing on any system</text>
-  <rect x="438" y="85" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="454" y="94" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">161 tagged</text>
-  <rect x="538" y="85" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="554" y="94" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">167 implemented</text>
-  <rect x="671" y="85" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="687" y="94" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">2 missing</text>
-  <text x="780" y="110" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">3 gated · 1 n/a or deferred</text>
+  <text x="36" y="94" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">135 tested on all OSes</text>
+  <rect x="200" y="85" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="216" y="94" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">161 tested on some OSes</text>
+  <rect x="386" y="85" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="402" y="94" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">161 have a test</text>
+  <rect x="519" y="85" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="535" y="94" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">167 built</text>
+  <rect x="613" y="85" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="629" y="94" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">2 not built yet</text>
+  <text x="780" y="110" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">3 need the game to test · 1 not needed</text>
   <text x="20" y="138" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Benchmarks</text>
-  <text x="780" y="138" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">6 items · 83.3% covered</text>
+  <text x="780" y="138" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">6 features · 83.3% tested on all OSes</text>
   <clipPath id="c1"><rect x="20" y="146" width="760" height="12" rx="4"/></clipPath>
   <rect x="20" y="146" width="760" height="12" rx="4" fill="#2b2418"/>
   <rect x="20" y="146" width="633" height="12" fill="#f2c14e" clip-path="url(#c1)"/>
   <rect x="20" y="146" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
   <rect x="20" y="165" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="174" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">5 covered on all 3 systems</text>
-  <rect x="226" y="165" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="242" y="174" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">5 passing on any system</text>
-  <rect x="412" y="165" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="428" y="174" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">5 tagged</text>
-  <rect x="499" y="165" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="515" y="174" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">5 implemented</text>
-  <rect x="619" y="165" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="635" y="174" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 missing</text>
-  <text x="20" y="190" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#a77d2a">gaps: bench.suite.frame_time</text>
+  <text x="36" y="174" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">5 tested on all OSes</text>
+  <rect x="186" y="165" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="202" y="174" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">5 tested on some OSes</text>
+  <rect x="359" y="165" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="375" y="174" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">5 have a test</text>
+  <rect x="479" y="165" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="495" y="174" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">5 built</text>
+  <rect x="560" y="165" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="576" y="174" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 not built yet</text>
+  <text x="20" y="190" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#a77d2a">not built yet: bench.suite.frame_time</text>
   <text x="20" y="218" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Command line</text>
-  <text x="780" y="218" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">7 items · 100.0% covered</text>
+  <text x="780" y="218" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">7 features · 100.0% tested on all OSes</text>
   <clipPath id="c2"><rect x="20" y="226" width="760" height="12" rx="4"/></clipPath>
   <rect x="20" y="226" width="760" height="12" rx="4" fill="#2b2418"/>
   <rect x="20" y="226" width="760" height="12" fill="#f2c14e" clip-path="url(#c2)"/>
   <rect x="20" y="226" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
   <rect x="20" y="245" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="254" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 covered on all 3 systems</text>
-  <rect x="226" y="245" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="242" y="254" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 passing on any system</text>
-  <rect x="412" y="245" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="428" y="254" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 tagged</text>
-  <rect x="499" y="245" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="515" y="254" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 implemented</text>
-  <rect x="619" y="245" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="635" y="254" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 missing</text>
+  <text x="36" y="254" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 tested on all OSes</text>
+  <rect x="186" y="245" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="202" y="254" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 tested on some OSes</text>
+  <rect x="359" y="245" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="375" y="254" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 have a test</text>
+  <rect x="479" y="245" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="495" y="254" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 built</text>
+  <rect x="560" y="245" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="576" y="254" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 not built yet</text>
   <text x="20" y="282" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Contracts</text>
-  <text x="780" y="282" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">7 items · 100.0% covered</text>
+  <text x="780" y="282" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">7 features · 100.0% tested on all OSes</text>
   <clipPath id="c3"><rect x="20" y="290" width="760" height="12" rx="4"/></clipPath>
   <rect x="20" y="290" width="760" height="12" rx="4" fill="#2b2418"/>
   <rect x="20" y="290" width="760" height="12" fill="#f2c14e" clip-path="url(#c3)"/>
   <rect x="20" y="290" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
   <rect x="20" y="309" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="318" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 covered on all 3 systems</text>
-  <rect x="226" y="309" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="242" y="318" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 passing on any system</text>
-  <rect x="412" y="309" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="428" y="318" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 tagged</text>
-  <rect x="499" y="309" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="515" y="318" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 implemented</text>
-  <rect x="619" y="309" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="635" y="318" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 missing</text>
+  <text x="36" y="318" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 tested on all OSes</text>
+  <rect x="186" y="309" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="202" y="318" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 tested on some OSes</text>
+  <rect x="359" y="309" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="375" y="318" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 have a test</text>
+  <rect x="479" y="309" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="495" y="318" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 built</text>
+  <rect x="560" y="309" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="576" y="318" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 not built yet</text>
   <text x="20" y="346" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Game detection and configuration</text>
-  <text x="780" y="346" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">19 items · 94.7% covered</text>
+  <text x="780" y="346" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">19 features · 94.7% tested on all OSes</text>
   <clipPath id="c4"><rect x="20" y="354" width="760" height="12" rx="4"/></clipPath>
   <rect x="20" y="354" width="760" height="12" rx="4" fill="#2b2418"/>
   <rect x="20" y="354" width="720" height="12" fill="#f2c14e" clip-path="url(#c4)"/>
   <rect x="740" y="354" width="40" height="12" fill="#6a5632" clip-path="url(#c4)"/>
   <rect x="20" y="354" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
   <rect x="20" y="373" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="382" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 covered on all 3 systems</text>
-  <rect x="233" y="373" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="249" y="382" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 passing on any system</text>
-  <rect x="426" y="373" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="442" y="382" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 tagged</text>
-  <rect x="520" y="373" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="536" y="382" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">19 implemented</text>
-  <rect x="647" y="373" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="663" y="382" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 missing</text>
+  <text x="36" y="382" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 tested on all OSes</text>
+  <rect x="193" y="373" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="209" y="382" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 tested on some OSes</text>
+  <rect x="373" y="373" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="389" y="382" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 have a test</text>
+  <rect x="500" y="373" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="516" y="382" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">19 built</text>
+  <rect x="587" y="373" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="603" y="382" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 not built yet</text>
   <text x="20" y="410" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">What raul promises about how it works</text>
-  <text x="780" y="410" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">12 items · 41.7% covered</text>
+  <text x="780" y="410" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">12 features · 41.7% tested on all OSes</text>
   <clipPath id="c5"><rect x="20" y="418" width="760" height="12" rx="4"/></clipPath>
   <rect x="20" y="418" width="760" height="12" rx="4" fill="#2b2418"/>
   <rect x="20" y="418" width="317" height="12" fill="#f2c14e" clip-path="url(#c5)"/>
@@ -96,69 +96,69 @@
   <rect x="717" y="418" width="63" height="12" fill="#6a5632" clip-path="url(#c5)"/>
   <rect x="20" y="418" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
   <rect x="20" y="437" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="446" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">5 covered on all 3 systems</text>
-  <rect x="226" y="437" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="242" y="446" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">11 passing on any system</text>
-  <rect x="419" y="437" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="435" y="446" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">11 tagged</text>
-  <rect x="513" y="437" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="529" y="446" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">12 implemented</text>
-  <rect x="640" y="437" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="656" y="446" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 missing</text>
+  <text x="36" y="446" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">5 tested on all OSes</text>
+  <rect x="186" y="437" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="202" y="446" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">11 tested on some OSes</text>
+  <rect x="366" y="437" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="382" y="446" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">11 have a test</text>
+  <rect x="493" y="437" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="509" y="446" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">12 built</text>
+  <rect x="580" y="437" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="596" y="446" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 not built yet</text>
   <text x="20" y="474" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">The window</text>
-  <text x="780" y="474" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">15 items · 66.7% covered</text>
+  <text x="780" y="474" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">15 features · 66.7% tested on all OSes</text>
   <clipPath id="c6"><rect x="20" y="482" width="760" height="12" rx="4"/></clipPath>
   <rect x="20" y="482" width="760" height="12" rx="4" fill="#2b2418"/>
   <rect x="20" y="482" width="507" height="12" fill="#f2c14e" clip-path="url(#c6)"/>
   <rect x="527" y="482" width="253" height="12" fill="#d9862b" clip-path="url(#c6)"/>
   <rect x="20" y="482" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
   <rect x="20" y="501" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="510" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">10 covered on all 3 systems</text>
-  <rect x="233" y="501" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="249" y="510" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 passing on any system</text>
-  <rect x="426" y="501" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="442" y="510" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 tagged</text>
-  <rect x="520" y="501" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="536" y="510" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 implemented</text>
-  <rect x="647" y="501" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="663" y="510" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 missing</text>
+  <text x="36" y="510" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">10 tested on all OSes</text>
+  <rect x="193" y="501" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="209" y="510" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 tested on some OSes</text>
+  <rect x="373" y="501" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="389" y="510" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 have a test</text>
+  <rect x="500" y="501" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="516" y="510" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 built</text>
+  <rect x="587" y="501" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="603" y="510" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 not built yet</text>
   <text x="20" y="538" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Distant view (LOD)</text>
-  <text x="780" y="538" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">26 items · 96.2% covered</text>
+  <text x="780" y="538" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">26 features · 96.2% tested on all OSes</text>
   <clipPath id="c7"><rect x="20" y="546" width="760" height="12" rx="4"/></clipPath>
   <rect x="20" y="546" width="760" height="12" rx="4" fill="#2b2418"/>
   <rect x="20" y="546" width="731" height="12" fill="#f2c14e" clip-path="url(#c7)"/>
   <rect x="751" y="546" width="29" height="12" fill="#6a5632" clip-path="url(#c7)"/>
   <rect x="20" y="546" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
   <rect x="20" y="565" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="574" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">25 covered on all 3 systems</text>
-  <rect x="233" y="565" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="249" y="574" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">25 passing on any system</text>
-  <rect x="426" y="565" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="442" y="574" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">25 tagged</text>
-  <rect x="520" y="565" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="536" y="574" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">26 implemented</text>
-  <rect x="647" y="565" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="663" y="574" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 missing</text>
-  <text x="780" y="590" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 gated</text>
+  <text x="36" y="574" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">25 tested on all OSes</text>
+  <rect x="193" y="565" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="209" y="574" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">25 tested on some OSes</text>
+  <rect x="373" y="565" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="389" y="574" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">25 have a test</text>
+  <rect x="500" y="565" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="516" y="574" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">26 built</text>
+  <rect x="587" y="565" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="603" y="574" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 not built yet</text>
+  <text x="780" y="590" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 need the game to test</text>
   <text x="20" y="618" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Load order, mods and add-ons</text>
-  <text x="780" y="618" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">15 items · 80.0% covered</text>
+  <text x="780" y="618" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">15 features · 80.0% tested on all OSes</text>
   <clipPath id="c8"><rect x="20" y="626" width="760" height="12" rx="4"/></clipPath>
   <rect x="20" y="626" width="760" height="12" rx="4" fill="#2b2418"/>
   <rect x="20" y="626" width="608" height="12" fill="#f2c14e" clip-path="url(#c8)"/>
   <rect x="628" y="626" width="152" height="12" fill="#d9862b" clip-path="url(#c8)"/>
   <rect x="20" y="626" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
   <rect x="20" y="645" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="654" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">12 covered on all 3 systems</text>
-  <rect x="233" y="645" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="249" y="654" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 passing on any system</text>
-  <rect x="426" y="645" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="442" y="654" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 tagged</text>
-  <rect x="520" y="645" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="536" y="654" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 implemented</text>
-  <rect x="647" y="645" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="663" y="654" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 missing</text>
+  <text x="36" y="654" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">12 tested on all OSes</text>
+  <rect x="193" y="645" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="209" y="654" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 tested on some OSes</text>
+  <rect x="373" y="645" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="389" y="654" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 have a test</text>
+  <rect x="500" y="645" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="516" y="654" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">15 built</text>
+  <rect x="587" y="645" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="603" y="654" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 not built yet</text>
   <text x="20" y="682" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Play and pictures</text>
-  <text x="780" y="682" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">12 items · 58.3% covered</text>
+  <text x="780" y="682" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">12 features · 58.3% tested on all OSes</text>
   <clipPath id="c9"><rect x="20" y="690" width="760" height="12" rx="4"/></clipPath>
   <rect x="20" y="690" width="760" height="12" rx="4" fill="#2b2418"/>
   <rect x="20" y="690" width="443" height="12" fill="#f2c14e" clip-path="url(#c9)"/>
@@ -166,84 +166,84 @@
   <rect x="653" y="690" width="127" height="12" fill="#6a5632" clip-path="url(#c9)"/>
   <rect x="20" y="690" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
   <rect x="20" y="709" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="718" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 covered on all 3 systems</text>
-  <rect x="226" y="709" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="242" y="718" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">10 passing on any system</text>
-  <rect x="419" y="709" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="435" y="718" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">10 tagged</text>
-  <rect x="513" y="709" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="529" y="718" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">12 implemented</text>
-  <rect x="640" y="709" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="656" y="718" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 missing</text>
-  <text x="780" y="734" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 gated</text>
+  <text x="36" y="718" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">7 tested on all OSes</text>
+  <rect x="186" y="709" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="202" y="718" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">10 tested on some OSes</text>
+  <rect x="366" y="709" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="382" y="718" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">10 have a test</text>
+  <rect x="493" y="709" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="509" y="718" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">12 built</text>
+  <rect x="580" y="709" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="596" y="718" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 not built yet</text>
+  <text x="780" y="734" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 need the game to test</text>
   <text x="20" y="762" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Packages</text>
-  <text x="780" y="762" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">1 item · 0.0% covered</text>
+  <text x="780" y="762" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">1 feature · 0.0% tested on all OSes</text>
   <clipPath id="c10"><rect x="20" y="770" width="760" height="12" rx="4"/></clipPath>
   <rect x="20" y="770" width="760" height="12" rx="4" fill="#2b2418"/>
   <rect x="20" y="770" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
   <rect x="20" y="789" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="798" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 covered on all 3 systems</text>
-  <rect x="226" y="789" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="242" y="798" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 passing on any system</text>
-  <rect x="412" y="789" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="428" y="798" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 tagged</text>
-  <rect x="499" y="789" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="515" y="798" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 implemented</text>
-  <rect x="619" y="789" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="635" y="798" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 missing</text>
-  <text x="780" y="814" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 n/a or deferred</text>
-  <text x="20" y="830" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#a77d2a">gaps: release.packages.signed</text>
-  <text x="20" y="858" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">First-run setup</text>
-  <text x="780" y="858" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">19 items · 100.0% covered</text>
-  <clipPath id="c11"><rect x="20" y="866" width="760" height="12" rx="4"/></clipPath>
-  <rect x="20" y="866" width="760" height="12" rx="4" fill="#2b2418"/>
-  <rect x="20" y="866" width="760" height="12" fill="#f2c14e" clip-path="url(#c11)"/>
-  <rect x="20" y="866" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
-  <rect x="20" y="885" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="894" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">19 covered on all 3 systems</text>
-  <rect x="233" y="885" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="249" y="894" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">19 passing on any system</text>
-  <rect x="426" y="885" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="442" y="894" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">19 tagged</text>
-  <rect x="520" y="885" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="536" y="894" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">19 implemented</text>
-  <rect x="647" y="885" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="663" y="894" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 missing</text>
-  <text x="20" y="922" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Tale of Two Wastelands</text>
-  <text x="780" y="922" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">12 items · 25.0% covered</text>
-  <clipPath id="c12"><rect x="20" y="930" width="760" height="12" rx="4"/></clipPath>
-  <rect x="20" y="930" width="760" height="12" rx="4" fill="#2b2418"/>
-  <rect x="20" y="930" width="190" height="12" fill="#f2c14e" clip-path="url(#c12)"/>
-  <rect x="210" y="930" width="507" height="12" fill="#d9862b" clip-path="url(#c12)"/>
-  <rect x="717" y="930" width="63" height="12" fill="#6a5632" clip-path="url(#c12)"/>
-  <rect x="20" y="930" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
-  <rect x="20" y="949" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="958" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">3 covered on all 3 systems</text>
-  <rect x="226" y="949" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="242" y="958" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">11 passing on any system</text>
-  <rect x="419" y="949" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="435" y="958" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">11 tagged</text>
-  <rect x="513" y="949" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="529" y="958" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">12 implemented</text>
-  <rect x="640" y="949" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="656" y="958" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 missing</text>
-  <text x="780" y="974" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 gated</text>
-  <text x="20" y="1002" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Updating raul</text>
-  <text x="780" y="1002" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">18 items · 94.4% covered</text>
-  <clipPath id="c13"><rect x="20" y="1010" width="760" height="12" rx="4"/></clipPath>
-  <rect x="20" y="1010" width="760" height="12" rx="4" fill="#2b2418"/>
-  <rect x="20" y="1010" width="718" height="12" fill="#f2c14e" clip-path="url(#c13)"/>
-  <rect x="738" y="1010" width="42" height="12" fill="#d9862b" clip-path="url(#c13)"/>
-  <rect x="20" y="1010" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
-  <rect x="20" y="1029" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
-  <text x="36" y="1038" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">17 covered on all 3 systems</text>
-  <rect x="233" y="1029" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
-  <text x="249" y="1038" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 passing on any system</text>
-  <rect x="426" y="1029" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
-  <text x="442" y="1038" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 tagged</text>
-  <rect x="520" y="1029" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
-  <text x="536" y="1038" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 implemented</text>
-  <rect x="647" y="1029" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
-  <text x="663" y="1038" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 missing</text>
-  <text x="20" y="1064" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#5c4a26">covered: a tagged test passed on Linux, Windows and macOS · tally 0.6.0</text>
+  <text x="36" y="798" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 tested on all OSes</text>
+  <rect x="186" y="789" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="202" y="798" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 tested on some OSes</text>
+  <rect x="359" y="789" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="375" y="798" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 have a test</text>
+  <rect x="479" y="789" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="495" y="798" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 built</text>
+  <rect x="560" y="789" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="576" y="798" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 not built yet</text>
+  <text x="780" y="798" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 not needed</text>
+  <text x="20" y="814" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#a77d2a">not built yet: release.packages.signed</text>
+  <text x="20" y="842" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">First-run setup</text>
+  <text x="780" y="842" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">19 features · 100.0% tested on all OSes</text>
+  <clipPath id="c11"><rect x="20" y="850" width="760" height="12" rx="4"/></clipPath>
+  <rect x="20" y="850" width="760" height="12" rx="4" fill="#2b2418"/>
+  <rect x="20" y="850" width="760" height="12" fill="#f2c14e" clip-path="url(#c11)"/>
+  <rect x="20" y="850" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
+  <rect x="20" y="869" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
+  <text x="36" y="878" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">19 tested on all OSes</text>
+  <rect x="193" y="869" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="209" y="878" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">19 tested on some OSes</text>
+  <rect x="373" y="869" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="389" y="878" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">19 have a test</text>
+  <rect x="500" y="869" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="516" y="878" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">19 built</text>
+  <rect x="587" y="869" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="603" y="878" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 not built yet</text>
+  <text x="20" y="906" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Tale of Two Wastelands</text>
+  <text x="780" y="906" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">12 features · 25.0% tested on all OSes</text>
+  <clipPath id="c12"><rect x="20" y="914" width="760" height="12" rx="4"/></clipPath>
+  <rect x="20" y="914" width="760" height="12" rx="4" fill="#2b2418"/>
+  <rect x="20" y="914" width="190" height="12" fill="#f2c14e" clip-path="url(#c12)"/>
+  <rect x="210" y="914" width="507" height="12" fill="#d9862b" clip-path="url(#c12)"/>
+  <rect x="717" y="914" width="63" height="12" fill="#6a5632" clip-path="url(#c12)"/>
+  <rect x="20" y="914" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
+  <rect x="20" y="933" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
+  <text x="36" y="942" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">3 tested on all OSes</text>
+  <rect x="186" y="933" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="202" y="942" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">11 tested on some OSes</text>
+  <rect x="366" y="933" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="382" y="942" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">11 have a test</text>
+  <rect x="493" y="933" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="509" y="942" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">12 built</text>
+  <rect x="580" y="933" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="596" y="942" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 not built yet</text>
+  <text x="780" y="958" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">1 need the game to test</text>
+  <text x="20" y="986" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#d9c9a3">Updating raul</text>
+  <text x="780" y="986" text-anchor="end" font-family="Consolas, 'Courier New', monospace" font-size="13" fill="#f2c14e">18 features · 94.4% tested on all OSes</text>
+  <clipPath id="c13"><rect x="20" y="994" width="760" height="12" rx="4"/></clipPath>
+  <rect x="20" y="994" width="760" height="12" rx="4" fill="#2b2418"/>
+  <rect x="20" y="994" width="718" height="12" fill="#f2c14e" clip-path="url(#c13)"/>
+  <rect x="738" y="994" width="42" height="12" fill="#d9862b" clip-path="url(#c13)"/>
+  <rect x="20" y="994" width="760" height="12" rx="4" fill="none" stroke="#5c4a26" stroke-width="1"/>
+  <rect x="20" y="1013" width="10" height="10" fill="#f2c14e" stroke="#5c4a26" stroke-width="1"/>
+  <text x="36" y="1022" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">17 tested on all OSes</text>
+  <rect x="193" y="1013" width="10" height="10" fill="#d9862b" stroke="#5c4a26" stroke-width="1"/>
+  <text x="209" y="1022" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 tested on some OSes</text>
+  <rect x="373" y="1013" width="10" height="10" fill="#9c6f2c" stroke="#5c4a26" stroke-width="1"/>
+  <text x="389" y="1022" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 have a test</text>
+  <rect x="500" y="1013" width="10" height="10" fill="#6a5632" stroke="#5c4a26" stroke-width="1"/>
+  <text x="516" y="1022" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">18 built</text>
+  <rect x="587" y="1013" width="10" height="10" fill="#2b2418" stroke="#5c4a26" stroke-width="1"/>
+  <text x="603" y="1022" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#d9c9a3">0 not built yet</text>
+  <text x="20" y="1048" font-family="Consolas, 'Courier New', monospace" font-size="11" fill="#5c4a26">Tested on all OSes: a test for it passed on Linux, Windows and macOS · tally 0.8.0</text>
 </svg>
