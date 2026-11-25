@@ -486,6 +486,10 @@ pub fn plan(
         // `light.far_lights` switch on (the `modern` preset); with the switch off it draws the far view as one
         // without them. Turning this on changes the request, so a far view made before asks to be generated again.
         request["objects"]["far_lights"] = json!(true);
+        // Objects that no plugin marks visible from far but whose model ships a far model (`<model>_lod.nif`) are
+        // drawn far too, as the far views that come with mod lists draw them: without it, such objects vanish from
+        // the far view while the game's own or a pack's far view showed them.
+        request["objects"]["far_model_without_flag"] = json!(true);
         let rules = far_shapes::rules_for_load_order(&data_folder, &plugins, &worlds);
         if !rules.is_empty() {
             request["objects"]["shapes_from_shipped_blocks"] = json!(rules);
