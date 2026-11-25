@@ -3,6 +3,7 @@
 //! `packaging/NOTICE-assets.toml` with its source and licence, and no game-style file or path is in it (also not as
 //! a fixture). It walks the working tree (no git needed). Runs with the workspace tests in pull-request CI.
 
+use raul_testkit::{covers, ids};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
@@ -114,6 +115,7 @@ fn strings(words: &[&str]) -> Vec<String> {
 
 #[test]
 fn the_repository_has_no_unlisted_asset_and_no_game_style_file() {
+    covers(&[ids::guarantees::build::NO_GAME_FILES]);
     let found = problems(&tracked(), &listed());
     assert!(found.is_empty(), "{}", found.join("\n"));
 }

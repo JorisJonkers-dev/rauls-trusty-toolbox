@@ -4,6 +4,7 @@
 
 #![allow(clippy::assert_is_empty)]
 
+use raul_testkit::{covers, ids};
 use raul_ui_model::Screen;
 use raul_ui_model::keymap::Keymap;
 use raul_ui_model::palette::{self, Do};
@@ -26,6 +27,7 @@ fn raul(args: &[&str]) -> (u8, String, String) {
 
 #[test]
 fn every_action_is_a_command_of_the_real_command_line() {
+    covers(&[ids::gui::pages::ACTIONS_ARE_COMMANDS]);
     let (code, nvmod, _) = raul(&["nvmod-help"]);
     assert_eq!(code, 0);
     let (_, own, _) = raul(&["help"]);

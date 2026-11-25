@@ -266,6 +266,7 @@ pub fn glow_mesh(glow: &GlowSphere, creator: &str) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     pub(crate) fn shipped() -> GlowSphere {
         GlowSphere {
@@ -392,6 +393,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn the_shipped_numbers_give_the_mesh_that_was_checked_in_game() {
+        covers(&[ids::mods::addons::MESH_FROM_NUMBERS]);
         use sha2::{Digest, Sha256};
         let nif = glow_mesh(&shipped(), "raul");
         assert_eq!(nif.len(), 4446);

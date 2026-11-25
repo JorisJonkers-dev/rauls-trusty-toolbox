@@ -1741,6 +1741,7 @@ dependencies = [
  "loot-rs",
  "nvmod-cli",
  "nvmod-testkit",
+ "raul-testkit",
  "serde",
  "serde_json",
 ]
@@ -1767,6 +1768,7 @@ dependencies = [
  "raul-core",
  "raul-drivers",
  "raul-runner",
+ "raul-testkit",
  "serde_json",
  "sevenz-rust2",
  "toml",
@@ -1787,6 +1789,7 @@ dependencies = [
  "nvmod-testkit",
  "raul-drivers",
  "raul-runner",
+ "raul-testkit",
  "schemars",
  "semver",
  "serde",
@@ -1815,6 +1818,7 @@ dependencies = [
  "nvmod-plugins",
  "nvmod-runlog",
  "nvmod-testkit",
+ "raul-testkit",
  "schemars",
  "serde",
  "serde_json",
@@ -1833,9 +1837,14 @@ dependencies = [
  "nvmod-core",
  "nvmod-runlog",
  "nvmod-testkit",
+ "raul-testkit",
  "sha2",
  "tracing",
 ]
+
+[[package]]
+name = "raul-testkit"
+version = "0.0.0"
 
 [[package]]
 name = "rayon"

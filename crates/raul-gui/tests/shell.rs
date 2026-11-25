@@ -9,6 +9,7 @@ use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages::versions::{CHECK_UPDATES, TOOLBOX_LABEL};
 use raul_gui::shell::App;
+use raul_testkit::{covers, ids};
 use raul_ui_model::pages::{PageId, View};
 use raul_ui_service::{Exec, Output};
 use std::sync::{Arc, Mutex};
@@ -90,6 +91,7 @@ fn the_shell_opens_on_home_with_the_six_pages_in_the_sidebar() {
 
 #[test]
 fn number_keys_open_the_pages_in_order() {
+    covers(&[ids::gui::shell::NUMBER_KEYS]);
     let mut h = harness(1280.0, app());
     for page in PageId::ALL.into_iter().rev() {
         let key = match page.key() {

@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "update.check"
+title = "Checking for a new release"
+origin = "ours"
+
+[[item]]
+id = "off_by_default"
+title = "Update checks are off until the person turns them on"
+status = "implemented"
+
+[[item]]
+id = "newer_offered"
+title = "A newer release is offered"
+status = "implemented"
+
+[[item]]
+id = "no_drafts"
+title = "Drafts and pre-releases are never offered"
+status = "implemented"
+
+[[item]]
+id = "https_only"
+title = "The check asks for HTTPS only and ignores the person's curlrc"
+status = "implemented"
+
+[[item]]
+id = "failure_says_why"
+title = "A failing check says why"
+status = "implemented"
+
+[[item]]
+id = "remembered"
+title = "Turning checks on is remembered"
+status = "implemented"

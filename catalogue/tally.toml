@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# The feature catalogue of raul (rauls-trusty-toolbox), read by tally (https://github.com/JorisJonkers-dev/tally,
+# docs/FORMAT.md): what raul itself promises, and which tests prove it. The Components under components/ keep their
+# own catalogues in their own repositories.
+[repo]
+package = "raul-core"
+name = "raul"
+
+[scan]
+paths = ["crates"]
+
+[areas]
+setup = "First-run setup"
+detect = "Game detection and configuration"
+mods = "Load order, mods and add-ons"
+ttw = "Tale of Two Wastelands"
+lod = "Distant view (LOD)"
+play = "Play and pictures"
+update = "Updating raul"
+contracts = "Contracts"
+guarantees = "What raul promises about how it works"
+cli = "Command line"
+bench = "Benchmarks"
+gui = "The window"
+release = "Packages"

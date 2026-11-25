@@ -6,6 +6,7 @@
 // These tests start the built binary, which is not a tool call (see clippy.toml).
 #![allow(clippy::disallowed_methods)]
 
+use raul_testkit::{covers, ids};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -116,6 +117,7 @@ impl Run {
 
 #[test]
 fn the_game_starts_through_the_launcher_in_the_run_folder_and_its_output_is_logged() {
+    covers(&[ids::play::launch::RUN_FOLDER]);
     let run = Run::new("release-run-ok");
     let (code, out, err) = run.play(&run.stand_in(0));
     assert_eq!(code, 0, "{out}\n{err}");
@@ -140,6 +142,7 @@ fn the_game_starts_through_the_launcher_in_the_run_folder_and_its_output_is_logg
 
 #[test]
 fn a_game_that_ends_badly_ends_the_run_badly() {
+    covers(&[ids::play::launch::BAD_EXIT]);
     let run = Run::new("release-run-fail");
     let (code, out, err) = run.play(&run.stand_in(3));
     assert_ne!(code, 0, "{out}\n{err}");
@@ -147,6 +150,7 @@ fn a_game_that_ends_badly_ends_the_run_badly() {
 
 #[test]
 fn a_viewer_that_does_not_exist_is_refused_and_nothing_starts() {
+    covers(&[ids::play::launch::MISSING_VIEWER]);
     let run = Run::new("release-run-missing");
     let (code, _, err) = run.play(&run.t.path().join("no-such-viewer"));
     assert_ne!(code, 0, "{err}");

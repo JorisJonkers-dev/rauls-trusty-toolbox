@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "lod.settings"
+title = "The LOD settings"
+origin = "ours"
+
+[[item]]
+id = "defaults"
+title = "Every option has a default and plain text"
+status = "implemented"
+
+[[item]]
+id = "set_reads_back"
+title = "A set value reads back and the file holds only it"
+status = "implemented"
+
+[[item]]
+id = "refused_value"
+title = "A refused value leaves the file as it was"
+status = "implemented"
+
+[[item]]
+id = "restore_and_undo"
+title = "Restore defaults can be undone"
+status = "implemented"
+
+[[item]]
+id = "unknown_key"
+title = "A key that is not an option is refused by name"
+status = "implemented"
+
+[[item]]
+id = "ranges"
+title = "The ranges mirror the generator's own check"
+status = "implemented"
+
+[[item]]
+id = "far_shape_rules"
+title = "A far-shape rule applies only when its world is present and requested"
+status = "implemented"
+
+[[item]]
+id = "include_rules"
+title = "An inclusion rule applies only when its plugin is in the load order"
+status = "implemented"
+
+[[item]]
+id = "applies_next_run"
+title = "A change during a run applies to the next run"
+status = "implemented"

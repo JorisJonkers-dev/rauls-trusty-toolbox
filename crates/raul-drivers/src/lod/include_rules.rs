@@ -40,6 +40,7 @@ pub(super) fn rules_for_load_order(plugins: &[String]) -> Vec<serde_json::Value>
 #[cfg(test)]
 mod tests {
     use super::{known_rules, select};
+    use raul_testkit::{covers, ids};
 
     fn names(list: &[&str]) -> Vec<String> {
         list.iter().map(|s| (*s).to_owned()).collect()
@@ -90,6 +91,7 @@ mod tests {
 
     #[test]
     fn a_rule_applies_only_when_its_plugin_is_in_the_load_order() {
+        covers(&[ids::lod::settings::INCLUDE_RULES]);
         let rule = |plugin: Option<&str>| lodwright_contract::IncludeRule {
             models: "lights/*".to_owned(),
             plugin: plugin.map(str::to_owned),

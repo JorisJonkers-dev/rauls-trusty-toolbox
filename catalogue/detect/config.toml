@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "detect.config"
+title = "The configuration file"
+origin = "ours"
+
+[[item]]
+id = "every_key"
+title = "Every key reads back from its name and only the Instance is read only"
+status = "implemented"
+
+[[item]]
+id = "set_then_get"
+title = "set then get show the paths and the derived Instance"
+status = "implemented"
+
+[[item]]
+id = "refuses_bad_folder"
+title = "A folder detect does not accept is refused and nothing is written"
+status = "implemented"
+
+[[item]]
+id = "absolute_paths"
+title = "A relative path is stored as an absolute one"
+status = "implemented"
+
+[[item]]
+id = "newer_schema"
+title = "A newer schema version is refused and the file is left alone"
+status = "implemented"
+
+[[item]]
+id = "unknown_keys_survive"
+title = "Keys this build does not know survive a set"
+status = "implemented"
+
+[[item]]
+id = "ttw_package_by_content"
+title = "The TTW package is judged by content, not by name"
+status = "implemented"
+
+[[item]]
+id = "free_space"
+title = "The free space of a folder is reported"
+status = "implemented"
+
+[[item]]
+id = "ttw_game_settings"
+title = "A TTW profile gets its game settings and a plain one keeps the defaults"
+status = "implemented"
+
+[[item]]
+id = "person_setting_kept"
+title = "A setting the person made is kept"
+status = "implemented"

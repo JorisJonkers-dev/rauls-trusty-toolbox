@@ -34,6 +34,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
+raul-testkit = { workspace = true }
 sevenz-rust2 = { version = "=0.25.0", default-features = false, features = ["compress"] }
 nvmod-testkit = { workspace = true }
 lodwright-testkit = { workspace = true }

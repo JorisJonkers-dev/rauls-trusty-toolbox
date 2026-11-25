@@ -55,7 +55,23 @@ jobs:
       - name: Tests with coverage
         id: tests
         if: ${{ !cancelled() }}
+        env:
+          # The ci profile of this workspace's .config/nextest.toml: no retries and a JUnit file for the feature catalogue.
+          NEXTEST_PROFILE: ci
         run: mise exec -- cargo llvm-cov nextest --workspace --locked --lcov --output-path lcov.info
+      - name: Keep the JUnit results
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/junit"
+          junit="$(find target -path '*nextest/ci/junit.xml' | head -n 1)"
+          if [ -n "$junit" ]; then cp "$junit" "$RUNNER_TEMP/junit/junit-linux-gui.xml"; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: junit-linux-gui
+          path: ${{ runner.temp }}/junit/
+          if-no-files-found: ignore
+          retention-days: 3
 
       - name: Snapshot differences
         if: ${{ failure() && steps.tests.outcome == 'failure' }}

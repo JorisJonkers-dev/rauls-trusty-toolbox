@@ -3,6 +3,7 @@
 //! the Instance when nv-rs becomes the target (#398). `raul install-nv-rs` is gone and never reaches nvmod's fetching
 //! command of the same name.
 
+use raul_testkit::{covers, ids};
 use std::path::PathBuf;
 
 use nvmod_testkit::{BaseBuilder, TempDir};
@@ -38,6 +39,7 @@ fn go(args: &[&str]) -> (u8, String) {
 
 #[test]
 fn the_nv_rs_target_writes_the_capabilities_the_engine_provided_and_vanilla_writes_none() {
+    covers(&[ids::play::launch::ENGINE_TARGET]);
     raul_core::capabilities::provide(CAPABILITIES);
     let t = TempDir::new("target-capabilities");
     let (nv_rs, vanilla) = (instance(&t, "nv-rs"), instance(&t, "vanilla"));

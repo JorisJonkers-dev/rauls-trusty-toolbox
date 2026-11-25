@@ -326,6 +326,7 @@ mod tests {
     use crate::selfupdate::layout::{Os, Reason};
     use crate::selfupdate::verify::{Asset, Error as VerifyError, REPO, Release, SUMS};
     use nvmod_testkit::{TarBuilder, TempDir, write_file};
+    use raul_testkit::{covers, ids};
     use std::cell::RefCell;
     use std::collections::HashMap;
     use std::io::Write;
@@ -419,6 +420,7 @@ mod tests {
 
     #[test]
     fn download_then_install_replaces_the_files_and_keeps_the_previous_version() {
+        covers(&[ids::update::install::KEEPS_PREVIOUS]);
         let (t, l) = folder();
         let s = server(ASSET, &tarball(b"raul 2", b"raul 2"));
         let staged = download(&s, &l, "v2.0.0", "1.0.0", false).unwrap();
@@ -456,6 +458,7 @@ mod tests {
 
     #[test]
     fn a_new_version_that_fails_its_check_is_taken_out_again() {
+        covers(&[ids::update::install::FAILED_CHECK_ROLLS_BACK]);
         let (t, l) = folder();
         let s = server(ASSET, &tarball(b"raul 2", b"raul 2"));
         download(&s, &l, "v2.0.0", "1.0.0", false).unwrap();
@@ -496,6 +499,7 @@ mod tests {
 
     #[test]
     fn an_appimage_is_staged_as_its_one_file_and_swapped() {
+        covers(&[ids::update::install::APPIMAGE]);
         let t = TempDir::new("flow-appimage");
         write_file(t.path(), "raul.AppImage", b"image 1");
         let l = Layout::AppImage {
@@ -513,6 +517,7 @@ mod tests {
 
     #[test]
     fn an_install_that_cannot_be_updated_says_why_in_plain_words_and_asks_for_nothing() {
+        covers(&[ids::update::install::PLAIN_REFUSAL]);
         let l = Layout::NotHere(Reason::Nix);
         let s = server(ASSET, b"x");
         let e = download(&s, &l, "v2.0.0", "1.0.0", false).unwrap_err();

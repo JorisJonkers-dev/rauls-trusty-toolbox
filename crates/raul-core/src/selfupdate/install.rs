@@ -138,6 +138,7 @@ pub fn settle_at_start(
 mod tests {
     use super::*;
     use nvmod_testkit::{TempDir, write_file};
+    use raul_testkit::{covers, ids};
 
     fn install_dir() -> (TempDir, Vec<String>) {
         let t = TempDir::new("install-flow");
@@ -196,6 +197,7 @@ mod tests {
 
     #[test]
     fn the_first_start_confirms_a_working_new_version() {
+        covers(&[ids::update::install::FIRST_START_CONFIRMS]);
         let (t, files) = install_dir();
         install(t.path(), &files, "1.0.0", "2.0.0", &|| Ok(())).unwrap();
         assert_eq!(

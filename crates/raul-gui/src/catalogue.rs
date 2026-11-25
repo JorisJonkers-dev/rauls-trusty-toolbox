@@ -148,6 +148,7 @@ pub fn all_errors() -> Vec<(&'static str, ErrorText)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     /// Whether `text` is stored in capitals: two or more letters and none of them lowercase.
     fn shouted(text: &str) -> bool {
@@ -160,6 +161,7 @@ mod tests {
 
     #[test]
     fn every_error_has_a_plain_detail_line() {
+        covers(&[ids::gui::shell::PLAIN_ERRORS]);
         for (owner, e) in all_errors() {
             assert!(!e.what.trim().is_empty(), "{owner}/{}: no message", e.id);
             assert!(

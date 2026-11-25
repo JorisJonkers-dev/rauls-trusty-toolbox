@@ -93,6 +93,7 @@ pub(crate) fn prepare(args: &[String], err: &mut dyn Write) -> Result<Option<Vec
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     fn words(line: &str) -> Vec<String> {
         line.split_whitespace().map(str::to_owned).collect()
@@ -100,6 +101,7 @@ mod tests {
 
     #[test]
     fn a_fetch_becomes_a_masterlist_file_and_the_source_options_are_taken_out() {
+        covers(&[ids::mods::sort::FETCH_OPTION]);
         let (instance, pin, rest) = split(&words(
             "--instance /i --profile P --fetch-masterlist --apply --lock /l --store /s --curl /c --gh /g --retry-delay-ms 5 --json",
         ))

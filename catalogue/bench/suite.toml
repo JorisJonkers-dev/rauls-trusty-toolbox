@@ -1,0 +1,36 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "bench.suite"
+title = "raul bench"
+origin = "ours"
+
+[[item]]
+id = "quick_suite"
+title = "The quick suite measures sorting, plugin reading and mod install"
+status = "implemented"
+
+[[item]]
+id = "skip_reason"
+title = "A tool that is missing is skipped with a reason"
+status = "implemented"
+
+[[item]]
+id = "markdown_report"
+title = "The Markdown report has a row for every result and skip"
+status = "implemented"
+
+[[item]]
+id = "regression_threshold"
+title = "A result slower than the threshold is a regression"
+status = "implemented"
+
+[[item]]
+id = "warns_not_fails"
+title = "A regression warns and does not fail"
+status = "implemented"
+
+[[item]]
+id = "frame_time"
+title = "Frame-time capture along a fixed camera path"
+status = "missing"
+notes = "needs a scripted camera in the engine"

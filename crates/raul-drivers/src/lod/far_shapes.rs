@@ -70,6 +70,7 @@ pub(super) fn rules_for_load_order(
 #[cfg(test)]
 mod tests {
     use super::{known_rules, select};
+    use raul_testkit::{covers, ids};
 
     fn names(list: &[&str]) -> Vec<String> {
         list.iter().map(|s| (*s).to_owned()).collect()
@@ -88,6 +89,7 @@ mod tests {
 
     #[test]
     fn a_rule_applies_only_when_its_world_is_present_and_requested() {
+        covers(&[ids::lod::settings::FAR_SHAPE_RULES]);
         let rule = |w: &str| lodwright_contract::ShippedShapeRule {
             world: w.to_owned(),
             models: names(&["a/b.nif"]),

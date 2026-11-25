@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "mods.instance"
+title = "The Instance"
+origin = "ours"
+
+[[item]]
+id = "lock_excludes"
+title = "Two holders exclude each other until the first lets go"
+status = "implemented"
+
+[[item]]
+id = "crashed_lock_taken_over"
+title = "A lock left by a crashed process is taken over"
+status = "implemented"

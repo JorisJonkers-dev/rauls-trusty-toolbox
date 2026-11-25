@@ -174,9 +174,11 @@ pub fn schema() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     #[test]
     fn every_key_reads_back_from_its_name_and_only_the_instance_is_read_only() {
+        covers(&[ids::detect::config::EVERY_KEY]);
         for key in Key::ALL {
             assert_eq!(Key::parse(key.name()), Some(key));
             assert_eq!(

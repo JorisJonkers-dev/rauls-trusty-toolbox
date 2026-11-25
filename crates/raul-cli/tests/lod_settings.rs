@@ -4,6 +4,7 @@
 // These tests start the built binary, which is not a tool call (see clippy.toml).
 #![allow(clippy::disallowed_methods)]
 
+use raul_testkit::{covers, ids};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
@@ -373,6 +374,7 @@ fn a_command_line_the_settings_verbs_do_not_take_is_a_usage_error() {
 
 #[test]
 fn a_change_while_a_run_is_going_is_saved_and_says_it_applies_to_the_next_run() {
+    covers(&[ids::lod::settings::APPLIES_NEXT_RUN]);
     let f = Fixture::new("raul-lodset-running");
     let held = raul_drivers::lod::RunLock::try_acquire(&f.instance(), "Default")
         .unwrap()

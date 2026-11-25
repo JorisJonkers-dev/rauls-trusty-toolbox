@@ -299,6 +299,7 @@ pub fn check(instance: &NvmodInstance, profile: &str) -> Staleness {
 mod tests {
     use super::*;
     use nvmod_testkit::{TempDir, write_file};
+    use raul_testkit::{covers, ids};
 
     fn p(name: &str, digest: &str, world: bool) -> PluginPrint {
         PluginPrint {
@@ -355,11 +356,13 @@ mod tests {
 
     #[test]
     fn nothing_changed_is_current() {
+        covers(&[ids::lod::stale::NOTHING_CHANGED]);
         assert_eq!(classify(&base(), &base()).state, State::Current);
     }
 
     #[test]
     fn a_settings_change_must_regenerate() {
+        covers(&[ids::lod::stale::MUST_REGENERATE]);
         let mut now = base();
         now.settings_digest = "t".to_owned();
         let s = classify(&base(), &now);
@@ -369,6 +372,7 @@ mod tests {
 
     #[test]
     fn a_reorder_may() {
+        covers(&[ids::lod::stale::REORDER_MAY]);
         let mut now = base();
         now.plugins.swap(1, 2);
         assert_eq!(classify(&base(), &now).state, State::May);

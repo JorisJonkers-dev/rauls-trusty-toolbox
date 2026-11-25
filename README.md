@@ -54,6 +54,13 @@ How much of the game engine inside raul is rebuilt; the chart updates itself wit
   <img src="https://raw.githubusercontent.com/JorisJonkers-dev/nv-rs/fork/docs/media/fork-progress-engine.svg" alt="Progress of the nv-rs engine port" width="100%">
 </p>
 
+How much of what raul promises is tested, per area; the chart updates itself with every change
+([how it works](docs/COVERAGE.md#feature-catalogue)):
+
+<p align="center">
+  <img src="docs/coverage/tally.svg" alt="Feature catalogue: items, tagged, passing and covered per area" width="100%">
+</p>
+
 ## How it fits together
 
 <p align="center">

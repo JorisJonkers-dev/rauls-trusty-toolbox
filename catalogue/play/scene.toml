@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "play.scene"
+title = "Pictures and benchmark runs"
+origin = "ours"
+
+[[item]]
+id = "lod_pair"
+title = "A profile with a generated LOD gets the pair and the difference"
+status = "implemented"
+
+[[item]]
+id = "soak_and_bench"
+title = "A soak and a bench start once over the staging tree"
+status = "implemented"
+
+[[item]]
+id = "compare"
+title = "Two bench summaries are compared"
+status = "implemented"
+
+[[item]]
+id = "place_files"
+title = "The place files raul carries are written and never overwritten"
+status = "implemented"

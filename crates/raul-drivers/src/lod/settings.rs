@@ -1441,6 +1441,7 @@ pub fn instance_invalid(reason: String) -> Refusal {
 mod tests {
     use super::*;
     use nvmod_testkit::TempDir;
+    use raul_testkit::{covers, ids};
 
     fn at(dir: &TempDir) -> ProfileSettings {
         ProfileSettings {
@@ -1455,6 +1456,7 @@ mod tests {
 
     #[test]
     fn every_option_has_a_default_and_catalogue_text() {
+        covers(&[ids::lod::settings::DEFAULTS]);
         for d in &OPTIONS {
             assert!(default_value(d.key).is_some(), "{}", d.key);
             assert!(!d.label.is_empty() && d.help.ends_with('.'), "{}", d.key);
@@ -1497,6 +1499,7 @@ mod tests {
 
     #[test]
     fn the_defaults_are_the_generators_level_defaults() {
+        covers(&[ids::lod::settings::DEFAULTS]);
         // lodwright's TerrainSettings::default(): levels 4, 8, 16, 32 with qualities 10, 15, 20, 25, 2000 vertices
         // and 256 pixel textures. The request the defaults give is accepted as it is.
         let mut request = LodwrightRequest::new("data", &["a.esm"], "out");
@@ -1516,6 +1519,7 @@ mod tests {
 
     #[test]
     fn a_key_that_is_not_an_option_is_refused_by_name() {
+        covers(&[ids::lod::settings::UNKNOWN_KEY]);
         let r = check_table(&table("colour = \"blue\"\n")).unwrap_err();
         assert_eq!(r.code, RefusalCode::UnknownKey);
         assert_eq!(r.key.as_deref(), Some("colour"));
@@ -1530,6 +1534,7 @@ mod tests {
     /// Each range the options check is one the generator's own check refuses too.
     #[test]
     fn the_ranges_mirror_the_generators_own_check() {
+        covers(&[ids::lod::settings::RANGES]);
         for (key, bad) in [
             ("levels.4.max_vertices", json!(2)),
             ("levels.8.max_vertices", json!(32768)),
@@ -1564,6 +1569,7 @@ mod tests {
 
     #[test]
     fn a_set_value_reads_back_and_the_file_holds_only_it() {
+        covers(&[ids::lod::settings::SET_READS_BACK]);
         let dir = TempDir::new("raul-lodset-set");
         let at = at(&dir);
         let c = set(&at, "levels.8.quality", &json!(12.5)).unwrap();
@@ -1585,6 +1591,7 @@ mod tests {
 
     #[test]
     fn a_refused_value_leaves_the_file_as_it_was() {
+        covers(&[ids::lod::settings::REFUSED_VALUE]);
         let dir = TempDir::new("raul-lodset-refuse");
         let at = at(&dir);
         std::fs::write(&at.file, "threads = 2\n").unwrap();
@@ -1617,6 +1624,7 @@ mod tests {
 
     #[test]
     fn restore_defaults_deletes_the_file_when_nothing_is_left_and_undo_puts_it_back() {
+        covers(&[ids::lod::settings::RESTORE_AND_UNDO]);
         let dir = TempDir::new("raul-lodset-undo");
         let at = at(&dir);
         let text = "worlds = [\"A\"]\n";

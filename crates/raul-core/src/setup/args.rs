@@ -228,6 +228,7 @@ pub fn parse(words: &[String]) -> Result<Parsed, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     fn words(line: &str) -> Vec<String> {
         line.split_whitespace().map(str::to_owned).collect()
@@ -240,6 +241,7 @@ mod tests {
 
     #[test]
     fn the_options_of_a_setup_make_a_typed_request() {
+        covers(&[ids::setup::pipeline::TYPED_REQUEST]);
         let p = parse(&words(
             "--base /b --instance /i --masterlist /m.yaml --profile P --mod /a/One.zip --mod /a/Two.zip \
              --fallout3 /f3 --package /p.mpi --timeout-secs 60 --skip-nv-rs --sort --copy --dry-run --json",

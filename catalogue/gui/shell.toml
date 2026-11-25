@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "gui.shell"
+title = "The shell"
+origin = "ours"
+
+[[item]]
+id = "pages_in_order"
+title = "The registry has every page in order"
+status = "implemented"
+
+[[item]]
+id = "number_keys"
+title = "Number keys open the pages in order"
+status = "implemented"
+
+[[item]]
+id = "fits_window"
+title = "Every page fits its window at the smallest and a large size"
+status = "implemented"
+
+[[item]]
+id = "snapshots"
+title = "Every page matches its picture"
+status = "implemented"
+
+[[item]]
+id = "theme_contrast"
+title = "Text reads on every surface"
+status = "implemented"
+
+[[item]]
+id = "fonts_licensed"
+title = "The bundled font comes with its licence"
+status = "implemented"
+
+[[item]]
+id = "plain_errors"
+title = "Every error has a plain detail line"
+status = "implemented"

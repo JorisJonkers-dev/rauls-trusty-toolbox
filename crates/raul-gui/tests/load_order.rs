@@ -15,6 +15,7 @@ use raul_gui::pages::load_order::{
     APPLIED_STATUS, DISABLED_STATUS, ENABLED_STATUS, SORT, SWITCH_ACTION, UNDO, UNDONE_STATUS,
 };
 use raul_gui::shell::App;
+use raul_testkit::{covers, ids};
 use raul_ui_service::{CancelHandle, Exec, InProcessExec, Output};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -181,6 +182,7 @@ fn settle(h: &mut Harness<'static, App>) {
 
 #[test]
 fn sort_preview_apply_then_undo_restores_the_lists_byte_for_byte() {
+    covers(&[ids::mods::sort::PREVIEW_APPLY_UNDO]);
     let f = Fixture::new();
     let before = f.lists();
     let words = Arc::new(Mutex::new(Vec::new()));

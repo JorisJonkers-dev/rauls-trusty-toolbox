@@ -617,9 +617,11 @@ pub fn apply_list(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     #[test]
     fn the_list_is_valid_and_every_add_on_is_complete() {
+        covers(&[ids::mods::addons::LIST_COMPLETE]);
         let list = known();
         assert_ne!(list.len(), 0);
         let mut ids: Vec<&str> = list.iter().map(|a| a.id.as_str()).collect();
@@ -650,6 +652,7 @@ mod tests {
 
     #[test]
     fn the_small_lamp_glow_is_the_approved_size() {
+        covers(&[ids::mods::addons::LAMP_GLOW_SIZE]);
         let glow = known()
             .into_iter()
             .find(|a| a.id == "small-lamp-glow")

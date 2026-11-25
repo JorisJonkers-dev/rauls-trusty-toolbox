@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "ttw.install"
+title = "Installing Tale of Two Wastelands"
+origin = "ours"
+
+[[item]]
+id = "package_by_content"
+title = "A file that starts with BSA is the package whatever it is called"
+status = "implemented"
+
+[[item]]
+id = "download_archive"
+title = "The download archive is accepted and its package unpacked"
+status = "implemented"
+
+[[item]]
+id = "patch_archive_refused"
+title = "A patch archive is refused before anything is written"
+status = "implemented"
+
+[[item]]
+id = "space_check"
+title = "Too little space refuses before anything is unpacked"
+status = "implemented"
+
+[[item]]
+id = "adds_one_mod"
+title = "Success adds one Mod and enables its plugins"
+status = "implemented"
+
+[[item]]
+id = "exit_codes"
+title = "Every failure maps to its exit code and leaves the Instance unchanged"
+status = "implemented"
+
+[[item]]
+id = "resume"
+title = "A cancelled install resumes"
+status = "implemented"
+
+[[item]]
+id = "dry_run"
+title = "A dry run reads and checks and writes nothing"
+status = "implemented"
+
+[[item]]
+id = "stop"
+title = "A stop ends the install with nothing added"
+status = "implemented"
+
+[[item]]
+id = "inputs_from_config"
+title = "The inputs come from the configuration when no flag names them"
+status = "implemented"
+
+[[item]]
+id = "plugins_sorted"
+title = "The new plugins are in a valid order after the sort"
+status = "implemented"
+
+[[item]]
+id = "real_install"
+title = "A real install from the player's own packages and games"
+status = "implemented"
+gated = "needs the player's Fallout 3 and New Vegas copies and the TTW package"

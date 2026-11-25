@@ -4,6 +4,7 @@
 use raul_core::update::{
     FETCH_TIMEOUT_SECS, MAX_LIST_BYTES, Settings, curl_args, newer_release, runner,
 };
+use raul_testkit::{covers, ids};
 
 const RELEASES: &str = r#"[
   {"tag_name": "v0.3.0-rc.1", "prerelease": true, "draft": false, "html_url": "https://example.invalid/rc"},
@@ -14,6 +15,7 @@ const RELEASES: &str = r#"[
 
 #[test]
 fn a_newer_release_is_offered() {
+    covers(&[ids::update::check::NEWER_OFFERED]);
     let r = newer_release("0.1.0", RELEASES).unwrap().unwrap();
     assert_eq!(r.version, "0.2.0");
     assert_eq!(r.url, "https://example.invalid/0.2.0");
@@ -35,12 +37,14 @@ fn a_version_ten_is_newer_than_version_nine() {
 
 #[test]
 fn drafts_and_prereleases_are_never_offered() {
+    covers(&[ids::update::check::NO_DRAFTS]);
     let r = newer_release("0.2.0", RELEASES).unwrap();
     assert!(r.is_none(), "{r:?}");
 }
 
 #[test]
 fn update_checks_are_off_until_the_person_turns_them_on() {
+    covers(&[ids::update::check::OFF_BY_DEFAULT]);
     let dir = nvmod_testkit::TempDir::new("raul-settings-missing");
     assert!(!Settings::load(&dir.path().join("settings.toml")).check_for_updates);
 }
@@ -161,6 +165,7 @@ fn a_running_version_that_is_not_semver_is_an_error() {
 
 #[test]
 fn curl_is_asked_for_https_only_without_the_persons_curlrc() {
+    covers(&[ids::update::check::HTTPS_ONLY]);
     let args = curl_args("https://example.invalid/releases");
     assert_eq!(args[0], "--disable");
     let joined = args.join(" ");

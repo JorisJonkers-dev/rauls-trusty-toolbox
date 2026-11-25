@@ -442,6 +442,7 @@ pub fn size_text(bytes: u64) -> String {
 mod tests {
     use super::*;
     use nvmod_testkit::TempDir;
+    use raul_testkit::{covers, ids};
 
     /// The bytes of a package: the header and some made-up body. No game data.
     fn mpi_bytes() -> Vec<u8> {
@@ -479,6 +480,7 @@ mod tests {
 
     #[test]
     fn a_file_that_starts_with_bsa_is_the_package_whatever_it_is_called() {
+        covers(&[ids::ttw::install::PACKAGE_BY_CONTENT]);
         let dir = TempDir::new("pkg-mpi");
         for name in ["Tale of Two Wastelands 3.4.mpi", "x.bin", "TTW_3.4.0.mpi"] {
             let path = dir.path().join(name);

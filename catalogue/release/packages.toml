@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "release.packages"
+title = "Packages"
+origin = "ours"
+
+[[item]]
+id = "signed"
+title = "Signed Windows and macOS packages"
+status = "missing"
+notes = "packages are unsigned until signing is set up"
+
+[[item]]
+id = "real_hardware_check"
+title = "A full run on real Windows and macOS computers"
+status = "deferred"
+reason = "needs real Windows and macOS hardware"

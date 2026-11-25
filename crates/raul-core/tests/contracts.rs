@@ -6,6 +6,7 @@
 //! equals the schema its pinned Component publishes.
 //! `RAUL_BLESS_CONTRACTS=1 cargo test -p raul-core --test contracts` rewrites the schema files.
 
+use raul_testkit::{covers, ids};
 use std::path::{Path, PathBuf};
 
 use raul_core::config::{ConfigDoc, Key};
@@ -76,6 +77,7 @@ fn reads_back<T: Serialize + DeserializeOwned>(name: &str) -> Vec<T> {
 
 #[test]
 fn every_schema_file_equals_the_generated_schema() {
+    covers(&[ids::contracts::documents::SCHEMAS_EQUAL_TYPES]);
     for own in OWN {
         let path = contracts_dir().join(own.file_name());
         let generated = (own.schema)();
@@ -95,6 +97,7 @@ fn every_schema_file_equals_the_generated_schema() {
 
 #[test]
 fn every_fixture_is_valid_against_its_schema() {
+    covers(&[ids::contracts::documents::FIXTURES_VALID]);
     for own in OWN {
         let validator = validator(&(own.schema)());
         let found = fixtures(own.name);
@@ -125,6 +128,7 @@ fn config_fixtures_read_back_unchanged() {
 
 #[test]
 fn every_event_stream_is_numbered_from_one_and_ends_with_finished() {
+    covers(&[ids::contracts::documents::EVENTS_NUMBERED]);
     let lines = reads_back::<EventLine>("raul-events");
     let streams: Vec<&[EventLine]> = lines
         .split_inclusive(|l| matches!(l.event, Event::Finished { .. }))
@@ -169,6 +173,7 @@ fn every_event_stream_is_numbered_from_one_and_ends_with_finished() {
 
 #[test]
 fn ttw_result_fixtures_read_back_and_carry_valid_ttwright_results() {
+    covers(&[ids::contracts::documents::TTW_RESULT]);
     let snapshot = std::fs::read_to_string(
         contracts_dir().join("snapshots/ttwright-rs/ttwright-result.v1.json"),
     )
@@ -203,6 +208,7 @@ fn a_config_document_without_file_or_value_is_not_valid() {
 
 #[test]
 fn a_config_document_of_another_version_or_contract_is_not_valid() {
+    covers(&[ids::contracts::documents::OTHER_VERSION_INVALID]);
     let validator = validator(&raul_core::config::schema());
     let (_, good) = fixtures("raul-config").remove(0);
     let mut newer = good.clone();
@@ -215,6 +221,7 @@ fn a_config_document_of_another_version_or_contract_is_not_valid() {
 
 #[test]
 fn lod_result_fixtures_read_back_and_carry_valid_lodwright_results() {
+    covers(&[ids::contracts::documents::LOD_RESULT]);
     let snapshot = std::fs::read_to_string(
         contracts_dir().join("snapshots/lodwright-rs/lodwright-result.v1.json"),
     )
@@ -273,6 +280,7 @@ const SNAPSHOT_SOURCES: [(&str, &str); 2] = [
 
 #[test]
 fn every_snapshot_equals_the_schema_of_the_pinned_component() {
+    covers(&[ids::contracts::documents::COMPONENT_SNAPSHOTS]);
     let root = contracts_dir().join("..");
     let text = |p: &Path| {
         std::fs::read_to_string(p)

@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "lod.stale"
+title = "Knowing when the distant view is out of date"
+origin = "ours"
+
+[[item]]
+id = "settings_change"
+title = "A settings change marks the LOD out of date until it runs again"
+status = "implemented"
+
+[[item]]
+id = "must_regenerate"
+title = "A settings change must regenerate"
+status = "implemented"
+
+[[item]]
+id = "nothing_changed"
+title = "Nothing changed means current"
+status = "implemented"
+
+[[item]]
+id = "reorder_may"
+title = "A reorder only may regenerate"
+status = "implemented"

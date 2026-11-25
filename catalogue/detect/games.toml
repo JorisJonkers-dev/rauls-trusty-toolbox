@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "detect.games"
+title = "Finding game copies"
+origin = "ours"
+
+[[item]]
+id = "steam_libraries"
+title = "A New Vegas copy in a second Steam library is found"
+status = "implemented"
+
+[[item]]
+id = "epic"
+title = "An Epic manifest points at the install location"
+status = "implemented"
+
+[[item]]
+id = "gog"
+title = "GOG copies are found"
+status = "implemented"
+
+[[item]]
+id = "fallout3_for_ttw"
+title = "Fallout 3 GOTY is found for Tale of Two Wastelands"
+status = "implemented"
+
+[[item]]
+id = "version_judged"
+title = "The executable version of a copy is read and judged supported or not"
+status = "implemented"
+
+[[item]]
+id = "missing_dlc"
+title = "Missing DLC are listed"
+status = "implemented"
+
+[[item]]
+id = "reported_once"
+title = "A copy reachable from two roots is reported once"
+status = "implemented"
+
+[[item]]
+id = "not_a_copy"
+title = "A folder without the game is not a game copy"
+status = "implemented"
+
+[[item]]
+id = "picked_folder"
+title = "Detect on a picked folder reports the copy as JSON"
+status = "implemented"

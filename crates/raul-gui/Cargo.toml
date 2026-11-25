@@ -43,6 +43,7 @@ default = []
 engine = ["raul-engine/engine"]
 
 [dev-dependencies]
+raul-testkit = { workspace = true }
 nvmod-api = { workspace = true }
 egui_kittest = { workspace = true }
 nvmod-testkit = { workspace = true }
@@ -81,6 +82,7 @@ nvmod-api = { path = "../../components/nvmod-rs/crates/nvmod-api" }
 nvmod-loadorder = { path = "../../components/nvmod-rs/crates/nvmod-loadorder" }
 raul-core = { path = "../raul-core" }
 raul-drivers = { path = "../raul-drivers" }
+raul-testkit = { path = "../raul-testkit" }
 nvmod-core = { path = "../../components/nvmod-rs/crates/nvmod-core" }
 nvmod-testkit = { path = "../../components/nvmod-rs/crates/nvmod-testkit" }
 nvmod-modinstall = { path = "../../components/nvmod-rs/crates/nvmod-modinstall" }

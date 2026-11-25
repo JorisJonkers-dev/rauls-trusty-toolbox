@@ -1034,6 +1034,7 @@ mod tests {
     use crate::shell::App;
     use egui_kittest::Harness;
     use egui_kittest::kittest::{NodeT, Queryable};
+    use raul_testkit::{covers, ids};
     use raul_ui_service::{Exec, Output, registry};
     use std::sync::{Arc, Mutex};
 
@@ -1170,6 +1171,7 @@ mod tests {
 
     #[test]
     fn a_blocked_play_explains_and_its_fix_opens_the_owning_page() {
+        covers(&[ids::gui::pages::PLAY_BLOCKED]);
         let exec = Arc::new(Recording::default());
         let mut h = harness("first-run", exec.clone());
         h.run();

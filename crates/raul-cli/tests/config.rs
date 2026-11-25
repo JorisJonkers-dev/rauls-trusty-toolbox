@@ -3,6 +3,7 @@
 // These tests start the built binary, which is not a tool call (see clippy.toml).
 #![allow(clippy::disallowed_methods)]
 
+use raul_testkit::{covers, ids};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
@@ -80,6 +81,7 @@ fn assert_valid(v: &Value) {
 
 #[test]
 fn list_prints_every_key_with_null_on_a_fresh_machine() {
+    covers(&[ids::detect::config::EVERY_KEY]);
     let env = Env::new("raul-config-fresh");
     let (code, v) = env.json(&["config", "list", "--json"]);
     assert_eq!(code, Some(0));
@@ -113,6 +115,7 @@ fn list_prints_every_key_with_null_on_a_fresh_machine() {
 
 #[test]
 fn set_then_get_and_list_show_the_paths_and_the_derived_instance() {
+    covers(&[ids::detect::config::SET_THEN_GET]);
     let env = Env::new("raul-config-set");
     let nv = env.home.path().join("FalloutNV");
     let fo3 = env.home.path().join("Fallout3");
@@ -152,6 +155,7 @@ fn set_then_get_and_list_show_the_paths_and_the_derived_instance() {
 
 #[test]
 fn a_folder_detect_does_not_accept_is_refused_with_exit_2_and_nothing_written() {
+    covers(&[ids::detect::config::REFUSES_BAD_FOLDER]);
     let env = Env::new("raul-config-refuse");
     let empty = env.home.path().join("Downloads");
     std::fs::create_dir_all(&empty).unwrap();
@@ -213,6 +217,7 @@ fn other_bad_values_are_refused() {
 
 #[test]
 fn a_relative_path_is_stored_as_an_absolute_one() {
+    covers(&[ids::detect::config::ABSOLUTE_PATHS]);
     let env = Env::new("raul-config-relative");
     let work = env.home.path().join("work");
     std::fs::create_dir_all(work.join("pkg")).unwrap();
@@ -236,6 +241,7 @@ fn a_relative_path_is_stored_as_an_absolute_one() {
 
 #[test]
 fn a_newer_schema_version_is_refused_and_the_file_is_left_alone() {
+    covers(&[ids::detect::config::NEWER_SCHEMA]);
     let env = Env::new("raul-config-newer");
     std::fs::create_dir_all(env.dir()).unwrap();
     let text = "schema_version = 2\n[storage]\nroot = \"/s\"\n";
@@ -282,6 +288,7 @@ fn a_broken_file_is_refused() {
 
 #[test]
 fn unknown_keys_survive_a_set() {
+    covers(&[ids::detect::config::UNKNOWN_KEYS_SURVIVE]);
     let env = Env::new("raul-config-unknown");
     std::fs::create_dir_all(env.dir()).unwrap();
     std::fs::write(
@@ -359,6 +366,7 @@ fn make_7z(path: &Path, files: &[(&str, &[u8])]) {
 
 #[test]
 fn the_ttw_package_is_judged_by_content_not_by_name() {
+    covers(&[ids::detect::config::TTW_PACKAGE_BY_CONTENT]);
     let env = Env::new("raul-config-package");
     let dir = env.home.path();
     // The package starts with `BSA\0`, whatever it is called; the download that holds it is accepted too.

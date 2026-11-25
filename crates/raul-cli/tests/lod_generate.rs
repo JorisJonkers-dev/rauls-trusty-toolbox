@@ -6,6 +6,7 @@
 // These tests start the built binary, which is not a tool call (see clippy.toml).
 #![allow(clippy::disallowed_methods)]
 
+use raul_testkit::{covers, ids};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -252,6 +253,7 @@ fn enabled_lines(f: &Fixture) -> usize {
 
 #[test]
 fn success_keeps_one_enabled_lod_mod_and_a_second_run_is_up_to_date() {
+    covers(&[ids::lod::generate::ONE_MOD]);
     let f = Fixture::new("raul-lodgen-ok");
     // Packing is the default; this test is about the loose form.
     f.settings("[output]\npack = false\n");
@@ -298,6 +300,7 @@ fn success_keeps_one_enabled_lod_mod_and_a_second_run_is_up_to_date() {
 
 #[test]
 fn a_new_output_replaces_the_lod_mod_and_leaves_one() {
+    covers(&[ids::lod::generate::REPLACES]);
     let f = Fixture::new("raul-lodgen-replace");
     assert_eq!(f.generate(&[]).0, Some(0));
     // The Profile's settings change the request: lodwright writes new files.
@@ -344,6 +347,7 @@ fn raul_ok(f: &Fixture, args: &[&str]) {
 
 #[test]
 fn the_lod_mod_is_named_for_its_profile_and_marked_as_generated() {
+    covers(&[ids::lod::generate::NAMED_AND_MARKED]);
     let f = Fixture::new("raul-lodgen-marker");
     let (code, result, _) = f.generate(&[]);
     assert_eq!(code, Some(0), "{result}");
@@ -408,6 +412,7 @@ fn a_new_run_keeps_the_place_the_state_and_the_meta_ini_keys_of_the_lod_mod() {
 
 #[test]
 fn each_profile_has_its_own_output_folder_and_the_shared_one_becomes_the_first_profiles() {
+    covers(&[ids::lod::generate::PER_PROFILE]);
     let f = Fixture::new("raul-lodgen-folders");
     assert_eq!(f.generate(&[]).0, Some(0));
     // The folder of a run before each Profile had its own: the next run takes it over and finds its LOD current.
@@ -585,6 +590,7 @@ fn stale_of(f: &Fixture) -> (String, String) {
 #[test]
 fn a_run_records_what_it_was_built_from_and_a_settings_change_marks_the_lod_out_of_date_until_it_runs_again()
  {
+    covers(&[ids::lod::stale::SETTINGS_CHANGE]);
     let f = Fixture::new("raul-lodgen-stale");
     assert_eq!(lod_mods(&f)["mods"], serde_json::json!([]));
     assert_eq!(f.generate(&[]).0, Some(0));
@@ -638,6 +644,7 @@ fn mod_files(f: &Fixture) -> Vec<String> {
 #[test]
 fn packing_gives_a_mod_of_one_archive_and_its_stub_and_switching_it_either_way_marks_the_lod_out_of_date()
  {
+    covers(&[ids::lod::generate::PACKING]);
     let f = Fixture::new("raul-lodgen-pack");
     // A Profile that has a loose generated LOD Mod from before packing was the default: its settings file names no
     // packing and its Mod keeps working until the next generate, which packs.
@@ -879,6 +886,7 @@ fn fomod_in_output(f: &Fixture) {
 
 #[test]
 fn a_failed_replacement_puts_the_old_mod_back() {
+    covers(&[ids::lod::generate::FAILED_REPLACEMENT]);
     let f = Fixture::new("raul-lodgen-rollback");
     assert_eq!(f.generate(&[]).0, Some(0));
     let before = snapshot(&f.lod_mod());
@@ -925,6 +933,7 @@ fn a_backup_left_alone_by_an_interrupted_run_is_put_back_when_the_new_mod_cannot
 
 #[test]
 fn lodwright_refusals_keep_their_codes_and_exit_4_and_leave_the_instance_unchanged() {
+    covers(&[ids::lod::generate::REFUSALS_EXIT_4]);
     let f = Fixture::new("raul-lodgen-codes");
     assert_eq!(f.generate(&[]).0, Some(0));
     let before = f.state();
@@ -953,6 +962,7 @@ fn lodwright_refusals_keep_their_codes_and_exit_4_and_leave_the_instance_unchang
 
 #[test]
 fn a_stop_during_the_generation_adds_nothing_and_the_next_run_resumes() {
+    covers(&[ids::lod::generate::STOP_RESUMES]);
     let f = Fixture::new("raul-lodgen-stop");
     // One thread, so the blocks finish in order and a stop after the first one leaves the rest unbuilt.
     f.settings("threads = 1\n");
@@ -1082,6 +1092,7 @@ fn the_flag_lets_one_generation_write_inside_a_git_folder() {
 
 #[test]
 fn a_generation_inside_a_git_folder_is_refused_before_anything_starts() {
+    covers(&[ids::lod::generate::GIT_FOLDER_REFUSED]);
     let f = Fixture::new("raul-lodgen-git-neither");
     std::fs::create_dir_all(f.path(".git")).unwrap();
     let before = f.state();
@@ -1096,6 +1107,7 @@ fn a_generation_inside_a_git_folder_is_refused_before_anything_starts() {
 /// settings edit made while it runs does not change the running request.
 #[test]
 fn a_second_generate_while_one_runs_is_refused_and_an_edit_waits_for_the_next_run() {
+    covers(&[ids::lod::generate::SECOND_RUN_REFUSED]);
     let f = Fixture::new("raul-lodgen-one-run");
     let inst = f.instance();
     let plan = |f: &Fixture| -> Value {
@@ -1130,6 +1142,7 @@ fn a_second_generate_while_one_runs_is_refused_and_an_edit_waits_for_the_next_ru
 
 #[test]
 fn a_dry_run_or_a_bad_input_starts_nothing() {
+    covers(&[ids::lod::generate::DRY_RUN]);
     let f = Fixture::new("raul-lodgen-dry");
     let before = f.state();
     // A dry run builds and checks the request, and runs and writes nothing.

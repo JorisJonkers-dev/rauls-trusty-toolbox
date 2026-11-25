@@ -3,6 +3,7 @@
 //! line in process, so its sources must not name the process runner, and must not start a process themselves.
 //! The game launcher is the one exception and does not live in this crate yet; when it does, it is listed here.
 
+use raul_testkit::{covers, ids};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -28,6 +29,7 @@ fn forbidden() -> [String; 3] {
 
 #[test]
 fn the_window_never_starts_a_process() {
+    covers(&[ids::guarantees::build::WINDOW_STARTS_NO_PROCESS]);
     let mut files = Vec::new();
     sources(
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),

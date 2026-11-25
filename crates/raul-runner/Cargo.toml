@@ -15,6 +15,7 @@ tracing = { workspace = true }
 sha2 = { workspace = true }
 
 [dev-dependencies]
+raul-testkit = { workspace = true }
 nvmod-testkit = { workspace = true }
 
 [lints]

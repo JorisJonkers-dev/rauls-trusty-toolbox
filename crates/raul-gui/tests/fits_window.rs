@@ -12,6 +12,7 @@ use egui_kittest::kittest::{By, NodeT, Queryable};
 use raul_gui::jobs::Jobs;
 use raul_gui::pages;
 use raul_gui::shell::App;
+use raul_testkit::{covers, ids};
 use raul_ui_service::{Exec, Output};
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -99,6 +100,7 @@ fn overflowing(size: [f32; 2]) -> Vec<(String, String)> {
 
 #[test]
 fn no_page_fixture_is_wider_or_taller_than_its_window() {
+    covers(&[ids::gui::shell::FITS_WINDOW]);
     let mut failing: BTreeSet<String> = BTreeSet::new();
     let mut report = Vec::new();
     for size in [SMALLEST, LARGE] {

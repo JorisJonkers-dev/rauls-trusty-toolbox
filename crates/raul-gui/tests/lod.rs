@@ -16,6 +16,7 @@ use raul_gui::pages::lod::{
     CURRENT_STATUS, DONE_STATUS, GENERATE, STATE_CURRENT, STOP, STOPPED_STATUS,
 };
 use raul_gui::shell::App;
+use raul_testkit::{covers, ids};
 use raul_ui_service::{Exec, InProcessExec};
 use std::path::PathBuf;
 use std::time::Duration;
@@ -146,6 +147,7 @@ fn status(h: &mut Harness<'static, App>) -> Option<String> {
 
 #[test]
 fn generate_keeps_one_enabled_mod_and_a_second_run_finds_it_current() {
+    covers(&[ids::gui::pages::LOD_PAGE]);
     let f = Fixture::new(4);
     let mut h = f.app();
     assert!(

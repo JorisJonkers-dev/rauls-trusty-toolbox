@@ -5,6 +5,7 @@
 // These tests start the built binary, which is not a tool call (see clippy.toml).
 #![allow(clippy::disallowed_methods)]
 
+use raul_testkit::{covers, ids};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -143,6 +144,7 @@ fn a_stop_request_during_the_generation_adds_nothing_and_the_next_run_completes(
 
 #[test]
 fn a_run_that_outlasts_its_timeout_is_stopped_and_leaves_the_mod_alone() {
+    covers(&[ids::lod::generate::TIMEOUT]);
     let f = Fixture::new("raul-lodtimeout");
     let before = f.state();
     let mut request = f.request();

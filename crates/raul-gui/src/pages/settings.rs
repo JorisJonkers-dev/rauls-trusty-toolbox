@@ -716,6 +716,7 @@ mod tests {
     use crate::shell::App;
     use egui_kittest::Harness;
     use egui_kittest::kittest::Queryable;
+    use raul_testkit::{covers, ids};
     use raul_ui_service::Exec;
     use std::sync::{Arc, Mutex};
 
@@ -741,6 +742,7 @@ mod tests {
 
     #[test]
     fn leaving_a_changed_field_saves_it_through_raul_config_set() {
+        covers(&[ids::gui::pages::SETTINGS_SAVE]);
         let exec = Arc::new(Recording::default());
         let fixture = fixtures()
             .into_iter()

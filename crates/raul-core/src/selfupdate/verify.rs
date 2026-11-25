@@ -309,6 +309,7 @@ pub fn download(
 mod tests {
     use super::*;
     use nvmod_testkit::TempDir;
+    use raul_testkit::{covers, ids};
     use std::cell::RefCell;
     use std::collections::HashMap;
 
@@ -383,6 +384,7 @@ mod tests {
 
     #[test]
     fn a_matching_asset_of_the_pinned_release_downloads_and_verifies() {
+        covers(&[ids::update::install::DOWNLOAD_VERIFIED]);
         let t = TempDir::new("verify-ok");
         let r = release("v2.0.0");
         let f = fake(&r, b"payload", &hash(b"payload"));
@@ -404,6 +406,7 @@ mod tests {
 
     #[test]
     fn a_damaged_download_is_refused_and_removed() {
+        covers(&[ids::update::install::DAMAGED_REFUSED]);
         let t = TempDir::new("verify-damaged");
         let r = release("v2.0.0");
         let f = fake(&r, b"payload", &hash(b"another"));
@@ -470,6 +473,7 @@ mod tests {
 
     #[test]
     fn an_older_or_equal_version_is_refused_unless_asked_for() {
+        covers(&[ids::update::install::OLDER_REFUSED]);
         let r = release("v2.0.0");
         for running in ["2.0.0", "2.1.0"] {
             assert!(

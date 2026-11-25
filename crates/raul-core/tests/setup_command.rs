@@ -2,6 +2,7 @@
 //! `setup::execute`: the event stream the setup wizard reads, a dry run, a failed run that rolls back or is kept, a
 //! resume from the journal alone, a restart, and the takeover of an `nvmod setup` state. Synthetic fixtures only.
 
+use raul_testkit::{covers, ids};
 use std::fs;
 use std::path::PathBuf;
 
@@ -139,6 +140,7 @@ fn a_run_is_the_stream_the_wizard_reads_and_ends_ok() {
 
 #[test]
 fn a_dry_run_plans_and_writes_nothing() {
+    covers(&[ids::setup::pipeline::DRY_RUN]);
     let s = Scratch::new();
     let (ended, lines) = run(&fresh(s.request(), true, false));
     assert_eq!(ended.code, 0);
@@ -176,6 +178,7 @@ fn a_refused_run_is_one_finished_event_and_writes_nothing() {
 
 #[test]
 fn a_failing_step_removes_what_the_run_made() {
+    covers(&[ids::setup::pipeline::FAILURE_CLEANS_UP]);
     let s = Scratch::new();
     let mut request = s.request();
     request.mods = vec![s.bad_archive("Bad.zip")];

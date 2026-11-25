@@ -3,7 +3,7 @@
 # true` inheritance. crates/raul-gui is a nested workspace with its own lock file (ADR-0004).
 [workspace]
 resolver = "3"
-members = ["crates/raul-core", "crates/raul-cli", "crates/raul-bench", "crates/raul-runner", "crates/raul-drivers"]
+members = ["crates/raul-core", "crates/raul-cli", "crates/raul-bench", "crates/raul-runner", "crates/raul-drivers", "crates/raul-testkit"]
 exclude = ["components", "crates/raul-gui", "tools"]
 
 [workspace.package]
@@ -27,6 +27,8 @@ raul-core = { path = "crates/raul-core" }
 raul-bench = { path = "crates/raul-bench" }
 raul-runner = { path = "crates/raul-runner" }
 raul-drivers = { path = "crates/raul-drivers" }
+# The ids of the feature catalogue, for tests only (docs/COVERAGE.md, "Feature catalogue").
+raul-testkit = { path = "crates/raul-testkit" }
 # The same source and tag nvmod v0.8.1 links, so Cargo builds one copy (the lock file fixes the version).
 loot-rs = { git = "https://github.com/JorisJonkers-dev/loot-rs", tag = "v0.9.0" }
 # The engine's picture, soak, sweep and bench tool as a library (ADR-0022): pure, no engine code and no game data.
