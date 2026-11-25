@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795607102132,
+  "lastUpdate": 1795613917328,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11857,6 +11857,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.247034,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "c7d72dd8bf5714e93352445ff61361041e1947c0",
+          "message": "test(catalogue): feature catalogue with typed ids, test tags and three-system coverage reports (#625)\n\nFeature catalogue with typed ids, audited test tags and three-system coverage reports; review and tag audit in the pull request.",
+          "timestamp": "2026-11-25T14:35:15+01:00",
+          "tree_id": "2330058206ef16c624f801cd31430e483823a25b",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/c7d72dd8bf5714e93352445ff61361041e1947c0"
+        },
+        "date": 1795613916499,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.529199,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.095815999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 29.114048,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.189182,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.55766,
             "unit": "ms"
           }
         ]
