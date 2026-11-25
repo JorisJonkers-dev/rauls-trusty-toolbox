@@ -476,7 +476,6 @@ fn a_soak_and_a_bench_start_once_over_the_staging_tree_and_the_bench_takes_the_l
 
 #[test]
 fn two_bench_summaries_are_compared_and_a_missing_one_is_said() {
-    covers(&[ids::play::scene::COMPARE]);
     let f = Fixture::new("scene-bench-compare", false);
     let bad = f.scene(&["bench", "game", "compare", "a.json", "b.json"], &[]);
     assert_ne!(bad.status.code(), Some(0));
