@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.7.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.6.0...v0.7.0) (2026-11-25)
+
+
+### Features
+
+* **addons:** small lamp glow add-on for Street Lights TTW, made on the player's machine ([#620](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/620)) ([3ab0e9d](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3ab0e9d685fc1195ecdad4b3379d8f51c31a68c7))
+* **gui:** a switch for each plugin on the Load order page, and the stub of a packed LOD asks before it is turned off ([#532](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/532)) ([562b91c](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/562b91cb16598330eeae365787f5420bb7b219f2))
+* **gui:** the Load order page marks the stub Plugin of a packed LOD Mod as generated ([#335](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/335)) ([#519](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/519)) ([0351394](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/03513943d7c64f10f3e167ec3709e72a39909ac1))
+* **lod:** a row in the LOD settings turns packing of the generated LOD on or off ([f335397](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f335397243f34247c0e64d456cca3e76da981063))
+* **lod:** bump lodwright-rs to 0.18.0 and ask for the far light points of lamps ([#626](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/626)) ([2031f4a](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/2031f4a76d65d7f9533792038fa5b04e9586b62f))
+* **lod:** bump lodwright-rs to 0.18.0 and ask for the far light points of lamps ([#626](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/626)) ([36dad7b](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/36dad7bcc5ddd102bba41aa207eb44dfc58623a1))
+* **lod:** pass far-shape rules for known load orders to lodwright ([#604](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/604)) ([0bc0fa3](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/0bc0fa34dc0f3eec87d7fa9a3c165c443ad732b8))
+* **lod:** put the base game's lamp posts into the far view for every load order ([#610](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/610)) ([35fcb43](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/35fcb43c515d3b528919e99fbb702e36b41e602d))
+* **lod:** the generated LOD is packed into one archive by default ([#534](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/534)) ([1a066ad](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/1a066ad691d794aef7540710140570b696fc47ca))
+* **scene:** link the engine's scene library in process ([#555](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/555)) ([604fe87](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/604fe87605b21ad3365f3c9acab0208a6094c7ac))
+* **scene:** raul scene and raul bench game, the engine's picture, soak, sweep and bench tool through a Profile ([#546](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/546)) ([d0c4ba0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d0c4ba0e18e73741e6e31e22c2c7ca8e9005813a))
+
+
+### Bug Fixes
+
+* **ci:** install the Component follower's Renovate from public registry URLs again ([#598](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/598)) ([5bc5512](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/5bc55124c04c11386419c826e0958e96a805ce6b))
+* **deps:** update minor and patch dependencies ([#596](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/596)) ([708d740](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/708d740762b57a25a864cc143acd06ae1d736129))
+* **deps:** update minor and patch dependencies ([#607](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/607)) ([6c900e4](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6c900e4796dd07b5da586a5a7c6ac51b1f83c779))
+* **deps:** update rust crate zip to v9.7.0 ([#621](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/621)) ([169c660](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/169c66046641179d46d308a7d8d3bb2f1207e6e3))
+* **gui:** window error texts name no flag and no command for the known hints ([#540](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/540)) ([#542](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/542)) ([77b796c](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/77b796cd5e8ee3fc30db0634873d7c1398494d20))
+* **lod:** a generated LOD Mod's stub plugin is active and last after every run ([#617](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/617)) ([ed8fd6a](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ed8fd6adb45453d790eed461927b43c20581980f))
+* **lod:** far lakes and rivers are drawn with the generated LOD (lodwright 0.15.1) ([#530](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/530)) ([9a47f17](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/9a47f17d2564bccac357f6bf3969fd12e3bb5517))
+* **lod:** the LOD page header says when the LOD Mod is out of date instead of All blocks up to date ([#535](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/535)) ([#539](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/539)) ([d4da3b2](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d4da3b2c8cb955ccee1aa92cc3b3ee50e29ee916))
+* **mods:** removing a Mod that the packed generated LOD depends on works from the window ([#536](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/536)) ([#538](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/538)) ([880c440](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/880c4405c080edc24c683cd020e8317ce609e72d))
+* **scene:** picture a profile on its Staging tree, and without its far view on a tree staged without it ([#618](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/618)) ([d626fc9](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d626fc94169eafa28196ca837305ddf899647be5))
+* **scene:** picture the Instance's base game, not the game.newvegas setting ([#615](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/615)) ([560f901](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/560f901e5eeb67a02fc232b92ed58598c1c6ed24))
+
 ## [0.6.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.5.0...v0.6.0) (2026-11-21)
 
 
