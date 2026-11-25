@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795623519745,
+  "lastUpdate": 1795623809860,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11955,6 +11955,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.495872,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "e414daeadc6a4b1275745753e127ce7cd1d52593",
+          "message": "ci(catalogue): pin tally 0.8.0 for plain words in the coverage picture (#627)\n\nPin tally 0.8.0.",
+          "timestamp": "2026-11-25T17:21:29+01:00",
+          "tree_id": "04091fa7d9fbaaad4695ae4dc00a0a0ece08b7ae",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/e414daeadc6a4b1275745753e127ce7cd1d52593"
+        },
+        "date": 1795623808624,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.887614,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.606756,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.745857,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.081275,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.608862,
             "unit": "ms"
           }
         ]
