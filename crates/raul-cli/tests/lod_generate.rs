@@ -1242,9 +1242,33 @@ fn far_shape_rules_are_requested_only_for_a_load_order_with_their_world() {
     let request = plan(&without, &[]);
     assert_eq!(
         request["objects"],
-        serde_json::json!({ "enabled": true }),
+        serde_json::json!({ "enabled": true, "far_lights": true }),
         "{request}"
     );
+}
+
+/// Object LOD asks lodwright for the far light points of lamps (the engine shows them by night in its `modern`
+/// preset only); with object LOD off the request does not name them, and the request passes lodwright's schema.
+#[test]
+fn far_lights_are_requested_whenever_object_lod_is_built() {
+    let plan = |f: &Fixture| -> Value {
+        let out = f.raul(&["lod", "plan", "--json", "--instance", s(&f.instance())]);
+        assert!(out.status.success(), "{out:?}");
+        serde_json::from_slice(&out.stdout).unwrap()
+    };
+    let f = Fixture::with_world("raul-lodgen-far-lights", "Island");
+    let request = plan(&f);
+    lod::check_request(&request).unwrap();
+    assert_eq!(
+        request["objects"]["far_lights"],
+        serde_json::json!(true),
+        "{request}"
+    );
+
+    f.settings("[output]\nobjects = false\n");
+    let off = plan(&f);
+    lod::check_request(&off).unwrap();
+    assert!(off["objects"].get("far_lights").is_none(), "{off}");
 }
 
 /// The include rules in raul's data reach the request: those for the base game's lamp posts for every load order, the
