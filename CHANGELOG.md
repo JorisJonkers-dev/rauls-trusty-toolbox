@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.7.0...v0.8.0) (2026-11-25)
+
+
+### Features
+
+* **lod:** ask lodwright for far models of objects no plugin marks visible from far ([#630](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/630)) ([4e93b89](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/4e93b8916b3338e1e96b50bdc5e723a114b0eff7))
+
 ## [0.7.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.6.0...v0.7.0) (2026-11-25)
 
 
