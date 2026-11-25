@@ -17,8 +17,8 @@ wasm-bindgen-macro-support 0.2.130 0.2.129
 wasm-bindgen-shared 0.2.130 0.2.129
 web-sys 0.3.107 0.3.106
 #
-# raul-core and raul-drivers pin zip =9.6.1, nv-rs's lock holds 9.5.1; zip 9.6.1 itself requires nix ^0.32:
-zip 9.6.1 9.5.1
+# raul-core and raul-drivers pin zip =9.7.0, nv-rs's lock holds 9.5.1; zip 9.7.0 itself requires nix ^0.32:
+zip 9.7.0 9.5.1
 nix 0.32.0 0.31.3
 #
 # Another release line, each lock keeping the one its own resolution chose (cc is the C compiler driver, used while
