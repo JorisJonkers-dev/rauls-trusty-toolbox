@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795630087279,
+  "lastUpdate": 1795630497144,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12200,6 +12200,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.213685,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4e93b8916b3338e1e96b50bdc5e723a114b0eff7",
+          "message": "feat(lod): ask lodwright for far models of objects no plugin marks visible from far (#630)\n\n* feat(lod): ask lodwright for far models of objects no plugin marks visible from far\n\nObjects that mods place without the visible-from-far flag but whose model ships\na far model (<model>_lod.nif) vanished from raul's far view while the far views\nthat come with mod lists draw them (Black Mountain: super mutant spikes from\nMojave Scenery Overhaul). raul now requests objects.far_model_without_flag\n(lodwright 0.18.0) whenever object LOD is built.\n\n* style(lod): format the far-model request test",
+          "timestamp": "2026-11-25T18:13:09Z",
+          "tree_id": "820fad1a28de0a037354780730b900c5df81aaed",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/4e93b8916b3338e1e96b50bdc5e723a114b0eff7"
+        },
+        "date": 1795630496298,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.625641,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.4050899999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 29.733158,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.185762,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.9034379999999995,
             "unit": "ms"
           }
         ]
