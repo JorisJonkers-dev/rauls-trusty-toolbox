@@ -178,6 +178,14 @@ jobs:
           mkdir -p "$RUNNER_TEMP/junit"
           junit="$(find target -path '*nextest/ci/junit.xml' | head -n 1)"
           if [ -n "$junit" ]; then cp "$junit" "$RUNNER_TEMP/junit/junit-linux.xml"; fi
+      # Kept with the run as well, like Windows' and macOS', so all three systems' results can be re-read.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: junit-linux
+          path: ${{ runner.temp }}/junit/junit-linux.xml
+          if-no-files-found: warn
+          retention-days: 7
 
       # 70% of the executable lines a change adds or edits in the Toolbox's crates must run in a test
       # (docs/COVERAGE.md). Submodule moves change no line here, so a Component bump has nothing to gate.
