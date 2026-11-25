@@ -1293,7 +1293,10 @@ fn far_models_without_the_flag_are_requested_whenever_object_lod_is_built() {
     f.settings("[output]\nobjects = false\n");
     let off = plan(&f);
     lod::check_request(&off).unwrap();
-    assert!(off["objects"].get("far_model_without_flag").is_none(), "{off}");
+    assert!(
+        off["objects"].get("far_model_without_flag").is_none(),
+        "{off}"
+    );
 }
 
 /// The include rules in raul's data reach the request: those for the base game's lamp posts for every load order, the
