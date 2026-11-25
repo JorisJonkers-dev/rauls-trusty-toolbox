@@ -143,8 +143,8 @@ fn a_fresh_setup_runs_every_planned_step_in_order_and_reports_each() {
 /// text the program provided, and the Doctor then has no `capabilities.missing` to report on the fresh Instance.
 #[test]
 fn the_nv_rs_target_writes_the_linked_engines_capabilities_and_the_doctor_finds_them() {
-    covers(&[ids::setup::pipeline::ENGINE_CAPABILITIES]);
     const CAPABILITIES: &str = r#"{"schema_version":1,"extenders":[{"id":"synthetic","name":"Synthetic","commands":{"implemented":1,"total":2,"implemented_names":["Command1"]}}]}"#;
+    covers(&[ids::setup::pipeline::ENGINE_CAPABILITIES]);
     raul_core::capabilities::provide(CAPABILITIES);
     let s = Scratch::new();
     let mut request = s.request();

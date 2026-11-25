@@ -395,8 +395,8 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn the_shipped_numbers_give_the_mesh_that_was_checked_in_game() {
-        covers(&[ids::mods::addons::MESH_FROM_NUMBERS]);
         use sha2::{Digest, Sha256};
+        covers(&[ids::mods::addons::MESH_FROM_NUMBERS]);
         let nif = glow_mesh(&shipped(), "raul");
         assert_eq!(nif.len(), 4446);
         let digest = Sha256::digest(&nif);
