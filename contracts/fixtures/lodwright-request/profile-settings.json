@@ -6,7 +6,7 @@
   "worlds": ["SyntheticWorld"],
   "output_dir": "<output>",
   "terrain": { "enabled": true, "levels": [], "land_textures": true, "water": true },
-  "objects": { "enabled": true, "far_lights": true },
+  "objects": { "enabled": true, "far_lights": true, "far_model_without_flag": true },
   "trees": { "enabled": false },
   "inclusion": {
     "exclude_plugins": ["Noisy.esp"],
