@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795624713907,
+  "lastUpdate": 1795625957122,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12102,6 +12102,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.725968,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f079f6a55b720266fca22bdd2a408d59e729b9c5",
+          "message": "chore(deps): bump nvmod to 0.19.0 (#629)\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>",
+          "timestamp": "2026-11-25T16:55:41Z",
+          "tree_id": "f57d4973c772dd1ecb8309b4b25fdcc6b9b9e39e",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f079f6a55b720266fca22bdd2a408d59e729b9c5"
+        },
+        "date": 1795625956334,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.575035,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.3266,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 29.51425,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.063034,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.897049,
             "unit": "ms"
           }
         ]
