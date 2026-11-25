@@ -716,6 +716,7 @@ mod details_tests {
 mod unpack_tests {
     use super::*;
     use nvmod_testkit::TempDir;
+    use raul_testkit::{covers, ids};
 
     fn request(free_space: Option<FreeSpace>, dry_run: bool, resume: bool) -> TtwRequest {
         TtwRequest {
@@ -775,6 +776,7 @@ mod unpack_tests {
 
     #[test]
     fn too_little_space_refuses_before_anything_is_unpacked_and_says_how_much_is_missing() {
+        covers(&[ids::ttw::install::SPACE_CHECK]);
         let dir = TempDir::new("raul-unpack-space");
         let package = download(&dir);
         let work = dir.path().join("work");
@@ -904,6 +906,7 @@ mod unix_tests {
 mod sort_tests {
     use super::*;
     use nvmod_testkit::{BaseBuilder, PluginBuilder, TempDir, ZipBuilder};
+    use raul_testkit::{covers, ids};
 
     /// A profile with the base game's master, and a TTW-like archive whose plugins sort wrongly by name.
     fn installed() -> (TempDir, NvmodInstance, Vec<String>) {
@@ -943,6 +946,7 @@ mod sort_tests {
 
     #[test]
     fn the_new_plugins_are_in_a_valid_order_after_the_sort() {
+        covers(&[ids::ttw::install::PLUGINS_SORTED]);
         let (_dir, instance, enabled) = installed();
         let before = nvmod_loadorder::read_slots(&instance.profile_dir("Default")).unwrap();
         let pos = |slots: &[nvmod_loadorder::Slot], n: &str| {

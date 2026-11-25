@@ -344,6 +344,7 @@ pub(crate) fn usage(err: &mut dyn Write, message: &str) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     fn words(line: &[&str]) -> Vec<String> {
         line.iter().map(|w| (*w).to_owned()).collect()
@@ -351,6 +352,7 @@ mod tests {
 
     #[test]
     fn every_own_command_is_routed_to_the_toolbox_and_the_rest_to_nvmod() {
+        covers(&[ids::cli::commands::OWN_COMMANDS]);
         for command in OWN_COMMANDS {
             assert_eq!(route(&words(&[command, "--json"])), Route::Own, "{command}");
         }

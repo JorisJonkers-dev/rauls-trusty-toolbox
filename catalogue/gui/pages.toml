@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "gui.pages"
+title = "The pages"
+origin = "ours"
+
+[[item]]
+id = "first_run"
+title = "First run sorts the load order and sets the engine target"
+status = "implemented"
+
+[[item]]
+id = "mods_page"
+title = "The Mods page lists, changes and removes mods"
+status = "implemented"
+
+[[item]]
+id = "lod_page"
+title = "The LOD page generates and finds a second run current"
+status = "implemented"
+
+[[item]]
+id = "ttw_flow"
+title = "The TTW flow reviews with a dry run, then installs"
+status = "implemented"
+
+[[item]]
+id = "settings_save"
+title = "A changed setting is saved through raul config set"
+status = "implemented"
+
+[[item]]
+id = "update_button"
+title = "The update button sits beside the version and checks for updates"
+status = "implemented"
+
+[[item]]
+id = "play_blocked"
+title = "A blocked Play explains itself and offers the fix"
+status = "implemented"
+
+[[item]]
+id = "actions_are_commands"
+title = "Every action of the window is a command of the command line"
+status = "implemented"

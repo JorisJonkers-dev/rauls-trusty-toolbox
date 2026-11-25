@@ -3,6 +3,7 @@
 //! plugin `Street Lights TTW.esm` is made in the test (one glow activator and one other). No game or mod data is used.
 #![allow(clippy::disallowed_methods)] // the tests run the built binary
 
+use raul_testkit::{covers, ids};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -146,6 +147,7 @@ fn index(list: &[String], name: &str) -> usize {
 
 #[test]
 fn a_profile_without_street_lights_is_never_touched() {
+    covers(&[ids::mods::addons::UNTOUCHED_WITHOUT_TRIGGER]);
     let f = Fixture::new("raul-addons-none", false);
     let before = f.state();
     assert_eq!(f.addons("list")["status"], "not_needed");
@@ -158,6 +160,7 @@ fn a_profile_without_street_lights_is_never_touched() {
 
 #[test]
 fn the_add_on_goes_right_above_street_lights_with_its_plugin_after_the_trigger() {
+    covers(&[ids::mods::addons::PLACED_ABOVE_TRIGGER]);
     let f = Fixture::new("raul-addons-add", true);
     assert_eq!(f.addons("list")["status"], "out_of_date");
     let glow = f.addons("apply");
@@ -206,6 +209,7 @@ fn the_add_on_goes_right_above_street_lights_with_its_plugin_after_the_trigger()
 
 #[test]
 fn a_turned_off_add_on_stays_off_and_a_removed_one_is_not_added_back() {
+    covers(&[ids::mods::addons::OFF_STAYS_OFF]);
     let f = Fixture::new("raul-addons-off", true);
     f.addons("apply");
     f.mods("disable", ADDON);
@@ -259,6 +263,7 @@ fn without_its_trigger_the_add_on_is_turned_off_and_comes_back_with_it() {
 
 #[test]
 fn the_check_before_a_game_start_never_stops_it() {
+    covers(&[ids::mods::addons::CHECK_NEVER_STOPS_START]);
     let dir = TempDir::new("raul-addons-before");
     let mut err = Vec::new();
     raul_cli::addons::before_game(&dir.path().join("none"), None, true, &mut err);

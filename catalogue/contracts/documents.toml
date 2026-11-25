@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "contracts.documents"
+title = "The documents raul prints"
+origin = "ours"
+
+[[item]]
+id = "schemas_equal_types"
+title = "Every schema file equals its generated schema"
+status = "implemented"
+
+[[item]]
+id = "fixtures_valid"
+title = "Every fixture is valid against its schema"
+status = "implemented"
+
+[[item]]
+id = "events_numbered"
+title = "Every event stream is numbered from one and ends with finished"
+status = "implemented"
+
+[[item]]
+id = "component_snapshots"
+title = "Every snapshot equals the pinned Component's schema"
+status = "implemented"
+
+[[item]]
+id = "other_version_invalid"
+title = "A document of another version or contract is not valid"
+status = "implemented"
+
+[[item]]
+id = "ttw_result"
+title = "The TTW result carries a valid ttwright result"
+status = "implemented"
+
+[[item]]
+id = "lod_result"
+title = "The LOD result carries a valid lodwright result"
+status = "implemented"

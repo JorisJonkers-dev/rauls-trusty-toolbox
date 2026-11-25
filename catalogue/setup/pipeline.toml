@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "setup.pipeline"
+title = "The setup pipeline"
+origin = "ours"
+
+[[item]]
+id = "fresh_order"
+title = "A fresh setup runs every planned step in the order nvmod's setup used"
+status = "implemented"
+
+[[item]]
+id = "smallest_plan"
+title = "The smallest plan is init, profile, stage, sort, verify"
+status = "implemented"
+
+[[item]]
+id = "imported_keeps_order"
+title = "An imported Instance keeps its load order and is stamped"
+status = "implemented"
+
+[[item]]
+id = "dry_run"
+title = "A dry run plans and writes nothing"
+status = "implemented"
+
+[[item]]
+id = "typed_failure"
+title = "A failing step stops the run with a typed error and no command line"
+status = "implemented"
+
+[[item]]
+id = "failure_cleans_up"
+title = "A failing step removes what the run made"
+status = "implemented"
+
+[[item]]
+id = "stop_request"
+title = "A stop request ends the run at the next step"
+status = "implemented"
+
+[[item]]
+id = "rar_refused"
+title = "A RAR archive is refused in plain words and nothing is installed"
+status = "implemented"
+
+[[item]]
+id = "engine_capabilities"
+title = "The built-in engine's capabilities are written for the doctor"
+status = "implemented"
+
+[[item]]
+id = "cli_transcripts"
+title = "raul setup answers the transcripts nvmod's setup recorded"
+status = "implemented"
+
+[[item]]
+id = "typed_request"
+title = "The setup options make a typed request"
+status = "implemented"

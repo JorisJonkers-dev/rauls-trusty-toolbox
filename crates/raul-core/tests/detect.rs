@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! Finding the player's game copies: Steam libraries, GOG, Epic and a folder the player picks.
 
+use raul_testkit::{covers, ids};
 use std::fmt::Write as _;
 use std::path::Path;
 
@@ -45,6 +46,7 @@ fn steam_libraries(home: &Path, libraries: &[&Path]) {
 
 #[test]
 fn a_new_vegas_copy_in_a_second_steam_library_is_found() {
+    covers(&[ids::detect::games::STEAM_LIBRARIES]);
     let home = TempDir::new("raul-home");
     let lib = TempDir::new("raul-lib");
     steam_libraries(
@@ -62,6 +64,7 @@ fn a_new_vegas_copy_in_a_second_steam_library_is_found() {
 
 #[test]
 fn the_executable_version_of_a_copy_is_read_and_judged_supported() {
+    covers(&[ids::detect::games::VERSION_JUDGED]);
     let dir = TempDir::new("raul-nv");
     new_vegas(dir.path(), BaseBuilder::steam());
     let copy = inspect(dir.path()).unwrap();
@@ -71,6 +74,7 @@ fn the_executable_version_of_a_copy_is_read_and_judged_supported() {
 
 #[test]
 fn an_older_executable_version_is_judged_unsupported() {
+    covers(&[ids::detect::games::VERSION_JUDGED]);
     let dir = TempDir::new("raul-old");
     BaseBuilder::steam()
         .exe_version([1, 2, 0, 314])
@@ -80,6 +84,7 @@ fn an_older_executable_version_is_judged_unsupported() {
 
 #[test]
 fn missing_dlc_are_listed() {
+    covers(&[ids::detect::games::MISSING_DLC]);
     let dir = TempDir::new("raul-nodlc");
     BaseBuilder::gog()
         .exe_version([1, 4, 0, 525])
@@ -92,6 +97,7 @@ fn missing_dlc_are_listed() {
 
 #[test]
 fn a_folder_without_a_game_executable_is_not_a_game_copy() {
+    covers(&[ids::detect::games::NOT_A_COPY]);
     let dir = TempDir::new("raul-empty");
     write_file(dir.path(), "Data/FalloutNV.esm", b"synthetic");
     assert!(inspect(dir.path()).is_none());
@@ -99,6 +105,7 @@ fn a_folder_without_a_game_executable_is_not_a_game_copy() {
 
 #[test]
 fn fallout_3_goty_is_found_for_tale_of_two_wastelands() {
+    covers(&[ids::detect::games::FALLOUT3_FOR_TTW]);
     let home = TempDir::new("raul-fo3home");
     let steam = home.path().join(".local/share/Steam");
     steam_libraries(home.path(), &[&steam]);
@@ -117,6 +124,7 @@ fn fallout_3_goty_is_found_for_tale_of_two_wastelands() {
 
 #[test]
 fn an_epic_manifest_points_at_its_install_location() {
+    covers(&[ids::detect::games::EPIC]);
     let home = TempDir::new("raul-winhome");
     let data = TempDir::new("raul-programdata");
     let game = TempDir::new("raul-epicgame");
@@ -137,6 +145,7 @@ fn an_epic_manifest_points_at_its_install_location() {
 
 #[test]
 fn a_copy_reachable_from_two_roots_is_reported_once() {
+    covers(&[ids::detect::games::REPORTED_ONCE]);
     let home = TempDir::new("raul-dup");
     let steam = home.path().join(".local/share/Steam");
     steam_libraries(home.path(), &[&steam, &steam]);

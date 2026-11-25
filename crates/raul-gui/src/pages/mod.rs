@@ -162,10 +162,12 @@ pub fn stub(ui: &mut egui::Ui) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
     use raul_ui_model::pages::{Flow, PageId};
 
     #[test]
     fn the_registry_has_every_page_in_order_then_the_flows() {
+        covers(&[ids::gui::shell::PAGES_IN_ORDER]);
         let views: Vec<View> = registry().iter().map(|p| p.view()).collect();
         let mut expected: Vec<View> = PageId::ALL.into_iter().map(View::Page).collect();
         expected.extend(Flow::ALL.into_iter().map(View::Flow));

@@ -606,6 +606,7 @@ pub fn masterlist_with(
 mod tests {
     use super::*;
     use nvmod_testkit::TempDir;
+    use raul_testkit::{covers, ids};
     use std::cell::Cell;
 
     const BODY: &[u8] = b"abc";
@@ -665,6 +666,7 @@ mod tests {
 
     #[test]
     fn the_shipped_lock_pins_the_masterlist_by_checksum() {
+        covers(&[ids::mods::sort::MASTERLIST_PINNED]);
         let lock = Lock::builtin();
         let entry = lock
             .tool(MASTERLIST_TOOL)
@@ -716,6 +718,7 @@ mod tests {
 
     #[test]
     fn a_wrong_checksum_stores_nothing_and_says_both_hashes() {
+        covers(&[ids::mods::sort::HASH_CHECKED]);
         let rig = Rig::new(&lock_text("", &format!("sha256 = \"{HASH}\"")));
         let why = rig.get(&Fixed::new(vec![Ok(b"abd".to_vec())])).unwrap_err();
         let PinnedError::Verification(text) = &why else {

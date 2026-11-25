@@ -4,6 +4,7 @@
 //! `Command::new`; this test also catches the other ways in (`Command::from`, a renamed import, an `#[allow]` that
 //! silences the lint), and it runs under plain `cargo test`.
 
+use raul_testkit::{covers, ids};
 use std::path::{Path, PathBuf};
 
 /// Files outside the runner crate that may still use `std::process::Command`, with the reason. Each entry is a test
@@ -158,6 +159,7 @@ fn toolbox_crates() -> PathBuf {
 
 #[test]
 fn only_the_runner_crate_uses_process_command() {
+    covers(&[ids::guarantees::build::ONLY_RUNNER_STARTS_PROCESSES]);
     let found = offenders(&toolbox_crates(), ALLOWED);
     assert!(
         found.is_empty(),

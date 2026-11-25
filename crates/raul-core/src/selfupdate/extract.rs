@@ -389,6 +389,7 @@ pub fn check_unit(dir: &Path) -> Result<Vec<String>, Error> {
 mod tests {
     use super::*;
     use nvmod_testkit::{TarBuilder, TempDir, ZipBuilder};
+    use raul_testkit::{covers, ids};
     use std::io::Write;
 
     fn gz(tar: &[u8]) -> Vec<u8> {
@@ -470,6 +471,7 @@ mod tests {
 
     #[test]
     fn paths_that_leave_the_folder_are_refused_in_both_formats() {
+        covers(&[ids::update::install::ARCHIVE_PATHS]);
         for bad in ["../outside", "/abs/path", "a/../../b", "a\\b", "C:/x"] {
             let t = TempDir::new("extract-escape");
             let tar = gz(&TarBuilder::new().file(bad, b"x").bytes());

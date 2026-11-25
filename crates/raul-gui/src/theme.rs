@@ -209,9 +209,11 @@ pub fn visuals(t: &Tokens) -> egui::Visuals {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     #[test]
     fn every_text_colour_reads_on_every_surface() {
+        covers(&[ids::gui::shell::THEME_CONTRAST]);
         let t = DARK;
         let mut low = Vec::new();
         for (surface, bg) in t.surfaces() {

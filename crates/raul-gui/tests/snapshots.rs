@@ -18,6 +18,7 @@ use raul_gui::catalogue as msg;
 use raul_gui::jobs::Jobs;
 use raul_gui::pages;
 use raul_gui::shell::App;
+use raul_testkit::{covers, ids};
 use raul_ui_service::{Exec, Output};
 use std::sync::Arc;
 
@@ -48,6 +49,7 @@ fn options(folder: &str) -> SnapshotOptions {
 
 #[test]
 fn every_page_fixture_matches_its_snapshot() {
+    covers(&[ids::gui::shell::SNAPSHOTS]);
     let mut results = SnapshotResults::new();
     for fixture in pages::fixtures() {
         let slug = fixture.page.view().slug();

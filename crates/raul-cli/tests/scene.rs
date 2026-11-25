@@ -8,6 +8,7 @@
 #![allow(clippy::disallowed_methods)]
 #![cfg(unix)]
 
+use raul_testkit::{covers, ids};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
@@ -153,6 +154,7 @@ fn staged_has(run: &Path, variant: &str, rel: &str) -> bool {
 
 #[test]
 fn a_profile_with_a_generated_lod_mod_gets_the_pair_and_the_difference() {
+    covers(&[ids::play::scene::LOD_PAIR]);
     let f = Fixture::new("scene-pair", true);
     let out = f.scene(&["scene", "run", "--places", "mojave-day"], &[]);
     assert_eq!(out.status.code(), Some(0), "{}", text(&out));
@@ -441,6 +443,7 @@ fn without_the_engine_or_a_viewer_the_run_is_refused() {
 
 #[test]
 fn a_soak_and_a_bench_start_once_over_the_staging_tree_and_the_bench_takes_the_lock() {
+    covers(&[ids::play::scene::SOAK_AND_BENCH]);
     let f = Fixture::new("scene-soak", false);
     let staged = f.raul(
         &["stage", "--instance", s(&f.path("instance")), "--copy"],
@@ -481,6 +484,7 @@ fn two_bench_summaries_are_compared_and_a_missing_one_is_said() {
 
 #[test]
 fn the_place_files_raul_carries_are_written_and_never_overwritten() {
+    covers(&[ids::play::scene::PLACE_FILES]);
     let f = Fixture::new("scene-places", false);
     let dir = f.path("mine");
     let out = f.raul(&["scene", "places", "--out", s(&dir)], &[]);

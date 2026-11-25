@@ -37,6 +37,7 @@ ctrlc = { version = "=3.5.2", features = ["termination"] }
 workspace = true
 
 [dev-dependencies]
+raul-testkit = { workspace = true }
 nvmod-testkit = { workspace = true }
 lodwright-testkit = { workspace = true }
 ttwright-testkit = { workspace = true }

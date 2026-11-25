@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "guarantees.build"
+title = "How raul is built"
+origin = "ours"
+
+[[item]]
+id = "only_runner_starts_processes"
+title = "Only the runner crate starts a process"
+status = "implemented"
+
+[[item]]
+id = "crate_graph"
+title = "The crate graph keeps its layers"
+status = "implemented"
+
+[[item]]
+id = "no_game_files"
+title = "No game data or game-style file enters the repository"
+status = "implemented"
+
+[[item]]
+id = "window_starts_no_process"
+title = "The window never starts a process"
+status = "implemented"
+
+[[item]]
+id = "no_command_text"
+title = "No page shows a command line"
+status = "implemented"
+
+[[item]]
+id = "no_shell"
+title = "Arguments are passed as words with no shell"
+status = "implemented"
+
+[[item]]
+id = "scrubbed_environment"
+title = "A started program gets a scrubbed environment"
+status = "implemented"
+
+[[item]]
+id = "timeout_kills"
+title = "A program that runs too long is killed"
+status = "implemented"
+
+[[item]]
+id = "output_cap"
+title = "A program that writes past the cap is killed"
+status = "implemented"
+
+[[item]]
+id = "checksum_before_start"
+title = "A checksum mismatch stops the program before it starts"
+status = "implemented"
+
+[[item]]
+id = "stop_group"
+title = "A stop ends the whole process group politely"
+status = "implemented"
+
+[[item]]
+id = "game_folder_untouched"
+title = "raul never changes the game folder"
+status = "implemented"

@@ -341,6 +341,7 @@ fn write(target: &Path, list: &[Item]) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     fn words(line: &[&str]) -> Vec<String> {
         line.iter().map(|w| (*w).to_owned()).collect()
@@ -375,6 +376,7 @@ mod tests {
 
     #[test]
     fn the_zip_holds_exactly_the_items_and_is_the_same_each_time() {
+        covers(&[ids::cli::commands::SUPPORT_BUNDLE]);
         let items = vec![
             Item {
                 name: "a.txt".into(),
@@ -474,6 +476,7 @@ mod tests {
 
     #[test]
     fn hiding_names_leaves_no_plugin_name_and_the_home_folder_is_a_tilde() {
+        covers(&[ids::cli::commands::SUPPORT_BUNDLE]);
         let (ctx, root, logs, dir) = fixture("hide");
         let home = dir.join("home");
         let shown = items(&ctx, Some(&root), false, Some(&home), &logs);

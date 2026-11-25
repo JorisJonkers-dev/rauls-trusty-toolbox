@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "cli.commands"
+title = "The raul command"
+origin = "ours"
+
+[[item]]
+id = "version_json"
+title = "version --json names the Toolbox version"
+status = "implemented"
+
+[[item]]
+id = "version_text"
+title = "version prints one line"
+status = "implemented"
+
+[[item]]
+id = "unknown_command"
+title = "An unknown command exits with the usage code"
+status = "implemented"
+
+[[item]]
+id = "nvmod_commands"
+title = "A command raul does not own is run by nvmod"
+status = "implemented"
+
+[[item]]
+id = "own_commands"
+title = "Every own command is routed to the Toolbox"
+status = "implemented"
+
+[[item]]
+id = "program_name"
+title = "The program is called raul in what nvmod prints"
+status = "implemented"
+
+[[item]]
+id = "support_bundle"
+title = "The support bundle holds exactly its items and hides names on request"
+status = "implemented"

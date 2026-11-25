@@ -472,6 +472,7 @@ pub fn clear_staging(root: &Path) -> Result<(), Error> {
 mod tests {
     use super::*;
     use nvmod_testkit::{TempDir, write_file};
+    use raul_testkit::{covers, ids};
 
     const FILES: &[&str] = &["raul", "components/ttwright-rs/bin/ttwright", "NEW-IN-2"];
 
@@ -536,6 +537,7 @@ mod tests {
 
     #[test]
     fn a_rollback_brings_back_every_old_file_and_removes_the_added_one() {
+        covers(&[ids::update::install::ROLLBACK]);
         let t = install();
         apply(t.path(), &names(), "1.0.0", "2.0.0").unwrap();
         let j = rollback(t.path()).expect("rollback");
@@ -565,6 +567,7 @@ mod tests {
 
     #[test]
     fn a_crash_after_any_number_of_renames_is_repaired_to_all_old() {
+        covers(&[ids::update::install::CRASH_REPAIR]);
         // Five renames in all: two files with an old copy move twice, the added file once.
         for stop in 0..5 {
             let t = install();

@@ -261,6 +261,7 @@ pub fn sync_run_folder(run_dir: &Path) -> Result<Outcome, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     const DEFAULTS: &str = "[General]\r\nsIntroMovie=Fallout INTRO Vsk.bik\r\nSCharGenQuest=00102037\r\nuGridsToLoad=5\r\n\r\n[BackgroundLoad]\r\nbBackgroundLoadLipFiles=0\r\nbUseMultiThreadedFaceGen=1\r\n\r\n[Display]\r\niSize W=1280\r\n";
 
@@ -356,6 +357,7 @@ mod tests {
 
     #[test]
     fn a_ttw_profile_gets_the_values_and_a_plain_one_keeps_the_defaults() {
+        covers(&[ids::detect::config::TTW_GAME_SETTINGS]);
         let dir = scratch("sync");
         let (plugins, ini, default) = (
             dir.join("plugins.txt"),
@@ -409,6 +411,7 @@ mod tests {
 
     #[test]
     fn a_setting_the_person_made_is_kept_when_the_master_leaves() {
+        covers(&[ids::detect::config::PERSON_SETTING_KEPT]);
         let dir = scratch("kept");
         let (plugins, ini) = (dir.join("plugins.txt"), dir.join("Fallout.ini"));
         std::fs::write(&plugins, "FalloutNV.esm\n").unwrap();

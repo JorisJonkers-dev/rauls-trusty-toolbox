@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "play.launch"
+title = "Starting the game"
+origin = "ours"
+
+[[item]]
+id = "run_folder"
+title = "The game starts through the launcher in the run folder and its output is logged"
+status = "implemented"
+
+[[item]]
+id = "bad_exit"
+title = "A game that ends badly ends the run badly"
+status = "implemented"
+
+[[item]]
+id = "missing_viewer"
+title = "A missing viewer is refused and nothing starts"
+status = "implemented"
+
+[[item]]
+id = "exit_words"
+title = "Exit codes have plain words"
+status = "implemented"
+
+[[item]]
+id = "stop"
+title = "Stop asks every run folder or the named one"
+status = "implemented"
+
+[[item]]
+id = "ttw_settings"
+title = "A TTW profile gets its game settings before the game starts"
+status = "implemented"
+
+[[item]]
+id = "engine_target"
+title = "The nv-rs target writes the engine's capabilities and vanilla writes none"
+status = "implemented"
+
+[[item]]
+id = "real_game"
+title = "Playing the game on the built-in engine"
+status = "implemented"
+gated = "needs the player's game data"

@@ -3,6 +3,7 @@
 //! `[dependencies]` and `[build-dependencies]` of each crate's manifest (dev-dependencies are tests and do not shape
 //! the shipped program). The rules are listed in docs/ARCHITECTURE.md, "Crate graph rules".
 
+use raul_testkit::{covers, ids};
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
@@ -34,6 +35,7 @@ fn starting(set: &BTreeSet<String>, prefix: &str) -> BTreeSet<String> {
 
 #[test]
 fn the_runner_and_the_supply_depend_on_no_other_toolbox_crate() {
+    covers(&[ids::guarantees::build::CRATE_GRAPH]);
     for dir in ["crates/raul-runner", "crates/raul-supply"] {
         if !repository().join(dir).join("Cargo.toml").exists() {
             // raul-supply is planned (REORG section 3) and not split out yet; the rule holds when it is.
@@ -47,6 +49,7 @@ fn the_runner_and_the_supply_depend_on_no_other_toolbox_crate() {
 
 #[test]
 fn the_view_model_depends_on_no_toolbox_crate_and_no_nvmod_crate() {
+    covers(&[ids::guarantees::build::CRATE_GRAPH]);
     let deps = dependencies("crates/raul-gui/crates/raul-ui-model");
     let found: BTreeSet<_> = deps
         .iter()

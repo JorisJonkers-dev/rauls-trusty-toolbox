@@ -3,6 +3,7 @@
 // These tests start the built binary, which is not a tool call (see clippy.toml).
 #![allow(clippy::disallowed_methods)]
 
+use raul_testkit::{covers, ids};
 use std::process::{Command, Output};
 
 fn raul(args: &[&str]) -> Output {
@@ -18,6 +19,7 @@ fn stdout(o: &Output) -> String {
 
 #[test]
 fn version_as_json_names_the_toolbox_version() {
+    covers(&[ids::cli::commands::VERSION_JSON]);
     let out = raul(&["version", "--json"]);
     assert!(out.status.success());
     let v: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
@@ -27,6 +29,7 @@ fn version_as_json_names_the_toolbox_version() {
 
 #[test]
 fn version_as_text_is_one_line_with_the_toolbox_version() {
+    covers(&[ids::cli::commands::VERSION_TEXT]);
     let out = raul(&["version"]);
     assert!(out.status.success());
     assert_eq!(
@@ -43,6 +46,7 @@ fn version_takes_nothing_but_json() {
 
 #[test]
 fn a_command_raul_does_not_own_is_run_by_nvmod() {
+    covers(&[ids::cli::commands::NVMOD_COMMANDS]);
     let out = raul(&["catalog", "--json"]);
     assert!(
         out.status.success(),
@@ -55,12 +59,14 @@ fn a_command_raul_does_not_own_is_run_by_nvmod() {
 
 #[test]
 fn an_unknown_command_exits_with_the_usage_code() {
+    covers(&[ids::cli::commands::UNKNOWN_COMMAND]);
     let out = raul(&["no-such-command"]);
     assert_eq!(out.status.code(), Some(5));
 }
 
 #[test]
 fn detect_on_a_picked_folder_reports_the_copy_as_json() {
+    covers(&[ids::detect::games::PICKED_FOLDER]);
     let dir = nvmod_testkit::TempDir::new("raul-cli-detect");
     nvmod_testkit::BaseBuilder::steam()
         .exe_version([1, 4, 0, 525])
@@ -85,6 +91,7 @@ fn detect_on_a_folder_without_the_game_exits_with_found() {
 
 #[test]
 fn space_reports_the_free_space_of_a_synthetic_folder_as_json() {
+    covers(&[ids::detect::config::FREE_SPACE]);
     let dir = nvmod_testkit::TempDir::new("raul-cli-space");
     let missing = dir.path().join("not/yet");
     let out = raul(&["space", "--folder", missing.to_str().unwrap(), "--json"]);
@@ -131,6 +138,7 @@ fn bench_writes_a_json_and_a_markdown_report() {
 
 #[test]
 fn bench_compare_warns_but_succeeds_on_a_regression() {
+    covers(&[ids::bench::suite::WARNS_NOT_FAILS]);
     let dir = nvmod_testkit::TempDir::new("raul-cli-compare");
     let report = |ms: f64| {
         serde_json::json!({"schema_version":1,"raul":"0.0.0","os":"linux","arch":"x86_64","skipped":[],
@@ -154,6 +162,7 @@ fn bench_compare_warns_but_succeeds_on_a_regression() {
 
 #[test]
 fn turning_update_checks_on_is_remembered() {
+    covers(&[ids::update::check::REMEMBERED]);
     let home = nvmod_testkit::TempDir::new("raul-cli-update");
     let run = |args: &[&str]| {
         Command::new(env!("CARGO_BIN_EXE_raul"))
@@ -195,6 +204,7 @@ fn the_update_check_runs_curl_from_the_path_through_the_runner() {
 #[cfg(unix)]
 #[test]
 fn a_failing_update_check_says_why() {
+    covers(&[ids::update::check::FAILURE_SAYS_WHY]);
     let home = nvmod_testkit::TempDir::new("raul-cli-update-fail");
     let bin = home.path().join("bin");
     std::fs::create_dir_all(&bin).unwrap();

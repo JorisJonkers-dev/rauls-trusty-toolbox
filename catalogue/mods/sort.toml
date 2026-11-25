@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "mods.sort"
+title = "Sorting the load order"
+origin = "ours"
+
+[[item]]
+id = "masterlist_pinned"
+title = "The masterlist is pinned by checksum"
+status = "implemented"
+
+[[item]]
+id = "hash_checked"
+title = "A file with a wrong checksum is never stored"
+status = "implemented"
+
+[[item]]
+id = "fetch_option"
+title = "--fetch-masterlist becomes a masterlist file for nvmod's sort"
+status = "implemented"
+
+[[item]]
+id = "missing_masterlist"
+title = "A missing masterlist stops the sort step"
+status = "implemented"
+
+[[item]]
+id = "preview_apply_undo"
+title = "A sort is previewed, applied and undone byte for byte"
+status = "implemented"

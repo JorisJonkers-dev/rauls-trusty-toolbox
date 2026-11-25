@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "lod.generate"
+title = "Generating the distant view"
+origin = "ours"
+
+[[item]]
+id = "one_mod"
+title = "One generated LOD Mod per profile, current on a second run"
+status = "implemented"
+
+[[item]]
+id = "replaces"
+title = "A new run replaces the generated Mod"
+status = "implemented"
+
+[[item]]
+id = "per_profile"
+title = "Each profile has its own output folder"
+status = "implemented"
+
+[[item]]
+id = "named_and_marked"
+title = "The Mod is named for its profile and marked as generated"
+status = "implemented"
+
+[[item]]
+id = "failed_replacement"
+title = "A failed replacement puts the old Mod back"
+status = "implemented"
+
+[[item]]
+id = "stop_resumes"
+title = "A stop adds nothing and the next run resumes"
+status = "implemented"
+
+[[item]]
+id = "git_folder_refused"
+title = "An output inside a git folder is refused before anything starts"
+status = "implemented"
+
+[[item]]
+id = "second_run_refused"
+title = "A second generate while one runs is refused"
+status = "implemented"
+
+[[item]]
+id = "dry_run"
+title = "A dry run or a bad input starts nothing"
+status = "implemented"
+
+[[item]]
+id = "packing"
+title = "Packing gives one archive and its stub"
+status = "implemented"
+
+[[item]]
+id = "refusals_exit_4"
+title = "The generator's refusals keep their codes and leave the Instance unchanged"
+status = "implemented"
+
+[[item]]
+id = "timeout"
+title = "A run that outlasts its timeout is stopped and leaves the Mod alone"
+status = "implemented"
+
+[[item]]
+id = "real_generation"
+title = "A real generation for the player's load order"
+status = "implemented"
+gated = "needs the player's game data and mods"

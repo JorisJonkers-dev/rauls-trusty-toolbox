@@ -276,6 +276,7 @@ pub fn run(rest: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
     use std::sync::Mutex;
 
     fn words(text: &str) -> Vec<String> {
@@ -336,6 +337,7 @@ mod tests {
 
     #[test]
     fn a_profile_with_tale_of_two_wastelands_gets_its_game_settings_before_the_game_starts() {
+        covers(&[ids::play::launch::TTW_SETTINGS]);
         let root = scratch("ttw-ini");
         let run = root.join("run/Default");
         std::fs::create_dir_all(&run).unwrap();
@@ -415,6 +417,7 @@ mod tests {
 
     #[test]
     fn exit_codes_have_plain_words_and_a_finished_game_has_none() {
+        covers(&[ids::play::launch::EXIT_WORDS]);
         assert_eq!(exit_words(0, false), None);
         for code in [1, 2, 3, 69, 143, 77] {
             let words = exit_words(code, false).unwrap();
@@ -428,6 +431,7 @@ mod tests {
 
     #[test]
     fn stop_asks_every_run_folder_or_the_named_one() {
+        covers(&[ids::play::launch::STOP]);
         let inst = scratch("stopcmd");
         for p in ["Default", "Other"] {
             std::fs::create_dir_all(inst.join("run").join(p)).unwrap();

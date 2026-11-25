@@ -11,6 +11,7 @@ use egui_kittest::kittest::{NodeT, Queryable};
 use raul_gui::jobs::Jobs;
 use raul_gui::pages;
 use raul_gui::shell::App;
+use raul_testkit::{covers, ids};
 use raul_ui_service::{Exec, Output};
 use std::sync::Arc;
 
@@ -42,6 +43,7 @@ fn is_command_line(text: &str) -> bool {
 
 #[test]
 fn no_page_fixture_shows_a_command_line() {
+    covers(&[ids::guarantees::build::NO_COMMAND_TEXT]);
     let mut found = Vec::new();
     for fixture in pages::fixtures() {
         let name = format!("{}-{}", fixture.page.view().slug(), fixture.name);

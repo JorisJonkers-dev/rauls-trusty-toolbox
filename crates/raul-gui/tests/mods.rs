@@ -16,6 +16,7 @@ use raul_gui::pages::mods::{
     REMOVED_WITH_LOD_STATUS, TAG_GENERATED, UNDO, UNDO_ENABLED, UNDO_NOTHING, UNDONE_STATUS,
 };
 use raul_gui::shell::App;
+use raul_testkit::{covers, ids};
 use raul_ui_model::pages::{PageId, View};
 use raul_ui_service::{Exec, InProcessExec};
 use std::path::PathBuf;
@@ -149,6 +150,7 @@ fn status(h: &mut Harness<'static, App>) -> Option<String> {
 
 #[test]
 fn the_page_lists_changes_and_removes_mods_and_leaves_the_generated_lod_mod_to_the_lod_page() {
+    covers(&[ids::gui::pages::MODS_PAGE]);
     let f = Fixture::new();
     let mut h = f.app();
     assert!(

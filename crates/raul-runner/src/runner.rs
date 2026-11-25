@@ -473,6 +473,7 @@ impl Runner {
 mod tests {
     use super::*;
     use nvmod_testkit::TempDir;
+    use raul_testkit::{covers, ids};
     use std::path::PathBuf;
 
     fn script(dir: &TempDir, name: &str, body: &str) -> PathBuf {
@@ -492,6 +493,7 @@ mod tests {
 
     #[test]
     fn arguments_are_passed_as_words_with_no_shell() {
+        covers(&[ids::guarantees::build::NO_SHELL]);
         let dir = TempDir::new("run-args");
         let p = script(&dir, "t", r#"printf '%s|' "$@""#);
         let a = args(&["a b", "c;touch pwned", "$HOME"]);
@@ -515,6 +517,7 @@ mod tests {
 
     #[test]
     fn the_environment_is_scrubbed_and_extras_are_passed() {
+        covers(&[ids::guarantees::build::SCRUBBED_ENVIRONMENT]);
         let dir = TempDir::new("run-env");
         let p = script(&dir, "t", "env");
         // Set in the parent: must not reach the tool.
@@ -545,6 +548,7 @@ mod tests {
 
     #[test]
     fn a_tool_that_runs_too_long_is_killed_and_reported_as_failed() {
+        covers(&[ids::guarantees::build::TIMEOUT_KILLS]);
         let dir = TempDir::new("run-timeout");
         let p = script(&dir, "t", "exec sleep 30");
         let runner = Runner {
@@ -605,6 +609,7 @@ mod tests {
 
     #[test]
     fn a_tool_that_writes_past_the_cap_is_killed() {
+        covers(&[ids::guarantees::build::OUTPUT_CAP]);
         let dir = TempDir::new("run-cap");
         let p = script(&dir, "t", "exec yes");
         let runner = Runner {
@@ -665,6 +670,7 @@ mod tests {
 
     #[test]
     fn a_checksum_mismatch_exits_3_and_the_tool_is_not_started() {
+        covers(&[ids::guarantees::build::CHECKSUM_BEFORE_START]);
         let dir = TempDir::new("run-sha");
         let marker = dir.path().join("ran");
         let p = script(&dir, "t", &format!("touch {}", marker.display()));

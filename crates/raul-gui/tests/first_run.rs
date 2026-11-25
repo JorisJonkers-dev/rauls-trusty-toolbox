@@ -16,6 +16,7 @@ use raul_gui::jobs::Jobs;
 use raul_gui::pages::load_order::SORT;
 use raul_gui::pages::setup::{NEXT, SET_UP_INSTANCE};
 use raul_gui::shell::App;
+use raul_testkit::{covers, ids};
 use raul_ui_service::{Exec, InProcessExec};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -120,6 +121,7 @@ fn settle(h: &mut Harness<'static, App>) {
 
 #[test]
 fn first_run_sorts_the_load_order_with_no_profile_action() {
+    covers(&[ids::gui::pages::FIRST_RUN]);
     let f = Fixture::new();
     assert!(!f.instance().exists(), "nothing is set up yet");
     let mut h = f.app();

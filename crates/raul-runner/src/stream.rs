@@ -371,6 +371,7 @@ fn started_plus(timeout: Duration) -> Option<Instant> {
 mod tests {
     use super::*;
     use nvmod_testkit::TempDir;
+    use raul_testkit::{covers, ids};
     use std::path::PathBuf;
 
     fn script(dir: &TempDir, name: &str, body: &str) -> PathBuf {
@@ -498,6 +499,7 @@ mod tests {
 
     #[test]
     fn a_stop_ends_the_whole_group_politely() {
+        covers(&[ids::guarantees::build::STOP_GROUP]);
         let dir = TempDir::new("stream-term");
         let marker = dir.path().join("child-alive");
         // A child of the program that would write the marker if it outlived the stop.

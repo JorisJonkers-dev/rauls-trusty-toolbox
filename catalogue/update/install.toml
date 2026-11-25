@@ -1,0 +1,65 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "update.install"
+title = "Updating and going back"
+origin = "ours"
+
+[[item]]
+id = "download_verified"
+title = "The pinned release's asset downloads and verifies"
+status = "implemented"
+
+[[item]]
+id = "damaged_refused"
+title = "A damaged download is refused and removed"
+status = "implemented"
+
+[[item]]
+id = "older_refused"
+title = "An older or equal version is refused unless asked for"
+status = "implemented"
+
+[[item]]
+id = "archive_paths"
+title = "Paths that leave the folder are refused"
+status = "implemented"
+
+[[item]]
+id = "keeps_previous"
+title = "An update replaces the files and keeps the previous version"
+status = "implemented"
+
+[[item]]
+id = "failed_check_rolls_back"
+title = "A new version that fails its check is taken out again"
+status = "implemented"
+
+[[item]]
+id = "first_start_confirms"
+title = "The first start confirms a working new version"
+status = "implemented"
+
+[[item]]
+id = "crash_repair"
+title = "A crash during the swap is repaired to the old version"
+status = "implemented"
+
+[[item]]
+id = "rollback"
+title = "A rollback brings back every old file"
+status = "implemented"
+
+[[item]]
+id = "development_build"
+title = "A development build says it cannot update itself"
+status = "implemented"
+
+[[item]]
+id = "appimage"
+title = "An AppImage is staged as its one file and swapped"
+status = "implemented"
+
+[[item]]
+id = "plain_refusal"
+title = "An install that cannot update says why in plain words"
+status = "implemented"

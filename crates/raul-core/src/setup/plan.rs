@@ -50,6 +50,7 @@ pub fn plan(request: &Request) -> Vec<Planned> {
 mod tests {
     use super::*;
     use crate::setup::Ttw;
+    use raul_testkit::{covers, ids};
     use std::path::PathBuf;
 
     fn request() -> Request {
@@ -76,6 +77,7 @@ mod tests {
 
     #[test]
     fn a_fresh_instance_with_everything_has_the_order_of_nvmod_setup() {
+        covers(&[ids::setup::pipeline::FRESH_ORDER]);
         let mut r = request();
         r.engine = true;
         r.ttw = Some(Ttw {
@@ -106,6 +108,7 @@ mod tests {
 
     #[test]
     fn the_smallest_plan_is_init_profile_stage_sort_verify() {
+        covers(&[ids::setup::pipeline::SMALLEST_PLAN]);
         assert_eq!(
             ids(&plan(&request())),
             ["init", "profile", "stage", "sort", "verify"]

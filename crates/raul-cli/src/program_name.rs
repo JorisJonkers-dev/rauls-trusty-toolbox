@@ -78,9 +78,11 @@ pub(crate) fn rename(line: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     #[test]
     fn the_program_name_is_raul_at_the_start_after_usage_and_in_backticks() {
+        covers(&[ids::cli::commands::PROGRAM_NAME]);
         assert_eq!(
             rename("nvmod init: made an Instance\n"),
             "raul init: made an Instance\n"

@@ -4,6 +4,7 @@
 //! there; the steps themselves are tested in raul-core (`selfupdate::flow`) with synthetic releases.
 
 use raul_cli::{FAILED, OK, REFUSED, USAGE, run};
+use raul_testkit::{covers, ids};
 use serde_json::Value;
 
 fn go(args: &[&str]) -> (u8, String, String) {
@@ -19,6 +20,7 @@ fn go(args: &[&str]) -> (u8, String, String) {
 
 #[test]
 fn status_says_a_development_build_cannot_update_itself_and_fetches_nothing() {
+    covers(&[ids::update::install::DEVELOPMENT_BUILD]);
     let (code, out, _) = go(&["update", "status"]);
     assert_eq!(code, OK);
     assert!(out.contains("new version from the release page"), "{out}");

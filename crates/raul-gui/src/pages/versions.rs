@@ -618,6 +618,7 @@ mod tests {
     use crate::shell::App;
     use egui_kittest::Harness;
     use egui_kittest::kittest::{NodeT, Queryable};
+    use raul_testkit::{covers, ids};
     use raul_ui_service::Exec;
     use std::sync::{Arc, Mutex};
 
@@ -735,6 +736,7 @@ mod tests {
 
     #[test]
     fn the_update_button_sits_beside_the_version_and_checks_for_updates() {
+        covers(&[ids::gui::pages::UPDATE_BUTTON]);
         let exec = Arc::new(Recording::default());
         let mut h = harness("active", exec.clone());
         h.run();

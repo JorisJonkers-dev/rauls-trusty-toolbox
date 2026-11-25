@@ -4520,6 +4520,7 @@ dependencies = [
  "raul-drivers",
  "raul-engine",
  "raul-runner",
+ "raul-testkit",
  "raul-ui-model",
  "raul-ui-service",
  "serde_json",
@@ -4535,6 +4536,10 @@ dependencies = [
  "sha2",
  "tracing",
 ]
+
+[[package]]
+name = "raul-testkit"
+version = "0.0.0"
 
 [[package]]
 name = "raul-ui-model"
@@ -4559,6 +4564,7 @@ dependencies = [
  "raul-core",
  "raul-drivers",
  "raul-runner",
+ "raul-testkit",
  "raul-ui-model",
  "serde",
  "serde_json",

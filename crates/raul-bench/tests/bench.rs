@@ -2,6 +2,7 @@
 //! The benchmark suite and the comparison of two reports.
 
 use raul_bench::{Measurement, Options, Report, compare, run_suite};
+use raul_testkit::{covers, ids};
 
 fn measurement(name: &str, median_ms: f64) -> Measurement {
     Measurement {
@@ -28,6 +29,7 @@ fn report(results: Vec<Measurement>) -> Report {
 
 #[test]
 fn the_quick_suite_measures_sorting_plugin_reading_and_mod_install() {
+    covers(&[ids::bench::suite::QUICK_SUITE]);
     let r = run_suite(&Options { quick: true });
     let names: Vec<&str> = r.results.iter().map(|m| m.name.as_str()).collect();
     for want in [
@@ -48,6 +50,7 @@ fn the_quick_suite_measures_sorting_plugin_reading_and_mod_install() {
 
 #[test]
 fn lod_and_frame_time_are_skipped_with_a_reason_when_their_tools_are_missing() {
+    covers(&[ids::bench::suite::SKIP_REASON]);
     let r = run_suite(&Options { quick: true });
     let skipped: Vec<&str> = r.skipped.iter().map(|s| s.name.as_str()).collect();
     assert!(
@@ -59,6 +62,7 @@ fn lod_and_frame_time_are_skipped_with_a_reason_when_their_tools_are_missing() {
 
 #[test]
 fn the_markdown_report_has_a_row_for_every_result_and_every_skip() {
+    covers(&[ids::bench::suite::MARKDOWN_REPORT]);
     let mut r = report(vec![measurement("sort/small", 1.5)]);
     r.skipped.push(raul_bench::Skipped {
         name: "lod/generate".into(),
@@ -74,6 +78,7 @@ fn the_markdown_report_has_a_row_for_every_result_and_every_skip() {
 
 #[test]
 fn a_result_slower_than_the_threshold_is_a_regression() {
+    covers(&[ids::bench::suite::REGRESSION_THRESHOLD]);
     let base = report(vec![measurement("sort/small", 100.0)]);
     let head = report(vec![measurement("sort/small", 120.0)]);
     let c = compare(&base, &head, 10.0);

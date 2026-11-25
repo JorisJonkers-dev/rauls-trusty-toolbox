@@ -86,6 +86,7 @@ mod tests {
     use super::*;
     use nvmod_instance::INSTANCE_FILE;
     use nvmod_testkit::TempDir;
+    use raul_testkit::{covers, ids};
 
     /// A folder that is an Instance as far as the lock is concerned.
     fn instance() -> TempDir {
@@ -100,6 +101,7 @@ mod tests {
 
     #[test]
     fn two_holders_exclude_each_other_until_the_first_lets_go() {
+        covers(&[ids::mods::instance::LOCK_EXCLUDES]);
         let dir = instance();
         let first = InstanceGuard::acquire(dir.path(), "rollback").unwrap();
         assert!(first.is_held());
@@ -140,6 +142,7 @@ mod tests {
     #[test]
     #[cfg(unix)]
     fn a_lock_left_by_a_process_that_crashed_is_taken_over() {
+        covers(&[ids::mods::instance::CRASHED_LOCK_TAKEN_OVER]);
         let dir = instance();
         std::fs::create_dir_all(dir.path().join(".nvmod")).unwrap();
         // What a crashed holder leaves behind: its file, naming a pid that no longer runs (none is this high).

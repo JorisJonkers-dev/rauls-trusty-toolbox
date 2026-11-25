@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "mods.addons"
+title = "Add-ons for the mods you have"
+origin = "ours"
+
+[[item]]
+id = "list_complete"
+title = "Every add-on in the list is complete"
+status = "implemented"
+
+[[item]]
+id = "lamp_glow_size"
+title = "The small lamp glow is the approved size"
+status = "implemented"
+
+[[item]]
+id = "placed_above_trigger"
+title = "The add-on goes right above its mod, its plugin after the mod's plugin"
+status = "implemented"
+
+[[item]]
+id = "off_stays_off"
+title = "A turned-off add-on stays off and a removed one is not added back"
+status = "implemented"
+
+[[item]]
+id = "untouched_without_trigger"
+title = "A profile without the mod is never touched"
+status = "implemented"
+
+[[item]]
+id = "check_never_stops_start"
+title = "The check before a game start never stops it"
+status = "implemented"
+
+[[item]]
+id = "added_by_setup"
+title = "Setup adds the add-on and says so"
+status = "implemented"
+
+[[item]]
+id = "mesh_from_numbers"
+title = "The mesh is made from numbers, not from a shipped file"
+status = "implemented"

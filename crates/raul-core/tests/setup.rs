@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The setup job on synthetic fixtures: the testkit's base copy, archives and MO2 folder. No game data is used.
 
+use raul_testkit::{covers, ids};
 use std::fs;
 use std::path::PathBuf;
 
@@ -95,6 +96,7 @@ fn started(events: &[Event]) -> Vec<String> {
 
 #[test]
 fn a_fresh_setup_runs_every_planned_step_in_order_and_reports_each() {
+    covers(&[ids::setup::pipeline::FRESH_ORDER]);
     let s = Scratch::new();
     let mut request = s.request();
     request.mods = vec![s.archive("Better.zip"), s.archive("Extra.zip")];
@@ -142,6 +144,7 @@ fn a_fresh_setup_runs_every_planned_step_in_order_and_reports_each() {
 #[test]
 fn the_nv_rs_target_writes_the_linked_engines_capabilities_and_the_doctor_finds_them() {
     const CAPABILITIES: &str = r#"{"schema_version":1,"extenders":[{"id":"synthetic","name":"Synthetic","commands":{"implemented":1,"total":2,"implemented_names":["Command1"]}}]}"#;
+    covers(&[ids::setup::pipeline::ENGINE_CAPABILITIES]);
     raul_core::capabilities::provide(CAPABILITIES);
     let s = Scratch::new();
     let mut request = s.request();
@@ -204,6 +207,7 @@ fn steps_marked_done_are_skipped_and_reported_as_skipped() {
 
 #[test]
 fn an_imported_instance_keeps_its_order_and_stamps_it() {
+    covers(&[ids::setup::pipeline::IMPORTED_KEEPS_ORDER]);
     let s = Scratch::new();
     let mo2 = TempDir::new("setup-mo2");
     Mo2Builder::new(s.base.path())
@@ -239,6 +243,7 @@ fn fails(request: &Request) -> (Error, Vec<Event>) {
 
 #[test]
 fn a_failing_step_stops_the_run_with_its_typed_error_and_no_command_line() {
+    covers(&[ids::setup::pipeline::TYPED_FAILURE]);
     let s = Scratch::new();
     let mut request = s.request();
     request.base = s.work.path().join("no-such-base");
@@ -309,6 +314,7 @@ fn the_ttw_step_refuses_a_missing_package_in_process() {
 
 #[test]
 fn a_missing_masterlist_stops_the_sort_step() {
+    covers(&[ids::mods::sort::MISSING_MASTERLIST]);
     let s = Scratch::new();
     let mut request = s.request();
     request.masterlist = s.work.path().join("missing.yaml");
@@ -354,6 +360,7 @@ fn a_stop_asked_for_before_the_run_ends_it_before_the_first_step() {
 
 #[test]
 fn a_stop_asked_for_during_a_step_ends_the_run_at_the_next_step() {
+    covers(&[ids::setup::pipeline::STOP_REQUEST]);
     let s = Scratch::new();
     let cancel = CancelToken::new();
     let mut events = Vec::new();
@@ -411,6 +418,7 @@ fn a_stop_asked_for_inside_a_job_ends_the_run_with_the_steps_before_it() {
 
 #[test]
 fn a_rar_archive_is_refused_with_a_plain_message_and_nothing_is_installed() {
+    covers(&[ids::setup::pipeline::RAR_REFUSED]);
     let s = Scratch::new();
     let rar = s.work.path().join("Packed.rar");
     // The signature of a RAR 5 archive and nothing else: nvmod reads zip, 7z and tar in process and refuses the rest.
@@ -440,6 +448,7 @@ fn a_request_saved_with_the_removed_extract_tool_still_reads() {
 /// setup without it gets no add-on and no note.
 #[test]
 fn a_setup_with_street_lights_adds_the_lamp_glow_add_on_and_says_so() {
+    covers(&[ids::mods::addons::ADDED_BY_SETUP]);
     let s = Scratch::new();
     let lamps = s.work.path().join("Street Lights.zip");
     let esm = raul_drivers::addons::plugin::synthetic_plugin(

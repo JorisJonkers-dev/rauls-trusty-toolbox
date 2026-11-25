@@ -18,6 +18,7 @@ use raul_gui::pages::ttw::{
     RESUME, TRY_AGAIN, UNSUPPORTED_PACKAGE,
 };
 use raul_gui::shell::App;
+use raul_testkit::{covers, ids};
 use raul_ui_model::events::Status;
 use raul_ui_model::job::{JobEvent, JobId, JobState, JobTable, Outcome};
 use raul_ui_model::pages::{Flow, View};
@@ -396,6 +397,7 @@ fn until_held(h: &mut Harness<'static, App>, hold: &Hold) {
 
 #[test]
 fn the_flow_reviews_with_a_dry_run_then_installs_the_mod() {
+    covers(&[ids::gui::pages::TTW_FLOW]);
     let f = Fixture::for_window("gui-ttw-flow", &manifest());
     let mut h = f.window();
     to_review(&mut h);

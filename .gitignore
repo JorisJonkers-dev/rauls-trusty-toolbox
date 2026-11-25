@@ -9,6 +9,8 @@ node_modules/
 # Coverage output. REPO_SETUP.md step 4 makes a >=80% coverage gate mandatory,
 # so every repo produces these.
 coverage/
+# The feature-catalogue reports that raul-progress-bot commits on main (.github/workflows/ci.yml, job `reports`).
+!/docs/coverage/
 .nyc_output/
 *.lcov
 

@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "setup.journal"
+title = "The setup journal"
+origin = "ours"
+
+[[item]]
+id = "written_each_step"
+title = "The journal is written after each finished step"
+status = "implemented"
+
+[[item]]
+id = "resume"
+title = "An interrupted setup resumes at the first unfinished step"
+status = "implemented"
+
+[[item]]
+id = "restart"
+title = "A restart forgets the finished steps"
+status = "implemented"
+
+[[item]]
+id = "remove"
+title = "Remove deletes the journal and the next run starts afresh"
+status = "implemented"
+
+[[item]]
+id = "nvmod_takeover"
+title = "An unfinished nvmod setup is taken over once and resumes where it stopped"
+status = "implemented"
+
+[[item]]
+id = "older_migrated"
+title = "A journal of an older version is migrated after a copy is kept"
+status = "implemented"
+
+[[item]]
+id = "newer_refused"
+title = "A journal of a newer version is refused and left as it is"
+status = "implemented"
+
+[[item]]
+id = "atomic_write"
+title = "A half-written file never replaces the journal"
+status = "implemented"

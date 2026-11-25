@@ -2,6 +2,7 @@
 //! The setup journal on synthetic fixtures: the testkit's base copy and archives, and a hand-built `nvmod setup`
 //! state in the documented shape. No game data is used.
 
+use raul_testkit::{covers, ids};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -133,6 +134,7 @@ fn write_nvmod_state(instance: &Path, state: &Value) {
 
 #[test]
 fn a_run_writes_the_journal_after_each_step_and_marks_it_complete() {
+    covers(&[ids::setup::journal::WRITTEN_EACH_STEP]);
     let s = Scratch::new();
     let mut request = s.request();
     request.mods = vec![s.archive("Better.zip")];
@@ -161,6 +163,7 @@ fn a_run_writes_the_journal_after_each_step_and_marks_it_complete() {
 
 #[test]
 fn an_interrupted_setup_resumes_at_the_first_unfinished_step() {
+    covers(&[ids::setup::journal::RESUME]);
     let s = Scratch::new();
     let mut request = s.request();
     request.mods = vec![s.archive("Better.zip"), s.archive("Extra.zip")];
@@ -199,6 +202,7 @@ fn an_interrupted_setup_resumes_at_the_first_unfinished_step() {
 
 #[test]
 fn restart_forgets_the_finished_steps_and_keeps_the_file() {
+    covers(&[ids::setup::journal::RESTART]);
     let s = Scratch::new();
     let request = s.request();
     let cancel = CancelToken::new();
@@ -216,6 +220,7 @@ fn restart_forgets_the_finished_steps_and_keeps_the_file() {
 
 #[test]
 fn remove_deletes_the_journal_and_a_new_run_starts_from_the_first_step() {
+    covers(&[ids::setup::journal::REMOVE]);
     let s = Scratch::new();
     let cancel = CancelToken::new();
     let mut stop = cancel_after("init", &cancel);
@@ -234,6 +239,7 @@ fn remove_deletes_the_journal_and_a_new_run_starts_from_the_first_step() {
 
 #[test]
 fn an_unfinished_nvmod_setup_is_taken_over_once_and_resumes_at_the_same_step() {
+    covers(&[ids::setup::journal::NVMOD_TAKEOVER]);
     let s = Scratch::new();
     let instance = s.instance();
     fs::create_dir_all(&instance).unwrap();
@@ -307,6 +313,7 @@ fn an_nvmod_state_that_cannot_be_read_refuses_the_takeover_and_is_left_alone() {
 
 #[test]
 fn a_journal_of_an_older_version_is_migrated_after_a_copy_is_kept() {
+    covers(&[ids::setup::journal::OLDER_MIGRATED]);
     let s = Scratch::new();
     let instance = s.instance();
     let file = Journal::file(&instance);
@@ -374,6 +381,7 @@ fn a_migration_never_replaces_an_earlier_copy() {
 
 #[test]
 fn a_journal_of_a_newer_version_is_refused_and_left_as_it_is() {
+    covers(&[ids::setup::journal::NEWER_REFUSED]);
     let s = Scratch::new();
     let file = Journal::file(&s.instance());
     fs::create_dir_all(file.parent().unwrap()).unwrap();
@@ -409,6 +417,7 @@ fn a_file_that_is_not_a_journal_is_refused_and_left_as_it_is() {
 
 #[test]
 fn a_partial_file_from_an_interrupted_write_does_not_replace_the_journal() {
+    covers(&[ids::setup::journal::ATOMIC_WRITE]);
     let s = Scratch::new();
     let cancel = CancelToken::new();
     let mut stop = cancel_after("init", &cancel);

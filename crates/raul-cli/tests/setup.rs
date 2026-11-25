@@ -5,6 +5,7 @@
 //! do are named in `NOT_REPLAYED` with the reason; the setup job's own tests cover those steps with synthetic
 //! fixtures (`crates/raul-core/tests/setup.rs`, `setup_command.rs`).
 
+use raul_testkit::{covers, ids};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -181,6 +182,7 @@ fn setup_is_a_command_of_raul_and_nvmod_is_never_reached() {
 
 #[test]
 fn raul_setup_answers_the_transcripts_nvmod_recorded() {
+    covers(&[ids::setup::pipeline::CLI_TRANSCRIPTS]);
     let mut replayed = 0;
     let mut names: Vec<String> = fs::read_dir(baseline_dir())
         .unwrap()

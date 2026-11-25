@@ -23,6 +23,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
+raul-testkit = { workspace = true }
 nvmod-testkit = { workspace = true }
 sevenz-rust2 = { version = "=0.25.0", default-features = false, features = ["compress"] }
 ttwright-testkit = { path = "../../../../components/ttwright-rs/crates/ttwright-testkit" }

@@ -6,6 +6,7 @@
 // These tests start the built binary and `kill`, which are not tool calls (see clippy.toml).
 #![allow(clippy::disallowed_methods)]
 
+use raul_testkit::{covers, ids};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
@@ -296,6 +297,7 @@ fn read(p: &Path) -> String {
 
 #[test]
 fn success_adds_one_mod_and_enables_its_plugins() {
+    covers(&[ids::ttw::install::ADDS_ONE_MOD]);
     let f = Fixture::new("raul-ttw-success");
     let (code, lines) = f.ttw(&[]);
     assert_eq!(code, Some(0), "{lines:?}");
@@ -333,6 +335,7 @@ fn success_adds_one_mod_and_enables_its_plugins() {
 
 #[test]
 fn every_failure_maps_to_its_exit_code_and_leaves_the_instance_unchanged() {
+    covers(&[ids::ttw::install::EXIT_CODES]);
     let f = Fixture::new("raul-ttw-codes");
     let before = f.state();
     // A game copy whose checked file is not the expected one: ttwright's check fails before anything is written.
@@ -385,6 +388,7 @@ fn an_unsupported_package_is_refused_with_exit_2() {
 
 #[test]
 fn resume_is_passed_through_and_continues_a_cancelled_install() {
+    covers(&[ids::ttw::install::RESUME]);
     let f = Fixture::with_manifest("raul-ttw-resume", &slow_manifest());
     let out = f.ttw_interrupted();
     assert_eq!(
@@ -426,6 +430,7 @@ fn without_resume_a_new_run_starts_from_an_empty_folder() {
 
 #[test]
 fn sigint_stops_ttwright_and_exits_4_with_nothing_added() {
+    covers(&[ids::ttw::install::STOP]);
     let f = Fixture::with_manifest("raul-ttw-sigint", &slow_manifest());
     let before = f.state();
     let out = f.ttw_interrupted();
@@ -445,6 +450,7 @@ fn sigint_stops_ttwright_and_exits_4_with_nothing_added() {
 /// `--timeout-secs` cancels the install like SIGINT does: the run ends `cancelled` (resumable), not `failed`.
 #[test]
 fn a_dry_run_reads_and_checks_and_writes_nothing() {
+    covers(&[ids::ttw::install::DRY_RUN]);
     let f = Fixture::new("raul-ttw-dry");
     let before = f.state();
     let (code, lines) = f.ttw(&["--dry-run"]);
@@ -507,6 +513,7 @@ fn missing_inputs_are_refused_before_ttwright_starts() {
 
 #[test]
 fn the_inputs_come_from_raul_config_when_no_flag_names_them() {
+    covers(&[ids::ttw::install::INPUTS_FROM_CONFIG]);
     let f = Fixture::new("raul-ttw-config");
     let storage = f.path("storage");
     for (key, value) in [
@@ -570,6 +577,7 @@ fn ttw_is_the_toolboxs_own_command_and_never_reaches_nvmod() {
 
 #[test]
 fn the_download_archive_is_accepted_and_its_package_is_unpacked_into_the_work_folder_and_removed() {
+    covers(&[ids::ttw::install::DOWNLOAD_ARCHIVE]);
     let f = Fixture::new("raul-ttw-download");
     let download = f.download();
     let before = f.state();
@@ -650,6 +658,7 @@ fn an_interrupted_install_from_the_download_keeps_the_unpacked_package_for_resum
 
 #[test]
 fn a_patch_archive_is_refused_with_exit_2_before_anything_is_written() {
+    covers(&[ids::ttw::install::PATCH_ARCHIVE_REFUSED]);
     let f = Fixture::new("raul-ttw-patch");
     let patch = f.path("Downloads/YUPTTW 13.9.1-133-3.4.0-2026.05.09-[mod.pub].7z");
     make_7z(

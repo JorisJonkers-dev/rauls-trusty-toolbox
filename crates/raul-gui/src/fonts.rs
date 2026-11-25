@@ -71,9 +71,11 @@ pub fn install(ctx: &egui::Context) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use raul_testkit::{covers, ids};
 
     #[test]
     fn inter_is_bundled_with_its_licence() {
+        covers(&[ids::gui::shell::FONTS_LICENSED]);
         // A TrueType file starts with version 1.0.
         assert_eq!(&INTER_REGULAR[..4], &[0, 1, 0, 0]);
         assert_eq!(&INTER_SEMIBOLD[..4], &[0, 1, 0, 0]);
