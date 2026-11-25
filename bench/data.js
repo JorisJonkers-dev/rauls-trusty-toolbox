@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795613917328,
+  "lastUpdate": 1795623519745,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -11906,6 +11906,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.55766,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2031f4a76d65d7f9533792038fa5b04e9586b62f",
+          "message": "feat(lod): bump lodwright-rs to 0.18.0 and ask for the far light points of lamps (#626)\n\nlodwright 0.18.0; raul asks for far-light points with object LOD (drawn only where light.far_lights is on).",
+          "timestamp": "2026-11-25T17:16:14+01:00",
+          "tree_id": "04091fa7d9fbaaad4695ae4dc00a0a0ece08b7ae",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/2031f4a76d65d7f9533792038fa5b04e9586b62f"
+        },
+        "date": 1795623518717,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.461974,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.429893,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.070185,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.142408,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.495872,
             "unit": "ms"
           }
         ]
