@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795623809860,
+  "lastUpdate": 1795624310082,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12004,6 +12004,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.608862,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "261a8da53dae073c743c135321bd585ca50023a1",
+          "message": "chore(main): release 0.7.0 (#520)\n\nRelease pull request; merged on the owner's word.",
+          "timestamp": "2026-11-25T17:29:03+01:00",
+          "tree_id": "093a0e3db545dcfae19954417f0a66b3836ef072",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/261a8da53dae073c743c135321bd585ca50023a1"
+        },
+        "date": 1795624308988,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.30597,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.671771999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 47.347146,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.2263079999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.848788,
             "unit": "ms"
           }
         ]
