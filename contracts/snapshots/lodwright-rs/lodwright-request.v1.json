@@ -178,7 +178,7 @@
           }
         },
         "include_rules": {
-          "description": "Take objects that nothing marks visible from far into object LOD when they match one of these rules. Only\nreferences enabled at the start and without an enable parent are taken; the exclusion rules above still win.\nEmpty by default and written only when set, so a request without rules keeps its digest.",
+          "description": "Take objects that nothing marks visible from far into object LOD when they match one of these rules. Only\nreferences that stand when the game starts (themselves and through their enable parent) are taken; the\nexclusion rules above still win.\nEmpty by default and written only when set, so a request without rules keeps its digest.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/IncludeRule"
@@ -285,6 +285,14 @@
           "type": "boolean",
           "default": true
         },
+        "far_lights": {
+          "description": "Draw the steady lights that stand beside far objects as small unlit light points, one marked shape per object\nblock that the engine shows only at night. Off by default, because an engine without that night switch shows\nthem by day too; written only when on.",
+          "type": "boolean"
+        },
+        "far_model_without_flag": {
+          "description": "Also take references that nothing marks visible from far when their model has a far model\n(`<model>_lod.nif`) and their base is not drawn as a tree billboard; only references that stand when the game\nstarts are taken. Off by default; written only when on.",
+          "type": "boolean"
+        },
         "shapes_from_full_models": {
           "description": "Draw objects that have no LOD model with a simplified copy of their full model. Off by default, because the\ngame's own LOD is the standard; written only when set.",
           "anyOf": [
@@ -297,7 +305,7 @@
           ]
         },
         "shapes_from_shipped_blocks": {
-          "description": "Objects whose far shape is taken from the far blocks the games ship, by world and model. Only enabled\nreferences without an enable parent are taken. Empty by default; written only when set.",
+          "description": "Objects whose far shape is taken from the far blocks the games ship, by world and model. Only references\nthat stand when the game starts (themselves and through their enable parent) are taken. Empty by default;\nwritten only when set.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/ShippedShapeRule"

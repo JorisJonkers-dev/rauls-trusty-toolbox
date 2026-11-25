@@ -482,6 +482,10 @@ pub fn plan(
         request["output"] = parts["output"].clone();
     }
     if settings.output.objects {
+        // The far blocks carry the light points of lamps. The engine shows them only by night and only with its
+        // `light.far_lights` switch on (the `modern` preset); with the switch off it draws the far view as one
+        // without them. Turning this on changes the request, so a far view made before asks to be generated again.
+        request["objects"]["far_lights"] = json!(true);
         let rules = far_shapes::rules_for_load_order(&data_folder, &plugins, &worlds);
         if !rules.is_empty() {
             request["objects"]["shapes_from_shipped_blocks"] = json!(rules);
