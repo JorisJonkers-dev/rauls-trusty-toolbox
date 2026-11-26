@@ -27,7 +27,7 @@ const WIZ = [
     wbar(btn('Next', { k: 'primary', act: 'wizNext', arg: '', dis: !W.store }));
     const free = W.store ? W.store.free : 0;
     return `<h2 style="margin:4px 0 12px">Toolbox storage</h2><div class="rows">${wrow('Storage folder', W.store ? esc(W.store.path) : 'Not set', (W.store ? (low ? stt('warn', `${free} GB free`) : stt('ok', `${free} GB free`)) : '') + btn('Browse…', { k: 'ghost', icon: 'folder', act: 'pickFolder', arg: 'wstore' }))}
-      <div class="r" style="min-height:64px"><div style="flex:1"><div class="nm">Space</div><div style="margin-top:8px;max-width:460px">${pbar(Math.min(1, 30 / Math.max(free, 1)), low ? 'warn' : '')}</div></div><span class="end muted">About 30 GB for mods, LOD and TTW</span></div></div>
+      <div class="r" style="min-height:64px"><div style="flex:1"><div class="nm">Space</div><div style="margin-top:8px">${pbar(Math.min(1, 30 / Math.max(free, 1)), low ? 'warn' : '')}</div></div><span class="end muted">About 30 GB for mods, LOD and TTW</span></div></div>
       ${low ? `<div class="banner warn" style="margin-top:12px"><span class="bi">${ic('warn', 22)}</span><div><div class="bt">Low on space</div><div class="bs">You can go on; TTW and a High LOD may not fit.</div></div><div class="ba">${btn('Pick another drive', { k: 'sec', act: 'pickFolder', arg: 'wstore' })}</div></div>` : ''}<p class="muted" style="margin:10px 4px">Mods live here, never in the game folder.</p>`;
   },
   () => {

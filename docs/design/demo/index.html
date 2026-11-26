@@ -62,7 +62,7 @@ svg.i{flex:none;display:inline-block;vertical-align:-3px}
 .bdg.warn{background:var(--warn)}.bdg.err{background:var(--err)}
 .main{display:flex;flex-direction:column;overflow:hidden;min-width:0;position:relative}
 .mscroll{flex:1 1 auto;min-height:0;overflow:auto;padding:18px 24px 84px}
-.pg{max-width:1100px;animation:pgin .22s ease-out}
+.pg{animation:pgin .22s ease-out}
 @keyframes pgin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .foot{grid-column:1/3;display:flex;align-items:center;gap:10px;padding:0 16px;color:var(--muted);font-size:.86rem}
 .foot .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
@@ -1248,7 +1248,7 @@ PAGES.ttw = () => {
   if (s === 3) body = `<div class="banner ok"><span class="bi">${ic('ok', 22)}</span><div><div class="bt">Tale of Two Wastelands ${S.g.ttwVer} is in your mods</div><div class="bs">Switch it on or off per profile in Mods.</div></div></div>`;
   const next = s === 0 ? btn('Next: TTW file', { k: 'primary', act: 'ttwNext', arg: '', dis: !fo3 }) : s === 1 ? btn('Next: Install', { k: 'primary', act: 'ttwNext', arg: '' }) : s === 2 ? (j ? '' : btn('Install', { k: 'primary', icon: 'dl', act: 'ttwInstall', arg: '', dis: storeLow() })) : btn('Done', { k: 'primary', act: 'ttwClose', arg: '' });
   abar((j ? btn('Cancel', { k: 'ghost', act: 'cancelJob', arg: 'ttw' }) : btn('Close', { k: 'ghost', icon: 'x', act: 'ttwClose', arg: '' }) + (s > 0 && s < 3 ? btn('Back', { k: 'ghost', act: 'ttwBack', arg: '' }) : '')) + next);
-  return pageWrap('ttw', hdr('ttw', 'Add Tale of Two Wastelands', `Step ${s + 1} of 4`) + stepper + `<div style="max-width:900px">${body}</div>`);
+  return pageWrap('ttw', hdr('ttw', 'Add Tale of Two Wastelands', `Step ${s + 1} of 4`) + stepper + body);
 };
 
 /* ---------- System ---------- */
@@ -1260,7 +1260,7 @@ PAGES.system = () => {
   const checked = chk ? '' : S.g.lastCheck ? `<span class="muted" style="margin-left:8px">Checked ${ago(S.g.lastCheck)}</span>` : '';
   const status = (chk ? stt('run', 'Checking for updates…') : up ? stt('run', 'Updating') : avail ? stt('info', 'Update available') : stt('ok', 'Up to date')) + checked;
   let top = '';
-  if (chk) top = `<div class="banner acc"><span class="bi">${ic('refresh', 22, 'spin')}</span><div style="flex:1"><div class="bt">Checking for updates…</div><div style="margin-top:8px;max-width:420px">${pbar(0, 'ind')}</div></div></div>`;
+  if (chk) top = `<div class="banner acc"><span class="bi">${ic('refresh', 22, 'spin')}</span><div style="flex:1"><div class="bt">Checking for updates…</div><div style="margin-top:8px">${pbar(0, 'ind')}</div></div></div>`;
   else if (up) top = `<div class="banner acc"><span class="bi">${ic('refresh', 22, 'spin')}</span><div style="flex:1"><div class="bt">Updating to 0.6.0 · ${Math.round(up.p * 100)} %</div><div class="bs">${['Downloading', 'Checking the download', 'Installing the parts', 'Restarting Raul’s Toolbox'][Math.min(3, Math.floor(up.p * 4))]}</div><div style="margin-top:8px">${pbar(up.p)}</div></div></div>`;
   else if (U.updErr) top = `<div class="banner err" role="alert"><span class="bi">${ic('err', 22)}</span><div><div class="bt">The download stopped</div><div class="bs">The server didn't answer. Your current version is untouched.</div></div></div>`;
   else if (avail) top = `<div class="banner info"><span class="bi">${ic('dl', 22)}</span><div><div class="bt">Update available</div><div class="bs">${updLine()}</div></div></div>`;
@@ -1372,7 +1372,7 @@ const WIZ = [
     wbar(btn('Next', { k: 'primary', act: 'wizNext', arg: '', dis: !W.store }));
     const free = W.store ? W.store.free : 0;
     return `<h2 style="margin:4px 0 12px">Toolbox storage</h2><div class="rows">${wrow('Storage folder', W.store ? esc(W.store.path) : 'Not set', (W.store ? (low ? stt('warn', `${free} GB free`) : stt('ok', `${free} GB free`)) : '') + btn('Browse…', { k: 'ghost', icon: 'folder', act: 'pickFolder', arg: 'wstore' }))}
-      <div class="r" style="min-height:64px"><div style="flex:1"><div class="nm">Space</div><div style="margin-top:8px;max-width:460px">${pbar(Math.min(1, 30 / Math.max(free, 1)), low ? 'warn' : '')}</div></div><span class="end muted">About 30 GB for mods, LOD and TTW</span></div></div>
+      <div class="r" style="min-height:64px"><div style="flex:1"><div class="nm">Space</div><div style="margin-top:8px">${pbar(Math.min(1, 30 / Math.max(free, 1)), low ? 'warn' : '')}</div></div><span class="end muted">About 30 GB for mods, LOD and TTW</span></div></div>
       ${low ? `<div class="banner warn" style="margin-top:12px"><span class="bi">${ic('warn', 22)}</span><div><div class="bt">Low on space</div><div class="bs">You can go on; TTW and a High LOD may not fit.</div></div><div class="ba">${btn('Pick another drive', { k: 'sec', act: 'pickFolder', arg: 'wstore' })}</div></div>` : ''}<p class="muted" style="margin:10px 4px">Mods live here, never in the game folder.</p>`;
   },
   () => {

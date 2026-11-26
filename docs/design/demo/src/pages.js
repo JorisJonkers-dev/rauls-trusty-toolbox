@@ -308,7 +308,7 @@ PAGES.ttw = () => {
   if (s === 3) body = `<div class="banner ok"><span class="bi">${ic('ok', 22)}</span><div><div class="bt">Tale of Two Wastelands ${S.g.ttwVer} is in your mods</div><div class="bs">Switch it on or off per profile in Mods.</div></div></div>`;
   const next = s === 0 ? btn('Next: TTW file', { k: 'primary', act: 'ttwNext', arg: '', dis: !fo3 }) : s === 1 ? btn('Next: Install', { k: 'primary', act: 'ttwNext', arg: '' }) : s === 2 ? (j ? '' : btn('Install', { k: 'primary', icon: 'dl', act: 'ttwInstall', arg: '', dis: storeLow() })) : btn('Done', { k: 'primary', act: 'ttwClose', arg: '' });
   abar((j ? btn('Cancel', { k: 'ghost', act: 'cancelJob', arg: 'ttw' }) : btn('Close', { k: 'ghost', icon: 'x', act: 'ttwClose', arg: '' }) + (s > 0 && s < 3 ? btn('Back', { k: 'ghost', act: 'ttwBack', arg: '' }) : '')) + next);
-  return pageWrap('ttw', hdr('ttw', 'Add Tale of Two Wastelands', `Step ${s + 1} of 4`) + stepper + `<div style="max-width:900px">${body}</div>`);
+  return pageWrap('ttw', hdr('ttw', 'Add Tale of Two Wastelands', `Step ${s + 1} of 4`) + stepper + body);
 };
 
 /* ---------- System ---------- */
@@ -320,7 +320,7 @@ PAGES.system = () => {
   const checked = chk ? '' : S.g.lastCheck ? `<span class="muted" style="margin-left:8px">Checked ${ago(S.g.lastCheck)}</span>` : '';
   const status = (chk ? stt('run', 'Checking for updates…') : up ? stt('run', 'Updating') : avail ? stt('info', 'Update available') : stt('ok', 'Up to date')) + checked;
   let top = '';
-  if (chk) top = `<div class="banner acc"><span class="bi">${ic('refresh', 22, 'spin')}</span><div style="flex:1"><div class="bt">Checking for updates…</div><div style="margin-top:8px;max-width:420px">${pbar(0, 'ind')}</div></div></div>`;
+  if (chk) top = `<div class="banner acc"><span class="bi">${ic('refresh', 22, 'spin')}</span><div style="flex:1"><div class="bt">Checking for updates…</div><div style="margin-top:8px">${pbar(0, 'ind')}</div></div></div>`;
   else if (up) top = `<div class="banner acc"><span class="bi">${ic('refresh', 22, 'spin')}</span><div style="flex:1"><div class="bt">Updating to 0.6.0 · ${Math.round(up.p * 100)} %</div><div class="bs">${['Downloading', 'Checking the download', 'Installing the parts', 'Restarting Raul’s Toolbox'][Math.min(3, Math.floor(up.p * 4))]}</div><div style="margin-top:8px">${pbar(up.p)}</div></div></div>`;
   else if (U.updErr) top = `<div class="banner err" role="alert"><span class="bi">${ic('err', 22)}</span><div><div class="bt">The download stopped</div><div class="bs">The server didn't answer. Your current version is untouched.</div></div></div>`;
   else if (avail) top = `<div class="banner info"><span class="bi">${ic('dl', 22)}</span><div><div class="bt">Update available</div><div class="bs">${updLine()}</div></div></div>`;
