@@ -12,7 +12,7 @@ const ok = (c, m) => { if (!c) { fails.push(m); console.log('FAIL', m); } };
   const pg = await ctx.newPage();
   pg.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.text()); });
   pg.on('pageerror', e => errors.push('pageerror: ' + e.message));
-  const shot = async name => { await pg.waitForTimeout(250); await pg.screenshot({ path: path.join(OUT, `${String(++n).padStart(2, '0')}-${name}.png`) }); };
+  const shot = async name => { await pg.waitForTimeout(250); await pg.locator('#win').screenshot({ path: path.join(OUT, `${String(++n).padStart(2, '0')}-${name}.png`) }); };
   const click = async (sel, o) => { await pg.locator(sel).first().click(o); await pg.waitForTimeout(120); };
   const act = (a, arg) => `[data-act="${a}"]${arg !== undefined ? `[data-arg="${arg}"]` : ''}`;
   const text = async () => pg.locator('#app').innerText();
