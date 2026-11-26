@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795632980082,
+  "lastUpdate": 1795677541850,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12347,6 +12347,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.264342,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1634aea6a021ed9f4b83b5b83099eb350bc45693",
+          "message": "docs(design): the clickable demo as the design standard for the GUI (#636)\n\n* docs(design): the clickable demo as the GUI's design standard, with every flow's screenshots\n\n* docs(design): screenshots cropped to the window, title bar included\n\n* docs(design): blocks grow to the page's width (TTW steps, update check, storage bar)\n\n* packaging: list the design demo and its screenshots as the repository's own assets",
+          "timestamp": "2026-11-26T08:17:11+01:00",
+          "tree_id": "c5e3ec66f4d795f641673bd448509e161f1a1de0",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/1634aea6a021ed9f4b83b5b83099eb350bc45693"
+        },
+        "date": 1795677540819,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.899071,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.611245,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 35.83842,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.6772100000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.167143,
             "unit": "ms"
           }
         ]
