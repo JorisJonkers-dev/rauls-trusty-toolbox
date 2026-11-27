@@ -20,6 +20,11 @@ fixed flags only. Redirects are not followed, so the key cannot be sent to anoth
 and a `Debug` that hides it, and every error text passes through a redaction that removes the key and the value of any
 `apikey` header or pair.
 
+**In the window.** Settings has a masked field with Save, Clear and Check. The job runs in process through
+`raul_core::nexus` (ADR-0016): the typed key moves into the job as a `Secret`, never into an argument, an event or the
+job table, and the page only receives where the key is kept, the account name, premium and the time of the last check.
+Without a keyring, Save keeps the key in the 0600 key file and the page says so; `NEXUS_API_KEY` still comes first.
+
 **The client.** `raul_core::nexus::NexusApi` is the seam: validate, mod info, file list, md5 lookup and download link.
 `NexusClient` implements it over a `Transport`; tests use a fake transport and synthetic JSON, and nothing in CI
 reaches Nexus. Every request sends `Application-Name: raul` and `Application-Version`. A download link is returned

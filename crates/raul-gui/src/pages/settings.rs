@@ -14,6 +14,7 @@ use crate::shell;
 use crate::theme::{self, Tokens};
 use eframe::egui::{self, RichText};
 use raul_ui_model::job::{JobError, JobId};
+use raul_ui_model::pages::nexus::{self, KeyStatus, Op, Source};
 use raul_ui_model::pages::settings::{Answer, Command, Config, Fetch, Field, Key, Save, State};
 use raul_ui_model::pages::{Flow, PageId, View};
 use raul_ui_service::Output;
@@ -26,6 +27,7 @@ crate::texts!(TEXTS {
     STATE_SAVING = "Saving";
     SECTION_GAMES = "Game installations";
     SECTION_STORAGE = "Toolbox storage";
+    SECTION_NEXUS = "Nexus Mods";
     SECTION_SETUP = "Setup";
     SECTION_ABOUT = "About and notices";
     LABEL_NEW_VEGAS = "Fallout: New Vegas";
@@ -58,6 +60,40 @@ crate::texts!(TEXTS {
     ABOUT_NOTE = "What the Toolbox is, and every bundled asset with its licence.";
     RETRY = "Try again";
     CONFIG_FILE = "Saved in";
+    LABEL_NEXUS_KEY = "API key";
+    HINT_NEXUS_KEY = "Never shown after you save it";
+    NEXUS_KEY_HINT_TEXT = "Paste your Nexus Mods API key";
+    NEXUS_KEY_SAVED_HINT_TEXT = "A key is saved; paste a new one to replace it";
+    NEXUS_SAVE = "Save";
+    NEXUS_SAVE_FILE = "Save in a file";
+    NEXUS_CLEAR = "Clear";
+    NEXUS_CHECK = "Check";
+    NEXUS_READING = "Reading the key status";
+    NEXUS_SAVING = "Saving the key";
+    NEXUS_CLEARING = "Removing the key";
+    NEXUS_CHECKING = "Asking Nexus Mods";
+    NEXUS_NO_KEY = "No key saved";
+    NEXUS_IN_KEYRING = "Saved in the system keyring";
+    NEXUS_IN_FILE = "Saved in a key file only you can read";
+    NEXUS_FROM_ENV = "Taken from the NEXUS_API_KEY environment variable";
+    NEXUS_ENV_FIRST = "NEXUS_API_KEY is set, and it is used instead of a saved key. Unset it where you set it to use the saved key.";
+    NEXUS_NO_KEYRING = "No system keyring is available here, so Save keeps the key in a file in the settings folder that only you can read. You can also set the NEXUS_API_KEY environment variable before you start the Toolbox.";
+    LABEL_NEXUS_KEPT = "Key";
+    LABEL_NEXUS_USER = "Account";
+    LABEL_NEXUS_PREMIUM = "Premium";
+    LABEL_NEXUS_CHECKED = "Last checked";
+    HINT_NEXUS_KEPT = "Where it is kept";
+    HINT_NEXUS_USER = "The name Nexus Mods gave it";
+    HINT_NEXUS_PREMIUM = "Premium accounts can download from here";
+    HINT_NEXUS_CHECKED = "Press Check to ask again";
+    NEXUS_NOT_CHECKED = "Not checked yet";
+    NEXUS_YES = "Yes";
+    NEXUS_NO = "No";
+    NEXUS_NO_PREMIUM_NOTE = "Without premium, Nexus Mods files are downloaded by hand.";
+    NEXUS_SAVED = "Nexus Mods API key saved.";
+    NEXUS_CLEARED = "Nexus Mods API key removed.";
+    NEXUS_CHECKED_FOR = "Nexus Mods API key checked for {name}.";
+    NEXUS_UNREADABLE = "Nexus Mods API key: {problem}";
 });
 
 crate::errors!(ERRORS {
@@ -73,6 +109,14 @@ crate::errors!(ERRORS {
         "This build cannot run that command from the window yet",
         "Nothing changed."
     );
+    NEXUS_FAILED = (
+        "The key was not changed",
+        "Nothing changed. The line below says why."
+    );
+    NEXUS_UNREAD = (
+        "The key status could not be read",
+        "Nothing changed. The line below says why."
+    );
 });
 
 /// The Settings page.
@@ -80,7 +124,10 @@ crate::errors!(ERRORS {
 pub struct Settings {
     /// Its toolkit-free state.
     pub state: State,
+    /// The Nexus API key section: its status, what is typed and what runs.
+    pub nexus: nexus::State,
     pending: Pending<Job>,
+    nexus_pending: Pending<Op>,
     visits: Visits,
 }
 
@@ -93,8 +140,14 @@ enum Job {
 impl Settings {
     /// Settings in `state`, as a fixture shows it.
     pub fn with(state: State) -> Settings {
+        Settings::with_nexus(state, nexus::State::loaded(fixture_status()))
+    }
+
+    /// Settings in `state` with the Nexus key section in `nexus`, as a fixture shows it.
+    pub fn with_nexus(state: State, nexus: nexus::State) -> Settings {
         Settings {
             state,
+            nexus,
             ..Settings::default()
         }
     }
@@ -153,8 +206,79 @@ impl Settings {
                 },
             }
         }
+        self.take_nexus_answers(cx);
         if let Some(config) = self.state.config.ready() {
             share_config(cx, config);
+        }
+    }
+
+    /// Starts reading the key status, or the Save, Clear or Check that was asked for. The key of a save leaves the
+    /// field here and lives only in the job.
+    fn start_nexus(&mut self, cx: &mut PageCx<'_>, op: Op) {
+        use raul_ui_service::nexus::NexusOp;
+        let job = match op {
+            Op::Idle => NexusOp::Status,
+            Op::Clearing => NexusOp::Clear,
+            Op::Checking => NexusOp::Check,
+            Op::Saving => {
+                let to_file = self
+                    .nexus
+                    .status
+                    .ready()
+                    .is_some_and(KeyStatus::saves_to_file);
+                match raul_core::nexus::Secret::new(&self.nexus.draft.0) {
+                    Ok(secret) => {
+                        self.nexus.draft.take();
+                        NexusOp::Save { secret, to_file }
+                    }
+                    Err(why) => {
+                        self.nexus.failed = Some(why.to_string());
+                        return;
+                    }
+                }
+            }
+        };
+        if let Ok(id) = cx.jobs.start_nexus(job) {
+            self.nexus_pending.add(op, id);
+            self.nexus.failed = None;
+            if op == Op::Idle {
+                self.nexus.status = Fetch::Loading;
+            } else {
+                self.nexus.op = op;
+            }
+        } else {
+            let why = msg::JOB_NOT_STARTED.what.to_owned();
+            if op == Op::Idle {
+                self.nexus.status = Fetch::Failed(why);
+            } else {
+                self.nexus.failed = Some(why);
+            }
+        }
+    }
+
+    fn take_nexus_answers(&mut self, cx: &mut PageCx<'_>) {
+        for (op, result) in self.nexus_pending.finished(cx.jobs) {
+            let answer = result.and_then(|out| {
+                if out.code == Some(0) {
+                    nexus::parse(&out.stdout)
+                } else {
+                    Err(failure_of(&out))
+                }
+            });
+            match answer {
+                Ok(status) => {
+                    if op != Op::Idle {
+                        cx.shell.status = Some(nexus_text(op, &status));
+                    }
+                    self.nexus.failed = None;
+                    self.nexus.status = Fetch::Ready(status);
+                }
+                Err(why) if op == Op::Idle => self.nexus.status = Fetch::Failed(why),
+                Err(why) => self.nexus.failed = Some(why),
+            }
+            if op != Op::Idle {
+                self.nexus.op = Op::Idle;
+            }
         }
     }
 }
@@ -182,6 +306,9 @@ impl Page for Settings {
         if self.visits.returned(ui.ctx()) && !self.state.saving() && !self.state.config.is_pending()
         {
             self.state.config = Fetch::Idle;
+            if !self.nexus.busy() && !self.nexus.status.is_pending() {
+                self.nexus.status = Fetch::Idle;
+            }
         }
         if self.state.config == Fetch::Idle {
             let first = !self.visits.loaded;
@@ -254,6 +381,8 @@ impl Settings {
             self.save(cx, key);
         }
         ui.add_space(12.0);
+        self.nexus_section(ui, cx);
+        ui.add_space(12.0);
         shell::section_label(ui, &t, SECTION_SETUP, true);
         ui.label(RichText::new(RUN_SETUP_NOTE).color(t.muted.color()));
         if ui.button(RUN_SETUP).clicked() {
@@ -265,6 +394,240 @@ impl Settings {
         if ui.button(OPEN_ABOUT).clicked() {
             cx.dialogs.open(shell::about());
         }
+    }
+}
+
+impl Settings {
+    /// The Nexus Mods API key: a field that never shows what is stored, Save, Clear and Check, and what is known
+    /// about the key and its account (docs/adr/0024).
+    fn nexus_section(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
+        let t = *cx.tokens;
+        shell::section_label(ui, &t, SECTION_NEXUS, true);
+        if self.nexus.status == Fetch::Idle {
+            self.start_nexus(cx, Op::Idle);
+        }
+        let status = match &self.nexus.status {
+            Fetch::Idle | Fetch::Loading => {
+                waiting(ui, &t, NEXUS_READING, &Command::config_list());
+                return;
+            }
+            Fetch::Failed(why) => {
+                error_block(ui, &t, &NEXUS_UNREAD, Some(why));
+                if ui.button(RETRY).clicked() {
+                    self.nexus.status = Fetch::Idle;
+                }
+                return;
+            }
+            Fetch::Ready(status) => status.clone(),
+        };
+        let busy = self.nexus.busy();
+        let mut ask = None;
+        let label_width = label_width(ui);
+        // In a narrow window the buttons drop to a line of their own, so the row never widens the page.
+        let narrow = ui.available_width() < 560.0;
+        let mut enter = false;
+        ui.horizontal(|ui| {
+            let label_id = ui
+                .vertical(|ui| {
+                    ui.set_width(label_width);
+                    let id = ui.label(LABEL_NEXUS_KEY).id;
+                    ui.label(
+                        RichText::new(HINT_NEXUS_KEY)
+                            .text_style(theme::secondary_style())
+                            .color(t.muted.color()),
+                    );
+                    id
+                })
+                .inner;
+            let hint = if status.key_set() {
+                NEXUS_KEY_SAVED_HINT_TEXT
+            } else {
+                NEXUS_KEY_HINT_TEXT
+            };
+            // The key is typed into a masked field and never drawn back: what is stored is not read into the window.
+            let room = if narrow { 0.0 } else { 250.0 };
+            let edit = egui::TextEdit::singleline(&mut self.nexus.draft.0)
+                .password(true)
+                .hint_text(hint)
+                .desired_width((ui.available_width() - room).max(80.0));
+            let response = ui.add_enabled(!busy, edit).labelled_by(label_id);
+            enter = response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+            if !narrow {
+                nexus_buttons(
+                    ui,
+                    &status,
+                    busy,
+                    !self.nexus.draft.is_empty(),
+                    enter,
+                    &mut ask,
+                );
+            }
+        });
+        if narrow {
+            ui.horizontal(|ui| {
+                ui.add_space(label_width + ui.spacing().item_spacing.x);
+                nexus_buttons(
+                    ui,
+                    &status,
+                    busy,
+                    !self.nexus.draft.is_empty(),
+                    enter,
+                    &mut ask,
+                );
+            });
+        }
+        let working = match self.nexus.op {
+            Op::Idle => None,
+            Op::Saving => Some(NEXUS_SAVING),
+            Op::Clearing => Some(NEXUS_CLEARING),
+            Op::Checking => Some(NEXUS_CHECKING),
+        };
+        if let Some(word) = working {
+            ui.horizontal(|ui| {
+                ui.add_space(label_width + ui.spacing().item_spacing.x);
+                super::home::mark_truncated(ui, &t, super::home::Mark::Info, word);
+            });
+        }
+        if let Some(why) = &self.nexus.failed {
+            ui.horizontal(|ui| {
+                ui.add_space(label_width + ui.spacing().item_spacing.x);
+                ui.vertical(|ui| error_block(ui, &t, &NEXUS_FAILED, Some(why)));
+            });
+        }
+        nexus_status(ui, &t, &status);
+        if let Some(ask) = ask {
+            self.start_nexus(cx, ask);
+        }
+    }
+}
+
+/// Save, Clear and Check. Enter in the key field counts as Save once something is typed.
+fn nexus_buttons(
+    ui: &mut egui::Ui,
+    status: &KeyStatus,
+    busy: bool,
+    typed: bool,
+    enter: bool,
+    ask: &mut Option<Op>,
+) {
+    let save = if status.saves_to_file() {
+        NEXUS_SAVE_FILE
+    } else {
+        NEXUS_SAVE
+    };
+    if ui
+        .add_enabled(typed && !busy, egui::Button::new(save))
+        .clicked()
+        || (enter && typed && !busy)
+    {
+        *ask = Some(Op::Saving);
+    }
+    if ui
+        .add_enabled(status.key_set() && !busy, egui::Button::new(NEXUS_CLEAR))
+        .clicked()
+    {
+        *ask = Some(Op::Clearing);
+    }
+    if ui
+        .add_enabled(status.key_set() && !busy, egui::Button::new(NEXUS_CHECK))
+        .clicked()
+    {
+        *ask = Some(Op::Checking);
+    }
+}
+
+/// What is known about the key and its account: where it is kept, who it belongs to, whether that account is
+/// premium and when Nexus Mods last said so, and what to do when there is no keyring.
+fn nexus_status(ui: &mut egui::Ui, t: &Tokens, status: &KeyStatus) {
+    let (kept, mark) = match status.source {
+        None => (NEXUS_NO_KEY, super::home::Mark::Unset),
+        Some(Source::Keyring) => (NEXUS_IN_KEYRING, super::home::Mark::Ok),
+        Some(Source::File) => (NEXUS_IN_FILE, super::home::Mark::Ok),
+        Some(Source::Env) => (NEXUS_FROM_ENV, super::home::Mark::Ok),
+    };
+    if !status.keyring_available {
+        ui.label(RichText::new(NEXUS_NO_KEYRING).color(t.muted.color()));
+    }
+    let label_width = label_width(ui);
+    ui.horizontal(|ui| {
+        key_label(ui, t, label_width, LABEL_NEXUS_KEPT, HINT_NEXUS_KEPT);
+        super::home::mark_truncated(ui, t, mark, kept);
+    });
+    ui.add_space(6.0);
+    if status.key_set() {
+        let user = status.user_name.as_deref();
+        let premium = status
+            .is_premium
+            .map(|p| if p { NEXUS_YES } else { NEXUS_NO });
+        let checked = status.checked_at.map(nexus::utc_text);
+        for (label, hint, value) in [
+            (LABEL_NEXUS_USER, HINT_NEXUS_USER, user),
+            (LABEL_NEXUS_PREMIUM, HINT_NEXUS_PREMIUM, premium),
+            (LABEL_NEXUS_CHECKED, HINT_NEXUS_CHECKED, checked.as_deref()),
+        ] {
+            ui.horizontal(|ui| {
+                key_label(ui, t, label_width, label, hint);
+                let (text, rich) = match value {
+                    Some(v) => (v, RichText::new(v).color(t.text.color())),
+                    None => (
+                        NEXUS_NOT_CHECKED,
+                        RichText::new(NEXUS_NOT_CHECKED).color(t.muted.color()),
+                    ),
+                };
+                ui.add(egui::Label::new(rich).truncate())
+                    .on_hover_text(text);
+            });
+            ui.add_space(6.0);
+        }
+        if status.is_premium == Some(false) {
+            ui.label(RichText::new(NEXUS_NO_PREMIUM_NOTE).color(t.muted.color()));
+        }
+    }
+    if status.env_set {
+        ui.label(RichText::new(NEXUS_ENV_FIRST).color(t.muted.color()));
+    }
+    if let Some(problem) = &status.problem {
+        ui.label(
+            RichText::new(NEXUS_UNREADABLE.replace("{problem}", problem))
+                .color(super::home::Mark::Problem.colour(t)),
+        );
+    }
+}
+
+fn key_label(ui: &mut egui::Ui, t: &Tokens, width: f32, label: &str, hint: &str) {
+    ui.vertical(|ui| {
+        ui.set_width(width);
+        ui.label(label);
+        ui.label(
+            RichText::new(hint)
+                .text_style(theme::secondary_style())
+                .color(t.muted.color()),
+        );
+    });
+}
+
+/// The footer line after a Save, Clear or Check, or after the status was read.
+fn nexus_text(op: Op, status: &KeyStatus) -> String {
+    match op {
+        Op::Saving => NEXUS_SAVED.to_owned(),
+        Op::Clearing => NEXUS_CLEARED.to_owned(),
+        Op::Checking => {
+            NEXUS_CHECKED_FOR.replace("{name}", status.user_name.as_deref().unwrap_or("this key"))
+        }
+        Op::Idle => String::new(),
+    }
+}
+
+/// The key section of the fixtures: a keyring, and no key yet.
+fn fixture_status() -> KeyStatus {
+    KeyStatus {
+        source: None,
+        keyring_available: true,
+        env_set: false,
+        problem: None,
+        user_name: None,
+        is_premium: None,
+        checked_at: None,
     }
 }
 
@@ -707,6 +1070,87 @@ pub fn fixtures() -> Vec<Fixture> {
         ),
         Fixture::new("long-text", Settings::with(State::loaded(long))),
     ]
+    .into_iter()
+    .chain(nexus_fixtures(&partial_config()))
+    .collect()
+}
+
+fn partial_config() -> Config {
+    Config::with(
+        "/users/player/.config/raul/config.toml",
+        &[
+            (Key::NewVegas, "/games/steamapps/common/Fallout New Vegas"),
+            (Key::StorageRoot, "/users/player/raul-storage"),
+            (Key::Instance, "/users/player/raul-storage/instance"),
+        ],
+    )
+}
+
+/// The states of the Nexus key section: unchecked, checked (premium and free), from the environment, no keyring, a
+/// refused key and a check that runs. None shows a key.
+fn nexus_fixtures(config: &Config) -> Vec<Fixture> {
+    let kept = |source, user: Option<&str>, premium| KeyStatus {
+        source: Some(source),
+        user_name: user.map(str::to_owned),
+        is_premium: premium,
+        checked_at: user.map(|_| 1_795_788_180),
+        ..fixture_status()
+    };
+    let page = |name, nexus: nexus::State| {
+        Fixture::new(
+            name,
+            Settings::with_nexus(State::loaded(config.clone()), nexus),
+        )
+    };
+    let with = |status: KeyStatus| nexus::State::loaded(status);
+    vec![
+        page("nexus-unchecked", with(kept(Source::Keyring, None, None))),
+        page(
+            "nexus-premium",
+            with(kept(Source::Keyring, Some("Courier6"), Some(true))),
+        ),
+        page(
+            "nexus-free",
+            with(kept(Source::File, Some("Courier6"), Some(false))),
+        ),
+        page(
+            "nexus-environment",
+            with(KeyStatus {
+                env_set: true,
+                ..kept(Source::Env, None, None)
+            }),
+        ),
+        page(
+            "nexus-no-keyring",
+            with(KeyStatus {
+                keyring_available: false,
+                ..fixture_status()
+            }),
+        ),
+        page(
+            "nexus-refused",
+            nexus::State {
+                failed: Some("Nexus does not accept this API key".into()),
+                ..with(kept(Source::Keyring, Some("Courier6"), Some(true)))
+            },
+        ),
+        page(
+            "nexus-checking",
+            nexus::State {
+                op: Op::Checking,
+                ..with(kept(Source::Keyring, None, None))
+            },
+        ),
+        page(
+            "nexus-unreadable",
+            with(KeyStatus {
+                problem: Some(
+                    "NEXUS_API_KEY: the key holds a character a Nexus key does not".into(),
+                ),
+                ..fixture_status()
+            }),
+        ),
+    ]
 }
 
 #[cfg(test)]
@@ -792,6 +1236,180 @@ mod tests {
             h.query_by_label(SAVED_FALLOUT3).is_some(),
             "the footer says it was saved"
         );
+    }
+
+    /// A keyring in memory; `broken` is a machine with no Secret Service.
+    #[derive(Default)]
+    struct Memory {
+        value: Mutex<Option<String>>,
+        broken: bool,
+    }
+
+    impl raul_core::nexus::KeyStore for Memory {
+        fn get(&self) -> Result<Option<raul_core::nexus::Secret>, raul_core::nexus::KeyError> {
+            if self.broken {
+                return Err(raul_core::nexus::KeyError::Unavailable("no keyring".into()));
+            }
+            let value = self.value.lock().unwrap().clone();
+            value.map(|t| raul_core::nexus::Secret::new(&t)).transpose()
+        }
+        fn set(&self, secret: &raul_core::nexus::Secret) -> Result<(), raul_core::nexus::KeyError> {
+            if self.broken {
+                return Err(raul_core::nexus::KeyError::Unavailable("no keyring".into()));
+            }
+            *self.value.lock().unwrap() = Some(secret.expose().to_owned());
+            Ok(())
+        }
+        fn clear(&self) -> Result<(), raul_core::nexus::KeyError> {
+            *self.value.lock().unwrap() = None;
+            Ok(())
+        }
+    }
+
+    /// Nexus answering `validate` for a premium account.
+    struct Premium;
+
+    impl raul_core::nexus::Transport for Premium {
+        fn send(
+            &self,
+            _: &raul_core::nexus::Request,
+        ) -> Result<raul_core::nexus::Response, raul_core::nexus::TransportError> {
+            Ok(raul_core::nexus::Response {
+                status: 200,
+                headers: Vec::new(),
+                body: r#"{"user_id":7,"name":"Courier6","is_premium":true}"#.into(),
+            })
+        }
+    }
+
+    const TYPED: &str = "typedKeyThatMustNeverShow42";
+
+    /// The window on Settings with a keyring of its own, a configuration folder of its own and a fake Nexus.
+    fn nexus_window(
+        keyring: Arc<Memory>,
+        name: &str,
+    ) -> (egui_kittest::Harness<'static, App>, std::path::PathBuf) {
+        let dir =
+            std::env::temp_dir().join(format!("raul-gui-nexus-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let deps = raul_ui_service::nexus::NexusDeps {
+            keyring,
+            transport: Arc::new(Premium),
+            env: None,
+        };
+        let jobs = Jobs::new(Arc::new(Recording::default()))
+            .scripted(&["config-list", "config-get", "config-set", "config-unset"])
+            .with_context(raul_core::context::Context::new().with_config_folder(&dir))
+            .with_nexus(deps);
+        // The key status is not given: the page reads it as it does on its first visit.
+        let fixture = Fixture::new(
+            "nexus-live",
+            Settings::with_nexus(State::loaded(partial_config()), nexus::State::default()),
+        );
+        let app = App::fixture(fixture, jobs);
+        let mut h = Harness::builder()
+            .with_size([1280.0, 800.0])
+            .build_eframe(|cc| {
+                crate::set_up(&cc.egui_ctx);
+                app
+            });
+        h.run_steps(8);
+        (h, dir)
+    }
+
+    /// Steps the window until `done` holds (a job answers from a thread of its own).
+    fn until(
+        h: &mut egui_kittest::Harness<'static, App>,
+        done: impl Fn(&egui_kittest::Harness<'static, App>) -> bool,
+    ) {
+        for _ in 0..200 {
+            h.run_steps(2);
+            if done(h) {
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        let labels: Vec<String> = h
+            .root()
+            .query_all(egui_kittest::kittest::By::new())
+            .filter_map(|n| {
+                use egui_kittest::kittest::NodeT;
+                n.accesskit_node()
+                    .label()
+                    .or_else(|| n.accesskit_node().value())
+            })
+            .collect();
+        panic!("the window never showed the answer; it shows {labels:?}");
+    }
+
+    #[test]
+    fn the_key_is_saved_checked_and_cleared_without_ever_being_shown() {
+        let keyring = Arc::new(Memory::default());
+        let (mut h, dir) = nexus_window(keyring.clone(), "flow");
+        // The status is read when the section first shows: no key, so Clear and Check wait.
+        until(&mut h, |h| h.query_by_label(NEXUS_NO_KEY).is_some());
+        h.get_by_label(LABEL_NEXUS_KEY).click();
+        h.run_steps(4);
+        h.get_by_label(LABEL_NEXUS_KEY).type_text(TYPED);
+        h.run_steps(4);
+        // Nothing the window exposes holds the typed key, not even the field.
+        let leaks = |h: &egui_kittest::Harness<'static, App>| {
+            h.root()
+                .query_all(egui_kittest::kittest::By::new())
+                .any(|n| {
+                    use egui_kittest::kittest::NodeT;
+                    let a = n.accesskit_node();
+                    [a.label(), a.value()]
+                        .into_iter()
+                        .flatten()
+                        .any(|t| t.contains(TYPED))
+                })
+        };
+        assert!(!leaks(&h), "the typed key is on screen");
+        h.get_by_label(NEXUS_SAVE).click();
+        until(&mut h, |h| h.query_by_label(NEXUS_IN_KEYRING).is_some());
+        assert_eq!(keyring.value.lock().unwrap().as_deref(), Some(TYPED));
+        // The footer says so too, a frame later.
+        until(&mut h, |h| h.query_by_label(NEXUS_SAVED).is_some());
+        assert!(!leaks(&h), "the saved key is on screen");
+        // The field is empty again, and the status shows no account yet.
+        assert!(h.query_all_by_label(NEXUS_NOT_CHECKED).count() > 0);
+
+        h.get_by_label(NEXUS_CHECK).click();
+        until(&mut h, |h| h.query_by_label("Courier6").is_some());
+        assert!(h.query_by_label(NEXUS_YES).is_some(), "premium");
+        let settings = std::fs::read_to_string(dir.join("settings.toml")).unwrap();
+        assert!(settings.contains("Courier6") && !settings.contains(TYPED));
+        assert!(!leaks(&h));
+
+        h.get_by_label(NEXUS_CLEAR).click();
+        until(&mut h, |h| h.query_by_label(NEXUS_NO_KEY).is_some());
+        assert_eq!(*keyring.value.lock().unwrap(), None);
+        assert!(
+            h.query_by_label("Courier6").is_none(),
+            "the account is forgotten with the key"
+        );
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn without_a_keyring_save_keeps_the_key_in_a_file_and_the_page_says_so() {
+        let keyring = Arc::new(Memory {
+            broken: true,
+            ..Memory::default()
+        });
+        let (mut h, dir) = nexus_window(keyring, "file");
+        until(&mut h, |h| h.query_by_label(NEXUS_NO_KEYRING).is_some());
+        h.get_by_label(LABEL_NEXUS_KEY).click();
+        h.run_steps(4);
+        h.get_by_label(LABEL_NEXUS_KEY).type_text(TYPED);
+        h.run_steps(4);
+        h.get_by_label(NEXUS_SAVE_FILE).click();
+        until(&mut h, |h| h.query_by_label(NEXUS_IN_FILE).is_some());
+        let file = dir.join("nexus-api-key");
+        assert_eq!(std::fs::read_to_string(file).unwrap().trim(), TYPED);
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

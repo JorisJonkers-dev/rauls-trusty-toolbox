@@ -70,6 +70,8 @@ pub struct Jobs {
     context: raul_core::context::Context,
     /// A latch a test puts on the TTW install, so it stands still at a known line.
     hold_ttw: Option<Arc<raul_ui_service::Hold>>,
+    /// What the Nexus key jobs read from outside; `None` is the real keyring, `curl` and environment.
+    nexus: Option<raul_ui_service::nexus::NexusDeps>,
 }
 
 impl std::fmt::Debug for Jobs {
@@ -98,6 +100,7 @@ impl Jobs {
             scripted: Vec::new(),
             context: raul_core::context::Context::default(),
             hold_ttw: None,
+            nexus: None,
         }
     }
 
@@ -115,6 +118,29 @@ impl Jobs {
     pub fn with_context(mut self, context: raul_core::context::Context) -> Jobs {
         self.context = context;
         self
+    }
+
+    /// Gives the Nexus key jobs a keyring, a transport and an environment of their own, so a test reaches neither the
+    /// person's keyring nor Nexus.
+    #[must_use]
+    pub fn with_nexus(mut self, deps: raul_ui_service::nexus::NexusDeps) -> Jobs {
+        self.nexus = Some(deps);
+        self
+    }
+
+    /// Starts `op` on the Nexus API key as a job that runs in this process (docs/adr/0024). The key of a save is held
+    /// inside the job: it is no argument of any command, and the job table never sees it. It is no writing job, so it
+    /// neither waits for the Instance lock nor blocks one.
+    ///
+    /// # Errors
+    /// Never in practice; the signature is the one of the other starts.
+    pub fn start_nexus(&mut self, op: raul_ui_service::nexus::NexusOp) -> Result<JobId, JobError> {
+        let deps = self
+            .nexus
+            .clone()
+            .unwrap_or_else(raul_ui_service::nexus::NexusDeps::real);
+        let job = raul_ui_service::nexus::job(op, &self.context, deps);
+        self.start_direct(Action::Nexus, job, false)
     }
 
     /// The context the in-process runs use.
