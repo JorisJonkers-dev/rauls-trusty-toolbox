@@ -43,3 +43,18 @@ status = "implemented"
 id = "command_plan"
 title = "raul modlist plan shows the plan for an Instance and a Profile, as text or JSON, and writes nothing"
 status = "implemented"
+
+[[item]]
+id = "export_roundtrip"
+title = "A Profile is exported as a Mod list that the parser reads back with the same Mods, order and sources"
+status = "implemented"
+
+[[item]]
+id = "export_manual_without_nexus_id"
+title = "A Mod with no Nexus id is exported as a manual source with a note"
+status = "implemented"
+
+[[item]]
+id = "command_export"
+title = "raul modlist export writes a Profile as a Mod list file and writes nothing to the Instance"
+status = "implemented"
