@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795794682261,
+  "lastUpdate": 1795795556557,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13278,6 +13278,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.533796,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7728d87967b0eb94a1f0ef5f1aa5f39bcefcd200",
+          "message": "feat(gui): Nexus API key field on Settings (#702)\n\n* wip(gui): Nexus API key field on Settings (model, in-process job, page, fixtures; snapshots not yet generated)\n\n* fix(gui): keep the Nexus key row inside the window, accept the new snapshots\n\n* fix(gui): stack the Nexus key buttons only in a narrow window, regenerate the snapshots",
+          "timestamp": "2026-11-27T17:03:13+01:00",
+          "tree_id": "2e630de80df7903a4d9db9a713b8e63765f6f2bf",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7728d87967b0eb94a1f0ef5f1aa5f39bcefcd200"
+        },
+        "date": 1795795555567,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.302661,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.641038,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.635595,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.292923,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.550184,
             "unit": "ms"
           }
         ]
