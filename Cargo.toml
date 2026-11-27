@@ -27,6 +27,7 @@ raul-core = { path = "crates/raul-core" }
 raul-bench = { path = "crates/raul-bench" }
 raul-runner = { path = "crates/raul-runner" }
 raul-drivers = { path = "crates/raul-drivers" }
+raul-modlist = { path = "crates/raul-modlist" }
 # The ids of the feature catalogue, for tests only (docs/COVERAGE.md, "Feature catalogue").
 raul-testkit = { path = "crates/raul-testkit" }
 # The same source and tag nvmod v0.8.1 links, so Cargo builds one copy (the lock file fixes the version).

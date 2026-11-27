@@ -12,10 +12,22 @@ raul ttw --instance ~/raul/fnv                 # Tale of Two Wastelands, if you 
 raul target nv-rs --instance ~/raul/fnv        # run on the engine built into raul; nothing to install
 raul lod generate --instance ~/raul/fnv
 raul addons list --instance ~/raul/fnv        # raul's add-ons for the mods you have, and where each stands
+raul modlist plan beautiful --instance ~/raul/fnv   # what a Mod list has and lacks, and where to get it
 raul run nv-rs --instance ~/raul/fnv
 ```
 
 `raul help` lists the Toolbox's own commands, `raul nvmod-help` every nvmod command; add `--json` for scripts.
+
+## Mod lists
+
+A Mod list names Mods, where to get each one and the order they go in (ADR-0023). It holds no mod file. raul carries one,
+**Beautiful** (Tale of Two Wastelands with the Wasteland Survival Guide set and the Beautiful 3c look); you can also point
+raul at a list file of your own.
+
+- `raul modlist list` names the lists raul carries; `raul modlist show beautiful` shows what one holds.
+- `raul modlist plan beautiful --instance <dir>` says which of its Mods the Profile has, and for each one it lacks gives
+  the Nexus page or other link, or says what to do by hand, in the order the Mods are installed in. Nothing is written
+  and nothing is fetched; you download the files yourself. Installing a list comes in a later release.
 
 ## Nexus API key
 

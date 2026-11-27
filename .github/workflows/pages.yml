@@ -83,11 +83,14 @@ jobs:
         with:
           ref: gh-pages
           path: pages
-      # the publish scripts live in the repository's site/, which the built artifact above does not carry
+      # the publish scripts live in the repository's site/ (and read the app's icons from docs/design/demo/src), which
+      # the built artifact above does not carry
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: src
-          sparse-checkout: site
+          sparse-checkout: |
+            site
+            docs/design/demo/src
           persist-credentials: false
       - name: Replace the site's own paths
         working-directory: pages
