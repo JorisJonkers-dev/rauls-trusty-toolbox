@@ -38,6 +38,7 @@ SECTIONS = [
     ("demo", "Demo", "demo/", "play"),
     ("tour", "Guided tour", "tour/", "flask"),
     ("wiki", "Wiki", "wiki/", "help"),
+    ("compare", "Compare", "compare/", "eye"),
     ("bench", "Benchmarks", "bench/", "bolt"),
 ]
 
@@ -76,6 +77,7 @@ def site_sidebar(current: str, up: str) -> str:
                       ("Demo", f"{up}demo/", "play", current == "demo"),
                       ("Guided tour", f"{up}tour/", "flask", current == "tour")]),
             ("SYSTEM", [("Wiki", f"{up}wiki/", "help", current == "wiki"),
+                        ("Compare", f"{up}compare/", "eye", current == "compare"),
                         ("Benchmarks", f"{up}bench/", "bolt", current == "bench"),
                         ("Releases", f"{REPO}/releases", "versions", False),
                         ("Report a bug", f"{REPO}/issues/new/choose", "doctor", False)]),

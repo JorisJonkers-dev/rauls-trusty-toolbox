@@ -32,6 +32,33 @@ Mods change the world, but the game's own far view stays the old one. raul build
   <br><em>The Strip with 312 mods: the game's far view (left) and the one raul built (right).</em>
 </p>
 
+## The Beautiful mod list
+
+Left is the stock game: no mods, the game's own renderer. Right is the 332-mod Beautiful 3c list with raul's engine
+features (ambient occlusion, sun shadows, reflections, fill light) and a generated far view.
+
+<p align="center">
+  <img src="docs/images/beautiful/compare-goodsprings-valley.jpg" alt="Goodsprings, stock game on the left and Beautiful 3c with raul on the right" width="100%">
+  <br><em>Goodsprings: richer sky, real shadows and new lamp posts.</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/beautiful/compare-high-black-mountain.jpg" alt="Black Mountain from above, stock game on the left and Beautiful 3c with raul on the right" width="100%">
+  <br><em>Black Mountain from above: more on the ridge, and a generated far view behind it.</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/beautiful/compare-interior-lucky38-casino.jpg" alt="The Lucky 38 casino floor, stock game on the left and Beautiful 3c with raul on the right" width="100%">
+  <br><em>The Lucky 38 casino floor.</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/beautiful/compare-tenpenny-tower-from-the-plain.jpg" alt="Tenpenny Tower, stock game on the left and Beautiful 3c with raul on the right" width="100%">
+  <br><em>Tenpenny Tower in the Capital Wasteland (Tale of Two Wastelands).</em>
+</p>
+
+There are twelve views in all. [Slide between them on the site](https://jorisjonkers-dev.github.io/rauls-trusty-toolbox/compare/).
+
 ## How far along it is
 
 - ✅ Setup, mods, load order, distant view, Tale of Two Wastelands and Play work on Linux, Windows and macOS.

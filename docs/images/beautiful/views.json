@@ -1,0 +1,21 @@
+{
+  "groups": [
+    {"id": "mojave-day", "title": "Mojave by day", "views": [
+      {"name": "goodsprings-valley", "title": "Goodsprings", "caption": "Goodsprings: richer sky, real shadows under the trees and new lamp posts along the road."},
+      {"name": "lake-mead", "title": "Lake Mead", "caption": "Lake Mead from the shore, with reflections on the water."},
+      {"name": "high-black-mountain", "title": "Black Mountain", "caption": "Black Mountain from above: more dishes and buildings on the ridge, and a generated far view behind it."},
+      {"name": "high-hoover-river", "title": "Hoover Dam", "caption": "The Colorado River below Hoover Dam."}
+    ]},
+    {"id": "mojave-night", "title": "Mojave by night", "views": [
+      {"name": "night-primm-road-lamps", "title": "Primm", "caption": "Primm at night, road lamps lit."},
+      {"name": "night-elrey-north-vegas-lamps", "title": "North Vegas", "caption": "El Rey and North Vegas at night, street lamps lit."}
+    ]},
+    {"id": "interiors", "title": "Interiors", "views": [
+      {"name": "interior-lucky38-casino", "title": "Lucky 38", "caption": "The Lucky 38 casino floor."}
+    ]},
+    {"id": "capital", "title": "Capital Wasteland (Tale of Two Wastelands)", "views": [
+      {"name": "rivet-city-from-the-river-bank", "title": "Rivet City", "caption": "Rivet City from the river bank."},
+      {"name": "tenpenny-tower-from-the-plain", "title": "Tenpenny Tower", "caption": "Tenpenny Tower from the plain."}
+    ]}
+  ]
+}

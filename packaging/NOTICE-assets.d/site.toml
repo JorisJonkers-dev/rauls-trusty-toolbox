@@ -36,3 +36,21 @@ path = "site/404.html"
 what = "page-not-found template of the public site"
 source = "this repository"
 license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/compare.html"
+what = "Compare page template of the public site: wipe sliders, stock game against Beautiful 3c"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/compare.css"
+what = "styles of the Compare page's wipe sliders"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/compare.js"
+what = "script of the Compare page's wipe sliders"
+source = "this repository"
+license = "GPL-3.0-only"
