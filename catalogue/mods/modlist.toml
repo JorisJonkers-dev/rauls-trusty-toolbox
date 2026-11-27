@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-3.0-only
+[group]
+id = "mods.modlist"
+title = "Mod lists"
+origin = "ours"
+
+[[item]]
+id = "list_read"
+title = "A Mod list is read and its Mods keep their order"
+status = "implemented"
+
+[[item]]
+id = "broken_list_refused"
+title = "A list that breaks a rule is refused, with every broken rule named"
+status = "implemented"
+
+[[item]]
+id = "other_schema_refused"
+title = "A list of another schema version is refused with a plain line"
+status = "implemented"
+
+[[item]]
+id = "beautiful_bundled"
+title = "Beautiful is carried by raul, passes the rules and holds the Lucky 38 Mods"
+status = "implemented"

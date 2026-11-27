@@ -3,7 +3,7 @@
 # true` inheritance. crates/raul-gui is a nested workspace with its own lock file (ADR-0004).
 [workspace]
 resolver = "3"
-members = ["crates/raul-core", "crates/raul-cli", "crates/raul-bench", "crates/raul-runner", "crates/raul-drivers", "crates/raul-testkit"]
+members = ["crates/raul-core", "crates/raul-cli", "crates/raul-bench", "crates/raul-runner", "crates/raul-drivers", "crates/raul-testkit", "crates/raul-modlist"]
 exclude = ["components", "crates/raul-gui", "tools"]
 
 [workspace.package]
