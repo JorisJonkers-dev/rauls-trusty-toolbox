@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# The setup every Rust job of ci.yml and gui.yml shares, after actions/checkout: the build cache and the mise tools.
+#
+# Caches are saved only on main. Pull requests restore main's caches without writing their own: the repository has a
+# 10 GB cache budget, and per-pull-request copies of multi-gigabyte targets evicted main's (a cold build each time).
+# The Rust toolchain comes from rust-toolchain.toml on the first cargo call.
+name: Rust setup
+description: Restore the cargo build cache (saved on main only) and install every mise tool (cached).
+inputs:
+  workspaces:
+    description: Swatinem/rust-cache `workspaces` (workspace root -> target directory).
+    default: ". -> target"
+  key:
+    description: Extra cache key; needed when one job id builds several workspaces (a matrix).
+    default: ""
+runs:
+  using: composite
+  steps:
+    - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      with:
+        workspaces: ${{ inputs.workspaces }}
+        key: ${{ inputs.key }}
+        save-if: ${{ github.ref == 'refs/heads/main' }}
+    - uses: jdx/mise-action@90f833d396d0cc3674b631d2d225e306476c303a # v5.2.10
+      with:
+        cache: true
