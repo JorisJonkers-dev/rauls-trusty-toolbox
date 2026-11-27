@@ -65,6 +65,8 @@ pub struct Start {
     pub gpu_sysfs: Option<PathBuf>,
     /// The lock file every game start of this machine takes (shared; a bench takes it exclusively).
     pub lock: Option<PathBuf>,
+    /// A user-data template (`Documents/My Games/FalloutNV/Fallout.ini`) the start's own user data begins from.
+    pub userdata: Option<PathBuf>,
     /// A bench: the suite and the baselines.
     pub suite: String,
     /// `--baseline` name.
@@ -208,6 +210,7 @@ fn lib_start(s: &Start) -> tool::Start {
             .push(("uGridsToLoad".to_owned(), s.grids.to_string()));
     }
     start.game_lock.clone_from(&s.lock);
+    start.userdata.clone_from(&s.userdata);
     if let Some(root) = &s.gpu_sysfs {
         start.gpu_sysfs.clone_from(root);
     }
@@ -426,6 +429,7 @@ pub fn resolve(
                 fail(e)
             )
         })?;
+        ensure_invalidation_archive(instance, profile, &report.tree)?;
         return Ok(Resolved {
             name,
             overlays: vec![report.tree],
@@ -437,6 +441,7 @@ pub fn resolve(
     let dir = instance.profile_dir(profile);
     let tree = nvmod_loadorder::staging_data(instance, profile)
         .map_err(|e| format!("the Staging tree of `{profile}` is missing: {e:?}"))?;
+    ensure_invalidation_archive(instance, profile, &tree)?;
     let plugins = nvmod_loadorder::read_slots(&dir)
         .map_err(|e| format!("the Load order of `{profile}` cannot be read: {e:?}"))?
         .into_iter()
@@ -448,6 +453,52 @@ pub fn resolve(
         overlays: vec![tree],
         plugins,
     })
+}
+
+/// The game's archives beat a Mod's loose files unless `Fallout - Invalidation.bsa` is in `Data`: when neither the base
+/// copy nor the Staging `tree` has it, the dummy archive goes into the tree. A Profile that switches invalidation off
+/// on purpose is left as it is.
+fn ensure_invalidation_archive(
+    instance: &NvmodInstance,
+    profile: &str,
+    tree: &Path,
+) -> Result<(), String> {
+    if raul_core::game_ini::invalidation_switched_off(&instance.profile_dir(profile)) {
+        return Ok(());
+    }
+    let in_base = nvmod_instance::find_ci(
+        &instance.config.base.join("Data"),
+        raul_core::game_ini::INVALIDATION_BSA,
+    )
+    .is_some();
+    if !in_base {
+        raul_core::game_ini::ensure_invalidation_bsa(tree)?;
+    }
+    Ok(())
+}
+
+/// The user data every start of this run begins from: the game's own `Fallout_default.ini` with archive invalidation
+/// on and, when the Profile has an INI with an archive list, that list (so loose Mod textures beat the vanilla
+/// archives, as in the game). `None` when the Profile switches it off, or the game folder has no default INI.
+fn userdata_template(
+    game: &Path,
+    profile_dir: Option<&Path>,
+    run_dir: &Path,
+) -> Result<Option<PathBuf>, String> {
+    if profile_dir.is_some_and(raul_core::game_ini::invalidation_switched_off) {
+        return Ok(None);
+    }
+    let Some(default) = nvmod_instance::find_ci(game, "Fallout_default.ini") else {
+        return Ok(None);
+    };
+    let profile_ini = profile_dir.and_then(|d| nvmod_instance::find_ci(d, "Fallout.ini"));
+    let text = raul_core::game_ini::archive_invalidation_seed(&default, profile_ini.as_deref())?;
+    let template = run_dir.join("userdata-template");
+    let dir = nvmod_run::my_games(&template);
+    std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    let file = dir.join("Fallout.ini");
+    std::fs::write(&file, text).map_err(|e| format!("{}: {e}", file.display()))?;
+    Ok(Some(template))
 }
 
 /// Where the tree of `profile` without its far view is built: raul's own folder of the Instance.
@@ -789,6 +840,11 @@ fn setup(ctx: &Context, verb: &str, f: &Flags) -> Result<Setup, String> {
             return Err("this raul has no engine in it: pass --viewer <program> naming a game viewer, or use the full raul".into());
         }
     };
+    let userdata = userdata_template(
+        &game,
+        instance.as_ref().map(|(i, p)| i.profile_dir(p)).as_deref(),
+        &run_dir,
+    )?;
     let lock = f
         .lock
         .clone()
@@ -816,6 +872,7 @@ fn setup(ctx: &Context, verb: &str, f: &Flags) -> Result<Setup, String> {
             mem,
             no_cap,
             lock,
+            userdata,
             gpu_sysfs: f.gpu_sysfs.clone(),
             suite: f.suite.clone().unwrap_or_default(),
             baseline: f.baseline.clone(),
@@ -1011,6 +1068,63 @@ mod tests {
             lock: Some("/l".into()),
             ..Start::default()
         }
+    }
+
+    #[test]
+    fn a_scene_starts_from_a_user_data_template_whose_archive_list_begins_with_the_invalidation_archive()
+     {
+        let root = std::env::temp_dir().join(format!("raul-scene-ini-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let (game, profile, run) = (root.join("game"), root.join("profile"), root.join("run"));
+        for d in [&game, &profile, &run] {
+            std::fs::create_dir_all(d).unwrap();
+        }
+        std::fs::write(
+            game.join("Fallout_default.ini"),
+            "[Archive]\r\nbUseArchives=1\r\nSArchiveList=Fallout - Textures.bsa, Fallout - Meshes.bsa\r\n",
+        )
+        .unwrap();
+        let template = userdata_template(&game, None, &run).unwrap().unwrap();
+        let ini =
+            std::fs::read_to_string(nvmod_run::my_games(&template).join("Fallout.ini")).unwrap();
+        assert_eq!(
+            raul_core::game_ini::get(&ini, "Archive", "SArchiveList").unwrap(),
+            "Fallout - Invalidation.bsa, Fallout - Textures.bsa, Fallout - Meshes.bsa"
+        );
+        assert_eq!(
+            raul_core::game_ini::get(&ini, "Archive", "bInvalidateOlderFiles").unwrap(),
+            "1"
+        );
+        // The Profile's own list is the one kept.
+        std::fs::write(
+            profile.join("Fallout.ini"),
+            "[Archive]\r\nSArchiveList=Fallout - Textures.bsa, Mine.bsa\r\n",
+        )
+        .unwrap();
+        let template = userdata_template(&game, Some(&profile), &run)
+            .unwrap()
+            .unwrap();
+        let ini =
+            std::fs::read_to_string(nvmod_run::my_games(&template).join("Fallout.ini")).unwrap();
+        assert_eq!(
+            raul_core::game_ini::get(&ini, "Archive", "SArchiveList").unwrap(),
+            "Fallout - Invalidation.bsa, Fallout - Textures.bsa, Mine.bsa"
+        );
+        // Switched off on purpose: no template. No default INI: none either.
+        std::fs::write(
+            profile.join("settings.ini"),
+            "[General]\nAutomaticArchiveInvalidation=false\n",
+        )
+        .unwrap();
+        assert_eq!(
+            userdata_template(&game, Some(&profile), &run).unwrap(),
+            None
+        );
+        assert_eq!(userdata_template(&root, None, &run).unwrap(), None);
+        let mut s = start();
+        s.userdata = Some(template.clone());
+        assert_eq!(lib_start(&s).userdata, Some(template));
+        std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]
