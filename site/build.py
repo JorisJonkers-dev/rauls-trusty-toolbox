@@ -20,7 +20,7 @@ import markdown
 import bench
 import bench_raw
 import download
-from shell import CUR, REPO, fill, ic, sidebar
+from shell import CUR, REPO, fill, ic, sidebar, version_links
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
@@ -129,7 +129,8 @@ def main() -> None:
     out.mkdir(parents=True)
     (out / ".nojekyll").write_text("")
     (out / "assets").mkdir()
-    shutil.copy(SITE / "site.css", out / "assets" / "site.css")
+    for name in ("site.css", "bench.css", "bench.js"):
+        shutil.copy(SITE / name, out / "assets" / name)
     (out / "index.html").write_text(fill((SITE / "landing.html").read_text(), "home", "", repo=REPO))
     (out / "demo").mkdir()
     (out / "demo" / "app").mkdir()
@@ -153,6 +154,8 @@ def main() -> None:
         # the action's own chart page, copied with the navbar so that check.js sees it; pages.yml never publishes it from here
         shutil.copytree(args.gh_pages / "bench" / "raw", out / "bench" / "raw")
         bench_raw.apply(out / "bench")
+    # last, once every page and asset is in place; the demo itself (demo/app/) is copied unchanged and links nothing
+    version_links(out)
     print(f"built {sum(1 for p in out.rglob('*') if p.is_file())} files into {out}")
 
 

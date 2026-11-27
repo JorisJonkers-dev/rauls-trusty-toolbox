@@ -3,6 +3,7 @@
 
 Icons are read from the demo's own sources (docs/design/demo/src), so the site and the app draw the same ones.
 """
+import hashlib
 import html
 import re
 from pathlib import Path
@@ -90,3 +91,31 @@ def fill(template: str, current: str, up: str, **extra: str) -> str:
     for key, value in extra.items():
         out = out.replace("{{" + key + "}}", value)
     return out
+
+
+def asset_version(path: Path) -> str:
+    """A short hash of a file's content, put on its links (site.css?v=...) so a browser never keeps an old copy."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:10]
+
+
+def version_links(out: Path, base: str = "/rauls-trusty-toolbox/") -> int:
+    """Adds ?v=<content hash> to every link from a built page to a stylesheet or script of the site. Returns the count."""
+    count = 0
+    for page in out.rglob("*.html"):
+        text = page.read_text()
+
+        def fix(m: re.Match) -> str:
+            nonlocal count
+            url = m.group(2)
+            if re.match(r"^[a-z][a-z0-9+.-]*:|^//", url):
+                return m.group(0)
+            target = (out / url[len(base):]) if url.startswith(base) else (page.parent / url)
+            if not target.is_file():
+                return m.group(0)
+            count += 1
+            return f'{m.group(1)}="{url}?v={asset_version(target)}"'
+
+        new = re.sub(r'(href|src)="([^"?#]+\.(?:css|js))"', fix, text)
+        if new != text:
+            page.write_text(new)
+    return count
