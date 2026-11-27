@@ -64,6 +64,10 @@ _Avoid_: Wizard (that word is for the Toolbox's own step-by-step flows)
 A Plugin that another Plugin needs in order to work; it must come earlier in the Load order.
 _Avoid_: Dependency (for plugins)
 
+**Mod list**:
+A file of references that names Mods, where to get each one and in what order they go, so a Plan can show what an Instance lacks (ADR-0023). It holds no mod file, and applying one leaves an ordinary Profile.
+_Avoid_: Preset, collection (Nexus's word for a list it hosts), modpack, `modlist.txt` (that is a Profile's file)
+
 **LOD Mod**:
 The Mod a LOD generation keeps its output in: one per Profile, named `Generated LOD (<Profile>)` and marked in its `meta.ini` (ADR-0021).
 _Avoid_: LOD folder, LOD output (for the Mod)
