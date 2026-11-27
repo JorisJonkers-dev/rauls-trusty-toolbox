@@ -2,8 +2,8 @@
 # /demo/, the guided tour at /tour/, the download page at /download/ and the wiki at /wiki/ (docs/wiki, Markdown). `site/build.py` builds it and
 # `site/check.js` checks it: every internal link resolves, no page logs an error and every tour step ticks.
 #
-# Pages is served from the gh-pages branch, which the bench workflow also writes (bench/). This workflow only replaces
-# its own paths there (index.html, demo/, tour/, wiki/, download/, assets/) and leaves bench/ and README.md alone. The bench
+# Pages is served from the gh-pages branch, which the bench workflow also writes (bench/raw/ and bench/results/). This workflow only replaces
+# its own paths there (index.html, demo/, tour/, wiki/, download/, assets/, and the pages of bench/) and leaves bench/raw/, bench/results/ and README.md alone. The bench
 # history job is not touched and keeps its own behaviour, so no bench data point can be dropped; this job has its own
 # queue (publishes never cancel each other) and, if the branch moved while it ran, rebases onto it and pushes again.
 # The two writers change different paths, so the rebase has nothing to resolve.
@@ -18,6 +18,7 @@ on:
       - "docs/design/screenshots/**"
       - "docs/wiki/**"
       - "site/**"
+      - "docs/bench/**"
       - ".github/workflows/pages.yml"
   push:
     branches: [main]
@@ -26,6 +27,7 @@ on:
       - "docs/design/screenshots/**"
       - "docs/wiki/**"
       - "site/**"
+      - "docs/bench/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -40,11 +42,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Fetch the benchmark records (gh-pages)
+        # The history and the records component CI publishes live on gh-pages; the site is built with them.
+        run: git clone --depth 1 --branch gh-pages --single-branch "https://github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/gh-pages" || mkdir -p "$RUNNER_TEMP/gh-pages"
       - name: Build the site
         run: |
           python3 -m venv "$RUNNER_TEMP/venv"
           "$RUNNER_TEMP/venv/bin/pip" install --require-hashes -r site/requirements.txt
-          "$RUNNER_TEMP/venv/bin/python" site/build.py --out "$RUNNER_TEMP/site"
+          "$RUNNER_TEMP/venv/bin/python" site/build.py --out "$RUNNER_TEMP/site" --gh-pages "$RUNNER_TEMP/gh-pages"
       - name: Check the site
         env:
           PW_CHANNEL: chrome
@@ -81,12 +86,18 @@ jobs:
       - name: Replace the site's own paths
         working-directory: pages
         run: |
+          sh ../site/bench-migrate.sh "$PWD"
+          # the chart page the bench workflow writes gets the navbar too
+          python3 ../site/bench_raw.py bench
           for dir in demo tour wiki download assets; do
             mkdir -p "$dir"
             rsync -a --delete "../site/$dir/" "$dir/"
           done
+          # bench/: the pages only; raw/ (github-action-benchmark) and results/ (records) belong to the bench workflow
+          mkdir -p bench
+          rsync -a --delete --exclude raw --exclude results ../site/bench/ bench/
           cp ../site/index.html ../site/404.html ../site/.nojekyll .
-          git add index.html 404.html .nojekyll demo tour wiki download assets
+          git add index.html 404.html .nojekyll demo tour wiki download assets bench
           if git diff --cached --quiet; then
             echo "The site is already up to date."
             exit 0
