@@ -6,7 +6,7 @@
  "run": {
   "id": "raul-bench",
   "date": "2026-11-27",
-  "commit": "2d74681",
+  "commit": "6e1f26e",
   "version": null,
   "machine": "GitHub-hosted ubuntu-latest runner (shared, so noisy)",
   "method": "raul bench on synthetic fixtures (no game data), median wall time of the timed runs. Read from the history that github-action-benchmark keeps on the gh-pages branch; the raw chart page is kept at bench/raw/.",
@@ -30,31 +30,31 @@
     {
      "name": "sort/small",
      "values": {
-      "ours": 1.4356119999999999
+      "ours": 2.3003519999999997
      }
     },
     {
      "name": "sort/medium",
      "values": {
-      "ours": 6.649246
+      "ours": 10.522634
      }
     },
     {
      "name": "sort/ttw-sized",
      "values": {
-      "ours": 34.876478000000006
+      "ours": 46.437014
      }
     },
     {
      "name": "plugin-headers/ttw-sized",
      "values": {
-      "ours": 2.184936
+      "ours": 5.253498
      }
     },
     {
      "name": "install/zip",
      "values": {
-      "ours": 8.676072999999999
+      "ours": 9.470402
      }
     }
    ],
@@ -5684,6 +5684,132 @@
       },
       "install/zip": {
        "ours": 8.676072999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "1d226ab",
+     "values": {
+      "sort/small": {
+       "ours": 1.052537
+      },
+      "sort/medium": {
+       "ours": 4.687824
+      },
+      "sort/ttw-sized": {
+       "ours": 21.397958000000003
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.5074450000000001
+      },
+      "install/zip": {
+       "ours": 5.080055
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "6cf2612",
+     "values": {
+      "sort/small": {
+       "ours": 1.871671
+      },
+      "sort/medium": {
+       "ours": 8.618974
+      },
+      "sort/ttw-sized": {
+       "ours": 36.701525
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.0870359999999994
+      },
+      "install/zip": {
+       "ours": 7.4289760000000005
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "cfacdda",
+     "values": {
+      "sort/small": {
+       "ours": 1.544981
+      },
+      "sort/medium": {
+       "ours": 7.004966
+      },
+      "sort/ttw-sized": {
+       "ours": 28.136059000000003
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 3.9550460000000003
+      },
+      "install/zip": {
+       "ours": 6.533796
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "7728d87",
+     "values": {
+      "sort/small": {
+       "ours": 2.302661
+      },
+      "sort/medium": {
+       "ours": 10.641038
+      },
+      "sort/ttw-sized": {
+       "ours": 46.635595
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.292923
+      },
+      "install/zip": {
+       "ours": 9.550184
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "ce61ad6",
+     "values": {
+      "sort/small": {
+       "ours": 1.40469
+      },
+      "sort/medium": {
+       "ours": 6.289162
+      },
+      "sort/ttw-sized": {
+       "ours": 28.346469
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.099408
+      },
+      "install/zip": {
+       "ours": 6.809756
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "6e1f26e",
+     "values": {
+      "sort/small": {
+       "ours": 2.3003519999999997
+      },
+      "sort/medium": {
+       "ours": 10.522634
+      },
+      "sort/ttw-sized": {
+       "ours": 46.437014
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.253498
+      },
+      "install/zip": {
+       "ours": 9.470402
       }
      }
     }
