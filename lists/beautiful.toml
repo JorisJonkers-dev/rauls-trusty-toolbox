@@ -1,0 +1,2584 @@
+# SPDX-License-Identifier: CC0-1.0
+# The Beautiful mod list (schema raul-modlist/1, docs/adr/0023). References only: Nexus ids, file ids, names and sizes. No mod file is here.
+schema = "raul-modlist/1"
+id = "beautiful"
+name = "Beautiful"
+description = "Tale of Two Wastelands with the Wasteland Survival Guide set and the Beautiful 3c look: NMC textures, Nutscapes land, Natural Waters, Strip lighting, flora, NASA stars, Lucky 38 interior and exterior, lamp glow and a generated LOD."
+game = "fnv"
+target = "ttw"
+plugins = "loot"
+requires = ["fnv", "fo3"]
+
+[[groups]]
+id = "the-best-of-times"
+title = "The Best Of Times"
+
+[[groups]]
+id = "essential-mods"
+title = "Essential Mods"
+
+[[groups]]
+id = "wasteland-survival-guide"
+title = "Wasteland Survival Guide"
+
+[[groups]]
+id = "extra-utilities-fixes"
+title = "Extra Utilities & Fixes"
+
+[[groups]]
+id = "extra-utilities"
+title = "Extra Utilities"
+
+[[groups]]
+id = "fixes"
+title = "Fixes"
+
+[[groups]]
+id = "optimizations"
+title = "Optimizations"
+
+[[groups]]
+id = "optimizations-2"
+title = "Optimizations"
+
+[[groups]]
+id = "user-interface-hud"
+title = "User Interface & HUD"
+
+[[groups]]
+id = "user-interface"
+title = "User Interface"
+
+[[groups]]
+id = "pip-boy"
+title = "Pip-Boy"
+
+[[groups]]
+id = "gameplay"
+title = "Gameplay"
+
+[[groups]]
+id = "gameplay-enhancements"
+title = "Gameplay Enhancements"
+
+[[groups]]
+id = "movement-travel"
+title = "Movement & Travel"
+
+[[groups]]
+id = "combat"
+title = "Combat"
+
+[[groups]]
+id = "guns"
+title = "Guns"
+
+[[groups]]
+id = "melee"
+title = "Melee"
+
+[[groups]]
+id = "grenades"
+title = "Grenades"
+
+[[groups]]
+id = "reactions-animations"
+title = "Reactions & Animations"
+
+[[groups]]
+id = "content"
+title = "Content"
+
+[[groups]]
+id = "major-world-changes"
+title = "Major World Changes"
+
+[[groups]]
+id = "dialogue"
+title = "Dialogue"
+
+[[groups]]
+id = "weapons"
+title = "Weapons"
+
+[[groups]]
+id = "aesthetics-ambience"
+title = "Aesthetics & Ambience"
+
+[[groups]]
+id = "visual-improvements"
+title = "Visual Improvements"
+
+[[groups]]
+id = "animations"
+title = "Animations"
+
+[[groups]]
+id = "weapons-2"
+title = "Weapons_"
+
+[[groups]]
+id = "audio"
+title = "Audio"
+
+[[groups]]
+id = "lighting"
+title = "Lighting"
+
+[[groups]]
+id = "weather"
+title = "Weather"
+
+[[groups]]
+id = "lod"
+title = "LOD"
+
+[[groups]]
+id = "additional"
+title = "Additional"
+
+[[groups]]
+id = "quests"
+title = "Quests"
+
+[[groups]]
+id = "gameplay-2"
+title = "Gameplay"
+
+[[groups]]
+id = "quality-of-life"
+title = "Quality of Life"
+
+[[groups]]
+id = "graphical"
+title = "Graphical"
+
+[[groups]]
+id = "caffeine-nvr"
+title = "Caffeine NVR"
+
+[[groups]]
+id = "custom-lods"
+title = "CUSTOM LODS"
+
+[[groups]]
+id = "beautiful"
+title = "Beautiful look layer"
+
+[[mods]]
+id = "tale-of-two-wastelands"
+name = "Tale of Two Wastelands"
+plugins = ["Anchorage.esm", "BrokenSteel.esm", "CaravanPack.esm", "ClassicPack.esm", "DeadMoney.esm", "Fallout3.esm", "FalloutNV.esm", "GunRunnersArsenal.esm", "HonestHearts.esm", "LonesomeRoad.esm", "MercenaryPack.esm", "OldWorldBlues.esm", "PointLookout.esm", "TaleOfTwoWastelands.esm", "ThePitt.esm", "TribalPack.esm", "YUPTTW.esm", "Zeta.esm"]
+source = { type = "tool", tool = "ttwright-rs", inputs = ["fallout3", "ttw-mpi"] }
+
+[[mods]]
+id = "ttw-nvse"
+name = "TTW NVSE"
+group = "essential-mods"
+version = "3.3.3b"
+source = { type = "nexus", game = "newvegas", mod = 77415, file_name = "ROOGNVSE-77415-3-3-3b-1736213734.7z", uploaded = 1736213734 }
+
+[[mods]]
+id = "jip-ln-nvse-plugin"
+name = "JIP LN NVSE Plugin"
+group = "essential-mods"
+version = "57.30"
+source = { type = "nexus", game = "newvegas", mod = 58277, file_name = "JIP LN NVSE Plugin-58277-57-30-1716662080.7z", uploaded = 1716662080 }
+
+[[mods]]
+id = "jip-ln-settings-ini"
+name = "JIP LN Settings INI"
+group = "essential-mods"
+version = "56.24"
+source = { type = "nexus", game = "newvegas", mod = 58277, file_name = "JIP LN Settings INI-58277-56-24-1691190751.7z", uploaded = 1691190751 }
+
+[[mods]]
+id = "johnnyguitar-nvse"
+name = "JohnnyGuitar NVSE"
+group = "essential-mods"
+version = "5.20"
+source = { type = "nexus", game = "newvegas", mod = 66927, file_name = "JohnnyGuitar NVSE-66927-5-20-1765115538.7z", uploaded = 1765115538 }
+
+[[mods]]
+id = "showoff-xnvse"
+name = "ShowOff xNVSE"
+group = "essential-mods"
+version = "1.83"
+source = { type = "nexus", game = "newvegas", mod = 72541, file_name = "ShowOff xNVSE-72541-1-83-1771445557.7z", uploaded = 1771445557 }
+
+[[mods]]
+id = "showoff-ini"
+name = "ShowOff INI"
+group = "essential-mods"
+version = "1"
+source = { type = "nexus", game = "newvegas", mod = 72541, file_name = "ShowOff INI-72541-1-1650847630.7z", uploaded = 1650847630 }
+
+[[mods]]
+id = "nvtf"
+name = "NVTF"
+group = "essential-mods"
+version = "10.61"
+source = { type = "nexus", game = "newvegas", mod = 66537, file_name = "NVTF-66537-10-61-1756195258.7z", uploaded = 1756195258 }
+
+[[mods]]
+id = "nvtf-ini"
+name = "NVTF - INI"
+group = "essential-mods"
+version = "1.06"
+source = { type = "nexus", game = "newvegas", mod = 66537, file_name = "NVTF - INI-66537-1-06-1751295478.7z", uploaded = 1751295478 }
+
+[[mods]]
+id = "istewieai-tweaks"
+name = "IStewieAI Tweaks"
+group = "essential-mods"
+version = "9.81"
+source = { type = "nexus", game = "newvegas", mod = 66347, file_name = "Stewie Tweaks-66347-9-81-1766438632.zip", uploaded = 1766438632 }
+
+[[mods]]
+id = "istewieai-engine-optimizations"
+name = "IStewieAI Engine Optimizations"
+group = "essential-mods"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 80993, file_name = "Engine Optimizations-80993-1-0-1693171685.zip", uploaded = 1693171685 }
+
+[[mods]]
+id = "combat-lag-fix"
+name = "Combat Lag Fix"
+group = "essential-mods"
+source = { type = "nexus", game = "newvegas", mod = 71973, file_name = "Fast Weapon Lag Fix-71973-1-0-1617537597(1).zip" }
+
+[[mods]]
+id = "vats-lag-fix"
+name = "VATS Lag Fix"
+group = "essential-mods"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 84823, file_name = "VATS Lag Fix-84823-1-0-1706985218.zip", uploaded = 1706985218 }
+
+[[mods]]
+id = "actorcause-save-bloat-fix"
+name = "ActorCause Save Bloat Fix"
+group = "essential-mods"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 80666, file_name = "ActorCause Save Bloat Fix-80666-1-0-1680643208.zip", uploaded = 1680643208 }
+
+[[mods]]
+id = "knvse-animation-plugin"
+name = "kNVSE Animation Plugin"
+group = "essential-mods"
+source = { type = "nexus", game = "newvegas", mod = 71336, file_name = "kNVSE-71336-37-1731454771(1).7z" }
+
+[[mods]]
+id = "uio-user-interface-organizer"
+name = "UIO - User Interface Organizer"
+group = "essential-mods"
+version = "2.30"
+source = { type = "nexus", game = "newvegas", mod = 57174, file_name = "UIO - User Interface Organizer-57174-2-30-1629600625.7z", uploaded = 1629600625 }
+
+[[mods]]
+id = "mod-limit-fix"
+name = "Mod Limit Fix"
+group = "essential-mods"
+version = "3.1"
+source = { type = "nexus", game = "newvegas", mod = 68714, file_name = "MLF-68714-3-1-1691312308.zip", uploaded = 1691312308 }
+
+[[mods]]
+id = "yvile-crash-logger"
+name = "Yvile Crash Logger"
+group = "essential-mods"
+version = "5.16"
+source = { type = "nexus", game = "newvegas", mod = 82540, file_name = "Crash Logger-82540-5-16-1767026938.7z", uploaded = 1767026938 }
+
+[[mods]]
+id = "improved-console"
+name = "Improved Console"
+group = "essential-mods"
+version = "3"
+source = { type = "nexus", game = "newvegas", mod = 70801, file_name = "Improved Console-70801-3-1702935922.7z", uploaded = 1702935922 }
+
+[[mods]]
+id = "console-paste"
+name = "Console Paste"
+group = "essential-mods"
+version = "2.3"
+source = { type = "nexus", game = "newvegas", mod = 65906, file_name = "Console Paste-65906-2-3-1705873242.zip", uploaded = 1705873242 }
+
+[[mods]]
+id = "nvac-new-vegas-anti-crash"
+name = "NVAC - New Vegas Anti Crash"
+group = "essential-mods"
+version = "7.5.1.0"
+source = { type = "nexus", game = "newvegas", mod = 53635, file_name = "NVAC - New Vegas Anti Crash-53635-7-5-1-0.zip" }
+
+[[mods]]
+id = "anhnvse"
+name = "AnhNVSE"
+group = "extra-utilities"
+version = "v1.3.1"
+source = { type = "nexus", game = "newvegas", mod = 74012, file_name = "AnhNVSE v1.3.1-74012-v1-3-1-1682350960.rar", uploaded = 1682350960 }
+
+[[mods]]
+id = "sup-nvse-plugin"
+name = "SUP NVSE Plugin"
+group = "extra-utilities"
+version = "8.55"
+source = { type = "nexus", game = "newvegas", mod = 73160, file_name = "SUP NVSE Plugin-73160-8-55-1703949554.rar", uploaded = 1703949554 }
+
+[[mods]]
+id = "zlib-updated-nvse"
+name = "zlib Updated - NVSE"
+group = "extra-utilities"
+version = "1.1"
+source = { type = "nexus", game = "newvegas", mod = 85267, file_name = "zlib Updated - NVSE-85267-1-1-1711358337.7z", uploaded = 1711358337 }
+
+[[mods]]
+id = "cell-offset-generator-nvse"
+name = "Cell Offset Generator - NVSE"
+group = "extra-utilities"
+version = "1.06"
+source = { type = "nexus", game = "newvegas", mod = 92182, file_name = "Cell Offset Generator - NVSE-92182-1-06-1769889197.7z", uploaded = 1769889197 }
+
+[[mods]]
+id = "shader-loader-nvse"
+name = "Shader Loader - NVSE"
+group = "extra-utilities"
+version = "1.4"
+source = { type = "nexus", game = "newvegas", mod = 87814, file_name = "Shader Loader - NVSE-87814-1-4-1771548403.7z", uploaded = 1771548403 }
+
+[[mods]]
+id = "keywords"
+name = "KEYWORDS"
+group = "extra-utilities"
+version = "1.01"
+source = { type = "nexus", game = "newvegas", mod = 83088, file_name = "KEYWORDS-83088-1-01-1695964898.7z", uploaded = 1695964898 }
+
+[[mods]]
+id = "climate-control-nvse"
+name = "Climate Control NVSE"
+group = "extra-utilities"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 77205, file_name = "Climate Control NVSE-77205-1-0-1656185991.zip", uploaded = 1656185991 }
+
+[[mods]]
+id = "stewies-tweaks-custom-ini"
+name = "Stewies Tweaks - Custom INI"
+group = "extra-utilities"
+version = "3.6"
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "Stewies Tweaks - Custom INI-79005-3-6-1723364909.zip", uploaded = 1723364909 }
+
+[[mods]]
+id = "faster-start-menu"
+name = "Faster Start Menu"
+group = "extra-utilities"
+version = "2.0"
+source = { type = "nexus", game = "newvegas", mod = 67811, file_name = "Faster Start Menu-67811-2-0-1693172473.zip", uploaded = 1693172473 }
+
+[[mods]]
+id = "faster-sleep-wait"
+name = "Faster Sleep Wait"
+group = "extra-utilities"
+version = "2.0"
+source = { type = "nexus", game = "newvegas", mod = 66785, file_name = "Faster Sleep Wait-66785-2-0-1693172568.zip", uploaded = 1693172568 }
+
+[[mods]]
+id = "save-manager"
+name = "Save Manager"
+group = "extra-utilities"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 67248, file_name = "Save Manager-67248-1-0-1693172258.zip", uploaded = 1693172258 }
+
+[[mods]]
+id = "smooth-true-ironsights"
+name = "Smooth True Ironsights"
+group = "extra-utilities"
+version = "2.0"
+source = { type = "nexus", game = "newvegas", mod = 69074, file_name = "Smooth True Ironsights-69074-2-0-1693172812.zip", uploaded = 1693172812 }
+
+[[mods]]
+id = "audio-region-fix-nvse"
+name = "Audio Region Fix - NVSE"
+group = "fixes"
+version = "1.3.2"
+source = { type = "nexus", game = "newvegas", mod = 91241, file_name = "Audio Region Fix - NVSE-91241-1-3-2-1743892637.7z", uploaded = 1743892637 }
+
+[[mods]]
+id = "blood-decal-flashing-fix"
+name = "Blood Decal Flashing Fix"
+group = "fixes"
+version = "1.1"
+source = { type = "nexus", game = "newvegas", mod = 87830, file_name = "Blood Decal Flashing Fix-87830-1-1-1727169336.7z", uploaded = 1727169336 }
+
+[[mods]]
+id = "depth-of-field-fix"
+name = "Depth of Field Fix"
+group = "fixes"
+version = "1.2"
+source = { type = "nexus", game = "newvegas", mod = 81200, file_name = "Depth of Field Fix-81200-1-2-1765473353.7z", uploaded = 1765473353 }
+
+[[mods]]
+id = "external-emittance-fix"
+name = "External Emittance Fix"
+group = "fixes"
+version = "1.3"
+source = { type = "nexus", game = "newvegas", mod = 80443, file_name = "External Emittance Fix-80443-1-3-1771546941.7z", uploaded = 1771546941 }
+
+[[mods]]
+id = "fallout-alpha-rendering-tweaks"
+name = "Fallout Alpha Rendering Tweaks"
+group = "fixes"
+version = "2.5.2"
+source = { type = "nexus", game = "newvegas", mod = 80316, file_name = "Fallout Alpha Rendering Tweaks-80316-2-5-2-1710935866.7z", uploaded = 1710935866 }
+
+[[mods]]
+id = "lod-flicker-fix-nvse"
+name = "LOD Flicker Fix - NVSE"
+group = "fixes"
+version = "1.2.1"
+source = { type = "nexus", game = "newvegas", mod = 91705, file_name = "LOD Flicker Fix - NVSE-91705-1-2-1-1761791245.7z", uploaded = 1761791245 }
+
+[[mods]]
+id = "muzzle-flash-light-fix"
+name = "Muzzle Flash Light Fix"
+group = "fixes"
+version = "2"
+source = { type = "nexus", game = "newvegas", mod = 81201, file_name = "Muzzle Flash Light Fix-81201-2-1771540121.7z", uploaded = 1771540121 }
+
+[[mods]]
+id = "viewmodel-shading-fix-nvse"
+name = "Viewmodel Shading Fix - NVSE"
+group = "fixes"
+version = "2.2"
+source = { type = "nexus", game = "newvegas", mod = 84781, file_name = "Viewmodel Shading Fix - NVSE-84781-2-2-1737322776.7z", uploaded = 1737322776 }
+
+[[mods]]
+id = "consistentspreadv1-3"
+name = "ConsistentSpreadv1.3"
+group = "fixes"
+version = "1.3"
+source = { type = "nexus", game = "newvegas", mod = 77974, file_name = "ConsistentSpreadv1.3-77974-1-3-1703879377.zip", uploaded = 1703879377 }
+
+[[mods]]
+id = "ammo-script-fixes"
+name = "Ammo Script Fixes"
+group = "fixes"
+version = "5.6.1"
+plugins = ["AmmoScriptFixes.esp"]
+source = { type = "nexus", game = "newvegas", mod = 63997, file_name = "Ammo Script Fixes-63997-5-6-1-1703437507.zip", uploaded = 1703437507 }
+
+[[mods]]
+id = "critical-and-effects-fixes-and-tweaks"
+name = "Critical and Effects - Fixes and Tweaks"
+group = "fixes"
+version = "2.6"
+plugins = ["CriticalEffectFixes.esp"]
+source = { type = "nexus", game = "newvegas", mod = 69200, file_name = "Critical and Effects - Fixes and Tweaks-69200-2-6-1718398190.zip", uploaded = 1718398190 }
+
+[[mods]]
+id = "equip-and-movement-speed-fix"
+name = "Equip and Movement Speed Fix"
+group = "fixes"
+version = "7"
+source = { type = "nexus", game = "newvegas", mod = 71774, file_name = "Equip and Movement Speed Fix-71774-7-1703422713.zip", uploaded = 1703422713 }
+
+[[mods]]
+id = "facegen-tint-fixes-for-ttw"
+name = "FaceGen Tint Fixes for TTW"
+group = "fixes"
+version = "1.1.1"
+plugins = ["TTW FaceGen Fix.esp"]
+source = { type = "nexus", game = "newvegas", mod = 71577, file_name = "FaceGen Tint Fixes for TTW-71577-1-1-1-1766544512.rar", uploaded = 1766544512 }
+
+[[mods]]
+id = "placement-fixes-ttw"
+name = "Placement Fixes TTW"
+group = "fixes"
+version = "1.8"
+plugins = ["Placement Fixes.esm"]
+source = { type = "nexus", game = "newvegas", mod = 90593, file_name = "Placement Fixes TTW-90593-1-8-1747773234.7z", uploaded = 1747773234 }
+
+[[mods]]
+id = "gas-trap-performance-fix"
+name = "Gas Trap Performance Fix"
+group = "fixes"
+version = "1.5"
+plugins = ["GasTrapPerformanceFix.esp"]
+source = { type = "nexus", game = "newvegas", mod = 88587, file_name = "Gas Trap Performance Fix-88587-1-5-1751841757.zip", uploaded = 1751841757 }
+
+[[mods]]
+id = "consistent-weapon-mod-descriptions"
+name = "Consistent Weapon Mod Descriptions"
+group = "fixes"
+version = "1.8"
+source = { type = "nexus", game = "newvegas", mod = 85957, file_name = "Consistent Weapon Mod Descriptions-85957-1-8-1747177038.zip", uploaded = 1747177038 }
+
+[[mods]]
+id = "slideshow-fov-fix"
+name = "Slideshow FOV Fix"
+group = "fixes"
+version = "0.1.1"
+source = { type = "nexus", game = "newvegas", mod = 87119, file_name = "Slideshow FOV Fix-87119-0-1-1-1716542383.7z", uploaded = 1716542383 }
+
+[[mods]]
+id = "navmesh-overhaul"
+name = "Navmesh Overhaul"
+group = "optimizations-2"
+version = "6.0"
+plugins = ["NavmeshOverhaul.esm"]
+source = { type = "nexus", game = "newvegas", mod = 81003, file_name = "Navmesh Overhaul-81003-6-0-1714019262.zip", uploaded = 1714019262 }
+
+[[mods]]
+id = "mac-ten"
+name = "MAC-TEN"
+group = "optimizations-2"
+version = "83815.14.5"
+source = { type = "nexus", game = "newvegas", mod = 10, file_name = "MAC-10-83815-14-5-1768005024.zip", uploaded = 1768005024 }
+
+[[mods]]
+id = "mac-ten-fo3-ttw"
+name = "MAC-TEN FO3 TTW"
+group = "optimizations-2"
+source = { type = "manual", note = "hand-staged folder, no archive recorded; source unknown" }
+
+[[mods]]
+id = "item"
+name = "ITEM"
+group = "optimizations-2"
+version = "3.0"
+source = { type = "nexus", game = "newvegas", mod = 85622, file_name = "ITEM-85622-3-0-1754402452.zip", uploaded = 1754402452 }
+
+[[mods]]
+id = "performance-of-the-titans"
+name = "Performance Of The Titans"
+group = "optimizations-2"
+version = "3.0"
+plugins = ["PerformanceOfTheTitans.esm"]
+source = { type = "nexus", game = "newvegas", mod = 89069, file_name = "Performance Of The Titans-89069-3-0-1763564891.zip", uploaded = 1763564891 }
+
+[[mods]]
+id = "weapon-world-models"
+name = "Weapon World Models"
+group = "optimizations-2"
+version = "2.1"
+source = { type = "nexus", game = "newvegas", mod = 88611, file_name = "Weapon World Models-88611-2-1-1723855543.zip", uploaded = 1723855543 }
+
+[[mods]]
+id = "pipboyon-node-fixes-ttw"
+name = "PipBoyOn Node Fixes TTW"
+group = "optimizations-2"
+version = "2.0"
+source = { type = "nexus", game = "newvegas", mod = 81775, file_name = "PipBoyOn Node Fixes TTW-81775-2-0-1729232211.7z", uploaded = 1729232211 }
+
+[[mods]]
+id = "female-pipboy-fixed-ultimate-edition"
+name = "Female Pipboy Fixed - Ultimate Edition"
+group = "optimizations-2"
+version = "1.01"
+source = { type = "nexus", game = "newvegas", mod = 87642, file_name = "Female Pipboy Fixed - Ultimate Edition-87642-1-01-1770320930.7z", uploaded = 1770320930 }
+
+[[mods]]
+id = "fog-based-object-culling"
+name = "Fog-based Object Culling"
+group = "optimizations-2"
+version = "2"
+source = { type = "nexus", game = "newvegas", mod = 79516, file_name = "Fog-based Object Culling-79516-2-1673628097.7z", uploaded = 1673628097 }
+
+[[mods]]
+id = "new-vegas-interior-optimization-project"
+name = "New Vegas Interior Optimization Project"
+group = "optimizations-2"
+version = "1.07"
+plugins = ["FNV_Optimization TTW.esm", "FNV_Optimization.esm"]
+source = { type = "nexus", game = "newvegas", mod = 96267, file_name = "New Vegas Interior Optimization Project-96267-1-07-1772221060.7z", uploaded = 1772221060 }
+
+[[mods]]
+id = "fallout-3-interior-optimization-project"
+name = "Fallout 3 Interior Optimization Project"
+group = "optimizations-2"
+version = "1.90"
+plugins = ["FO3_Optimization.esm"]
+source = { type = "nexus", game = "newvegas", mod = 85909, file_name = "Fallout 3 Interior Optimization Project-85909-1-90-1772326061.7z", uploaded = 1772326061 }
+
+[[mods]]
+id = "the-mod-configuration-menu"
+name = "The Mod Configuration Menu"
+group = "user-interface"
+version = "1.5.0.0"
+plugins = ["The Mod Configuration Menu.esp"]
+source = { type = "nexus", game = "newvegas", mod = 42507, file_name = "The Mod Configuration Menu-42507-1-5(1).7z" }
+
+[[mods]]
+id = "mcm-extender"
+name = "MCM Extender"
+group = "user-interface"
+version = "1.5.3"
+source = { type = "nexus", game = "newvegas", mod = 93642, file_name = "MCM Extender-93642-1-5-3-1771454275.zip", uploaded = 1771454275 }
+
+[[mods]]
+id = "vanilla-ui-plus-new-vegas"
+name = "Vanilla UI Plus (New Vegas)"
+group = "user-interface"
+version = "8.95.0.0"
+source = { type = "manual", url = "http://moddb.com/mods/vanilla-ui-plus/downloads/vanilla-ui-plus-nv", file_name = "Vanilla_UI_Plus_New_Vegas_8.95.7z", note = "download from the page and pick this file" }
+
+[[mods]]
+id = "clean-vanilla-hud"
+name = "Clean Vanilla Hud"
+group = "user-interface"
+version = "1.01"
+source = { type = "nexus", game = "newvegas", mod = 70001, file_name = "Clean Vanilla Hud-70001-1-01-1729247216.zip", uploaded = 1729247216 }
+
+[[mods]]
+id = "vanilla-fonts-revisited"
+name = "Vanilla Fonts Revisited"
+group = "user-interface"
+version = "6FONTS.5BETA"
+source = { type = "nexus", game = "newvegas", mod = 85136, file_name = "Vanilla Fonts Revisited-85136-6FONTS-5BETA-1729248673.zip", uploaded = 1729248673 }
+
+[[mods]]
+id = "main-and-pause-menus-overhaul"
+name = "Main And Pause Menus Overhaul"
+group = "user-interface"
+version = "6.3"
+plugins = ["Main And Pause Menus Overhaul.esm"]
+source = { type = "nexus", game = "newvegas", mod = 74365, file_name = "Main And Pause Menus Overhaul-74365-6-3-1770076426.7z", uploaded = 1770076426 }
+
+[[mods]]
+id = "extras-hi-res-logos"
+name = "Extras - Hi-Res Logos"
+group = "user-interface"
+version = "Extras"
+source = { type = "nexus", game = "newvegas", mod = 74365, file_name = "Extras - Hi-Res Logos-74365-Extras-1770076452.7z", uploaded = 1770076452 }
+
+[[mods]]
+id = "extras-stewie-s-tweaks-sorting-icons-replacer"
+name = "Extras - Stewie's Tweaks Sorting Icons Replacer"
+group = "user-interface"
+version = "Extras"
+source = { type = "nexus", game = "newvegas", mod = 74365, file_name = "Extras - Stewie's Tweaks Sorting Icons Replacer-74365-Extras-1653246511.7z", uploaded = 1653246511 }
+
+[[mods]]
+id = "mapmo-wsg-preset"
+name = "MAPMO WSG Preset"
+group = "user-interface"
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "MAPMO WSG Preset-79005-1-4-1751397059(1).zip" }
+
+[[mods]]
+id = "scum-s-considerably-cute-corner-load-wheel-vanil"
+name = "Scum's Considerably Cute Corner Load Wheel (Vanilla)"
+group = "user-interface"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 71915, file_name = "Scum's Considerably Cute Corner Load Wheel (Vanilla)-71915-1-0-1616970905.7z", uploaded = 1616970905 }
+
+[[mods]]
+id = "radiation-wheel"
+name = "Radiation Wheel"
+group = "user-interface"
+version = "1.0.1"
+source = { type = "nexus", game = "newvegas", mod = 78974, file_name = "Radiation Wheel-78974-1-0-1-1762979377.zip", uploaded = 1762979377 }
+
+[[mods]]
+id = "main-menu-redone-ttw"
+name = "Main Menu Redone - TTW"
+group = "user-interface"
+version = "1.3"
+source = { type = "nexus", game = "newvegas", mod = 76352, file_name = "Main Menu Redone - TTW - AIO-76352-1-3-1742265280.7z", uploaded = 1742265280 }
+
+[[mods]]
+id = "quick-select"
+name = "Quick Select"
+group = "user-interface"
+version = "2.2.3.hotfix"
+plugins = ["QuickSelect.esp"]
+source = { type = "nexus", game = "newvegas", mod = 82249, file_name = "Quick Select-82249-2-2-3-hotfix-1755431837.zip", uploaded = 1755431837 }
+
+[[mods]]
+id = "quick-select-custom-ini"
+name = "Quick Select - Custom INI"
+group = "user-interface"
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "Quick Select - Custom INI-79005-1-2-1723134870(1).zip" }
+
+[[mods]]
+id = "b42-notify"
+name = "B42 Notify"
+group = "user-interface"
+version = "0.2b"
+source = { type = "nexus", game = "newvegas", mod = 80085, file_name = "B42 Notify-80085-0-2b-1677765370.7z", uploaded = 1677765370 }
+
+[[mods]]
+id = "high-res-local-maps"
+name = "High Res Local Maps"
+group = "user-interface"
+version = "1.2"
+source = { type = "nexus", game = "newvegas", mod = 77963, file_name = "High Res Local Maps-77963-1-2-1661794525.7z", uploaded = 1661794525 }
+
+[[mods]]
+id = "modern-minimap"
+name = "Modern Minimap"
+group = "user-interface"
+version = "4.1.1"
+source = { type = "nexus", game = "newvegas", mod = 90574, file_name = "Modern Minimap-90574-4-1-1-1771527488.zip", uploaded = 1771527488 }
+
+[[mods]]
+id = "modern-minimap-custom-ini"
+name = "Modern Minimap - Custom INI"
+group = "user-interface"
+version = "1.4"
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "Modern Minimap - Custom INI-79005-1-4-1759281831.7z", uploaded = 1759281831 }
+
+[[mods]]
+id = "sleep-wait-hardcore-needs"
+name = "Sleep Wait Hardcore Needs"
+group = "user-interface"
+version = "3.0.1"
+source = { type = "nexus", game = "newvegas", mod = 85148, file_name = "Sleep Wait Hardcore Needs-85148-3-0-1-1768781095.zip", uploaded = 1768781095 }
+
+[[mods]]
+id = "clean-companion-wheel-256x256-edition"
+name = "Clean Companion Wheel 256x256 Edition"
+group = "user-interface"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 70486, file_name = "Clean Companion Wheel 256x256 Edition-70486-1-0-1709295718.7z", uploaded = 1709295718 }
+
+[[mods]]
+id = "character-preset-menu"
+name = "Character Preset Menu"
+group = "user-interface"
+version = "1.2"
+source = { type = "nexus", game = "newvegas", mod = 72789, file_name = "Character Preset Menu-72789-1-2-1690993299.zip", uploaded = 1690993299 }
+
+[[mods]]
+id = "character-build-presets"
+name = "Character Build Presets"
+group = "user-interface"
+version = "1.6.2"
+source = { type = "nexus", game = "newvegas", mod = 87483, file_name = "Character Build Presets-87483-1-6-2-1767890621.zip", uploaded = 1767890621 }
+
+[[mods]]
+id = "esp-less-tutorial-killer"
+name = "ESP-less Tutorial Killer"
+group = "user-interface"
+source = { type = "nexus", game = "newvegas", mod = 53, file_name = "ESP-less Tutorial Killer-53-2.0.0-2023.09.30-[mod.pub].7z" }
+
+[[mods]]
+id = "yui"
+name = "yUI"
+group = "pip-boy"
+version = "1.4d"
+source = { type = "nexus", game = "newvegas", mod = 74357, file_name = "yUI-74357-1-4d-1646655873.7z", uploaded = 1646655873 }
+
+[[mods]]
+id = "yui-custom-ini"
+name = "yUI - Custom INI"
+group = "pip-boy"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "yUI - Custom INI-79005-1-0-1743341990.7z", uploaded = 1743341990 }
+
+[[mods]]
+id = "ysi-sorting-icons"
+name = "ySI - Sorting Icons"
+group = "pip-boy"
+version = "1.4b"
+source = { type = "nexus", game = "newvegas", mod = 74358, file_name = "ySI - Sorting Icons-74358-1-4b-1648916180.7z", uploaded = 1648916180 }
+
+[[mods]]
+id = "ysi-assorted-fixes"
+name = "ySI - Assorted Fixes"
+group = "pip-boy"
+version = "1.3.0"
+source = { type = "nexus", game = "newvegas", mod = 86715, file_name = "ySI - Assorted Fixes-86715-1-3-0-1765087580.zip", uploaded = 1765087580 }
+
+[[mods]]
+id = "exit-categories-with-tab"
+name = "Exit Categories with Tab"
+group = "pip-boy"
+version = "1.1"
+source = { type = "nexus", game = "newvegas", mod = 86715, file_name = "Exit Categories with Tab-86715-1-1-1715572435.zip", uploaded = 1715572435 }
+
+[[mods]]
+id = "ysi-vanilla-miscquest-items-patch"
+name = "ySI Vanilla MiscQuest Items Patch"
+group = "pip-boy"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 81230, file_name = "ySI Vanilla MiscQuest Items Patch-81230-1-0-1685608483.zip", uploaded = 1685608483 }
+
+[[mods]]
+id = "color-inventory-ycons"
+name = "Color Inventory Ycons"
+group = "pip-boy"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 78674, file_name = "Color Inventory Ycons-78674-1-0-1666007615.7z", uploaded = 1666007615 }
+
+[[mods]]
+id = "colorful-icons-support"
+name = "Colorful Icons Support"
+group = "pip-boy"
+version = "2.2"
+source = { type = "nexus", game = "newvegas", mod = 85075, file_name = "Colorful Icons Support-85075-2-2-1766244886.zip", uploaded = 1766244886 }
+
+[[mods]]
+id = "ysi-contextual-prompts"
+name = "ySI - Contextual Prompts"
+group = "pip-boy"
+version = "2.9"
+source = { type = "nexus", game = "newvegas", mod = 85117, file_name = "ySI - Contextual Prompts-85117-2-9-1761242565.zip", uploaded = 1761242565 }
+
+[[mods]]
+id = "condition-meter-icons"
+name = "Condition Meter Icons"
+group = "pip-boy"
+version = "1.3.3"
+source = { type = "nexus", game = "newvegas", mod = 91552, file_name = "Condition Meter Icons-91552-1-3-3-1763715382.rar", uploaded = 1763715382 }
+
+[[mods]]
+id = "high-resolution-screens"
+name = "High Resolution Screens"
+group = "pip-boy"
+version = "1.2"
+source = { type = "nexus", game = "newvegas", mod = 77989, file_name = "High Resolution Screens-77989-1-2-1771538155.7z", uploaded = 1771538155 }
+
+[[mods]]
+id = "vault-boy-paper-doll"
+name = "Vault Boy Paper Doll"
+group = "pip-boy"
+version = "5.0"
+source = { type = "nexus", game = "newvegas", mod = 76966, file_name = "Vault Boy Paper Doll-76966-5-0-1703709939.7z", uploaded = 1703709939 }
+
+[[mods]]
+id = "consistent-pip-boy-icons-v5-framework-plugin"
+name = "Consistent Pip-Boy Icons v5 - Framework Plugin"
+group = "pip-boy"
+version = "5.07"
+source = { type = "nexus", game = "newvegas", mod = 83432, file_name = "Consistent Pip-Boy Icons v5 - Framework Plugin-83432-5-07-1710266119.zip", uploaded = 1710266119 }
+
+[[mods]]
+id = "pop-up-message-icons"
+name = "Pop-Up Message Icons"
+group = "pip-boy"
+version = "2.04"
+source = { type = "nexus", game = "newvegas", mod = 76516, file_name = "Pop-Up Message Icons-76516-2-04-1698593392.7z", uploaded = 1698593392 }
+
+[[mods]]
+id = "weapon-hotkey-icons"
+name = "Weapon Hotkey Icons"
+group = "pip-boy"
+version = "5.10"
+source = { type = "nexus", game = "newvegas", mod = 83476, file_name = "Weapon Hotkey Icons-83476-5-10-1710933733.zip", uploaded = 1710933733 }
+
+[[mods]]
+id = "map-marker-icons"
+name = "Map Marker Icons"
+group = "pip-boy"
+version = "2.2"
+source = { type = "nexus", game = "newvegas", mod = 83575, file_name = "Map Marker Icons-83575-2-2-1698593036.7z", uploaded = 1698593036 }
+
+[[mods]]
+id = "consistent-pip-boy-icons"
+name = "Consistent Pip-boy Icons"
+group = "pip-boy"
+version = "4.5"
+source = { type = "nexus", game = "newvegas", mod = 65046, file_name = "Consistent Pip-boy Icons v4-65046-4-5-1763934549.zip", uploaded = 1763934549 }
+
+[[mods]]
+id = "consistent-pip-boy-icons-v5-items"
+name = "Consistent Pip-Boy Icons v5 - Items"
+group = "pip-boy"
+version = "5.06"
+source = { type = "nexus", game = "newvegas", mod = 82074, file_name = "Consistent Pip-Boy Icons v5 - Items-82074-5-06-1702319564.7z", uploaded = 1702319564 }
+
+[[mods]]
+id = "consistent-pip-boy-icons-v5-weapons"
+name = "Consistent Pip-Boy Icons v5 - Weapons"
+group = "pip-boy"
+version = "5.02"
+source = { type = "nexus", game = "newvegas", mod = 82740, file_name = "Consistent Pip-Boy Icons v5 - Weapons-82740-5-02-1697460982.7z", uploaded = 1697460982 }
+
+[[mods]]
+id = "consistent-pip-boy-icons-v5-apparel"
+name = "Consistent Pip-Boy Icons v5 - Apparel"
+group = "pip-boy"
+version = "5.06"
+source = { type = "nexus", game = "newvegas", mod = 83248, file_name = "Consistent Pip-Boy Icons v5 - Apparel-83248-5-06-1764967470.zip", uploaded = 1764967470 }
+
+[[mods]]
+id = "consistent-pip-boy-icons-v5-dlc-s-items"
+name = "Consistent Pip-Boy Icons v5 - DLC's Items"
+group = "pip-boy"
+version = "1.6"
+source = { type = "nexus", game = "newvegas", mod = 83629, file_name = "Consistent Pip-Boy Icons v5 - DLC's Items-83629-1-6-1714928213.zip", uploaded = 1714928213 }
+
+[[mods]]
+id = "consistent-pip-boy-icons-v5-extension"
+name = "Consistent Pip-Boy Icons v5 - Extension"
+group = "pip-boy"
+version = "3.2"
+source = { type = "nexus", game = "newvegas", mod = 83639, file_name = "Consistent Pip-Boy Icons v5 - Extension-83639-3-2-1708253304.7z", uploaded = 1708253304 }
+
+[[mods]]
+id = "consistent-pip-boy-icons-v5-vault-girl-extension"
+name = "Consistent Pip-Boy Icons v5 - Vault Girl Extension"
+group = "pip-boy"
+version = "1.5"
+source = { type = "nexus", game = "newvegas", mod = 84838, file_name = "Consistent Pip-Boy Icons v5 - Vault Girl Extension-84838-1-5-1769190647.zip", uploaded = 1769190647 }
+
+[[mods]]
+id = "consistent-pip-boy-icons-v5-addendumb"
+name = "Consistent Pip-Boy Icons v5 - Addendumb"
+group = "pip-boy"
+version = "3"
+source = { type = "nexus", game = "newvegas", mod = 85024, file_name = "Consistent Pip-Boy Icons v5 - Addendumb-85024-3-1710266854.zip", uploaded = 1710266854 }
+
+[[mods]]
+id = "consistent-pip-boy-icons-v5-reputation"
+name = "Consistent Pip-Boy Icons v5 - Reputation"
+group = "pip-boy"
+version = "1"
+source = { type = "nexus", game = "newvegas", mod = 83840, file_name = "Consistent Pip-Boy Icons v5 - Reputation-83840-1-1700572932.7z", uploaded = 1700572932 }
+
+[[mods]]
+id = "consistent-pip-boy-icon-v5-stats-and-some-perks"
+name = "Consistent Pip-Boy Icon v5 - Stats (And Some Perks)"
+group = "pip-boy"
+version = "8"
+source = { type = "nexus", game = "newvegas", mod = 86122, file_name = "Stats (And Some Perks)-86122-8-1764238637.zip", uploaded = 1764238637 }
+
+[[mods]]
+id = "consistent-pip-boy-icons-v5-dynamicon"
+name = "Consistent Pip-Boy Icons v5 - Dynamicon"
+group = "pip-boy"
+version = "3"
+source = { type = "nexus", game = "newvegas", mod = 85411, file_name = "Consistent Pip-Boy Icons v5 - Dynamicon-85411-3-1764966125.zip", uploaded = 1764966125 }
+
+[[mods]]
+id = "ttw-goodies"
+name = "TTW Goodies"
+group = "pip-boy"
+version = "1.02"
+source = { type = "nexus", game = "newvegas", mod = 83603, file_name = "TTW Goodies-83603-1-02-1710934520.zip", uploaded = 1710934520 }
+
+[[mods]]
+id = "simple-maps-ttw"
+name = "Simple Maps - TTW"
+group = "pip-boy"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 83902, file_name = "Simple Maps - TTW-83902-1-0-1702026178.zip", uploaded = 1702026178 }
+
+[[mods]]
+id = "simple-maps-ttw-compressed"
+name = "Simple Maps - TTW Compressed"
+group = "pip-boy"
+source = { type = "nexus", game = "newvegas", mod = 83902, file_name = "Simple Maps - TTW.zip" }
+
+[[mods]]
+id = "true-colorful-map-marker-icons"
+name = "True Colorful Map Marker Icons"
+group = "pip-boy"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 89451, file_name = "True Colorful Map Marker Icons-89451-1-0-1728856730.7z", uploaded = 1728856730 }
+
+[[mods]]
+id = "pip-boy-ui-tweaks"
+name = "Pip-Boy UI Tweaks"
+group = "pip-boy"
+version = "5.2.2"
+source = { type = "nexus", game = "newvegas", mod = 85343, file_name = "Pip-Boy UI Tweaks-85343-5-2-2-1771395560.zip", uploaded = 1771395560 }
+
+[[mods]]
+id = "pip-boy-ui-tweaks-ini"
+name = "Pip-Boy UI Tweaks - INI"
+group = "pip-boy"
+version = "5.2.0"
+source = { type = "nexus", game = "newvegas", mod = 85343, file_name = "Pip-Boy UI Tweaks - INI-85343-5-2-0-1771038422.zip", uploaded = 1771038422 }
+
+[[mods]]
+id = "local-map-overhaul"
+name = "Local Map Overhaul"
+group = "pip-boy"
+version = "3.0"
+source = { type = "nexus", game = "newvegas", mod = 88533, file_name = "Local Map Overhaul-88533-3-0-1759780357.zip", uploaded = 1759780357 }
+
+[[mods]]
+id = "faster-pipboy"
+name = "Faster Pipboy"
+group = "pip-boy"
+version = "1.25"
+source = { type = "nexus", game = "newvegas", mod = 85294, file_name = "Faster Pipboy-85294-1-25-1767253588.7z", uploaded = 1767253588 }
+
+[[mods]]
+id = "ttw-reputations"
+name = "TTW Reputations"
+group = "gameplay-enhancements"
+version = "1.3"
+plugins = ["TTW Reputations.esm"]
+source = { type = "nexus", game = "newvegas", mod = 68604, file_name = "TTW Reputations-68604-1-3-1652207979.7z", uploaded = 1652207979 }
+
+[[mods]]
+id = "ttw-new-vegas-speech-checks"
+name = "TTW New Vegas Speech Checks"
+group = "gameplay-enhancements"
+version = "1.3"
+plugins = ["TTW New Vegas Speech Checks.esm"]
+source = { type = "nexus", game = "newvegas", mod = 68736, file_name = "TTW New Vegas Speech Checks-68736-1-3-1652207889.7z", uploaded = 1652207889 }
+
+[[mods]]
+id = "tale-of-bi-wastelands-1-1"
+name = "Tale of Bi Wastelands 1.1"
+group = "gameplay-enhancements"
+version = "1.1"
+plugins = ["Tale of Bi Wastelands.esm"]
+source = { type = "nexus", game = "newvegas", mod = 72721, file_name = "Tale of Bi Wastelands 1.1-72721-1-1-1705613857.7z", uploaded = 1705613857 }
+
+[[mods]]
+id = "tale-of-bi-wastelands-ttw-new-vegas-speech-check"
+name = "Tale of Bi Wastelands - TTW New Vegas Speech Checks"
+group = "gameplay-enhancements"
+version = "1.0"
+plugins = ["Tale of Bi Wastelands + TTW NV Speech Checks Patch.esm"]
+source = { type = "nexus", game = "newvegas", mod = 76206, file_name = "Tale of Bi Wastelands - TTW New Vegas Speech Checks-76206-1-0-1650363409.7z", uploaded = 1650363409 }
+
+[[mods]]
+id = "tale-of-bi-wastelands-ttw-reputations-patch"
+name = "Tale of Bi Wastelands - TTW Reputations patch"
+group = "gameplay-enhancements"
+version = "1.1"
+plugins = ["Tale of Bi Wastelands + TTW Reputations Patch.esm"]
+source = { type = "nexus", game = "newvegas", mod = 76206, file_name = "Tale of Bi Wastelands - TTW Reputations patch-76206-1-1-1713758154.7z", uploaded = 1713758154 }
+
+[[mods]]
+id = "ttw-capital-wasteland-adjustments"
+name = "TTW - Capital Wasteland Adjustments"
+group = "gameplay-enhancements"
+version = "V2.0"
+plugins = ["TTW - Capital Wasteland Adjustments.esm"]
+source = { type = "nexus", game = "newvegas", mod = 94548, file_name = "TTW - Capital Wasteland Adjustments V2.0-94548-V2-0-1766029287.7z", uploaded = 1766029287 }
+
+[[mods]]
+id = "benny-humbles-you-and-steals-your-stuff"
+name = "Benny Humbles You and Steals Your Stuff"
+group = "gameplay-enhancements"
+version = "11.01"
+plugins = ["Benny Humbles You and Steals Your Stuff.esp"]
+source = { type = "nexus", game = "newvegas", mod = 71112, file_name = "Benny Humbles You and Steals Your Stuff-71112-11-01-1654968616.rar", uploaded = 1654968616 }
+
+[[mods]]
+id = "just-assorted-mods"
+name = "Just Assorted Mods"
+group = "gameplay-enhancements"
+version = "4.4"
+plugins = ["JustAssortedMods.esp"]
+source = { type = "nexus", game = "newvegas", mod = 66666, file_name = "Just Assorted Mods-66666-4-4-1648916021.7z", uploaded = 1648916021 }
+
+[[mods]]
+id = "clean-just-assorted-mods"
+name = "Clean Just Assorted Mods"
+group = "gameplay-enhancements"
+version = "1.2"
+source = { type = "nexus", game = "newvegas", mod = 82724, file_name = "Clean Just Assorted Mods-82724-1-2-1733074728.zip", uploaded = 1733074728 }
+
+[[mods]]
+id = "jbt-improved-2-0"
+name = "JBT Improved 2.0"
+group = "gameplay-enhancements"
+version = "2.21"
+plugins = ["JBTImproved.esp"]
+source = { type = "nexus", game = "newvegas", mod = 78324, file_name = "JBT Improved 2.0-78324-2-21-1768613204.rar", uploaded = 1768613204 }
+
+[[mods]]
+id = "jam-custom-ini"
+name = "JAM - Custom INI"
+group = "gameplay-enhancements"
+version = "3.0"
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "JAM - Custom INI-79005-3-0-1716125380.zip", uploaded = 1716125380 }
+
+[[mods]]
+id = "jip-ln-custom-ini"
+name = "JIP LN - Custom INI"
+group = "gameplay-enhancements"
+version = "1.1"
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "JIP LN - Custom INI-79005-1-1-1751398039.zip", uploaded = 1751398039 }
+
+[[mods]]
+id = "jip-companions-command-and-control"
+name = "JIP Companions Command and Control"
+group = "gameplay-enhancements"
+plugins = ["JIP Companions Command & Control.esp"]
+source = { type = "nexus", game = "newvegas", mod = 50468, file_name = "JIP Companions Command and Control-50468-2-60.7z" }
+
+[[mods]]
+id = "jip-ccc-hd-icons"
+name = "Jip CCC HD Icons"
+group = "gameplay-enhancements"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 75378, file_name = "Jip CCC HD Icons-75378-1-0-1644943040.7z", uploaded = 1644943040 }
+
+[[mods]]
+id = "perk-styled-ccc-icons"
+name = "Perk Styled CCC Icons"
+group = "gameplay-enhancements"
+version = "1.6"
+source = { type = "nexus", game = "newvegas", mod = 70849, file_name = "Perk Styled CCC Icons-70849-1-6-1659219463.7z", uploaded = 1659219463 }
+
+[[mods]]
+id = "supplemental-ammo-crafting"
+name = "Supplemental Ammo Crafting"
+group = "gameplay-enhancements"
+version = "1.5"
+plugins = ["Supplemental Ammo Crafting.esp"]
+source = { type = "nexus", game = "newvegas", mod = 76175, file_name = "Supplemental Ammo Crafting-76175-1-5-1713720426.zip", uploaded = 1713720426 }
+
+[[mods]]
+id = "stash-organizer"
+name = "Stash Organizer"
+group = "gameplay-enhancements"
+plugins = ["Stash Organizer.esp"]
+source = { type = "manual", file_name = "Stash Organizer-4-3.0.10-2025.11.03-[mod.pub].7z", note = "no Nexus id in meta.ini; find the source by name or md5" }
+
+[[mods]]
+id = "stash-organizer-ini"
+name = "Stash Organizer INI"
+group = "gameplay-enhancements"
+source = { type = "manual", file_name = "Stash Organizer INI-4-3.0.0-2025.04.29-[mod.pub].7z", note = "no Nexus id in meta.ini; find the source by name or md5" }
+
+[[mods]]
+id = "home-and-safehouse-tweaks"
+name = "Home and Safehouse Tweaks"
+group = "gameplay-enhancements"
+version = "22"
+plugins = ["Home and Safehouse Tweaks.esm"]
+source = { type = "nexus", game = "newvegas", mod = 74391, file_name = "Home and Safehouse Tweaks-74391-22-1759713901.zip", uploaded = 1759713901 }
+
+[[mods]]
+id = "bottle-the-water"
+name = "Bottle the Water"
+group = "gameplay-enhancements"
+version = "2.0.0"
+source = { type = "nexus", game = "newvegas", mod = 83913, file_name = "Bottle the Water-83913-2-0-0-1748301685.zip", uploaded = 1748301685 }
+
+[[mods]]
+id = "modern-night-vision"
+name = "Modern Night Vision"
+group = "gameplay-enhancements"
+version = "5.0.3"
+source = { type = "nexus", game = "newvegas", mod = 84991, file_name = "Modern Night Vision-84991-5-0-3-1764460264.zip", uploaded = 1764460264 }
+
+[[mods]]
+id = "better-caravan"
+name = "Better Caravan"
+group = "gameplay-enhancements"
+version = "1.6"
+source = { type = "nexus", game = "newvegas", mod = 81002, file_name = "Better Caravan-81002-1-6-1743628695.zip", uploaded = 1743628695 }
+
+[[mods]]
+id = "craterside-supply-expansion"
+name = "Craterside Supply Expansion"
+group = "gameplay-enhancements"
+version = "2fix"
+source = { type = "nexus", game = "newvegas", mod = 74766, file_name = "Craterside Supply Expansion-74766-2fix-1642147500.rar", uploaded = 1642147500 }
+
+[[mods]]
+id = "flak-n-shrapnel-expansion"
+name = "Flak N Shrapnel Expansion"
+group = "gameplay-enhancements"
+version = "1"
+source = { type = "nexus", game = "newvegas", mod = 74766, file_name = "Flak N Shrapnel Expansion-74766-1-1644702972.rar", uploaded = 1644702972 }
+
+[[mods]]
+id = "repeatable-quests-rewards-rebalanced"
+name = "Repeatable Quests Rewards Rebalanced"
+group = "gameplay-enhancements"
+version = "1.3"
+plugins = ["Repeatable Quests Rewards Rebalanced.esm"]
+source = { type = "nexus", game = "newvegas", mod = 89893, file_name = "Repeatable Quests Rewards Rebalanced-89893-1-3-1747523749.7z", uploaded = 1747523749 }
+
+[[mods]]
+id = "better-damage-multipliers"
+name = "Better Damage Multipliers"
+group = "gameplay-enhancements"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 84495, file_name = "Better Damage Multipliers-84495-1-0-1705147970.zip", uploaded = 1705147970 }
+
+[[mods]]
+id = "ttw-transportalponder-extended"
+name = "TTW Transportalponder Extended"
+group = "movement-travel"
+version = "3.0.1"
+plugins = ["TTWTransportalponderEx.esp"]
+source = { type = "nexus", game = "newvegas", mod = 76128, file_name = "TTW Transportalponder Extended-76128-3-0-1-1652678556.zip", uploaded = 1652678556 }
+
+[[mods]]
+id = "transporters-fast-travel-alternative"
+name = "Transporters - Fast Travel Alternative"
+group = "movement-travel"
+version = "2b1.5"
+plugins = ["SD_Transporters.esp"]
+source = { type = "nexus", game = "newvegas", mod = 77645, file_name = "SD_Transporters FOMOD-77645-2b1-5-1662748164.zip", uploaded = 1662748164 }
+
+[[mods]]
+id = "sd-transporters-selling-patch"
+name = "SD_Transporters Selling Patch"
+group = "movement-travel"
+version = "1.2"
+plugins = ["SD_Transporters spelling.esp"]
+source = { type = "nexus", game = "newvegas", mod = 83130, file_name = "SD_Transporters Selling Patch-83130-1-2-1731935261.zip", uploaded = 1731935261 }
+
+[[mods]]
+id = "npcs-sprint-knvse-espless"
+name = "NPCs Sprint kNVSE - ESPless"
+group = "movement-travel"
+version = "1.32"
+source = { type = "nexus", game = "newvegas", mod = 83745, file_name = "NPCs Sprint kNVSE - ESPless-83745-1-32-1766311829.7z", uploaded = 1766311829 }
+
+[[mods]]
+id = "enhanced-movement"
+name = "Enhanced Movement"
+group = "movement-travel"
+version = "1.43"
+plugins = ["Enhanced Movement.esp"]
+source = { type = "nexus", game = "newvegas", mod = 85459, file_name = "Enhanced Movement-85459-1-43-1769554260.7z", uploaded = 1769554260 }
+
+[[mods]]
+id = "enhanced-movement-ini-wsg"
+name = "Enhanced Movement INI - WSG"
+group = "movement-travel"
+version = "1.41"
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "Enhanced Movement INI - WSG-79005-1-41-1766454890.7z", uploaded = 1766454890 }
+
+[[mods]]
+id = "weapon-requirements-system"
+name = "Weapon Requirements System"
+group = "guns"
+version = "2.5"
+plugins = ["WeaponRequirementSystem.esp"]
+source = { type = "nexus", game = "newvegas", mod = 69161, file_name = "Weapon Requirements System-69161-2-5-1715693702.zip", uploaded = 1715693702 }
+
+[[mods]]
+id = "weapon-requirements-system-custom-ini"
+name = "Weapon Requirements System - Custom INI"
+group = "guns"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "Weapon Requirements System - Custom INI-79005-1-0-1716316587.zip", uploaded = 1716316587 }
+
+[[mods]]
+id = "reload-reloaded"
+name = "Reload Reloaded"
+group = "guns"
+version = "1.5.1"
+plugins = ["Reload Reloaded.esp"]
+source = { type = "nexus", game = "newvegas", mod = 62266, file_name = "Reload Reloaded-62266-1-5-1-1632776589.zip", uploaded = 1632776589 }
+
+[[mods]]
+id = "b42-firemode"
+name = "B42 FireMode"
+group = "guns"
+version = "0.37b"
+source = { type = "nexus", game = "newvegas", mod = 82576, file_name = "B42 FireMode-82576-0-37b-1695954742.7z", uploaded = 1695954742 }
+
+[[mods]]
+id = "b42-recoil"
+name = "B42 Recoil"
+group = "guns"
+version = "0.5"
+source = { type = "nexus", game = "newvegas", mod = 90536, file_name = "B42 Recoil-90536-0-5-1739061113.7z", uploaded = 1739061113 }
+
+[[mods]]
+id = "b42-true-leaning"
+name = "B42 True Leaning"
+group = "guns"
+version = "0.20b"
+source = { type = "nexus", game = "newvegas", mod = 81872, file_name = "B42 True Leaning-81872-0-20b-1696401123.7z", uploaded = 1696401123 }
+
+[[mods]]
+id = "b42-true-leaning-custom-ini"
+name = "B42 True Leaning - Custom INI"
+group = "guns"
+version = "1"
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "B42 True Leaning - Custom INI-79005-1-1715032464.zip", uploaded = 1715032464 }
+
+[[mods]]
+id = "accuracy-manager-nvse"
+name = "Accuracy Manager (NVSE)"
+group = "guns"
+version = "0.1"
+source = { type = "nexus", game = "newvegas", mod = 88215, file_name = "Accuracy Manager (NVSE)-88215-0-1-1720806350.zip", uploaded = 1720806350 }
+
+[[mods]]
+id = "sweet-accuracy-preset"
+name = "Sweet Accuracy Preset"
+group = "guns"
+version = "1"
+source = { type = "nexus", game = "newvegas", mod = 89324, file_name = "Sweet Accuracy Preset-89324-1-1727973622.rar", uploaded = 1727973622 }
+
+[[mods]]
+id = "power-attack-tweaks"
+name = "Power Attack Tweaks"
+group = "melee"
+version = "4.1"
+plugins = ["MigPowerAttack.esp"]
+source = { type = "nexus", game = "newvegas", mod = 69238, file_name = "Power Attack Tweaks-69238-4-1-1714059654.zip", uploaded = 1714059654 }
+
+[[mods]]
+id = "smac-simple-melee-attack-cancelling-and-parry"
+name = "SMAC - Simple Melee Attack Cancelling and Parry"
+group = "melee"
+version = "1.2c"
+plugins = ["SMAC - Simple Melee Attack Cancel and Parry.esp"]
+source = { type = "nexus", game = "newvegas", mod = 82732, file_name = "SMAC - Simple Melee Attack Cancelling and Parry-82732-1-2c-1726543827.zip", uploaded = 1726543827 }
+
+[[mods]]
+id = "b42-quickthrow"
+name = "B42 Quickthrow"
+group = "grenades"
+version = "3.1b"
+plugins = ["Quickthrow.esp"]
+source = { type = "nexus", game = "newvegas", mod = 66686, file_name = "B42 Quickthrow-66686-3-1b-1556384322.7z", uploaded = 1556384322 }
+
+[[mods]]
+id = "b42-quickthrow-tweaks"
+name = "B42 Quickthrow Tweaks"
+group = "grenades"
+version = "46"
+plugins = ["QuickthrowTweaks.esp"]
+source = { type = "nexus", game = "newvegas", mod = 77674, file_name = "B42 Quickthrow Tweaks-77674-46-1747863540.zip", uploaded = 1747863540 }
+
+[[mods]]
+id = "lstewieal-cookable-grenades"
+name = "lStewieAl - Cookable Grenades"
+group = "grenades"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 81678, file_name = "lStewieAl - Cookable Grenades-81678-1-0-1692310563.zip", uploaded = 1692310563 }
+
+[[mods]]
+id = "simple-attack-reactions-ttw"
+name = "Simple Attack Reactions - TTW"
+group = "reactions-animations"
+version = "2b"
+plugins = ["Simple Attack Reactions - NV+TTW.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79687, file_name = "Simple Attack Reactions - TTW-79687-2b-1692855171.7z", uploaded = 1692855171 }
+
+[[mods]]
+id = "a-sar-settings-dt"
+name = "(A) SAR Settings - DT"
+group = "reactions-animations"
+version = "2.01"
+source = { type = "nexus", game = "newvegas", mod = 79687, file_name = "(A) SAR Settings - DT-79687-2-01-1679500858.7z", uploaded = 1679500858 }
+
+[[mods]]
+id = "b-sar-settings-dt-player"
+name = "(B) SAR Settings - DT - Player"
+group = "reactions-animations"
+version = "2.01"
+source = { type = "nexus", game = "newvegas", mod = 79687, file_name = "(B) SAR Settings - DT - Player-79687-2-01-1679500915.7z", uploaded = 1679500915 }
+
+[[mods]]
+id = "functional-post-game-ending-lite"
+name = "Functional Post Game Ending Lite"
+group = "major-world-changes"
+version = "7.2"
+plugins = ["Functional Post Game Ending Lite TTW Patch.esm", "Functional Post Game Ending Lite.esm"]
+source = { type = "nexus", game = "newvegas", mod = 73668, file_name = "Functional Post Game Ending Lite-73668-7-2-1747380328.zip", uploaded = 1747380328 }
+
+[[mods]]
+id = "the-living-desert-main-file-2-7-3"
+name = "The Living Desert - Main File 2.7.3"
+group = "major-world-changes"
+version = "2.7.3"
+plugins = ["TLD_Travelers.esm"]
+source = { type = "nexus", game = "newvegas", mod = 64623, file_name = "The Living Desert - Main File 2.7.3-64623-2-7-3-1769374510.zip", uploaded = 1769374510 }
+
+[[mods]]
+id = "the-living-desert-ini"
+name = "The Living Desert .ini"
+group = "major-world-changes"
+version = "2.7"
+source = { type = "nexus", game = "newvegas", mod = 64623, file_name = "The Living Desert .ini-64623-2-7-1742750097.zip", uploaded = 1742750097 }
+
+[[mods]]
+id = "tld-leveled-list-overhaul"
+name = "TLD Leveled List Overhaul"
+group = "major-world-changes"
+version = "4.02"
+plugins = ["TLD LVLI Total Overhaul.esp"]
+source = { type = "nexus", game = "newvegas", mod = 73325, file_name = "TLD Leveled List Overhaul-73325-4-02-1713895072.rar", uploaded = 1713895072 }
+
+[[mods]]
+id = "goodies"
+name = "Goodies"
+group = "major-world-changes"
+version = "2.4.1.2"
+plugins = ["ExtraGoodies.esp", "Goodies.esp"]
+source = { type = "nexus", game = "newvegas", mod = 91028, file_name = "Goodies-91028-2-4-1-2-1772238960.7z", uploaded = 1772238960 }
+
+[[mods]]
+id = "main-goodies-ttw"
+name = "Main - Goodies - TTW"
+group = "major-world-changes"
+version = "2.4.1.1"
+plugins = ["Goodies - TTW.esp"]
+source = { type = "nexus", game = "newvegas", mod = 91038, file_name = "Main - Goodies - TTW-91038-2-4-1-1-1771343701.7z", uploaded = 1771343701 }
+
+[[mods]]
+id = "optional-extra-goodies-ttw"
+name = "Optional - Extra Goodies - TTW"
+group = "major-world-changes"
+version = "2.4"
+plugins = ["ExtraGoodies - TTW.esp"]
+source = { type = "nexus", game = "newvegas", mod = 91038, file_name = "Optional - Extra Goodies - TTW-91038-2-4-1771175979.7z", uploaded = 1771175979 }
+
+[[mods]]
+id = "goodies-custom-ini"
+name = "Goodies - Custom INI"
+group = "major-world-changes"
+version = "1.2.1"
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "Goodies - Custom INI-79005-1-2-1-1772321911.7z", uploaded = 1772321911 }
+
+[[mods]]
+id = "mojave-scenery-overhaul"
+name = "Mojave Scenery Overhaul"
+group = "major-world-changes"
+version = "1.8"
+plugins = ["Mojave Scenery Overhaul - A World of Less Pain Patch.esm", "Mojave Scenery Overhaul - TLD Patch.esm", "Mojave Scenery Overhaul - TTW.esm", "Mojave Scenery Overhaul.esm"]
+source = { type = "nexus", game = "newvegas", mod = 89867, file_name = "Mojave Scenery Overhaul-89867-1-8-1759850528.7z", uploaded = 1759850528 }
+
+[[mods]]
+id = "lived-in-new-vegas"
+name = "Lived-In New Vegas"
+group = "major-world-changes"
+version = "1.0.3.2"
+plugins = ["Lived-In New Vegas.esm"]
+source = { type = "nexus", game = "newvegas", mod = 95255, file_name = "Lived-In New Vegas-95255-1-0-3-2-1769792009.7z", uploaded = 1769792009 }
+
+[[mods]]
+id = "lived-in-strip"
+name = "Lived-In Strip"
+group = "major-world-changes"
+version = "1.6.0"
+plugins = ["Lived-In Strip.esm"]
+source = { type = "nexus", game = "newvegas", mod = 91279, file_name = "Lived-In Strip-91279-1-6-0-1770336657.7z", uploaded = 1770336657 }
+
+[[mods]]
+id = "the-great-mojave-interior-overhaul"
+name = "The Great Mojave Interior Overhaul"
+group = "major-world-changes"
+version = "1.10.1"
+plugins = ["TGMIO.esm", "TGMIO_TLD_Patch.esp"]
+source = { type = "nexus", game = "newvegas", mod = 70165, file_name = "The Great Mojave Interior Overhaul-70165-1-10-1-1769822796.zip", uploaded = 1769822796 }
+
+[[mods]]
+id = "the-great-dc-interior-overhaul"
+name = "The Great DC Interior Overhaul"
+group = "major-world-changes"
+version = "1.3.1"
+plugins = ["TGDCIO.esm"]
+source = { type = "nexus", game = "newvegas", mod = 90412, file_name = "The Great DC Interior Overhaul-90412-1-3-1-1767549836.zip", uploaded = 1767549836 }
+
+[[mods]]
+id = "aworldofpainfo3"
+name = "AWorldOfPainFO3"
+group = "major-world-changes"
+version = "3.1"
+plugins = ["AWorldOfPainFO3.esm"]
+source = { type = "nexus", game = "newvegas", mod = 66265, file_name = "AWorldOfPainFO3-66265-3-1-1763416643.7z", uploaded = 1763416643 }
+
+[[mods]]
+id = "sweet-pain-dc"
+name = "Sweet Pain DC"
+group = "major-world-changes"
+version = "1.21"
+plugins = ["Sweet Pain.esm"]
+source = { type = "nexus", game = "newvegas", mod = 78569, file_name = "Sweet Pain DC-78569-1-21-1766943628.rar", uploaded = 1766943628 }
+
+[[mods]]
+id = "awop-revised"
+name = "AWOP Revised"
+group = "major-world-changes"
+version = "4.2.1"
+plugins = ["A World of Pain Revised.esm"]
+source = { type = "nexus", game = "newvegas", mod = 71139, file_name = "AWOP Revised-71139-4-2-1-1771544339.7z", uploaded = 1771544339 }
+
+[[mods]]
+id = "sweet-pain-nv"
+name = "Sweet Pain NV"
+group = "major-world-changes"
+version = "1.12"
+plugins = ["Sweet Pain NV.esm"]
+source = { type = "nexus", game = "newvegas", mod = 81523, file_name = "Sweet Pain NV-81523-1-12-1748460722.rar", uploaded = 1748460722 }
+
+[[mods]]
+id = "sweet-pain-nv-ttw-patch"
+name = "Sweet Pain NV TTW Patch"
+group = "major-world-changes"
+version = "1.10"
+plugins = ["SP TTW Patch.esp"]
+source = { type = "nexus", game = "newvegas", mod = 81523, file_name = "Sweet Pain NV TTW Patch-81523-1-10-1742075449.rar", uploaded = 1742075449 }
+
+[[mods]]
+id = "more-mojave-dark-side-edition"
+name = "More Mojave Dark Side Edition"
+group = "major-world-changes"
+version = "1.07"
+plugins = ["MoreMojave.esm"]
+source = { type = "nexus", game = "newvegas", mod = 91060, file_name = "More Mojave Dark Side Edition-91060-1-07-1749002060.7z", uploaded = 1749002060 }
+
+[[mods]]
+id = "moremojave-dse-mojave-scenery-patch"
+name = "MoreMojave DSE - Mojave Scenery Patch"
+group = "major-world-changes"
+version = "1.01"
+plugins = ["MoreMojave DSE- Mojave Scenery Patch.esp"]
+source = { type = "nexus", game = "newvegas", mod = 91060, file_name = "MoreMojave DSE - Mojave Scenery Patch-91060-1-01-1740265800.rar", uploaded = 1740265800 }
+
+[[mods]]
+id = "fnv-3dnpc-bundle-updated-all-in-one-plugin"
+name = "FNV 3DNPC Bundle Updated All In One Plugin"
+group = "major-world-changes"
+version = "4.010"
+plugins = ["3DNPCFNVBundle.esm"]
+source = { type = "nexus", game = "newvegas", mod = 84274, file_name = "FNV 3DNPC Bundle Updated All In One Plugin-84274-4-010-1725215864.rar", uploaded = 1725215864 }
+
+[[mods]]
+id = "fnv-3dnpc-bundle-updated-ttw-all-in-one-plugin"
+name = "FNV 3DNPC Bundle Updated TTW All In One Plugin"
+group = "major-world-changes"
+version = "4.010"
+plugins = ["3DNPCFNVBundle.esm"]
+source = { type = "nexus", game = "newvegas", mod = 84274, file_name = "FNV 3DNPC Bundle Updated TTW All In One Plugin-84274-4-010-1725215940.rar", uploaded = 1725215940 }
+
+[[mods]]
+id = "faction-wasteland-presence"
+name = "Faction Wasteland Presence"
+group = "major-world-changes"
+version = "5.5"
+plugins = ["Faction Wasteland Presence.esm"]
+source = { type = "nexus", game = "newvegas", mod = 73524, file_name = "Faction Wasteland Presence-73524-5-5-1744935484.zip", uploaded = 1744935484 }
+
+[[mods]]
+id = "mojave-raiders-lite"
+name = "Mojave Raiders Lite"
+group = "major-world-changes"
+version = "1.0.1"
+plugins = ["Mojave Raiders Lite.esm"]
+source = { type = "nexus", game = "newvegas", mod = 90464, file_name = "Mojave Raiders Lite-90464-1-0-1-1740503405.7z", uploaded = 1740503405 }
+
+[[mods]]
+id = "mojave-wildlife-vanilla-no-chanced-spawns"
+name = "Mojave Wildlife - Vanilla No Chanced Spawns"
+group = "major-world-changes"
+version = "1.1.1"
+plugins = ["Mojave Wildlife (Vanilla-Style + No Chanced).esp"]
+source = { type = "nexus", game = "newvegas", mod = 64638, file_name = "Mojave Wildlife - Vanilla No Chanced Spawns-64638-1-1-1-1722176699.7z", uploaded = 1722176699 }
+
+[[mods]]
+id = "mojave-raiders-lite-ttw-patch"
+name = "Mojave Raiders Lite - TTW Patch"
+group = "major-world-changes"
+version = "3.5"
+plugins = ["Mojave Raiders Lite - TTW Patch.esm"]
+source = { type = "nexus", game = "newvegas", mod = 78465, file_name = "Mojave Raiders Lite - TTW Patch-78465-3-5-1758995427.zip", uploaded = 1758995427 }
+
+[[mods]]
+id = "mojave-wildlife-ttw-patch"
+name = "Mojave Wildlife - TTW Patch"
+group = "major-world-changes"
+version = "3.4"
+plugins = ["Mojave Wildlife - TTW Patch.esm"]
+source = { type = "nexus", game = "newvegas", mod = 78465, file_name = "Mojave Wildlife - TTW Patch-78465-3-4-1761034500.zip", uploaded = 1761034500 }
+
+[[mods]]
+id = "the-living-desert-ttw-patch"
+name = "The Living Desert - TTW Patch"
+group = "major-world-changes"
+plugins = ["TLD_Travelers - TTW Patch.esm"]
+source = { type = "nexus", game = "newvegas", mod = 78465, file_name = "The Living Desert - TTW Patch-78465-3-5-1758995705(1).zip" }
+
+[[mods]]
+id = "ttw-d-i-e-o-dialogue-and-interactions-expansion"
+name = "TTW (D.I.E.O.) Dialogue and Interactions Expansion"
+group = "dialogue"
+version = "2.4"
+plugins = ["TTW Dialogue and Interactions Expansion Overhaul.esp"]
+source = { type = "nexus", game = "newvegas", mod = 78189, file_name = "TTW (D.I.E.O.) Dialogue and Interactions Expansion-78189-2-4-1770209032.zip", uploaded = 1770209032 }
+
+[[mods]]
+id = "dieo-tale-of-bi-wastelands"
+name = "DIEO - Tale of Bi Wastelands"
+group = "dialogue"
+version = "1.0"
+plugins = ["DIEO - Tale of Bi Wastelands Patch.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "DIEO - Tale of Bi Wastelands-79005-1-0-1706824367.7z", uploaded = 1706824367 }
+
+[[mods]]
+id = "dieo-awopfo3-patch"
+name = "DIEO - AWOPFO3 Patch"
+group = "dialogue"
+version = "1.0"
+plugins = ["DIEO - AWOPFO3 Patch.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "DIEO - AWOPFO3 Patch-79005-1-0-1706824413.7z", uploaded = 1706824413 }
+
+[[mods]]
+id = "gra-uwr-unbalanced"
+name = "GRA UWR Unbalanced"
+group = "weapons"
+version = "1.60"
+plugins = ["GRA Scavenger Hunt Unbalanced.esp"]
+source = { type = "nexus", game = "newvegas", mod = 68153, file_name = "GRA UWR Unbalanced-68153-1-60-1717963988.zip", uploaded = 1717963988 }
+
+[[mods]]
+id = "another-millenia"
+name = "Another Millenia"
+group = "weapons"
+version = "2.7"
+plugins = ["mil.esp"]
+hide = ["meshes/AnimGroupOverride/RNC_MP153/_male/2hraim.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hraimdown.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hraimis.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hraimisdown.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hraimisup.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hraimup.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hrattackleft.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hrattackleftdown.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hrattackleftis.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hrattackleftisdown.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hrattackleftisup.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hrattackleftup.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hrequip.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hrreloady.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/2hrreloadystart.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hraim.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hraimdown.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hraimis.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hraimisdown.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hraimisup.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hraimup.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hrattack3.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hrattack3down.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hrattack3is.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hrattack3isdown.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hrattack3up.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hrattackisup.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hrreloady.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/sneak2hrreloadystart.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/locomotion/2hrfastbackward.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/locomotion/2hrfastforward.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/locomotion/2hrfastleft.kf", "meshes/AnimGroupOverride/RNC_MP153/_male/locomotion/2hrfastright.kf"]
+source = { type = "nexus", game = "newvegas", mod = 76133, file_name = "Another Millenia-76133-2-7-1767547794.7z", uploaded = 1767547794 }
+
+[[mods]]
+id = "another-millenia-ttw-unique-placements"
+name = "Another Millenia - TTW Unique Placements"
+group = "weapons"
+version = "TTW1.9"
+plugins = ["mil-TTWPlacements.esp"]
+source = { type = "nexus", game = "newvegas", mod = 76133, file_name = "Another Millenia - TTW Unique Placements-76133-TTW1-9-1767547812.7z", uploaded = 1767547812 }
+
+[[mods]]
+id = "another-millenia-gun-add-on"
+name = "Another Millenia Gun Add-on"
+group = "weapons"
+version = "2.2"
+plugins = ["mil_Add-On.esp"]
+source = { type = "nexus", game = "newvegas", mod = 77358, file_name = "Another Millenia Gun Add-on-77358-2-2-1767548094.7z", uploaded = 1767548094 }
+
+[[mods]]
+id = "tactapack"
+name = "Tactapack"
+group = "weapons"
+version = "1.9"
+plugins = ["Tactapack.esp"]
+source = { type = "nexus", game = "newvegas", mod = 80219, file_name = "Tactapack-80219-1-9-1760126944.7z", uploaded = 1760126944 }
+
+[[mods]]
+id = "improved-ak-112-mesh"
+name = "Improved AK-112 Mesh"
+group = "weapons"
+version = "AK2"
+source = { type = "nexus", game = "newvegas", mod = 80219, file_name = "Improved AK-112 Mesh-80219-AK2-1726008010.7z", uploaded = 1726008010 }
+
+[[mods]]
+id = "zl-armaments-remastered"
+name = "ZL Armaments Remastered"
+group = "weapons"
+version = "2.601"
+plugins = ["ZL_Armaments_Remastered.esm"]
+source = { type = "nexus", game = "newvegas", mod = 84213, file_name = "ZL Armaments Remastered-84213-2-601-1755127672.7z", uploaded = 1755127672 }
+
+[[mods]]
+id = "zl-armaments-remastered-and-fnv-3dnpc-bundle-upd"
+name = "ZL Armaments Remastered And FNV 3DNPC Bundle Update"
+group = "weapons"
+version = "1.1"
+plugins = ["zlArms3DNPCsPatch.esp"]
+source = { type = "nexus", game = "newvegas", mod = 87064, file_name = "ZL Armaments Remastered And FNV 3DNPC Bundle Updat-87064-1-1-1726309979.zip", uploaded = 1726309979 }
+
+[[mods]]
+id = "contrasted-lod-noise-4k"
+name = "Contrasted LOD Noise 4k"
+group = "visual-improvements"
+source = { type = "nexus", game = "newvegas", mod = 85898, file_name = "Contrasted LOD Noise 4k-85898-1-2-1713025507(1).zip" }
+
+[[mods]]
+id = "high-resolution-bloom"
+name = "High Resolution Bloom"
+group = "visual-improvements"
+version = "6"
+source = { type = "nexus", game = "newvegas", mod = 77933, file_name = "High Resolution Bloom-77933-6-1743256084.7z", uploaded = 1743256084 }
+
+[[mods]]
+id = "high-resolution-water-fog"
+name = "High Resolution Water Fog"
+group = "visual-improvements"
+version = "1.2"
+source = { type = "nexus", game = "newvegas", mod = 78400, file_name = "High Resolution Water Fog-78400-1-2-1771537879.7z", uploaded = 1771537879 }
+
+[[mods]]
+id = "mobile-pip-boy-light-nvse"
+name = "Mobile Pip-Boy Light - NVSE"
+group = "visual-improvements"
+version = "2.2"
+source = { type = "nexus", game = "newvegas", mod = 81203, file_name = "Mobile Pip-Boy Light - NVSE-81203-2-2-1737323485.7z", uploaded = 1737323485 }
+
+[[mods]]
+id = "simply-upscaled-grass-vanilla-style-4k"
+name = "Simply Upscaled Grass - Vanilla Style - 4k"
+group = "visual-improvements"
+version = "2.2"
+source = { type = "nexus", game = "newvegas", mod = 79716, file_name = "Simply Upscaled Grass - Vanilla Style - 4k-79716-2-2-1689103142.7z", uploaded = 1689103142 }
+
+[[mods]]
+id = "3rd-person-animation-fixpack"
+name = "3rd Person Animation Fixpack"
+group = "animations"
+version = "1.31"
+source = { type = "nexus", game = "newvegas", mod = 85198, file_name = "3rd Person Animation Fixpack-85198-1-31-1769547340.7z", uploaded = 1769547340 }
+
+[[mods]]
+id = "iscontrol"
+name = "ISControl"
+group = "animations"
+source = { type = "nexus", game = "newvegas", mod = 75417, file_name = "ISControl-75417-2-3-1688602677(1).7z" }
+
+[[mods]]
+id = "weapon-based-hands-clip-distance"
+name = "Weapon Based Hands Clip Distance"
+group = "animations"
+version = "3.2"
+source = { type = "nexus", game = "newvegas", mod = 82093, file_name = "Weapon Based Hands Clip Distance-82093-3-2-1766126936.7z", uploaded = 1766126936 }
+
+[[mods]]
+id = "hipcontrol"
+name = "HIPControl"
+group = "animations"
+version = "0.1b3"
+source = { type = "nexus", game = "newvegas", mod = 81967, file_name = "HIPControl-81967-0-1b3-1688591694.7z", uploaded = 1688591694 }
+
+[[mods]]
+id = "b42-inertia-scriptrunner"
+name = "B42 Inertia - Scriptrunner"
+group = "animations"
+version = "1.4"
+source = { type = "nexus", game = "newvegas", mod = 64335, file_name = "B42 Inertia - Scriptrunner-64335-1-4-1767968088.zip", uploaded = 1767968088 }
+
+[[mods]]
+id = "b42-dynamic-pip-boy"
+name = "B42 Dynamic Pip-Boy"
+group = "animations"
+version = "1.1"
+source = { type = "nexus", game = "newvegas", mod = 90847, file_name = "B42 Dynamic Pip-Boy-90847-1-1-1739985751.7z", uploaded = 1739985751 }
+
+[[mods]]
+id = "anniversary-anim-pack"
+name = "Anniversary Anim Pack"
+group = "animations"
+version = "2.1"
+source = { type = "nexus", game = "newvegas", mod = 70158, file_name = "Anniversary Anim Pack-70158-2-1-1716230793.7z", uploaded = 1716230793 }
+
+[[mods]]
+id = "new-vegas-animation-overhaul-guns"
+name = "New Vegas Animation Overhaul Guns"
+group = "animations"
+version = "1.1"
+source = { type = "nexus", game = "newvegas", mod = 86354, file_name = "New Vegas Animation overhaul - Guns-86354-1-1-1736376123.zip", uploaded = 1736376123 }
+
+[[mods]]
+id = "new-vegas-animation-overhaul-melee"
+name = "New Vegas Animation Overhaul - Melee"
+group = "animations"
+version = "1.0.3"
+source = { type = "nexus", game = "newvegas", mod = 88830, file_name = "New Vegas Animation Overhaul - Melee-88830-1-0-3-1741455012.7z", uploaded = 1741455012 }
+
+[[mods]]
+id = "nvao-throwverhaul"
+name = "NVAO - Throwverhaul"
+group = "animations"
+version = "1.1"
+source = { type = "nexus", game = "newvegas", mod = 91374, file_name = "NVAO - Throwverhaul-91374-1-1-1744380118.rar", uploaded = 1744380118 }
+
+[[mods]]
+id = "hit-millenia-animations-part-2"
+name = "Hit - Millenia Animations - Part 2"
+group = "animations"
+version = "1.2"
+source = { type = "nexus", game = "newvegas", mod = 85192, file_name = "Hit - Millenia Animations - Part 2-85192-1-2-1710374381.7z", uploaded = 1710374381 }
+
+[[mods]]
+id = "enhanced-locomotion"
+name = "Enhanced Locomotion"
+group = "animations"
+version = "1.22"
+source = { type = "nexus", game = "newvegas", mod = 88446, file_name = "Enhanced Locomotion-88446-1-22-1767253836.7z", uploaded = 1767253836 }
+
+[[mods]]
+id = "iron-sights-aligned"
+name = "Iron Sights Aligned"
+group = "animations"
+version = "5.3.0.0"
+source = { type = "nexus", game = "newvegas", mod = 81933, file_name = "Iron Sights Aligned-81933-5-3-1768347575(1).zip" }
+
+[[mods]]
+id = "iron-sights-aligned-mod-support"
+name = "Iron Sights Aligned - Mod Support"
+group = "animations"
+version = "2.4"
+source = { type = "nexus", game = "newvegas", mod = 81933, file_name = "Iron Sights Aligned - Mod Support-81933-2-4-1747176791.zip", uploaded = 1747176791 }
+
+[[mods]]
+id = "knvse-fixpack"
+name = "kNVSE Fixpack"
+group = "animations"
+version = "2.00"
+source = { type = "nexus", game = "newvegas", mod = 88243, file_name = "kNVSE Fixpack-88243-2-00-1727581360.7z", uploaded = 1727581360 }
+
+[[mods]]
+id = "nvcs-vanilla-weights"
+name = "NVCS Vanilla Weights"
+group = "animations"
+version = "13"
+source = { type = "nexus", game = "newvegas", mod = 68776, file_name = "NVCS Vanilla Weights-68776-13-1675087221.7z", uploaded = 1675087221 }
+
+[[mods]]
+id = "scope-aim-tweaks-no-plugin"
+name = "Scope Aim Tweaks (No Plugin)"
+group = "weapons-2"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 80701, file_name = "Scope Aim Tweaks (No Plugin)-80701-1-0-1680903853.7z", uploaded = 1680903853 }
+
+[[mods]]
+id = "psro-peripheral-scope-reticle-overhaul"
+name = "PSRO - Peripheral Scope Reticle Overhaul"
+group = "weapons-2"
+version = "2.1.7"
+source = { type = "nexus", game = "newvegas", mod = 71781, file_name = "PSRO - Peripheral Scope Reticle Overhaul-71781-2-1-7-1687406457.7z", uploaded = 1687406457 }
+
+[[mods]]
+id = "psro-mod-compatibility-compendium"
+name = "PSRO - Mod Compatibility Compendium"
+group = "weapons-2"
+version = "2.1.7.1"
+source = { type = "nexus", game = "newvegas", mod = 71781, file_name = "PSRO - Mod Compatibility Compendium - FOMOD-71781-2-1-7-1-1687578324.7z", uploaded = 1687578324 }
+
+[[mods]]
+id = "awrp-resource"
+name = "aWRP - Resource"
+group = "weapons-2"
+version = "2.1"
+source = { type = "nexus", game = "newvegas", mod = 82558, file_name = "aWRP - Resource-82558-2-1-1772345645.7z", uploaded = 1772345645 }
+
+[[mods]]
+id = "awrp-nvao-guns-patch"
+name = "aWRP - NVAO-Guns Patch"
+group = "weapons-2"
+version = "2.0"
+source = { type = "nexus", game = "newvegas", mod = 88567, file_name = "aWRP - NVAO-Guns Patch-88567-2-0-1722777240.7z", uploaded = 1722777240 }
+
+[[mods]]
+id = "wth-weapon-textures-from-heaven-2k"
+name = "WTH - Weapon Textures from Heaven 2k"
+group = "weapons-2"
+version = "1.1"
+source = { type = "nexus", game = "newvegas", mod = 69837, file_name = "WTH - Weapon Textures from Heaven 2k-69837-1-1-1610579173.rar", uploaded = 1610579173 }
+
+[[mods]]
+id = "ttw-s-hunting-rifle-and-32-rifle-textures"
+name = "TTW's Hunting Rifle and .32 Rifle Textures"
+group = "weapons-2"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 69837, file_name = "TTW's Hunting Rifle and .32 Rifle Textures-69837-1-0-1599238845.rar", uploaded = 1599238845 }
+
+[[mods]]
+id = "wth-amr-suppressor-fix"
+name = "WTH - AMR Suppressor Fix"
+group = "weapons-2"
+version = "1.1"
+plugins = ["WTH AMR Fix.esp"]
+source = { type = "nexus", game = "newvegas", mod = 69837, file_name = "WTH - AMR Suppressor Fix-69837-1-1-1599252557.7z", uploaded = 1599252557 }
+
+[[mods]]
+id = "wth-amr-for-ttw"
+name = "WTH - AMR for TTW"
+group = "weapons-2"
+version = "1.0"
+plugins = ["WTH AMR Fix.esp"]
+source = { type = "nexus", game = "newvegas", mod = 96125, file_name = "WTH - AMR for TTW-96125-1-0-1769896542.7z", uploaded = 1769896542 }
+
+[[mods]]
+id = "awrp-scripts-ttw"
+name = "aWRP - Scripts (TTW)"
+group = "weapons-2"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 93494, file_name = "aWRP - Scripts (TTW)-93494-1-0-1755872487.7z", uploaded = 1755872487 }
+
+[[mods]]
+id = "weapon-retexture-from-eve"
+name = "Weapon Retexture from EVE"
+group = "weapons-2"
+version = "0.8.6"
+source = { type = "nexus", game = "newvegas", mod = 76606, file_name = "Weapon Retexture from EVE-76606-0-8-6-1669909929.7z", uploaded = 1669909929 }
+
+[[mods]]
+id = "kyu-s-ballistics-fixed-ttw"
+name = "Kyu's Ballistics Fixed - TTW"
+group = "weapons-2"
+version = "1.0"
+plugins = ["Kyu_Ballistics_TTW.esp"]
+source = { type = "nexus", game = "newvegas", mod = 84939, file_name = "Kyu's Ballistics Fixed - TTW-84939-1-0-1707562133.zip", uploaded = 1707562133 }
+
+[[mods]]
+id = "bullet-trails"
+name = "Bullet Trails"
+group = "weapons-2"
+version = "1.3"
+plugins = ["BulletTrails.esp"]
+source = { type = "nexus", game = "newvegas", mod = 75122, file_name = "Bullet Trails-75122-1-3-1648652585.7z", uploaded = 1648652585 }
+
+[[mods]]
+id = "atmos-ambient-sound-overhaul-ttw-updated-esp"
+name = "ATMOS Ambient Sound Overhaul - TTW Updated .esp"
+group = "audio"
+version = "1.4"
+plugins = ["ATMOS Sound Overhaul - TTW.esp"]
+source = { type = "nexus", game = "newvegas", mod = 84054, file_name = "ATMOS Ambient Sound Overhaul - TTW Updated .esp-84054-1-4-1704502230.zip", uploaded = 1704502230 }
+
+[[mods]]
+id = "atmos-ambience-overhaul-master-hi-fi"
+name = "ATMOS Ambience Overhaul - Master - Hi-Fi"
+group = "audio"
+version = "1.8"
+plugins = ["ATMOS Ambient Overhaul.esp"]
+source = { type = "nexus", game = "newvegas", mod = 85939, file_name = "ATMOS Ambience Overhaul - Master - Hi-Fi-85939-1-8-1765911514.rar", uploaded = 1765911514 }
+
+[[mods]]
+id = "atmos-dlc-overhaul-part-i"
+name = "ATMOS DLC Overhaul Part I"
+group = "audio"
+version = "1.0"
+plugins = ["ATMOS Ambient Overhaul - DLC.esp"]
+source = { type = "nexus", game = "newvegas", mod = 85939, file_name = "ATMOS DLC Overhaul Part I-85939-1-0-1748612428.rar", uploaded = 1748612428 }
+
+[[mods]]
+id = "atmos-ambience-overhaul-awop-revision"
+name = "ATMOS Ambience Overhaul - AWOP Revision"
+group = "audio"
+version = "1.8"
+plugins = ["ATMOS Ambient Overhaul - AWOP Revision.esp"]
+source = { type = "nexus", game = "newvegas", mod = 85939, file_name = "ATMOS Ambience Overhaul - AWOP Revision-85939-1-8-1771595470.rar", uploaded = 1771595470 }
+
+[[mods]]
+id = "atmos-nv-ttw-patch"
+name = "ATMOS NV - TTW Patch"
+group = "audio"
+version = "1"
+plugins = ["ATMOS NV - TTW Patch.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "ATMOS NV - TTW Patch-79005-1-1715656984.zip", uploaded = 1715656984 }
+
+[[mods]]
+id = "restored-physics-sounds"
+name = "Restored Physics Sounds"
+group = "audio"
+version = "2.0"
+plugins = ["Restored Physics Sounds.esm"]
+source = { type = "nexus", game = "newvegas", mod = 90895, file_name = "Restored Physics Sounds-90895-2-0-1767631995.zip", uploaded = 1767631995 }
+
+[[mods]]
+id = "physfx"
+name = "PhySFX"
+group = "audio"
+version = "0.2.1"
+source = { type = "nexus", game = "newvegas", mod = 87832, file_name = "PhySFX-87832-0-2-1-1721247884.rar", uploaded = 1721247884 }
+
+[[mods]]
+id = "weapon-iron-sights-foley-espless"
+name = "Weapon Iron Sights Foley - Espless"
+group = "audio"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 90670, file_name = "Weapon Iron Sights Foley - Espless-90670-1-0-1737402081.7z", uploaded = 1737402081 }
+
+[[mods]]
+id = "subtle-rifle-equip-sound"
+name = "Subtle Rifle Equip Sound"
+group = "audio"
+version = "1.2"
+source = { type = "nexus", game = "newvegas", mod = 90498, file_name = "Subtle Rifle Equip Sound-90498-1-2-1770140800.7z", uploaded = 1770140800 }
+
+[[mods]]
+id = "awsomer"
+name = "AWSOMER"
+group = "audio"
+version = "1.4"
+plugins = ["AWSOMER.esp"]
+source = { type = "nexus", game = "newvegas", mod = 84235, file_name = "AWSOMER-84235-1-4-1712500807.zip", uploaded = 1712500807 }
+
+[[mods]]
+id = "another-millenia-awsomer-patch"
+name = "Another Millenia - AWSOMER Patch"
+group = "audio"
+version = "1.2.1"
+source = { type = "nexus", game = "newvegas", mod = 85014, file_name = "Another Millenia - AWSOMER Patch-85014-1-2-1-1733784326.zip", uploaded = 1733784326 }
+
+[[mods]]
+id = "another-millenia-gun-addon-awsomer-patch"
+name = "Another Millenia Gun-Addon - AWSOMER Patch"
+group = "audio"
+version = "1.2.1"
+source = { type = "nexus", game = "newvegas", mod = 85014, file_name = "Another Millenia Gun-Addon - AWSOMER Patch-85014-1-2-1-1733784269.rar", uploaded = 1733784269 }
+
+[[mods]]
+id = "tactapack-awsomer-patch"
+name = "Tactapack - AWSOMER Patch"
+group = "audio"
+version = "1.2.1"
+source = { type = "nexus", game = "newvegas", mod = 85014, file_name = "Tactapack - AWSOMER Patch-85014-1-2-1-1726564525.zip", uploaded = 1726564525 }
+
+[[mods]]
+id = "vanilla-plus-terrain"
+name = "Vanilla Plus Terrain"
+group = "lighting"
+version = "1.0.2"
+source = { type = "nexus", game = "newvegas", mod = 92519, file_name = "Vanilla Plus Terrain-92519-1-0-2-1751840765.7z", uploaded = 1751840765 }
+
+[[mods]]
+id = "vanilla-plus-tonemapper"
+name = "Vanilla Plus Tonemapper"
+group = "lighting"
+version = "1.1.2"
+source = { type = "nexus", game = "newvegas", mod = 91500, file_name = "Vanilla Plus Tonemapper-91500-1-1-2-1742872805.7z", uploaded = 1742872805 }
+
+[[mods]]
+id = "vanilla-plus-tonemapper-sky-brightness-tweak"
+name = "Vanilla Plus Tonemapper - Sky Brightness Tweak"
+group = "lighting"
+version = "1.1.0"
+source = { type = "nexus", game = "newvegas", mod = 91500, file_name = "Vanilla Plus Tonemapper - Sky Brightness Tweak-91500-1-1-0-1742769717.7z", uploaded = 1742769717 }
+
+[[mods]]
+id = "atmospheric-lighting-tweaks-ttw"
+name = "Atmospheric Lighting Tweaks - TTW"
+group = "lighting"
+version = "1.4"
+plugins = ["Atmospheric Lighting Tweaks TTW.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79378, file_name = "Atmospheric Lighting Tweaks - TTW-79378-1-4-1731266674.7z", uploaded = 1731266674 }
+
+[[mods]]
+id = "atmos-atmospheric-lighting-tweaks-patch"
+name = "ATMOS - Atmospheric Lighting Tweaks Patch"
+group = "lighting"
+version = "1.0"
+plugins = ["ATMOS - Atmospheric Lighting Tweaks Patch.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79005, file_name = "ATMOS - Atmospheric Lighting Tweaks Patch-79005-1-0-1723151976.zip", uploaded = 1723151976 }
+
+[[mods]]
+id = "moonlightnvse"
+name = "MoonlightNVSE"
+group = "weather"
+version = "2.00"
+source = { type = "nexus", game = "newvegas", mod = 77683, file_name = "MoonlightNVSE-77683-2-00-1708887233.7z", uploaded = 1708887233 }
+
+[[mods]]
+id = "longer-weather-transitions-espless"
+name = "Longer Weather Transitions ESPLess"
+group = "weather"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 85286, file_name = "Longer Weather Transitions ESPLess-85286-1-0-1709495033.rar", uploaded = 1709495033 }
+
+[[mods]]
+id = "desert-natural-weathers-ttw"
+name = "Desert Natural Weathers TTW"
+group = "weather"
+version = "7.9.2"
+plugins = ["DNWeathers.esp"]
+source = { type = "nexus", game = "newvegas", mod = 75437, file_name = "Desert Natural Weathers TTW-75437-7-9-2-1768463781.7z", uploaded = 1768463781 }
+
+[[mods]]
+id = "accurate-stars"
+name = "Accurate Stars"
+group = "weather"
+version = "2.3"
+source = { type = "nexus", game = "newvegas", mod = 75522, file_name = "Accurate Stars-75522-2-3-1757711642.rar", uploaded = 1757711642 }
+
+[[mods]]
+id = "accurate-stars-mothership-zeta-patch"
+name = "Accurate Stars - Mothership Zeta Patch"
+group = "weather"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 75522, file_name = "Accurate Stars - Mothership Zeta Patch-75522-1-0-1646645696.rar", uploaded = 1646645696 }
+
+[[mods]]
+id = "nillaplus-maximum-moon-2k"
+name = "NillaPlus Maximum Moon 2K"
+group = "weather"
+version = "1.1"
+source = { type = "nexus", game = "newvegas", mod = 86153, file_name = "NillaPlus Maximum Moon 2K-86153-1-1-1716871511.7z", uploaded = 1716871511 }
+
+[[mods]]
+id = "cloud-upgrade"
+name = "Cloud Upgrade"
+group = "weather"
+version = "1.0"
+source = { type = "nexus", game = "newvegas", mod = 79612, file_name = "Cloud Upgrade-79612-1-0-1673472163.zip", uploaded = 1673472163 }
+
+[[mods]]
+id = "interior-rain"
+name = "Interior Rain"
+group = "weather"
+version = "1.0"
+plugins = ["Interior Rain.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79656, file_name = "Interior Rain-79656-1-0-1673893794.zip", uploaded = 1673893794 }
+
+[[mods]]
+id = "interior-rain-ttw"
+name = "Interior Rain - TTW"
+group = "weather"
+version = "1.0"
+plugins = ["Interior Rain - TTW.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79656, file_name = "Interior Rain - TTW-79656-1-0-1673893822.zip", uploaded = 1673893822 }
+
+[[mods]]
+id = "3d-rain"
+name = "3D Rain"
+group = "weather"
+version = "2.0"
+source = { type = "nexus", game = "newvegas", mod = 79652, file_name = "3D Rain-79652-2-0-1678679955.zip", uploaded = 1678679955 }
+
+[[mods]]
+id = "climate-control-rain"
+name = "Climate Control - Rain"
+group = "weather"
+version = "1.0"
+plugins = ["CC - Rain.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79661, file_name = "Climate Control - Rain-79661-1-0-1673903130.zip", uploaded = 1673903130 }
+
+[[mods]]
+id = "climate-control-3d-rain"
+name = "Climate Control - 3D Rain"
+group = "weather"
+version = "1.0"
+plugins = ["CC - 3D Rain.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79661, file_name = "Climate Control - 3D Rain-79661-1-0-1673903164.zip", uploaded = 1673903164 }
+
+[[mods]]
+id = "lod-fixes-and-improvements-nvse"
+name = "LOD Fixes and Improvements - NVSE"
+group = "lod"
+source = { type = "nexus", game = "newvegas", mod = 84171, file_name = "LOD Fixes and Improvements - NVSE-84171-1-33-1745245979(1).7z" }
+
+[[mods]]
+id = "lod-fixes-and-improvements-ini"
+name = "LOD Fixes and Improvements - INI"
+group = "lod"
+source = { type = "nexus", game = "newvegas", mod = 84171, file_name = "LOD Fixes and Improvements - INI-84171-1-33-1745246007(1).7z" }
+
+[[mods]]
+id = "much-needed-lod"
+name = "Much Needed LOD"
+group = "lod"
+source = { type = "nexus", game = "newvegas", mod = 64805, file_name = "Much Needed LOD-64805-1-2(1).7z" }
+
+[[mods]]
+id = "much-needed-lod-fixed-rocks-color"
+name = "Much Needed LOD fixed rocks color"
+group = "lod"
+source = { type = "nexus", game = "newvegas", mod = 81524, file_name = "Much Needed LOD fixed rocks color-81524-1-0-1686494149(1).zip" }
+
+[[mods]]
+id = "lodadditions"
+name = "LODadditions"
+group = "lod"
+source = { type = "nexus", game = "newvegas", mod = 61206, file_name = "LODadditions-61206-1-07-1604265497(1).7z" }
+
+[[mods]]
+id = "fnv-lod-supplementation"
+name = "FNV LOD Supplementation"
+group = "lod"
+source = { type = "nexus", game = "newvegas", mod = 72099, file_name = "FNV LOD Supplementation-72099-0-11a-1656090657(1).zip" }
+
+[[mods]]
+id = "fnv-lod-supplementation-overpasses"
+name = "FNV LOD Supplementation Overpasses"
+group = "lod"
+version = "Overpass0.01"
+source = { type = "nexus", game = "newvegas", mod = 72099, file_name = "FNV LOD Supplementation-72099-Overpass0-01-1629289300.zip", uploaded = 1629289300 }
+
+[[mods]]
+id = "tcm-s-lod-overhaul"
+name = "TCM's LOD Overhaul"
+group = "lod"
+source = { type = "nexus", game = "newvegas", mod = 70155, file_name = "TCM's LOD Overhaul-70155-2-2-1757750927(1).zip" }
+
+[[mods]]
+id = "more-lods-additions-and-fixes"
+name = "More LODs Additions and fixes"
+group = "lod"
+source = { type = "nexus", game = "newvegas", mod = 81751, file_name = "More LODs Additions and fixes-81751-1-9-1721295553(1).zip" }
+
+[[mods]]
+id = "wasted-mojave"
+name = "Wasted Mojave"
+group = "lod"
+source = { type = "nexus", game = "newvegas", mod = 83316, file_name = "Wasted Mojave Version 1.0-83316-1-0-1696325110(1).zip" }
+
+[[mods]]
+id = "wasted-dc"
+name = "Wasted DC"
+group = "lod"
+plugins = ["Wasted LOD rocks.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79734, file_name = "Wasted DC-79734-1-0-1674464572(1).zip" }
+
+[[mods]]
+id = "different-lod-mods-little-tweaks-and-additions"
+name = "Different LOD mods little tweaks and additions"
+group = "lod"
+source = { type = "nexus", game = "newvegas", mod = 81981, file_name = "Different LOD mods little tweaks and additions-81981-1-4-1713793775(1).zip" }
+
+[[mods]]
+id = "lodify"
+name = "LODIFY"
+group = "lod"
+source = { type = "manual", file_name = "LODIFY.7z", note = "no Nexus id in meta.ini; find the source by name or md5" }
+
+[[mods]]
+id = "lodify-fnv-wall-sogb-editon"
+name = "LODIFY FNV Wall_SoGB Editon"
+group = "lod"
+version = "0.8.1"
+source = { type = "nexus", game = "newvegas", mod = 84165, file_name = "LODIFY FNV Wall_SoGB Editon-84165-0-8-1-1708270337.7z", uploaded = 1708270337 }
+
+[[mods]]
+id = "decent-lod-kit"
+name = "Decent LOD Kit"
+group = "lod"
+source = { type = "nexus", game = "newvegas", mod = 88979, file_name = "Decent LOD Kit-88979-1-11-1767363680(1).7z" }
+
+[[mods]]
+id = "nuclear-core"
+name = "Nuclear Core"
+group = "lod"
+version = "4.5.3"
+source = { type = "nexus", game = "newvegas", mod = 88902, file_name = "Nuclear Core-88902-4-5-3-1756651223.7z", uploaded = 1756651223 }
+
+[[mods]]
+id = "ttw-fallout-3-lod"
+name = "TTW Fallout 3 LOD"
+group = "lod"
+plugins = ["TTW Fallout 3 LOD.esp"]
+source = { type = "nexus", game = "newvegas", mod = 90327, file_name = "TTW Fallout 3 LOD-90327-1-7-2-1761113930(1).7z" }
+
+[[mods]]
+id = "vnv-lod-guide-plugins-merge"
+name = "VNV LOD Guide Plugins Merge"
+group = "lod"
+plugins = ["VNV LOD Plugins.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79358, file_name = "VNV LOD Guide Plugins Merge-79358-1-0-1760289435(1).7z" }
+
+[[mods]]
+id = "the-regulators"
+name = "The Regulators"
+group = "quests"
+version = "1.6"
+plugins = ["Regulators.esm"]
+source = { type = "nexus", game = "newvegas", mod = 66266, file_name = "The Regulators-66266-1-6-1652570710.7z", uploaded = 1652570710 }
+
+[[mods]]
+id = "ttw-killable-children"
+name = "TTW - Killable Children"
+group = "gameplay-2"
+plugins = ["TTW FO3&NV&DLC Killable Children.esp"]
+source = { type = "nexus", game = "newvegas", mod = 56371, file_name = "TTW - Killable Children V1.3-56371-V1-3.7z" }
+
+[[mods]]
+id = "ttw-merged-collectable-quests"
+name = "TTW Merged Collectable Quests"
+group = "gameplay-2"
+version = "1.0"
+plugins = ["TTWMergedQuests.esp"]
+source = { type = "nexus", game = "newvegas", mod = 75829, file_name = "TTW Merged Collectable Quests-75829-1-0-1648101211.7z", uploaded = 1648101211 }
+
+[[mods]]
+id = "ttw-3-3-more-map-markers"
+name = "TTW 3.3 - More Map Markers"
+group = "gameplay-2"
+version = "1.1"
+plugins = ["TTWMoreMapMarkers.esp"]
+source = { type = "nexus", game = "newvegas", mod = 67022, file_name = "TTW 3.3 - More Map Markers-67022-1-1-1650215475.7z", uploaded = 1650215475 }
+
+[[mods]]
+id = "louder-radio-music"
+name = "Louder Radio Music"
+group = "gameplay-2"
+version = "1.1"
+source = { type = "nexus", game = "newvegas", mod = 83843, file_name = "Louder Radio Music-83843-1-1-1701891053.zip", uploaded = 1701891053 }
+
+[[mods]]
+id = "novatscinematic"
+name = "NoVatsCinematic"
+group = "gameplay-2"
+version = "1.0"
+plugins = ["NoVatsCinematic.esp"]
+source = { type = "nexus", game = "newvegas", mod = 90944, file_name = "NoVatsCinematic-90944-1-0-1739075862.rar", uploaded = 1739075862 }
+
+[[mods]]
+id = "casino-exchange-all"
+name = "Casino Exchange All"
+group = "quality-of-life"
+version = "1.5.0.0"
+plugins = ["Casino Exchange All.esp"]
+source = { type = "nexus", game = "newvegas", mod = 35701, file_name = "Casino Exchange All 1-5a-35701-1-5.7z" }
+
+[[mods]]
+id = "gear-checklist"
+name = "Gear Checklist"
+group = "quality-of-life"
+plugins = ["Gear Checklist.esp"]
+source = { type = "manual", file_name = "Gear Checklist 1.4.2 [eddoursul.win].7z", note = "no Nexus id in meta.ini; find the source by name or md5" }
+
+[[mods]]
+id = "unfound-loot"
+name = "Unfound Loot"
+group = "quality-of-life"
+plugins = ["Unfound Loot.esp"]
+source = { type = "manual", file_name = "Unfound Loot 1.0rc2 [eddoursul.win].7z", note = "no Nexus id in meta.ini; find the source by name or md5" }
+
+[[mods]]
+id = "retrievable-throwables"
+name = "Retrievable Throwables"
+group = "quality-of-life"
+version = "0.8b"
+plugins = ["RetrievableThrowables.esp"]
+source = { type = "nexus", game = "newvegas", mod = 66461, file_name = "Retrievable Throwables-66461-0-8b-1549886305.7z", uploaded = 1549886305 }
+
+[[mods]]
+id = "skill-book-checklist"
+name = "Skill Book Checklist"
+group = "quality-of-life"
+plugins = ["Skill Book Checklist.esp"]
+source = { type = "manual", file_name = "Skill Book Checklist 2.0.3 [eddoursul.win].7z", note = "no Nexus id in meta.ini; find the source by name or md5" }
+
+[[mods]]
+id = "sortomatic-ingredient-loader-1-1"
+name = "Sortomatic Ingredient Loader 1-1"
+group = "quality-of-life"
+plugins = ["SortomaticIngredientLoader.esp"]
+source = { type = "nexus", game = "newvegas", mod = 65921, file_name = "Sortomatic Ingredient Loader 1-1-65921-1-1-1541708205.7z" }
+
+[[mods]]
+id = "companion-carry-weight-adder"
+name = "Companion Carry Weight Adder"
+group = "quality-of-life"
+version = "3.5"
+plugins = ["CompanionInventoryBonus.esm"]
+source = { type = "nexus", game = "newvegas", mod = 85266, file_name = "Companion Carry Weight Adder-85266-3-5-1766127538.7z", uploaded = 1766127538 }
+
+[[mods]]
+id = "conelrad-640"
+name = "Conelrad 640"
+group = "quality-of-life"
+plugins = ["Conelrad 640-1240.esp"]
+source = { type = "nexus", game = "newvegas", mod = 1240, file_name = "Conelrad 640-1240-35061-1-4.zip" }
+
+[[mods]]
+id = "depth-resolve-nvse"
+name = "Depth Resolve - NVSE"
+group = "graphical"
+version = "1.3.0"
+source = { type = "nexus", game = "newvegas", mod = 93991, file_name = "Depth Resolve - NVSE-93991-1-3-0-1769783408.7z", uploaded = 1769783408 }
+
+[[mods]]
+id = "vanilla-plus-ao"
+name = "Vanilla Plus AO"
+group = "graphical"
+version = "1.0.3"
+source = { type = "nexus", game = "newvegas", mod = 94824, file_name = "Vanilla Plus AO-94824-1-0-3-1768357186.7z", uploaded = 1768357186 }
+
+[[mods]]
+id = "ttw-3-3-dual-wasteland-street-lights"
+name = "TTW - 3.3 - Dual Wasteland Street Lights"
+group = "graphical"
+version = "1.34"
+plugins = ["Street Lights TTW.esm"]
+source = { type = "nexus", game = "newvegas", mod = 76230, file_name = "TTW - 3.3 - Dual Wasteland Street Lights-76230-1-34-1650625759.7z", uploaded = 1650625759 }
+
+[[mods]]
+id = "raul-small-lamp-glow"
+name = "Raul Small Lamp Glow"
+group = "beautiful"
+plugins = ["Raul Small Lamp Glow.esp"]
+source = { type = "addon", id = "small-lamp-glow" }
+
+[[mods]]
+id = "metromapreplacer"
+name = "MetroMapReplacer"
+group = "graphical"
+source = { type = "manual", file_name = "MetroMapReplacer.7z", note = "no Nexus id in meta.ini; find the source by name or md5" }
+
+[[mods]]
+id = "windows-ambient-light-at-night"
+name = "Windows Ambient Light at Night"
+group = "graphical"
+version = "1.0"
+plugins = ["WindowsAmbientLightAtNight.esp"]
+source = { type = "nexus", game = "newvegas", mod = 84945, file_name = "Windows Ambient Light at Night-84945-1-0-1708127538.zip", uploaded = 1708127538 }
+
+[[mods]]
+id = "ttw-robco-lights"
+name = "TTW - Robco Lights"
+group = "graphical"
+version = "1.1"
+plugins = ["TTW - Robco Lights.esp"]
+source = { type = "nexus", game = "newvegas", mod = 79641, file_name = "TTW - Robco Lights-79641-1-1-1702145166.zip", uploaded = 1702145166 }
+
+[[mods]]
+id = "t-nmc-ttw-3b-no-roads"
+name = "T NMC TTW 3b no roads"
+group = "beautiful"
+source = { type = "manual", note = "hand-staged folder, no archive recorded; source unknown" }
+note = "staged by hand in the 2026-11 runs from the listed Nexus mod; see open question on provenance; a cut of a larger Mod; needs a recipe, see docs/adr/0023"
+
+[[mods]]
+id = "t-nmc-nv-pt3"
+name = "T NMC NV Pt3"
+group = "beautiful"
+source = { type = "manual", file_name = "NMCs Textures NV LARGE Pack Part 3 of 3 FOR NMM-43135-1-0.7z", note = "no Nexus id in meta.ini; find the source by name or md5" }
+note = "staged by hand in the 2026-11 runs from the listed Nexus mod; see open question on provenance"
+
+[[mods]]
+id = "t-nmc-nv-pt2-no-roads"
+name = "T NMC NV Pt2 no roads"
+group = "beautiful"
+hide = ["Textures/landscape/lod/bouldercityworld/blocks/bouldercityworld.buildings.dds", "Textures/landscape/lod/bouldercityworld/blocks/bouldercityworld.buildings_n.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x-2.y-1.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x-2.y-5.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x-2.y3.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x-2.y7.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x-6.y-1.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x-6.y-5.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x-6.y3.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x-6.y7.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x2.y-1.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x2.y-5.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x2.y3.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x2.y7.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x6.y-1.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x6.y-5.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x6.y3.dds", "Textures/landscape/lod/bouldercityworld/diffuse/bouldercityworld.n.level4.x6.y7.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-1.y-3.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-1.y-7.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-1.y1.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-1.y5.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-1.y9.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-5.y-3.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-5.y-7.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-5.y1.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-5.y5.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-5.y9.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-9.y-3.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-9.y-7.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-9.y1.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-9.y5.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x-9.y9.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x3.y-3.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x3.y-7.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x3.y1.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x3.y5.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level4.x3.y9.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level8.x-1.y-7.dds", "Textures/landscape/lod/freesidefortworld/diffuse/freesidefortworld.n.level8.x-1.y1.dds"]
+source = { type = "manual", note = "hand-staged folder, no archive recorded; source unknown" }
+note = "staged by hand in the 2026-11 runs from the listed Nexus mod; see open question on provenance; a cut of a larger Mod; needs a recipe, see docs/adr/0023"
+
+[[mods]]
+id = "t-nmc-nv-pt1"
+name = "T NMC NV Pt1"
+group = "beautiful"
+source = { type = "manual", file_name = "NMCs Textures NV LARGE Pack Part 1 of 3 FOR NMM -43135-1-0.7z", note = "no Nexus id in meta.ini; find the source by name or md5" }
+note = "staged by hand in the 2026-11 runs from the listed Nexus mod; see open question on provenance"
+
+[[mods]]
+id = "s3-mojave-flora-project"
+name = "S3 Mojave Flora Project"
+group = "beautiful"
+version = "1.3.1"
+plugins = ["SSTMojaveFloraLOD.esp"]
+source = { type = "nexus", game = "newvegas", mod = 84698, file_name = "Mojave Flora Project-84698-1-3-1-1745010761.zip", uploaded = 1745010761 }
+
+[[mods]]
+id = "nuclear-trees-vanilla"
+name = "Nuclear Trees - Vanilla"
+group = "lod"
+version = "4.4"
+source = { type = "nexus", game = "newvegas", mod = 88902, file_name = "Nuclear Trees - Vanilla-88902-4-4-1744867755.zip", uploaded = 1744867755 }
+
+[[mods]]
+id = "s3-ttw-northern-greenery"
+name = "S3 TTW Northern Greenery"
+group = "beautiful"
+version = "2.22"
+plugins = ["TTW Northern Greenery.esp"]
+source = { type = "nexus", game = "newvegas", mod = 84773, file = 1000125079, file_name = "TTW Northern Greenery-84773-2-22-1715346872.zip", uploaded = 1715346872 }
+
+[[mods]]
+id = "s3-ttwngng-new-grass"
+name = "S3 TTWNGNG New Grass"
+group = "beautiful"
+version = "1"
+source = { type = "nexus", game = "newvegas", mod = 92584, file_name = "TTWNGNG-92584-1-1749566882.zip", uploaded = 1749566882 }
+
+[[mods]]
+id = "s3-palm-trees-enhanced"
+name = "S3 Palm Trees Enhanced"
+group = "beautiful"
+version = "2.0"
+source = { type = "nexus", game = "newvegas", mod = 83261, file_name = "New Vegas Palm Trees Enhanced-83261-2-0-1763023168.zip", uploaded = 1763023168 }
+
+[[mods]]
+id = "s3-accurate-nasa-stars"
+name = "S3 Accurate NASA Stars"
+group = "beautiful"
+source = { type = "manual", file_name = "Accurate NASA Stars (from rar).zip", note = "re-packed from a rar; the original Nexus mod must be identified" }
+note = "staged by hand in the 2026-11 runs from the listed Nexus mod; see open question on provenance"
+
+[[mods]]
+id = "s3-strip-lighting-overhaul"
+name = "S3 Strip Lighting Overhaul"
+group = "beautiful"
+plugins = ["Strip Lighting Overhaul.esp"]
+source = { type = "manual", file_name = "Strip Lighting Overhaul (from rar).zip", note = "re-packed from a rar; the original Nexus mod must be identified" }
+note = "staged by hand in the 2026-11 runs from the listed Nexus mod; see open question on provenance"
+
+[[mods]]
+id = "s3-strip-cinematic-lighting-overhaul"
+name = "S3 Strip Cinematic Lighting Overhaul"
+group = "beautiful"
+version = "2.1"
+plugins = ["StripCinematicLighting.esp"]
+source = { type = "nexus", game = "newvegas", mod = 86501, file_name = "Strip Cinematic Lighting Overhaul-86501-2-1-1725017405.zip", uploaded = 1725017405 }
+note = "staged by hand in the 2026-11 runs from the listed Nexus mod; see open question on provenance"
+
+[[mods]]
+id = "s3-afterglow"
+name = "S3 Afterglow"
+group = "beautiful"
+version = "2.02"
+plugins = ["AfterglowNeonIllumination.esp"]
+source = { type = "nexus", game = "newvegas", mod = 83736, file_name = "Afterglow -- Neon Illumination-83736-2-02-1757294644.7z", uploaded = 1757294644 }
+
+[[mods]]
+id = "s3-strip-lights-region-fix"
+name = "S3 Strip Lights Region Fix"
+group = "beautiful"
+version = "1.4.1"
+plugins = ["Strip Lights Region Fix.esm"]
+source = { type = "nexus", game = "newvegas", mod = 73596, file_name = "Strip Lights Region Fix-73596-1-4-1-1769123782.7z", uploaded = 1769123782 }
+note = "staged by hand in the 2026-11 runs from the listed Nexus mod; see open question on provenance"
+
+[[mods]]
+id = "s3-tale-of-two-landscapes"
+name = "S3 Tale of Two Landscapes"
+group = "beautiful"
+version = "2.04"
+plugins = ["TaleOfTwoLandscapes.esm"]
+source = { type = "nexus", game = "newvegas", mod = 92564, file_name = "Tale of Two Landscapes-92564-2-04-1753747183.zip", uploaded = 1753747183 }
+
+[[mods]]
+id = "w-natural-waters"
+name = "W Natural Waters"
+group = "beautiful"
+plugins = ["NaturalWaters.esp"]
+source = { type = "manual", note = "hand-staged folder, no archive recorded; source unknown" }
+note = "staged by hand in the 2026-11 runs from the listed Nexus mod; see open question on provenance; a cut of a larger Mod; needs a recipe, see docs/adr/0023"
+
+[[mods]]
+id = "t-nutscapes-land"
+name = "T Nutscapes land"
+group = "beautiful"
+source = { type = "manual", note = "hand-staged folder, no archive recorded; source unknown" }
+note = "staged by hand in the 2026-11 runs from the listed Nexus mod; see open question on provenance; a cut of a larger Mod; needs a recipe, see docs/adr/0023"
+
+[[mods]]
+id = "the-mogul-mausoleum-a-lucky-38-overhaul"
+name = "The Mogul Mausoleum - A Lucky 38 Overhaul"
+group = "beautiful"
+version = "0.17"
+plugins = ["Lucky38Overhaul.esp"]
+source = { type = "nexus", game = "newvegas", mod = 66622, file = 1000059826, file_name = "The Mogul Mausoleum - A Lucky 38 Overhaul.zip", size = 60496860 }
+note = "Lucky 38 interior overhaul, added 2026-11-27"
+
+[[mods]]
+id = "lucky-38-exterior-remastered"
+name = "Lucky 38 Exterior Remastered"
+group = "beautiful"
+version = "1.1"
+plugins = ["Lucky38ExtRemasterNew.esp"]
+source = { type = "nexus", game = "newvegas", mod = 81005, file = 1000108857, file_name = "Lucky 38 Exterior Remastered.zip", size = 43060151 }
+note = "added 2026-11-27 (replaces the 2026-11-23 exclusion)"
+
+[[mods]]
+id = "generated-lod-beautiful-3c"
+name = "Generated LOD (Beautiful 3c)"
+group = "beautiful"
+plugins = ["Lodwright LOD.esp"]
+source = { type = "generated", tool = "lodwright-rs" }
+
+[[mods]]
+id = "terrain-lod"
+name = "Terrain LOD"
+group = "custom-lods"
+enabled = false
+why_off = "replaced by the generated LOD of this list"
+source = { type = "manual", note = "hand-staged folder, no archive recorded; source unknown" }
+note = "VNV LOD Plugins BSA pair from the WSG guide (TTW), loaded through VNV LOD Plugins.esp; manual source"
+
+[[mods]]
+id = "object-lod"
+name = "Object LOD"
+group = "custom-lods"
+enabled = false
+why_off = "replaced by the generated LOD of this list"
+source = { type = "manual", note = "hand-staged folder, no archive recorded; source unknown" }
+note = "VNV LOD Plugins BSA pair from the WSG guide (TTW), loaded through VNV LOD Plugins.esp; manual source"

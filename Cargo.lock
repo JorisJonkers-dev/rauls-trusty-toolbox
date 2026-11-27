@@ -1831,6 +1831,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "raul-modlist"
+version = "0.0.0"
+dependencies = [
+ "raul-testkit",
+ "serde",
+ "toml",
+]
+
+[[package]]
 name = "raul-runner"
 version = "0.0.0"
 dependencies = [
