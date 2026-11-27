@@ -1,9 +1,9 @@
 # The public site (https://jorisjonkers-dev.github.io/rauls-trusty-toolbox/): a landing page, the clickable demo at
-# /demo/, the guided tour at /tour/ and the wiki at /wiki/ (docs/wiki, Markdown). `site/build.py` builds it and
+# /demo/, the guided tour at /tour/, the download page at /download/ and the wiki at /wiki/ (docs/wiki, Markdown). `site/build.py` builds it and
 # `site/check.js` checks it: every internal link resolves, no page logs an error and every tour step ticks.
 #
 # Pages is served from the gh-pages branch, which the bench workflow also writes (bench/). This workflow only replaces
-# its own paths there (index.html, demo/, tour/, wiki/, assets/) and leaves bench/ and README.md alone. The bench
+# its own paths there (index.html, demo/, tour/, wiki/, download/, assets/) and leaves bench/ and README.md alone. The bench
 # history job is not touched and keeps its own behaviour, so no bench data point can be dropped; this job has its own
 # queue (publishes never cancel each other) and, if the branch moved while it ran, rebases onto it and pushes again.
 # The two writers change different paths, so the rebase has nothing to resolve.
@@ -81,12 +81,12 @@ jobs:
       - name: Replace the site's own paths
         working-directory: pages
         run: |
-          for dir in demo tour wiki assets; do
+          for dir in demo tour wiki download assets; do
             mkdir -p "$dir"
             rsync -a --delete "../site/$dir/" "$dir/"
           done
-          cp ../site/index.html ../site/.nojekyll .
-          git add index.html .nojekyll demo tour wiki assets
+          cp ../site/index.html ../site/404.html ../site/.nojekyll .
+          git add index.html 404.html .nojekyll demo tour wiki download assets
           if git diff --cached --quiet; then
             echo "The site is already up to date."
             exit 0
