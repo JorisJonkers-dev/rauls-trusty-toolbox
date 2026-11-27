@@ -32,16 +32,6 @@ Mods change the world, but the game's own far view stays the old one. raul build
   <br><em>The Strip with 312 mods: the game's far view (left) and the one raul built (right).</em>
 </p>
 
-## Small fixes for the mods you have
-
-Some mods look better with a small touch. raul makes these add-ons on your computer, for the mods you installed, and
-says so when it adds one; turn one off on the Mods page and it stays off.
-
-<p align="center">
-  <img src="docs/images/lamp-glow-capital.jpg" alt="Street lamps along the Potomac at night, side by side: on the left one wide white glow covers the far end of the row; on the right each bulb has a small soft halo" width="100%">
-  <br><em>Street Lights TTW at night: one wide glow over the whole row (left), a small halo per bulb with raul's add-on (right).</em>
-</p>
-
 ## How far along it is
 
 - ✅ Setup, mods, load order, distant view, Tale of Two Wastelands and Play work on Linux, Windows and macOS.

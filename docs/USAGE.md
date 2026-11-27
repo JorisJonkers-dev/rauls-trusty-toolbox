@@ -24,6 +24,11 @@ that mod's plugin; nothing of the game or the mod is downloaded or shipped. The 
 for Street Lights TTW: it swaps the wide glow discs over the street lamps for a small, soft halo per bulb, and keeps
 the lamps' light and beams.
 
+<p align="center">
+  <img src="images/lamp-glow-capital.jpg" alt="Street lamps along the Potomac at night, side by side: on the left one wide white glow covers the far end of the row; on the right each bulb has a small soft halo" width="100%">
+  <br><em>Street Lights TTW at night: one wide glow over the whole row (left), a small halo per bulb with raul's add-on (right).</em>
+</p>
+
 - `raul setup` adds the add-ons at its end, and `raul run` and `raul scene` check them before the game starts. Each
   change prints one line, such as `raul add-on Raul Small Lamp Glow: added the Mod ...`. A check that goes wrong
   prints a warning, and the game starts anyway.
