@@ -1,11 +1,11 @@
-# The GUI workspace (crates/raul-gui, ADR-0004) has its own lock file, so ci.yml's workspace steps never see it.
-# This workflow runs its checks: format, lint, tests with the 70% changed-line coverage gate (docs/COVERAGE.md),
-# the page snapshots, a headless start of the release `raul` (#16), licences and advisories. It runs on every change. There is no GPU:
-# snapshots render on Mesa's software Vulkan (lavapipe) and the
-# window opens under Xvfb on Mesa's software OpenGL (llvmpipe).
+# The GUI workspace (crates/raul-gui, ADR-0004) has its own lock file, so ci.yml's workspace jobs never see it.
+# This workflow runs its checks as two parallel jobs: lint (format, lint, doc tests, a headless start of the `raul`
+# window (#16), licences and advisories) and test (tests with the 70% changed-line coverage gate, docs/COVERAGE.md,
+# and the page snapshots). There is no GPU: snapshots render on Mesa's software Vulkan (lavapipe) and the window
+# opens under Xvfb on Mesa's software OpenGL (llvmpipe).
 name: GUI
 
-# Called by ci.yml on every pull request and every push to main (no path filter), so Pipeline Complete can wait for it.
+# Called by ci.yml on every pull request that changes code and every push to main, so Pipeline Complete gates on it.
 on:
   workflow_call:
   workflow_dispatch:
@@ -21,12 +21,13 @@ env:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_TERM_COLOR: always
+  MESA_PACKAGES: mesa-vulkan-drivers libgl1-mesa-dri libegl1 xvfb libxkbcommon-x11-0
 
 jobs:
-  gui:
-    name: GUI workspace
+  lint:
+    name: GUI workspace lint
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: crates/raul-gui
@@ -34,67 +35,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
-          fetch-depth: 0
-      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+          persist-credentials: false
+      - uses: ./.github/actions/rust-setup
         with:
-          workspaces: crates/raul-gui
-      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
-
-      - name: Software rendering and a virtual display
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq mesa-vulkan-drivers libgl1-mesa-dri libegl1 xvfb libxkbcommon-x11-0
+          workspaces: crates/raul-gui -> target
 
       - name: Format
-        if: ${{ !cancelled() }}
         run: cargo fmt --all --check
 
       - name: Lint
         if: ${{ !cancelled() }}
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
-
-      # The snapshot tests are among them; a changed picture fails and leaves .new.png and .diff.png files.
-      - name: Tests with coverage
-        id: tests
-        if: ${{ !cancelled() }}
-        env:
-          # The ci profile of this workspace's .config/nextest.toml: no retries and a JUnit file for the feature catalogue.
-          NEXTEST_PROFILE: ci
-        run: mise exec -- cargo llvm-cov nextest --workspace --locked --lcov --output-path lcov.info
-      - name: Keep the JUnit results
-        if: ${{ !cancelled() }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/junit"
-          junit="$(find target -path '*nextest/ci/junit.xml' | head -n 1)"
-          if [ -n "$junit" ]; then cp "$junit" "$RUNNER_TEMP/junit/junit-linux-gui.xml"; fi
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: ${{ !cancelled() }}
-        with:
-          name: junit-linux-gui
-          path: ${{ runner.temp }}/junit/
-          if-no-files-found: ignore
-          retention-days: 3
-
-      - name: Snapshot differences
-        if: ${{ failure() && steps.tests.outcome == 'failure' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: snapshot-differences
-          path: |
-            crates/raul-gui/tests/snapshots/**/*.new.png
-            crates/raul-gui/tests/snapshots/**/*.diff.png
-          if-no-files-found: ignore
-
-      - name: Changed-line coverage gate (70%)
-        if: ${{ !cancelled() && steps.tests.outcome == 'success' }}
-        env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          set -euo pipefail
-          if [ -z "${BASE:-}" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
-            echo "No base commit to compare with: nothing to gate." | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          cargo run --quiet --locked --manifest-path ../../tools/coverage-gate/Cargo.toml -- \
-            --lcov lcov.info --base "$BASE" --min 70 --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Doc tests
         if: ${{ !cancelled() }}
@@ -108,6 +59,9 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
+          sudo apt-get update -qq
+          # shellcheck disable=SC2086
+          sudo apt-get install -y -qq $MESA_PACKAGES
           cargo build --locked --bin raul
           out=$(timeout 120 xvfb-run -a target/debug/raul)
           echo "$out"
@@ -128,3 +82,60 @@ jobs:
       - name: Advisories (cargo audit)
         if: ${{ !cancelled() }}
         run: mise exec -- cargo audit
+
+  test:
+    name: GUI workspace tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: crates/raul-gui
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/rust-setup
+        with:
+          workspaces: crates/raul-gui -> target
+
+      - name: Software rendering
+        run: |
+          sudo apt-get update -qq
+          # shellcheck disable=SC2086
+          sudo apt-get install -y -qq $MESA_PACKAGES
+
+      # The snapshot tests are among them; a changed picture fails and leaves .new.png and .diff.png files.
+      - name: Tests with coverage
+        id: tests
+        env:
+          # The ci profile of this workspace's .config/nextest.toml: no retries and a JUnit file for the feature catalogue.
+          NEXTEST_PROFILE: ci
+        run: mise exec -- cargo llvm-cov nextest --workspace --locked --lcov --output-path lcov.info
+      - name: Keep the JUnit results
+        if: ${{ !cancelled() }}
+        run: ../../scripts/ci/keep-junit.sh junit-linux-gui
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: junit-linux-gui
+          path: ${{ runner.temp }}/junit/junit-linux-gui.xml
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Snapshot differences
+        if: ${{ failure() && steps.tests.outcome == 'failure' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: snapshot-differences
+          path: |
+            crates/raul-gui/tests/snapshots/**/*.new.png
+            crates/raul-gui/tests/snapshots/**/*.diff.png
+          if-no-files-found: ignore
+
+      - name: Changed-line coverage gate (70%)
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' }}
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: ../../scripts/ci/coverage-gate.sh lcov.info

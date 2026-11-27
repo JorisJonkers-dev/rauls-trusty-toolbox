@@ -36,7 +36,7 @@ const fdate = t => { const d = new Date(t); return `${d.getDate()} ${MON[d.getMo
 const ftime = t => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 const ago = t => { const m = Math.round((Date.now() - t) / 60000); if (m < 1) return 'just now'; if (m < 60) return `${m} min ago`; const h = Math.round(m / 60); if (h < 24) return `${h} h ago`; const d = Math.round(h / 24); return d === 1 ? 'yesterday' : `${d} days ago`; };
 const dayLabel = t => { const d0 = new Date(); d0.setHours(0, 0, 0, 0); const dd = Math.floor((d0 - new Date(t).setHours(0, 0, 0, 0)) / 864e5); return dd <= 0 ? 'Today' : dd === 1 ? 'Yesterday' : fdate(t); };
-const hm = mins => mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)} h${mins % 60 ? ' ' + (mins % 60) + ' min' : ''}`;
+const hm = mins => mins < 1 ? `${Math.max(1, Math.round(mins * 60))} s` : (mins = Math.round(mins)) < 60 ? `${mins} min` : `${Math.floor(mins / 60)} h${mins % 60 ? ' ' + (mins % 60) + ' min' : ''}`;
 const DAY = 864e5;
 const clone = o => JSON.parse(JSON.stringify(o));
 const uid = () => Math.random().toString(36).slice(2, 8);
@@ -208,8 +208,9 @@ function farState(p) {
 const qLabel = p => p.far.fine ? 'Custom' : QUAL[p.far.q][0];
 const farSize = p => { let s = QUAL[p.far.q][1]; if (p.far.fine) s = +(s * (0.6 + p.far.fine.tex / 1024 * 0.4 + p.far.fine.dist * 0.08)).toFixed(1); return s + (p.mods.some(m => m.on && m.id === 'wfo') ? 0.3 : 0) + (ttwActive(p) ? 0.8 : 0); };
 const storeLow = () => S.g.storeFree < 20;
+const TTW_GB = 25, ttwRoom = free => free >= TTW_GB;
 const gameOk = () => S.g.gameOk && !S.g.scen.game;
-const updAvail = () => S.g.tbVer !== '0.6.0';
+const TB = () => PARTS.find(c => c.id === 'toolbox'), updAvail = () => S.g.tbVer !== TB().nw;
 
 /* play checks: one list feeds Home, the Play flow and the Doctor */
 function checks(p = P()) {
@@ -248,7 +249,7 @@ function change(label, fn, o = {}) {
 }
 function undo() {
   const p = P(); const st = U.undo[p.id]; if (!st || !st.length) return;
-  const u = st.pop(); Object.assign(p, clone(u.s)); syncShared(p); recordVersion(p); toast(`Undone: ${u.label}`); commit();
+  const u = st.pop(); U.toasts = U.toasts.filter(t => t.text !== u.label); Object.assign(p, clone(u.s)); syncShared(p); recordVersion(p); toast(`Undone: ${u.label}`); commit();
 }
 
 /* ===== jobs: timed mock work with progress ===== */
@@ -302,7 +303,7 @@ function render() { if (rq) return; rq = true; requestAnimationFrame(() => { rq 
 function commit() { store.save(); render(); }
 function draw() {
   const root = document.getElementById('app');
-  const html = S.wiz.done ? appHTML() : wizHTML();
+  const html = U.quit ? `<div class="wiz"><div class="inner" style="text-align:center;padding-top:160px"><h1>Raul’s Toolbox has closed</h1><p class="lead" style="margin:0 auto 18px">Your setup is saved.</p><button type="button" class="btn primary" data-act="reopen" data-arg="" data-k="reopen:">Open again</button></div></div>` : S.wiz.done ? appHTML() : wizHTML();
   const t = document.createElement('div'); t.innerHTML = html;
   morph(root, t);
   document.documentElement.dataset.hc = S.g.hc ? '1' : '0';

@@ -1,7 +1,8 @@
 # Changed-line coverage gate
 
 Every pull request must run at least **70%** of the executable lines it adds or edits in the Toolbox's own crates
-in a test. The step "Changed-line coverage gate (70%)" of `Pipeline Complete` enforces it, so a pull request below
+in a test. The step "Changed-line coverage gate (70%)" (`scripts/ci/coverage-gate.sh`, in the `test-linux` job of `ci.yml` and
+the tests job of `gui.yml`) enforces it and `Pipeline Complete` gates on it, so a pull request below
 the line cannot merge. The rule and the number are the estate's (nv-rs `docs/fork/COVERAGE.md`, ttwright-rs
 `docs/COVERAGE.md`, which this copies).
 
@@ -36,12 +37,12 @@ Components under `components/` keep their own catalogues in their own repositori
 - **States.** *tagged*: a test that is not ignored tags it. *passing*: a tagging test passed on one system.
   *covered*: tagging tests passed, and none failed, on Linux, Windows and macOS.
 - **Three systems.** The workspace tests run through `cargo nextest --profile ci` (`.config/nextest.toml`: no retries,
-  JUnit with every skipped test listed) on Linux (`Pipeline Complete` and the GUI workflow), Windows and macOS
+  JUnit with every skipped test listed) on Linux (`test-linux` and the GUI workflow), Windows and macOS
   (`platforms`). Each leaves a `junit-<system>` artifact.
-- **On a pull request** `Pipeline Complete` runs `tally check`: the catalogue is valid, ids are never reused (one that
+- **On a pull request** the `catalogue` job (`scripts/ci/feature-catalogue.sh`) runs `tally check`: the catalogue is valid, ids are never reused (one that
   goes away is kept with `retired`), tags name live ids inside tests, and the generator copy is the pinned tally's.
   A pull request may not edit `docs/coverage/`.
-- **On main** the step ingests the three JUnit files, runs `tally check --ratchet` against the last report (the tagged
+- **On main** the job ingests the three JUnit files, runs `tally check --ratchet` against the last report (the tagged
   and covered counts may not drop) and renders `docs/coverage/FEATURES.md`, `tally-report.json` and `tally.svg`.
   The `reports` job commits only those three files, as raul-progress-bot, with the skip-ci marker so the commit does
   not start another run.

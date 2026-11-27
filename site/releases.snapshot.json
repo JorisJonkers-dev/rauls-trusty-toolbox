@@ -1,0 +1,124 @@
+{
+ "fetched": "2026-11-27",
+ "releases": [
+  {
+   "tag": "v0.8.0",
+   "name": "v0.8.0",
+   "date": "2026-11-25",
+   "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/tag/v0.8.0",
+   "prerelease": false,
+   "body": "## Install\n\nDownload the file for your system below and follow the Install section of the\n[README](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox#install). To check a download, put it next to\n`SHA256SUMS` and run `sha256sum -c SHA256SUMS --ignore-missing` (Linux; macOS: `shasum -a 256 <file>`, Windows\nPowerShell: `Get-FileHash <file>`, then compare with the line of that file).\n\n## [0.8.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.7.0...v0.8.0) (2026-11-25)\n\n\n### Features\n\n* **lod:** ask lodwright for far models of objects no plugin marks visible from far ([#630](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/630)) ([4e93b89](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/4e93b8916b3338e1e96b50bdc5e723a114b0eff7))\n\n## Contents\n\nEvery installer holds raul with the linked Components built in (ADR-0016) and the engine (nv-rs) too.\nNo separate engine program is included; the game starts as raul's own play mode.\nNothing of ours is downloaded on first run.\n\n| Part | Version | How it is in the installer |\n| --- | --- | --- |\n| nvmod-rs | v0.19.0 | linked into raul |\n| nv-rs | v0.26.0 | linked into raul |\n| loot-rs | v0.10.0 | linked into raul |\n| lodwright-rs | v0.19.0 | linked into raul |\n| ttwright-rs | v0.5.0 | linked into raul |\n\n`SHA256SUMS` lists the files below; check a download against it.\n\n| File | SHA-256 |\n| --- | --- |\n| `THIRD-PARTY-NOTICES.md` | `897feda241a5e3848a1806bfa363b24d28e20308abcf691a821aad49c9e10068` |\n| `raul-0.8.0-linux-x64.AppImage` | `79219e767cbed512beff6c116a03e2f65346a8b589cb290672cacf7f240d3c7c` |\n| `raul-0.8.0-linux-x64.deb` | `ef7955a62207847b69d2be31f1be676309cb25da3c054a18b1cab7ebd93ece70` |\n| `raul-0.8.0-linux-x64.tar.gz` | `f1becd4f60866f3f995d7c45c54196331bfc68e39ba84ea910ed080c9657381b` |\n| `raul-0.8.0-macos-universal.dmg` | `2a7639a1b9421f3d9ce3f1c28bc9dfa814ca9c33f72e1567b83f05643025dc46` |\n| `raul-0.8.0-macos-universal.tar.gz` | `4df3116c49af754fd5431f072f3509e74d0a4a590d2721db6ffcc69e97dd8cf0` |\n| `raul-0.8.0-windows-x64-portable.zip` | `b2d2eb4abd6813c4abecf1a8d1f457e24107454f471ff77628ef51bc1f073653` |\n| `raul-0.8.0-windows-x64.setup.exe` | `c58f2dc2d24e9cfa6afcc742995d25dfbb0129bdf184cdac82073adfed3a4306` |\n| `raul.cdx.json` | `fb78de6d1e37bc18f2e2edbacd7027698d0b5457390f06d5d7f5824a264a0d09` |\n\n## Signing\n\n- Windows: **unsigned**. SmartScreen may warn; choose More info, Run anyway.\n- macOS: **unsigned**: macOS will ask you to allow it in System Settings, Privacy & Security.\n- Linux: AppImage, .deb and .tar.gz are not signed; verify with SHA256SUMS and `gh attestation verify <file> --repo JorisJonkers-dev/rauls-trusty-toolbox`.\n\nSource of every GPL Component at these versions: see the submodules (components/) at v0.8.0.\nYou need your own copy of Fallout: New Vegas; no game files are included.\n",
+   "assets": [
+    {
+     "name": "raul-0.8.0-linux-x64.AppImage",
+     "size": 52001272,
+     "digest": "sha256:79219e767cbed512beff6c116a03e2f65346a8b589cb290672cacf7f240d3c7c",
+     "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/download/v0.8.0/raul-0.8.0-linux-x64.AppImage"
+    },
+    {
+     "name": "raul-0.8.0-linux-x64.deb",
+     "size": 56646934,
+     "digest": "sha256:ef7955a62207847b69d2be31f1be676309cb25da3c054a18b1cab7ebd93ece70",
+     "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/download/v0.8.0/raul-0.8.0-linux-x64.deb"
+    },
+    {
+     "name": "raul-0.8.0-linux-x64.tar.gz",
+     "size": 56984868,
+     "digest": "sha256:f1becd4f60866f3f995d7c45c54196331bfc68e39ba84ea910ed080c9657381b",
+     "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/download/v0.8.0/raul-0.8.0-linux-x64.tar.gz"
+    },
+    {
+     "name": "raul-0.8.0-macos-universal.dmg",
+     "size": 102671863,
+     "digest": "sha256:2a7639a1b9421f3d9ce3f1c28bc9dfa814ca9c33f72e1567b83f05643025dc46",
+     "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/download/v0.8.0/raul-0.8.0-macos-universal.dmg"
+    },
+    {
+     "name": "raul-0.8.0-macos-universal.tar.gz",
+     "size": 102922742,
+     "digest": "sha256:4df3116c49af754fd5431f072f3509e74d0a4a590d2721db6ffcc69e97dd8cf0",
+     "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/download/v0.8.0/raul-0.8.0-macos-universal.tar.gz"
+    },
+    {
+     "name": "raul-0.8.0-windows-x64-portable.zip",
+     "size": 46822915,
+     "digest": "sha256:b2d2eb4abd6813c4abecf1a8d1f457e24107454f471ff77628ef51bc1f073653",
+     "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/download/v0.8.0/raul-0.8.0-windows-x64-portable.zip"
+    },
+    {
+     "name": "raul-0.8.0-windows-x64.setup.exe",
+     "size": 34920726,
+     "digest": "sha256:c58f2dc2d24e9cfa6afcc742995d25dfbb0129bdf184cdac82073adfed3a4306",
+     "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/download/v0.8.0/raul-0.8.0-windows-x64.setup.exe"
+    },
+    {
+     "name": "raul.cdx.json",
+     "size": 342052,
+     "digest": "sha256:fb78de6d1e37bc18f2e2edbacd7027698d0b5457390f06d5d7f5824a264a0d09",
+     "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/download/v0.8.0/raul.cdx.json"
+    },
+    {
+     "name": "SHA256SUMS",
+     "size": 848,
+     "digest": "sha256:15e903939ab21f16634dd4d5a786516106fddd1dde1456c7356aae532f041e06",
+     "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/download/v0.8.0/SHA256SUMS"
+    },
+    {
+     "name": "THIRD-PARTY-NOTICES.md",
+     "size": 30005,
+     "digest": "sha256:897feda241a5e3848a1806bfa363b24d28e20308abcf691a821aad49c9e10068",
+     "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/download/v0.8.0/THIRD-PARTY-NOTICES.md"
+    }
+   ]
+  },
+  {
+   "tag": "v0.7.0",
+   "name": "v0.7.0",
+   "date": "2026-11-25",
+   "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/tag/v0.7.0",
+   "prerelease": false
+  },
+  {
+   "tag": "v0.6.0",
+   "name": "v0.6.0",
+   "date": "2026-11-21",
+   "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/tag/v0.6.0",
+   "prerelease": false
+  },
+  {
+   "tag": "v0.5.0",
+   "name": "v0.5.0",
+   "date": "2026-11-19",
+   "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/tag/v0.5.0",
+   "prerelease": false
+  },
+  {
+   "tag": "v0.4.0",
+   "name": "v0.4.0",
+   "date": "2026-11-18",
+   "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/tag/v0.4.0",
+   "prerelease": false
+  },
+  {
+   "tag": "v0.3.0",
+   "name": "v0.3.0",
+   "date": "2026-11-17",
+   "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/tag/v0.3.0",
+   "prerelease": false
+  },
+  {
+   "tag": "v0.2.0",
+   "name": "v0.2.0",
+   "date": "2026-11-17",
+   "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/tag/v0.2.0",
+   "prerelease": false
+  },
+  {
+   "tag": "v0.1.0",
+   "name": "v0.1.0",
+   "date": "2026-11-16",
+   "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/tag/v0.1.0",
+   "prerelease": false
+  }
+ ]
+}

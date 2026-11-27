@@ -72,7 +72,7 @@ function instPlugins(d) {
   const a = ARCH[d.sel]; if (!a.mod) return [];
   let pl = CAT[a.mod].plugins.map(x => x[0]);
   if (a.mod === 'nsk' && d.ch.ed === 'full') pl = ['Nevada Skies - Full Edition.esp'];
-  (d.ch.patch || []).forEach(x => pl.push(x === 'wmx' ? 'B42 Optics - WMX.esp' : 'B42 Optics - WRP.esp'));
+  (d.ch.patch || []).forEach(x => pl.push({ wmx: 'B42 Optics - WMX.esp', wrp: 'B42 Optics - WRP.esp', jsue: 'The Living Desert - JSUE.esp' }[x]));
   return pl;
 }
 function optLabels(d) { const a = ARCH[d.sel]; if (!a.fomod) return []; return a.fomod.flatMap(g => g.opts.filter(o => g.kind === 'one' ? d.ch[g.id] === o[0] : (d.ch[g.id] || []).includes(o[0])).map(o => o[1])); }

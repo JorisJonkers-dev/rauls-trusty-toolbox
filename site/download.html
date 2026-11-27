@@ -1,0 +1,73 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download · Raul's Toolbox</title>
+<meta name="description" content="Download Raul's Toolbox for Linux, Windows or macOS: the latest release, checksums, install steps and older versions.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23F59E3B%27 stroke-width=%271.8%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%273.2%27/%3E%3Cpath d=%27M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="{{up}}assets/site.css">
+</head>
+<body>
+<!--HEADER-->
+<div class="app">
+<!--SIDE-->
+<main class="main" id="dl" data-repo="{{repo}}">
+<div class="phdr"><span class="ico"><svg class="i" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M4.5 20h15"/></svg></span><h1>Download</h1><span class="tag acc" id="ver">{{version}}</span><span class="st" id="status" role="status"></span></div>
+
+<noscript><section class="card"><p>This page lists the files of the latest release with JavaScript. Without it, take them from the <a href="{{repo}}/releases/latest">latest release on GitHub</a>.</p></section></noscript>
+
+<section class="card hero-card" id="primary" aria-live="polite"></section>
+<div id="oses"></div>
+
+<section class="card" id="verify">
+<div class="sech"><h2 class="t">Check your download</h2></div>
+<div class="prose">
+<p>Every release has a <code>SHA256SUMS</code> file, and each file above shows its SHA-256. Put the download and <code>SHA256SUMS</code> in one folder and compare:</p>
+<ul>
+<li>Linux: <code>sha256sum -c SHA256SUMS --ignore-missing</code></li>
+<li>macOS: <code>shasum -a 256 &lt;file&gt;</code>, then compare with the matching line.</li>
+<li>Windows (PowerShell): <code>Get-FileHash &lt;file&gt;</code>, then compare with the matching line.</li>
+</ul>
+<p>To also check where a file was built, run <code>gh attestation verify &lt;file&gt; --repo JorisJonkers-dev/rauls-trusty-toolbox</code> (GitHub CLI 2.49 or newer, logged in with <code>gh auth login</code>). The packages themselves are not signed yet: Windows SmartScreen and macOS Gatekeeper will warn, and the steps above say how to go on. The <a href="{{repo}}/blob/main/docs/INSTALL.md#which-file-and-how-to-check-it">install guide</a> has the details.</p>
+<div id="extras" class="rows"></div>
+</div>
+</section>
+
+<section class="card" id="notes-card">
+<div class="sech"><h2 class="t">Release notes <span id="notes-ver"></span></h2></div>
+<div class="prose notes" id="notes"></div>
+</section>
+
+<section class="card" id="updates">
+<div class="sech"><h2 class="t">How raul updates</h2></div>
+<div class="prose">
+<p>raul checks for a new release only when you ask: open the System page and choose Check again. If there is one, Update installs it and keeps the version before it, so you can go back. Nothing is downloaded in the background. You can also come back to this page and install a newer file over the old one.</p>
+</div>
+</section>
+
+<section class="card" id="older">
+<div class="sech"><h2 class="t">Older releases</h2></div>
+<div class="rows" id="older-rows"></div>
+</section>
+
+<section class="card">
+<div class="sech"><h2 class="t">More from here</h2></div>
+<div class="rows">
+<a class="r click" href="{{up}}tour/"><span class="nm">Guided tour</span><span class="sub">Ten short steps in the demo</span><span class="end"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></a>
+<a class="r click" href="{{up}}demo/"><span class="nm">Clickable demo</span><span class="sub">Try the window with made-up data</span><span class="end"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></a>
+<a class="r click" href="{{up}}wiki/getting-started.html"><span class="nm">Getting started</span><span class="sub">Install and first start</span><span class="end"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></a>
+<a class="r click" href="{{up}}wiki/faq.html"><span class="nm">Troubleshooting and FAQ</span><span class="sub">Short answers, including warnings about the download</span><span class="end"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></a>
+<a class="r click" href="{{repo}}/issues/new/choose"><span class="nm">Report a bug</span><span class="sub">Open a new issue on GitHub</span><span class="end"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></a>
+<a class="r click" href="{{repo}}/blob/main/CHANGELOG.md"><span class="nm">Changelog</span><span class="sub">Every change, release by release</span><span class="end"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></a>
+<a class="r click" href="{{repo}}/blob/main/docs/INSTALL.md#from-source"><span class="nm">Build from source</span><span class="sub">Clone with submodules, then <code>cargo run -p raul-cli</code></span><span class="end"><svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></span></a>
+</div>
+</section>
+<p class="foot">raul ships no game files and is not affiliated with Bethesda Softworks, ZeniMax Media or Obsidian Entertainment. You need your own copy of Fallout: New Vegas.</p>
+</main>
+</div>
+<script type="application/json" id="rel-data">{{data}}</script>
+<script src="download.js"></script>
+</body>
+</html>

@@ -145,3 +145,20 @@ jobs:
             git pull --rebase origin gh-pages
           done
           exit 1
+      - name: Put the site navbar on the raw chart page
+        # github-action-benchmark rewrites bench/raw/index.html on every run; the navbar is added again (idempotent).
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git clone --branch gh-pages --single-branch "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/navbar"
+          python3 site/bench_raw.py "$RUNNER_TEMP/navbar/bench"
+          cd "$RUNNER_TEMP/navbar"
+          git add bench/raw
+          git diff --cached --quiet && exit 0
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "chore(bench): the site navbar on the raw benchmark page"
+          for _ in 1 2 3 4 5; do
+            git push origin HEAD:gh-pages && exit 0
+            git pull --rebase origin gh-pages
+          done
+          exit 1

@@ -24,6 +24,7 @@ const CAT = {
   war: { name: 'Weapon Animation Replacers', ver: '3.2', kind: 'assets', size: 120, plugins: [], what: 'New first-person animations for many weapons.' }
 };
 /* patch plugins an install option can add */
+const ML_NEW = 4;
 const EXTRA_PLUGINS = { 'B42 Optics - WMX.esp': [54, ['WMX.esm'], 'Needs Weapon Mods Expanded.', 'b42'], 'B42 Optics - WRP.esp': [57, ['WeaponRetexture.esp'], 'Needs Weapon Retexture Project.', 'b42'], 'The Living Desert - JSUE.esp': [59, ['JSawyer Ultimate.esm'], 'Needs JSawyer Ultimate Edition.', 'tld'], 'Nevada Skies - Full Edition.esp': [60, [], 'Load near the end: weather records win last.', 'nsk'] };
 
 /* archives in the picker ("Downloads" in the Toolbox's download folder) */
