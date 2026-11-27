@@ -18,13 +18,41 @@
       "unit": "s",
       "better": "lower",
       "series": [
-        {"id": "ours", "label": "lodwright", "role": "ours"},
-        {"id": "xlodgen", "label": "xLODGen", "role": "against", "tool": "xLODGen", "status": "not-measured", "note": "Needs the same plugin set run through xLODGen and DynDOLOD on a machine with Windows or Wine; no timing exists yet."},
-        {"id": "dyndolod", "label": "DynDOLOD", "role": "against", "tool": "DynDOLOD", "status": "not-measured", "note": "As above."}
+        {
+          "id": "ours",
+          "label": "lodwright",
+          "role": "ours"
+        },
+        {
+          "id": "xlodgen",
+          "label": "xLODGen",
+          "role": "against",
+          "tool": "xLODGen",
+          "status": "not-measured",
+          "note": "Needs the same plugin set run through xLODGen and DynDOLOD on a machine with Windows or Wine; no timing exists yet."
+        },
+        {
+          "id": "dyndolod",
+          "label": "DynDOLOD",
+          "role": "against",
+          "tool": "DynDOLOD",
+          "status": "not-measured",
+          "note": "As above."
+        }
       ],
       "cases": [
-        {"name": "Plain game, 18 plugins", "values": {"ours": 126}},
-        {"name": "Modded, 133 plugins", "values": {"ours": 211}}
+        {
+          "name": "Plain game, 18 plugins",
+          "values": {
+            "ours": 126
+          }
+        },
+        {
+          "name": "Modded, 133 plugins",
+          "values": {
+            "ours": 211
+          }
+        }
       ]
     },
     {
@@ -34,17 +62,67 @@
       "unit": "s",
       "better": "lower",
       "series": [
-        {"id": "plain", "label": "Plain game, 18 plugins", "role": "ours"},
-        {"id": "modded", "label": "Modded, 133 plugins", "role": "ours"}
+        {
+          "id": "plain",
+          "label": "Plain game, 18 plugins",
+          "role": "ours"
+        },
+        {
+          "id": "modded",
+          "label": "Modded, 133 plugins",
+          "role": "ours"
+        }
       ],
       "cases": [
-        {"name": "read plugins, setup, assets index", "values": {"plain": 2.3, "modded": 3.2}},
-        {"name": "terrain: land tiles and shipped plan", "values": {"plain": 10.1, "modded": 13.4}},
-        {"name": "terrain: blocks (4 threads)", "values": {"plain": 99.6, "modded": 118.2}},
-        {"name": "objects: collect, models, textures", "values": {"plain": 1.5, "modded": 7.6}},
-        {"name": "objects: atlas", "values": {"plain": 9.5, "modded": 62.3}},
-        {"name": "objects: blocks", "values": {"plain": 1.1, "modded": 2.4}},
-        {"name": "trees", "values": {"plain": 1.6, "modded": 4.3}}
+        {
+          "name": "read plugins, setup, assets index",
+          "values": {
+            "plain": 2.3,
+            "modded": 3.2
+          }
+        },
+        {
+          "name": "terrain: land tiles and shipped plan",
+          "values": {
+            "plain": 10.1,
+            "modded": 13.4
+          }
+        },
+        {
+          "name": "terrain: blocks (4 threads)",
+          "values": {
+            "plain": 99.6,
+            "modded": 118.2
+          }
+        },
+        {
+          "name": "objects: collect, models, textures",
+          "values": {
+            "plain": 1.5,
+            "modded": 7.6
+          }
+        },
+        {
+          "name": "objects: atlas",
+          "values": {
+            "plain": 9.5,
+            "modded": 62.3
+          }
+        },
+        {
+          "name": "objects: blocks",
+          "values": {
+            "plain": 1.1,
+            "modded": 2.4
+          }
+        },
+        {
+          "name": "trees",
+          "values": {
+            "plain": 1.6,
+            "modded": 4.3
+          }
+        }
       ]
     },
     {
@@ -54,16 +132,41 @@
       "unit": "GiB",
       "better": "lower",
       "series": [
-        {"id": "ours", "label": "lodwright", "role": "ours"},
-        {"id": "xlodgen", "label": "xLODGen", "role": "against", "tool": "xLODGen", "status": "not-measured", "note": "Not measured."}
+        {
+          "id": "ours",
+          "label": "lodwright",
+          "role": "ours"
+        },
+        {
+          "id": "xlodgen",
+          "label": "xLODGen",
+          "role": "against",
+          "tool": "xLODGen",
+          "status": "not-measured",
+          "note": "Not measured."
+        }
       ],
       "cases": [
-        {"name": "Plain game, 18 plugins", "values": {"ours": 3.5}},
-        {"name": "Modded, 133 plugins", "values": {"ours": 4.2}}
+        {
+          "name": "Plain game, 18 plugins",
+          "values": {
+            "ours": 3.5
+          }
+        },
+        {
+          "name": "Modded, 133 plugins",
+          "values": {
+            "ours": 4.2
+          }
+        }
       ]
     }
   ],
   "pending": [
-    {"tool": "xLODGen and DynDOLOD", "what": "The same plugin sets run through xLODGen and DynDOLOD (time, peak memory, output size), and the size of lodwright's own output, which is not recorded yet", "issue": ""}
+    {
+      "tool": "xLODGen and DynDOLOD",
+      "what": "The same plugin sets run through xLODGen and DynDOLOD (time, peak memory, output size), and the size of lodwright's own output, which is not recorded yet",
+      "issue": "https://github.com/JorisJonkers-dev/lodwright-rs/issues/438"
+    }
   ]
 }

@@ -18,14 +18,49 @@
       "unit": "ms",
       "better": "lower",
       "series": [
-        {"id": "ours", "label": "loot-rs", "role": "ours"},
-        {"id": "cached", "label": "loot-rs, second sort (SortCache)", "role": "ours"},
-        {"id": "libloot", "label": "libloot 0.29.7", "role": "against", "tool": "libloot", "version": "0.29.7"}
+        {
+          "id": "ours",
+          "label": "loot-rs",
+          "role": "ours"
+        },
+        {
+          "id": "cached",
+          "label": "loot-rs, second sort (SortCache)",
+          "role": "ours"
+        },
+        {
+          "id": "libloot",
+          "label": "libloot 0.29.7",
+          "role": "against",
+          "tool": "libloot",
+          "version": "0.29.7"
+        }
       ],
       "cases": [
-        {"name": "133 plugins", "values": {"ours": 29, "cached": 14, "libloot": 69}},
-        {"name": "255 plugins", "values": {"ours": 52, "cached": 33, "libloot": 142}},
-        {"name": "1024 plugins", "values": {"ours": 680, "cached": 630, "libloot": 3000}}
+        {
+          "name": "133 plugins",
+          "values": {
+            "ours": 29,
+            "cached": 14,
+            "libloot": 69
+          }
+        },
+        {
+          "name": "255 plugins",
+          "values": {
+            "ours": 52,
+            "cached": 33,
+            "libloot": 142
+          }
+        },
+        {
+          "name": "1024 plugins",
+          "values": {
+            "ours": 680,
+            "cached": 630,
+            "libloot": 3000
+          }
+        }
       ]
     },
     {
@@ -35,16 +70,42 @@
       "unit": "MiB",
       "better": "lower",
       "series": [
-        {"id": "ours", "label": "loot-rs", "role": "ours"},
-        {"id": "libloot", "label": "libloot 0.29.7", "role": "against", "tool": "libloot", "version": "0.29.7"}
+        {
+          "id": "ours",
+          "label": "loot-rs",
+          "role": "ours"
+        },
+        {
+          "id": "libloot",
+          "label": "libloot 0.29.7",
+          "role": "against",
+          "tool": "libloot",
+          "version": "0.29.7"
+        }
       ],
       "cases": [
-        {"name": "255 plugins", "values": {"ours": 60, "libloot": 55}},
-        {"name": "1024 plugins", "values": {"ours": 200, "libloot": 154}}
+        {
+          "name": "255 plugins",
+          "values": {
+            "ours": 60,
+            "libloot": 55
+          }
+        },
+        {
+          "name": "1024 plugins",
+          "values": {
+            "ours": 200,
+            "libloot": 154
+          }
+        }
       ]
     }
   ],
   "pending": [
-    {"tool": "LOOT application", "what": "Masterlist evaluation and a sort with the real masterlist against the LOOT application, and a CI run that publishes this record on every release", "issue": ""}
+    {
+      "tool": "LOOT application",
+      "what": "Masterlist evaluation and a sort with the real masterlist against the LOOT application, and a CI run that publishes this record on every release",
+      "issue": "https://github.com/JorisJonkers-dev/loot-rs/issues/119"
+    }
   ]
 }

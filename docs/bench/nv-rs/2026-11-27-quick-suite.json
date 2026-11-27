@@ -154,5 +154,11 @@
       ]
     }
   ],
-  "pending": []
+  "pending": [
+    {
+      "tool": "Original game executable",
+      "what": "The quick suite places run with the original FalloutNV.exe on the same machine, and the nv-rs build recorded",
+      "issue": "https://github.com/JorisJonkers-dev/nv-rs/issues/1019"
+    }
+  ]
 }

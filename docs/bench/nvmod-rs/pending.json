@@ -7,7 +7,7 @@
     {
       "tool": "Mod Organizer 2",
       "what": "Creating a profile, installing a mod archive, switching profiles and detecting conflicts for a 100-mod and a 500-mod set, against Mod Organizer 2 on the same machine",
-      "issue": ""
+      "issue": "https://github.com/JorisJonkers-dev/nvmod-rs/issues/293"
     }
   ]
 }
