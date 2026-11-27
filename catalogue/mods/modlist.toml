@@ -23,3 +23,23 @@ status = "implemented"
 id = "beautiful_bundled"
 title = "Beautiful is carried by raul, passes the rules and holds the Lucky 38 Mods"
 status = "implemented"
+
+[[item]]
+id = "plan_present_missing"
+title = "The plan says which Mods the Instance has, lacks and the list switches off"
+status = "implemented"
+
+[[item]]
+id = "plan_links"
+title = "Every missing Mod comes with where to get it: a Nexus page, another link, or what to do by hand"
+status = "implemented"
+
+[[item]]
+id = "plan_resolver"
+title = "A file id the list lacks is asked of a resolver, and the plan works without one"
+status = "implemented"
+
+[[item]]
+id = "command_plan"
+title = "raul modlist plan shows the plan for an Instance and a Profile, as text or JSON, and writes nothing"
+status = "implemented"
