@@ -83,12 +83,18 @@ jobs:
         with:
           ref: gh-pages
           path: pages
+      # the publish scripts live in the repository's site/, which the built artifact above does not carry
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: src
+          sparse-checkout: site
+          persist-credentials: false
       - name: Replace the site's own paths
         working-directory: pages
         run: |
-          sh ../site/bench-migrate.sh "$PWD"
+          sh ../src/site/bench-migrate.sh "$PWD"
           # the chart page the bench workflow writes gets the navbar too
-          python3 ../site/bench_raw.py bench
+          python3 ../src/site/bench_raw.py bench
           for dir in demo tour wiki download assets; do
             mkdir -p "$dir"
             rsync -a --delete "../site/$dir/" "$dir/"
