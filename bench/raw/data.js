@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795795556557,
+  "lastUpdate": 1795797494431,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13327,6 +13327,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.550184,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "ce61ad6f3a9b37b3b0e375747e6ba19e3b39a4bf",
+          "message": "docs: call it the bundled Beautiful profile in the README (#707)\n\n* docs: call it the bundled Beautiful profile in the README\n\n* docs: drop the far-view pictures from the README",
+          "timestamp": "2026-11-27T17:35:29+01:00",
+          "tree_id": "3ee32d0fac6c95de9e787e7249072df05c4029a0",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ce61ad6f3a9b37b3b0e375747e6ba19e3b39a4bf"
+        },
+        "date": 1795797492932,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.40469,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.289162,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.346469,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.099408,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.809756,
             "unit": "ms"
           }
         ]
