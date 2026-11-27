@@ -4,12 +4,12 @@
   "repo": "raul",
   "results": true,
   "totals": {
-    "total": 177,
+    "total": 180,
     "missing": 2,
-    "implemented": 175,
-    "tagged": 169,
-    "passing": 169,
-    "covered": 143,
+    "implemented": 178,
+    "tagged": 172,
+    "passing": 172,
+    "covered": 146,
     "gated": 3,
     "not_applicable": 0,
     "deferred": 1
@@ -17,12 +17,12 @@
   "headline": {
     "title": "All areas",
     "counts": {
-      "total": 177,
+      "total": 180,
       "missing": 2,
-      "implemented": 175,
-      "tagged": 169,
-      "passing": 169,
-      "covered": 143,
+      "implemented": 178,
+      "tagged": 172,
+      "passing": 172,
+      "covered": 146,
       "gated": 3,
       "not_applicable": 0,
       "deferred": 1
@@ -1616,12 +1616,12 @@
       "id": "mods",
       "title": "Load order, mods and add-ons",
       "counts": {
-        "total": 23,
+        "total": 26,
         "missing": 0,
-        "implemented": 23,
-        "tagged": 23,
-        "passing": 23,
-        "covered": 20,
+        "implemented": 26,
+        "tagged": 26,
+        "passing": 26,
+        "covered": 23,
         "gated": 0,
         "not_applicable": 0,
         "deferred": 0
@@ -1808,12 +1808,12 @@
           "title": "Mod lists",
           "origin": "ours",
           "counts": {
-            "total": 8,
+            "total": 11,
             "missing": 0,
-            "implemented": 8,
-            "tagged": 8,
-            "passing": 8,
-            "covered": 8,
+            "implemented": 11,
+            "tagged": 11,
+            "passing": 11,
+            "covered": 11,
             "gated": 0,
             "not_applicable": 0,
             "deferred": 0
@@ -1927,6 +1927,52 @@
               "tests": [
                 "crates/raul-cli/tests/modlist.rs::the_plan_says_what_the_profile_has_and_where_to_get_the_rest_in_install_order",
                 "crates/raul-cli/tests/modlist.rs::the_plan_writes_nothing"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.export_roundtrip",
+              "title": "A Profile is exported as a Mod list that the parser reads back with the same Mods, order and sources",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-modlist/tests/export.rs::a_profile_is_exported_in_priority_order_and_round_trips",
+                "crates/raul-modlist/tests/export.rs::beautiful_written_out_as_an_instance_comes_back_with_the_same_mods_order_and_nexus_files",
+                "crates/raul-modlist/tests/export.rs::nexus_ids_versions_archive_names_and_plugins_are_read"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.export_manual_without_nexus_id",
+              "title": "A Mod with no Nexus id is exported as a manual source with a note",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-modlist/tests/export.rs::a_listed_mod_with_no_folder_is_manual",
+                "crates/raul-modlist/tests/export.rs::a_mod_without_a_nexus_id_is_manual_with_a_note"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.command_export",
+              "title": "raul modlist export writes a Profile as a Mod list file and writes nothing to the Instance",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-cli/tests/modlist_export.rs::export_without_a_file_prints_the_list",
+                "crates/raul-cli/tests/modlist_export.rs::export_writes_a_list_that_show_reads_back_and_leaves_the_instance_alone"
               ],
               "platforms": {
                 "linux": true,
