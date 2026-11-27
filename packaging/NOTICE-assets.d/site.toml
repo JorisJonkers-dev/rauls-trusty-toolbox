@@ -39,7 +39,7 @@ license = "GPL-3.0-only"
 
 [[asset]]
 path = "site/compare.html"
-what = "Compare page template of the public site: wipe sliders, stock game against Beautiful"
+what = "Compare page template of the public site: wipe sliders, vanilla game against Beautiful"
 source = "this repository"
 license = "GPL-3.0-only"
 

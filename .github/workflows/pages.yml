@@ -1,5 +1,5 @@
 # The public site (https://jorisjonkers-dev.github.io/rauls-trusty-toolbox/): a landing page, the clickable demo at
-# /demo/, the guided tour at /tour/, the download page at /download/, the stock-against-Beautiful sliders at /compare/ and the wiki at /wiki/ (docs/wiki, Markdown). `site/build.py` builds it and
+# /demo/, the guided tour at /tour/, the download page at /download/, the vanilla-against-Beautiful sliders at /compare/ and the wiki at /wiki/ (docs/wiki, Markdown). `site/build.py` builds it and
 # `site/check.js` checks it: every internal link resolves, no page logs an error and every tour step ticks.
 #
 # Pages is served from the gh-pages branch, which the bench workflow also writes (bench/raw/ and bench/results/). This workflow only replaces

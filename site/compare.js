@@ -5,7 +5,7 @@
   "use strict";
   document.querySelectorAll(".cmp").forEach(function (box) {
     var range = box.querySelector("input[type=range]");
-    function set() { box.style.setProperty("--pos", range.value + "%"); range.setAttribute("aria-valuetext", range.value + " percent stock"); }
+    function set() { box.style.setProperty("--pos", range.value + "%"); range.setAttribute("aria-valuetext", range.value + " percent vanilla"); }
     range.addEventListener("input", set);
     set();
   });

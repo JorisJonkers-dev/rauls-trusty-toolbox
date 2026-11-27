@@ -80,31 +80,31 @@ license = "GPL-3.0-only"
 
 [[asset]]
 path = "docs/images/beautiful/compare-goodsprings-valley.jpg"
-what = "README picture: Goodsprings main street: new ground and building textures, a street lamp, sun shadows; stock game against Beautiful, labelled composite"
+what = "README picture: Goodsprings main street: new ground and building textures, a street lamp, sun shadows; vanilla game against Beautiful, labelled composite"
 source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (owner-approved use in the README and the Compare page of the public site; small JPEG)"
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 
 [[asset]]
 path = "docs/images/beautiful/compare-lake-mead.jpg"
-what = "README picture: Lake Mead from the shore: water reflections, sharper rocks and sand; stock game against Beautiful, labelled composite"
+what = "README picture: Lake Mead from the shore: water reflections, sharper rocks and sand; vanilla game against Beautiful, labelled composite"
 source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (owner-approved use in the README and the Compare page of the public site; small JPEG)"
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 
 [[asset]]
 path = "docs/images/beautiful/compare-nv-ultra-luxe.jpg"
-what = "README picture: Ultra-Luxe lobby: retextured floor, ambient occlusion, coloured light; stock game against Beautiful, labelled composite"
+what = "README picture: Ultra-Luxe lobby: retextured floor, ambient occlusion, coloured light; vanilla game against Beautiful, labelled composite"
 source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (owner-approved use in the README and the Compare page of the public site; small JPEG)"
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 
 [[asset]]
 path = "docs/images/beautiful/compare-night-primm-road-lamps.jpg"
-what = "README picture: Primm at night, the street lamps light the ground; stock game against Beautiful, labelled composite"
+what = "README picture: Primm at night, the street lamps light the ground; vanilla game against Beautiful, labelled composite"
 source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (owner-approved use in the README and the Compare page of the public site; small JPEG)"
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 
 [[asset]]
 path = "docs/images/beautiful/web/"
-what = "Compare page pictures (site/compare): 1600 px JPEGs of each view, stock game and Beautiful, one pair per view"
+what = "Compare page pictures (site/compare): 1600 px JPEGs of each view, vanilla game and Beautiful, one pair per view"
 source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (owner-approved use in the README and the Compare page of the public site; small JPEG)"
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 
