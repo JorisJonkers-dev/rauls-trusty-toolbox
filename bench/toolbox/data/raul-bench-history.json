@@ -6,7 +6,7 @@
  "run": {
   "id": "raul-bench",
   "date": "2026-11-27",
-  "commit": "a17ac61",
+  "commit": "2d74681",
   "version": null,
   "machine": "GitHub-hosted ubuntu-latest runner (shared, so noisy)",
   "method": "raul bench on synthetic fixtures (no game data), median wall time of the timed runs. Read from the history that github-action-benchmark keeps on the gh-pages branch; the raw chart page is kept at bench/raw/.",
@@ -30,31 +30,31 @@
     {
      "name": "sort/small",
      "values": {
-      "ours": 1.0491380000000001
+      "ours": 1.4356119999999999
      }
     },
     {
      "name": "sort/medium",
      "values": {
-      "ours": 4.609424
+      "ours": 6.649246
      }
     },
     {
      "name": "sort/ttw-sized",
      "values": {
-      "ours": 21.413709
+      "ours": 34.876478000000006
      }
     },
     {
      "name": "plugin-headers/ttw-sized",
      "values": {
-      "ours": 1.474558
+      "ours": 2.184936
      }
     },
     {
      "name": "install/zip",
      "values": {
-      "ours": 4.848122
+      "ours": 8.676072999999999
      }
     }
    ],
@@ -5642,6 +5642,48 @@
       },
       "install/zip": {
        "ours": 4.848122
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "3d42aea",
+     "values": {
+      "sort/small": {
+       "ours": 2.4281900000000003
+      },
+      "sort/medium": {
+       "ours": 11.091788
+      },
+      "sort/ttw-sized": {
+       "ours": 46.914030000000004
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 6.4416459999999995
+      },
+      "install/zip": {
+       "ours": 8.864925
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "2d74681",
+     "values": {
+      "sort/small": {
+       "ours": 1.4356119999999999
+      },
+      "sort/medium": {
+       "ours": 6.649246
+      },
+      "sort/ttw-sized": {
+       "ours": 34.876478000000006
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.184936
+      },
+      "install/zip": {
+       "ours": 8.676072999999999
       }
      }
     }
