@@ -128,7 +128,12 @@ fn listed() -> BTreeSet<String> {
         let doc: toml::Table = text
             .parse()
             .unwrap_or_else(|e| panic!("{}: {e}", file.display()));
-        for asset in doc.get("asset").and_then(|a| a.as_array()).into_iter().flatten() {
+        for asset in doc
+            .get("asset")
+            .and_then(|a| a.as_array())
+            .into_iter()
+            .flatten()
+        {
             let path = asset["path"].as_str().unwrap().to_owned();
             assert!(paths.insert(path.clone()), "{path}: listed twice");
         }
@@ -184,7 +189,10 @@ fn a_listed_asset_that_is_gone_fails_and_generated_screenshots_need_no_listing()
 fn a_folder_entry_covers_the_assets_below_it_and_fails_when_empty() {
     let listed: BTreeSet<String> = ["docs/shots/".to_owned()].into();
     assert_eq!(
-        problems(&strings(&["docs/shots/a.png", "docs/shots/sub/b.png"]), &listed),
+        problems(
+            &strings(&["docs/shots/a.png", "docs/shots/sub/b.png"]),
+            &listed
+        ),
         Vec::<String>::new()
     );
     let found = problems(&strings(&["docs/other.png"]), &listed);
