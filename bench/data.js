@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795778487444,
+  "lastUpdate": 1795779524910,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12494,6 +12494,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.007411,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d5c04cae4a85a9a80f1d60139ab51758d453ffdd",
+          "message": "docs(redesign): the redesign set (functions, spec, stories, scripts) and demo fixes (#640)\n\nAdds docs/redesign: the function list, spec, use cases, gap audit, tickets, workflows, demo bug decisions, user stories with Gherkin features, observed notes, walk pictures and the Playwright walks. The walks use the demo and design pictures under docs/design.\n\nAlso fixes demo bugs found while walking the stories (Quit, playtime units, TTW space check, hard-coded versions, wording, focus) and retakes the design pictures.",
+          "timestamp": "2026-11-27T11:36:45Z",
+          "tree_id": "a8caca0b975b43cf7acbf0d8437152ed439d47a2",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d5c04cae4a85a9a80f1d60139ab51758d453ffdd"
+        },
+        "date": 1795779523959,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.8822649999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.660916,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.268021999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.08882,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.256361999999999,
             "unit": "ms"
           }
         ]
