@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# The benchmark pages of the public site.
+
+[[asset]]
+path = "site/bench.html"
+what = "benchmark page template of the public site: the overview and one page per project"
+source = "this repository"
+license = "GPL-3.0-only"

@@ -17,6 +17,8 @@ from pathlib import Path
 
 import markdown
 
+import bench
+import bench_raw
 import download
 from shell import CUR, REPO, fill, ic, sidebar
 
@@ -118,7 +120,10 @@ def build_wiki(out: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, type=Path)
-    out = parser.parse_args().out.resolve()
+    parser.add_argument("--gh-pages", type=Path, help="a checkout of the gh-pages branch: its bench/results/ records and the "
+                        "github-action-benchmark history (bench/raw/data.js, or bench/data.js before the move) join the repository's own")
+    args = parser.parse_args()
+    out = args.out.resolve()
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
@@ -137,6 +142,17 @@ def main() -> None:
     shutil.copy(SITE / "tour.js", out / "tour" / "tour.js")
     build_wiki(out)
     download.build(out, fill)
+    records = bench.load_records([ROOT / "docs" / "bench"] + ([args.gh_pages / "bench" / "results"] if args.gh_pages else []))
+    if args.gh_pages:
+        raw = next((p for p in (args.gh_pages / "bench" / "raw" / "data.js", args.gh_pages / "bench" / "data.js") if p.is_file()), None)
+        history = bench.import_action_history(raw) if raw else None
+        if history:
+            records.append(history)
+    bench.build(out, (SITE / "bench.html").read_text(), fill, records)
+    if args.gh_pages and (args.gh_pages / "bench" / "raw").is_dir():
+        # the action's own chart page, copied with the navbar so that check.js sees it; pages.yml never publishes it from here
+        shutil.copytree(args.gh_pages / "bench" / "raw", out / "bench" / "raw")
+        bench_raw.apply(out / "bench")
     print(f"built {sum(1 for p in out.rglob('*') if p.is_file())} files into {out}")
 
 

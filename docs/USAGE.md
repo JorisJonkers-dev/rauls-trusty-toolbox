@@ -29,6 +29,19 @@ raul at a list file of your own.
   the Nexus page or other link, or says what to do by hand, in the order the Mods are installed in. Nothing is written
   and nothing is fetched; you download the files yourself. Installing a list comes in a later release.
 
+## Nexus API key
+
+`raul nexus key set` reads your Nexus Mods API key from standard input (never from an argument) and keeps it in the
+operating system's keyring; `raul nexus key set --file` keeps it in a file only you can read instead, for a machine with
+no keyring. `NEXUS_API_KEY` in the environment overrides both. `raul nexus key status [--json]` asks Nexus whose key it is
+and whether the account is premium; `raul nexus key clear` removes it. The key is never written to `settings.toml`, shown
+or logged. Only a premium account gets download links from Nexus; other files are downloaded by hand.
+
+```sh
+raul nexus key set < my-key.txt
+raul nexus key status
+```
+
 ## Add-ons
 
 An add-on is a small Mod raul makes on your computer for a mod you installed, from numbers and from your own copy of

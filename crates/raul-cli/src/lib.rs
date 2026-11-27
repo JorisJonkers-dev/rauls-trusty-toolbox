@@ -9,6 +9,8 @@ mod detect;
 mod lod;
 mod lod_settings;
 mod modlist;
+
+mod nexus;
 pub mod play;
 mod printer;
 mod program_name;
@@ -63,6 +65,8 @@ pub const OWN_COMMANDS: &[&str] = &[
     "lod",
     "addons",
     "modlist",
+
+    "nexus",
     "support-bundle",
     "target",
     "install-nv-rs",
@@ -193,6 +197,11 @@ usage:
                               what the Profile has of the list and what it lacks, where to download each missing Mod
                               (a Nexus page or another link, or what to do by hand) and the install order; nothing
                               is read from Nexus and nothing is written
+
+  raul nexus key set [--file]|clear|status [--json]
+                              the Nexus Mods API key: set reads it from standard input (never the command line) and keeps it
+                              in the OS keyring, or with --file in a file only you can read; NEXUS_API_KEY overrides both.
+                              status asks Nexus who the key belongs to and whether the account is premium
   raul support-bundle [--instance <dir>] [--hide-names] [--out <file>] [--apply] [--json]
                               what a bug report needs, in one zip: versions, system, the folders of `raul config`,
                               the Instance's Mods, plugins and Doctor report, and the last run logs. Without --apply
@@ -230,6 +239,8 @@ pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn
         Some("lod") => lod::run(ctx, &args[1..], out, err),
         Some("addons") => addons::run(ctx, &args[1..], out, err),
         Some("modlist") => modlist::run(ctx, &args[1..], out, err),
+
+        Some("nexus") => nexus::run(ctx, &args[1..], out, err),
         Some("support-bundle") => support_bundle::run(ctx, &args[1..], out, err),
         Some("install-nv-rs") => gone_install_nv_rs(err),
         Some("target") => target::run(args, out, err),

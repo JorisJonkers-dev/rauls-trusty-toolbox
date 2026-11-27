@@ -15,7 +15,14 @@ feature-depth = 1
 version = 2
 db-urls = ["https://github.com/rustsec/advisory-db"]
 # Add RUSTSEC ids here only with a comment saying why the advisory does not apply.
-ignore = []
+ignore = [
+    # zvariant, zbus_names and zvariant_derive were merged into zbus 6; keyring's Secret Service store (zbus 5, pure
+    # Rust, no libdbus) still uses the standalone crates. Unmaintained notices, not vulnerabilities; drop these when
+    # the keyring stores move to zbus 6.
+    "RUSTSEC-2026-0370",
+    "RUSTSEC-2026-0371",
+    "RUSTSEC-2026-0372",
+]
 yanked = "warn"
 
 [licenses]

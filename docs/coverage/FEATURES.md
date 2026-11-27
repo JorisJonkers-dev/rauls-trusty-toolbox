@@ -4,7 +4,7 @@ Generated on main by tally from `catalogue/` (docs/COVERAGE.md, "Feature catalog
 
 | | Built | Has a test | Tested on some OSes | Tested on all OSes | Not built yet | Needs the game to test | Not needed |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **Total** | 167/169 | 161 | 161 | 135 | 2 | 3 | 1 |
+| **Total** | 171/173 | 165 | 165 | 139 | 2 | 3 | 1 |
 | **Benchmarks** | 5/6 | 5 | 5 | 5 | 1 | 0 | 0 |
 | raul bench (`bench.suite`) | 5/6 | 5 | 5 | 5 | 1 | 0 | 0 |
 | **Command line** | 7/7 | 7 | 7 | 7 | 0 | 0 | 0 |
@@ -23,9 +23,10 @@ Generated on main by tally from `catalogue/` (docs/COVERAGE.md, "Feature catalog
 | Generating the distant view (`lod.generate`) | 13/13 | 12 | 12 | 12 | 0 | 1 | 0 |
 | The LOD settings (`lod.settings`) | 9/9 | 9 | 9 | 9 | 0 | 0 | 0 |
 | Knowing when the distant view is out of date (`lod.stale`) | 4/4 | 4 | 4 | 4 | 0 | 0 | 0 |
-| **Load order, mods and add-ons** | 15/15 | 15 | 15 | 12 | 0 | 0 | 0 |
+| **Load order, mods and add-ons** | 19/19 | 19 | 19 | 16 | 0 | 0 | 0 |
 | Add-ons for the mods you have (`mods.addons`) | 8/8 | 8 | 8 | 7 | 0 | 0 | 0 |
 | The Instance (`mods.instance`) | 2/2 | 2 | 2 | 1 | 0 | 0 | 0 |
+| Mod lists (`mods.modlist`) | 4/4 | 4 | 4 | 4 | 0 | 0 | 0 |
 | Sorting the load order (`mods.sort`) | 5/5 | 5 | 5 | 4 | 0 | 0 | 0 |
 | **Play and pictures** | 12/12 | 10 | 10 | 7 | 0 | 1 | 0 |
 | Starting the game (`play.launch`) | 8/8 | 7 | 7 | 7 | 0 | 1 | 0 |
@@ -207,6 +208,15 @@ Generated on main by tally from `catalogue/` (docs/COVERAGE.md, "Feature catalog
 | --- | --- | --- | --- |
 | Two holders exclude each other until the first lets go | `mods.instance.lock_excludes` | tested on all OSes | `crates/raul-core/src/instance_lock.rs::two_holders_exclude_each_other_until_the_first_lets_go` |
 | A lock left by a crashed process is taken over | `mods.instance.crashed_lock_taken_over` | tested on some OSes | `crates/raul-core/src/instance_lock.rs::a_lock_left_by_a_process_that_crashed_is_taken_over` |
+
+### Mod lists (`mods.modlist`)
+
+| Feature | Id | State | Tests |
+| --- | --- | --- | --- |
+| A Mod list is read and its Mods keep their order | `mods.modlist.list_read` | tested on all OSes | `crates/raul-modlist/tests/parse.rs::a_list_is_read_with_its_mods_in_order` |
+| A list that breaks a rule is refused, with every broken rule named | `mods.modlist.broken_list_refused` | tested on all OSes | `crates/raul-modlist/tests/parse.rs::a_list_that_breaks_several_rules_names_each_one` |
+| A list of another schema version is refused with a plain line | `mods.modlist.other_schema_refused` | tested on all OSes | `crates/raul-modlist/tests/parse.rs::another_schema_version_is_refused_with_a_plain_line` |
+| Beautiful is carried by raul, passes the rules and holds the Lucky 38 Mods | `mods.modlist.beautiful_bundled` | tested on all OSes | `crates/raul-modlist/tests/beautiful.rs::beautiful_holds_both_lucky_38_mods_at_their_nexus_files`, `crates/raul-modlist/tests/beautiful.rs::every_bundled_list_passes_the_rules` |
 
 ### Sorting the load order (`mods.sort`)
 
