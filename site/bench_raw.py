@@ -16,6 +16,10 @@ import shell  # noqa: E402
 UP = "../../"
 HEAD_MARK = ("<!--site-head-->", "<!--/site-head-->")
 BODY_MARK = ("<!--site-header-->", "<!--/site-header-->")
+# the action's own styles stack every <header> in a column and the site's reset drops the body margin: undo both
+FIT = ("header.top{flex-direction:row;margin-bottom:0}"
+       "#header,main,footer{box-sizing:border-box;padding:0 24px}#header{margin:16px 0 8px}footer{margin:16px 0;gap:12px;flex-wrap:wrap}"
+       ".benchmark-title{font-size:2.2rem}.benchmark-chart{max-width:1000px;width:100%}")
 
 
 def _strip(text: str, mark: tuple[str, str]) -> str:
@@ -24,7 +28,7 @@ def _strip(text: str, mark: tuple[str, str]) -> str:
 
 def shelled(text: str) -> str:
     text = _strip(_strip(text, HEAD_MARK), BODY_MARK)
-    head = f'{HEAD_MARK[0]}<link rel="stylesheet" href="{UP}assets/site.css">{HEAD_MARK[1]}\n'
+    head = f'{HEAD_MARK[0]}<link rel="stylesheet" href="{UP}assets/site.css"><style>{FIT}</style>{HEAD_MARK[1]}\n'
     body = f"{BODY_MARK[0]}{shell.header('bench', UP)}{BODY_MARK[1]}\n"
     if "</head>" in text:
         text = text.replace("</head>", head + "</head>", 1)
@@ -32,7 +36,7 @@ def shelled(text: str) -> str:
         text = head + text
     m = re.search(r"<body[^>]*>", text)
     if m:
-        return text[: m.end()] + "\n" + body + text[m.end():]
+        return text[: m.end()] + body + text[m.end():]
     return text + body
 
 

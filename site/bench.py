@@ -244,6 +244,8 @@ def group_html(g: dict, project: str) -> str:
         else:
             colour[s["id"]] = AGAINST_COLOURS[na % 2]; na += 1
     top = max([v for c in g["cases"] for v in c["values"].values() if v is not None] or [1])
+    # a tool with no number on any case gets one note under the bars (below), not a "not measured yet" bar per case
+    unmeasured = {s["id"] for s in series if all(c["values"].get(s["id"]) is None for c in g["cases"])}
     rows = []
     for c in g["cases"]:
         d = delta(g, c)
@@ -253,7 +255,7 @@ def group_html(g: dict, project: str) -> str:
             v = c["values"].get(s["id"])
             flag = c.get("flags", {}).get(s["id"])
             if v is None:
-                if s.get("status") == "not-measured":
+                if s.get("status") == "not-measured" and s["id"] not in unmeasured:
                     bars.append(f'<div class="b against missing"><span class="who">{esc(s["label"])}</span>{ghost()}<span class="val muted">not measured yet</span></div>')
                 continue
             flagtxt = {"capped": " (at the frame cap)", "noisy": " (noisy run)"}.get(flag, "")

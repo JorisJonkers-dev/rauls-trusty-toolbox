@@ -120,7 +120,8 @@ async function main() {
   await page.goto(origin + "bench/loot-rs/");
   ok((await page.locator(".track .fill").count()) >= 6, "loot-rs page draws bars");
   await page.goto(origin + "bench/nv-rs/");
-  ok((await page.locator(".b.missing").count()) >= 5, "nv-rs shows the original game as not measured yet");
+  ok((await page.locator(".b.missing").count()) === 0, "nv-rs draws no per-place bar for a tool with no numbers");
+  ok((await page.locator("ul.nm li").filter({ hasText: "Original game" }).count()) >= 1, "nv-rs notes the original game as not measured yet");
   if (shots) for (const [u, n] of [["bench/", "bench-overview"], ["bench/loot-rs/", "bench-loot-rs"]]) { await page.goto(origin + u); await page.waitForTimeout(1200); await page.screenshot({ path: path.join(shots, n + ".png"), fullPage: true }); }
 
   /* the guided tour */
