@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Checks a built site: every internal link and anchor resolves, no page logs a console error, and every step of the
+// Checks a built site (the download page and the wiki shell in check-pages.js): every internal link and anchor resolves, no page logs a console error, and every step of the
 // guided tour ticks when it is done in the demo.
 //   node site/check.js <built site folder> [screenshot folder]
 // Needs the `playwright` (or `playwright-core`) package. PW_CHANNEL=chrome uses an installed Chrome instead of
@@ -49,7 +49,7 @@ function checkLinks() {
   let n = 0;
   const idsOf = (file) => new Set([...fs.readFileSync(file, "utf8").matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
   for (const file of allHtml(root)) {
-    if (file === path.join(root, "demo", "index.html")) continue; /* the demo is not ours to rewrite; it has no page links */
+    if (file === path.join(root, "demo", "app", "index.html")) continue; /* the demo is not ours to rewrite; it has no page links */
     const html = fs.readFileSync(file, "utf8");
     const pageUrl = new URL(path.relative(root, file).replace(/index\.html$/, ""), "http://x" + BASE);
     for (const m of html.matchAll(/\s(?:href|src)="([^"]*)"/g)) {
@@ -74,6 +74,8 @@ async function main() {
   const origin = `http://127.0.0.1:${server.address().port}${BASE}`;
   const browser = await pw.chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  /* the download page asks GitHub for the latest release; here that answer is empty, so it keeps the build's data */
+  await ctx.route("**://api.github.com/**", (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
   const page = await ctx.newPage();
   const errors = [];
   /* The demo page is published unchanged and has no icon, so Chrome's request for /favicon.ico when it is opened on its own is not a finding. */
@@ -86,7 +88,24 @@ async function main() {
   const pages = allHtml(root).map((f) => path.relative(root, f).replace(/index\.html$/, ""));
   for (const p of pages) { await page.goto(origin + p, { waitUntil: "load" }); await page.waitForTimeout(200); ok((await page.title()).length > 0, `${p}: no title`); }
   console.log(`pages opened: ${pages.length}`);
-  ok(pages.includes("wiki/") && pages.includes("tour/") && pages.includes("demo/") && pages.includes(""), "landing, wiki, demo and tour pages exist");
+  ok(pages.includes("demo/app/") && pages.includes("wiki/") && pages.includes("tour/") && pages.includes("demo/") && pages.includes(""), "landing, wiki, demo and tour pages exist");
+  ok(pages.includes("download/"), "download page exists");
+  /* every page has the site's navbar with all its items and at most one active (exactly one on a section's page) */
+  const NAVITEMS = ["Home", "Download", "Demo", "Guided tour", "Wiki", "Benchmarks", "GitHub"];
+  for (const p of pages.concat(["404.html"]).filter((x, i, a) => a.indexOf(x) === i)) {
+    if (p === "demo/app/") continue; /* the demo file itself, shown by /demo/ in a frame */
+    await page.goto(origin + p, { waitUntil: "load" });
+    const items = await page.locator("header.top nav a").allInnerTexts();
+    ok(JSON.stringify(items.map((t) => t.trim())) === JSON.stringify(NAVITEMS), `${p}: navbar items are ${JSON.stringify(items)}`);
+    const active = await page.locator("header.top nav a[aria-current]").count();
+    ok(active === (p === "404.html" ? 0 : 1), `${p}: ${active} active navbar items`);
+    ok((await page.locator("header.top .brand").count()) === 1, `${p}: no brand`);
+  }
+  await page.goto(origin + "demo/"); await page.waitForTimeout(500);
+  const dframe = await page.locator("iframe").boundingBox();
+  ok(dframe && dframe.width > 900 && dframe.height > 450, "demo page: the demo frame is too small");
+  await require("./check-pages.js")({ browser, origin, ok, bad, shots, wikiPages: pages.filter((p) => p.startsWith("wiki/")) });
+  if (shots) for (const [u, n] of [["", "landing"], ["download/", "download-page"], ["wiki/faq.html", "wiki-faq"], ["wiki/", "wiki-home"], ["tour/", "tour-page"], ["demo/", "demo-page"], ["404.html", "not-found"]]) { await page.goto(origin + u); await page.waitForTimeout(600); await page.screenshot({ path: path.join(shots, `page-${n}.png`) }); }
   if (shots) { await page.goto(origin); await page.screenshot({ path: path.join(shots, "landing.png") }); await page.goto(origin + "wiki/using-the-toolbox.html"); await page.screenshot({ path: path.join(shots, "wiki.png") }); }
 
   /* the guided tour */
