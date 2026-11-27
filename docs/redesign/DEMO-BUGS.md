@@ -113,3 +113,11 @@ Items marked "fix demo" are fixed in the demo (see its NOTES.md). "app spec only
 6. Toasts are hidden while any dialog is open.
    Decision needed: Specify app: toasts stay hidden under dialogs but are queued and shown after (F-OVERLAY-01).
    DECISION: app spec only. No demo change.
+
+## Owner decisions (2026-11-27)
+
+- Home "Run stability test": opens Mods > Test your setup with the test running (as the demo does).
+- LOD quality preset over changed fine-tune values: ask first ("Replace your fine-tune settings with the <preset> preset?").
+- Stopping a running job: ask only when stopping throws work away (LOD build, TTW install); otherwise stop at once.
+- After an update, System offers "Go back to <old version>" for the kept version.
+- Defaults pending the owner's word: place search shows the first match when the shown place is filtered out; deleting a profile switches to the neighbouring profile; Settings sections start open on first visit.
