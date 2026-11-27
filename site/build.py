@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Builds the public site (landing page, wiki, demo, guided tour) into a folder.
+"""Builds the public site (landing page, download page, wiki, demo, guided tour) into a folder.
 
     python3 site/build.py --out site/dist
 
@@ -17,39 +17,15 @@ from pathlib import Path
 
 import markdown
 
+import download
+from shell import CUR, REPO, fill, ic, sidebar
+
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
 WIKI = ROOT / "docs" / "wiki"
 DEMO = ROOT / "docs" / "design" / "demo" / "index.html"
 SHOTS = ROOT / "docs" / "design" / "screenshots"
-REPO = "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox"
 PAGES = "https://jorisjonkers-dev.github.io/rauls-trusty-toolbox/"
-
-LOGO = (
-    '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
-    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/>'
-    '<path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>'
-)
-
-CUR = ' aria-current="page"'
-SECTIONS = [("demo", "Demo", "demo/"), ("tour", "Guided tour", "tour/"), ("wiki", "Wiki", "wiki/"), ("bench", "Benchmarks", "bench/")]
-
-
-def header(current: str, up: str) -> str:
-    """The top bar. `up` is the relative path from the page to the site root ('' or '../')."""
-    links = "".join(
-        f'<a href="{up}{href}"{CUR if key == current else ""}>{label}</a>' for key, label, href in SECTIONS
-    )
-    links += f'<a href="{REPO}">GitHub</a>'
-    return f'<header class="top"><a class="brand" href="{up}index.html">{LOGO}Raul\'s Toolbox</a><nav aria-label="Site">{links}</nav></header>'
-
-
-def fill(template: str, current: str, up: str, **extra: str) -> str:
-    out = template.replace("<!--HEADER-->", header(current, up)).replace("{{up}}", up)
-    for key, value in extra.items():
-        out = out.replace("{{" + key + "}}", value)
-    return out
-
 
 def slugs() -> list[str]:
     order = [line.strip() for line in (WIKI / "_order.txt").read_text().splitlines() if line.strip()]
@@ -81,6 +57,33 @@ def rewrite_links(body: str, names: set[str], images: set[str]) -> str:
     return re.sub(r'(href|src)="([^"]*)"', fix, body)
 
 
+WIKI_ICON = {"index": "home", "getting-started": "dl", "using-the-toolbox": "mods", "features": "bolt",
+             "roadmap": "lod", "components": "box", "faq": "help", "contributing": "code"}
+WIKI_PLAY = ["index", "getting-started", "using-the-toolbox", "features"]
+
+
+def wiki_groups(pages: list, current: str) -> list:
+    """The wiki's pages as the app's sidebar: Play (using it) and System (about it)."""
+    def item(p):
+        slug, title, _ = p
+        return ("Home" if slug == "index" else title, f"{slug}.html", WIKI_ICON.get(slug, "info"), slug == current)
+
+    return [("PLAY", [item(p) for p in pages if p[0] in WIKI_PLAY]), ("SYSTEM", [item(p) for p in pages if p[0] not in WIKI_PLAY])]
+
+
+def cards(body: str, icon: str, title: str) -> str:
+    """The page header, then every section (from one h2 to the next) as a rounded card with the app's section header."""
+    body = re.sub(r"\s*<h1[^>]*>.*?</h1>", "", body, count=1, flags=re.S)
+    parts = re.split(r"(?=<h2[ >])", body)
+    out = [f'<div class="phdr"><span class="ico">{ic(icon, 24)}</span><h1>{html.escape(title)}</h1></div>']
+    if re.sub(r"<!--.*?-->", "", parts[0], flags=re.S).strip():
+        out.append(f'<section class="card"><div class="prose">{parts[0]}</div></section>')
+    for part in parts[1:]:
+        m = re.match(r"<h2([^>]*)>(.*?)</h2>(.*)", part, re.S)
+        out.append(f'<section class="card"><div class="sech"><h2 class="t"{m.group(1)}>{m.group(2)}</h2></div><div class="prose">{m.group(3)}</div></section>')
+    return "\n".join(out)
+
+
 def build_wiki(out: Path) -> None:
     order = slugs()
     template = (SITE / "wiki.html").read_text()
@@ -98,13 +101,12 @@ def build_wiki(out: Path) -> None:
     dest = out / "wiki"
     dest.mkdir(parents=True)
     for i, (slug, title, body) in enumerate(pages):
-        side = "".join(
-            f'<a href="{s}.html"{CUR if s == slug else ""}>{html.escape("Home" if s == "index" else t)}</a>' for s, t, _ in pages
-        )
-        prev = f'<a class="btn sm" href="{pages[i-1][0]}.html">&larr; {html.escape(pages[i-1][1])}</a>' if i else "<span></span>"
-        nxt = f'<a class="btn sm" href="{pages[i+1][0]}.html">{html.escape(pages[i+1][1])} &rarr;</a>' if i + 1 < len(pages) else "<span></span>"
+        side = sidebar(wiki_groups(pages, slug), "Wiki pages")
+        prev = f'<a class="btn sm" href="{pages[i-1][0]}.html">{ic("chev", 14, "flip")}{html.escape(pages[i-1][1])}</a>' if i else "<span></span>"
+        nxt = f'<a class="btn sm" href="{pages[i+1][0]}.html">{html.escape(pages[i+1][1])}{ic("chev", 14)}</a>' if i + 1 < len(pages) else "<span></span>"
         edit = f"{REPO}/blob/main/docs/wiki/{slug}.md"
-        page = fill(template, "wiki", "../", title=html.escape(title if slug != "index" else "Wiki"), side=side, body=body,
+        shown = "Wiki" if slug == "index" else title
+        page = fill(template.replace("<!--SIDE-->", side), "wiki", "../", title=html.escape(shown), body=cards(body, WIKI_ICON.get(slug, "info"), shown),
                     pager=f'<div class="pager">{prev}{nxt}</div>', edit=edit)
         (dest / ("index.html" if slug == "index" else f"{slug}.html")).write_text(page)
     if images:
@@ -123,13 +125,18 @@ def main() -> None:
     (out / ".nojekyll").write_text("")
     (out / "assets").mkdir()
     shutil.copy(SITE / "site.css", out / "assets" / "site.css")
-    (out / "index.html").write_text(fill((SITE / "landing.html").read_text(), "", "", repo=REPO))
+    (out / "index.html").write_text(fill((SITE / "landing.html").read_text(), "home", "", repo=REPO))
     (out / "demo").mkdir()
-    shutil.copy(DEMO, out / "demo" / "index.html")  # unchanged
+    (out / "demo" / "app").mkdir()
+    shutil.copy(DEMO, out / "demo" / "app" / "index.html")  # unchanged; /demo/ shows it under the site's navbar
+    (out / "demo" / "index.html").write_text(fill((SITE / "demo.html").read_text(), "demo", "../"))
+    # GitHub Pages serves this for any unknown path, so its links are absolute
+    (out / "404.html").write_text(fill((SITE / "404.html").read_text(), "", "/rauls-trusty-toolbox/"))
     (out / "tour").mkdir()
     (out / "tour" / "index.html").write_text(fill((SITE / "tour.html").read_text(), "tour", "../"))
     shutil.copy(SITE / "tour.js", out / "tour" / "tour.js")
     build_wiki(out)
+    download.build(out, fill)
     print(f"built {sum(1 for p in out.rglob('*') if p.is_file())} files into {out}")
 
 
