@@ -96,8 +96,9 @@ async function main() {
   console.log(`pages opened: ${pages.length}`);
   ok(pages.includes("demo/app/") && pages.includes("wiki/") && pages.includes("tour/") && pages.includes("demo/") && pages.includes(""), "landing, wiki, demo and tour pages exist");
   ok(pages.includes("download/"), "download page exists");
+  ok(pages.includes("compare/"), "compare page exists");
   /* every page has the site's navbar with all its items and at most one active (exactly one on a section's page) */
-  const NAVITEMS = ["Home", "Download", "Demo", "Guided tour", "Wiki", "Benchmarks", "GitHub"];
+  const NAVITEMS = ["Home", "Download", "Demo", "Guided tour", "Wiki", "Compare", "Benchmarks", "GitHub"];
   for (const p of pages.concat(["404.html"]).filter((x, i, a) => a.indexOf(x) === i)) {
     if (p === "demo/app/") continue; /* the demo file itself, shown by /demo/ in a frame */
     await page.goto(origin + p, { waitUntil: "load" });
