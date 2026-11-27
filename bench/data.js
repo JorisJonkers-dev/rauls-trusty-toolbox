@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795780930710,
+  "lastUpdate": 1795781665927,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12641,6 +12641,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.149264,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "53b1d6db18249d501a2fce6257ad8a666f9b57c8",
+          "message": "docs(adr): mod lists are TOML files of references; Beautiful ships as one flat list (#693)",
+          "timestamp": "2026-11-27T13:11:34+01:00",
+          "tree_id": "a1268b283e34cff03f84a3b8c3373b42f4df9e80",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/53b1d6db18249d501a2fce6257ad8a666f9b57c8"
+        },
+        "date": 1795781665094,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.265632,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.398136000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.004717,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.774209,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.03522,
             "unit": "ms"
           }
         ]
