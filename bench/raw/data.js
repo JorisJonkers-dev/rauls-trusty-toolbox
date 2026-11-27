@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795782203221,
+  "lastUpdate": 1795783220258,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12739,6 +12739,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.5665000000000004,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "563e094d1fc4ffc6f2b2144ccac9b71db6bf6236",
+          "message": "feat(site): benchmark pages per project, with comparisons and history (#674)\n\n* feat(site): benchmark pages per project with comparisons and history\n\nAdds /bench/ (an overview and one page per project) drawn from small JSON records, each bar set beside the tool it\nreplaces, with missing comparisons shown as not measured yet. The github-action-benchmark page moves to /bench/raw/\nand its history is read into the Toolbox page. The Bench workflow also publishes each run as a record.\n\n* docs(bench): link each missing comparison to its issue",
+          "timestamp": "2026-11-27T12:38:20Z",
+          "tree_id": "30ba7fdb87780f516681b20a7b56b6b807d1eafa",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/563e094d1fc4ffc6f2b2144ccac9b71db6bf6236"
+        },
+        "date": 1795783219701,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.083287,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.681557000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.848488,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.517859,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.343762,
             "unit": "ms"
           }
         ]
