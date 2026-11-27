@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795783220258,
+  "lastUpdate": 1795783665975,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12788,6 +12788,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.343762,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "be1d6fe55ab777bcb41f01dd47143e6af90a06ca",
+          "message": "feat(nexus): API key storage, raul nexus key set|clear|status and a Nexus client (#695)\n\nThe key lives in the OS keyring (or, on request, a 0600 file); NEXUS_API_KEY overrides both.\nIt is read from standard input and handed to curl as a config on its standard input, so it\nis never on a command line, in settings.toml or in an error text. The client sits behind a\nNexusApi trait over a Transport seam: validate, mod info, file list, md5 lookup and download\nlink (a non-premium account gets a needs-premium-or-manual result).",
+          "timestamp": "2026-11-27T13:43:50+01:00",
+          "tree_id": "991d00c13892e1deda68436fed7755a155694aed",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/be1d6fe55ab777bcb41f01dd47143e6af90a06ca"
+        },
+        "date": 1795783664916,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.3070500000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.490494,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.926325999999996,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.267322,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.32822,
             "unit": "ms"
           }
         ]
