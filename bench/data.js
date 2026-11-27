@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795779524910,
+  "lastUpdate": 1795779748476,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12543,6 +12543,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.256361999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a27ca83791070f93035b11a657f5422f0ff2d1a1",
+          "message": "ci: run the pipeline checks as parallel jobs behind Pipeline Complete (#673)\n\nPipeline Complete now only gates on the other jobs (alls-green). The Linux\nchecks are split into policy, lint and test jobs, Windows and macOS build\neach workspace in its own job, the GUI workflow runs lint and tests in\nparallel, and the feature catalogue is its own job. Inline scripts move to\nscripts/ci, the shared Rust setup to a composite action, and Rust caches\nare saved on main only. Documentation-only pull requests skip the Rust\nbuild and test jobs.",
+          "timestamp": "2026-11-27T12:40:44+01:00",
+          "tree_id": "2e53fa2c28807a1f9e3be531d05d509844408138",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a27ca83791070f93035b11a657f5422f0ff2d1a1"
+        },
+        "date": 1795779747387,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.68779,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.636971,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.772622,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.198608,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.380357,
             "unit": "ms"
           }
         ]
