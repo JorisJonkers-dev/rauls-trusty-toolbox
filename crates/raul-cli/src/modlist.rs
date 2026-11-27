@@ -88,7 +88,10 @@ pub(crate) fn run(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut
     }
     let flags = match verb {
         "list" | "show" | "plan" | "fetch" | "watch" => parse(&args[1..]),
-        _ => Err("modlist needs `list`, `show`, `plan`, `fetch`, `watch`, `export` or `install`".to_owned()),
+        _ => Err(
+            "modlist needs `list`, `show`, `plan`, `fetch`, `watch`, `export` or `install`"
+                .to_owned(),
+        ),
     };
     let flags = match flags {
         Ok(f) => f,

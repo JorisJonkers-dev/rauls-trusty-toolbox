@@ -58,11 +58,11 @@ fn list() -> ModList {
 fn present_archives_become_steps_in_list_order_and_the_rest_is_reported() {
     let p = plan_install(&list(), &[], &s(&["f.zip", "a.ZIP", "B.7z", "C.zip"]));
     let order: Vec<(&str, bool)> = p.steps.iter().map(|x| (x.id.as_str(), x.enabled)).collect();
+    assert_eq!(order, [("a", true), ("b", true), ("c", false), ("f", true)]);
     assert_eq!(
-        order,
-        [("a", true), ("b", true), ("c", false), ("f", true)]
+        p.steps[0].archive, "a.ZIP",
+        "the archive is named as it is on disk"
     );
-    assert_eq!(p.steps[0].archive, "a.ZIP", "the archive is named as it is on disk");
     assert_eq!(p.missing.len(), 1, "D has no archive named, E is off");
     assert_eq!(p.missing[0].id, "d");
     assert_eq!(p.skipped, 1);
@@ -86,7 +86,11 @@ fn each_mod_goes_above_the_earlier_ones_and_below_a_later_one_that_is_there() {
 
 #[test]
 fn a_run_with_everything_present_has_nothing_to_do() {
-    let p = plan_install(&list(), &s(&["a", "B", "c", "d", "e", "LOD", "f"]), &s(&["A.zip"]));
+    let p = plan_install(
+        &list(),
+        &s(&["a", "B", "c", "d", "e", "LOD", "f"]),
+        &s(&["A.zip"]),
+    );
     assert!(p.steps.is_empty() && p.missing.is_empty());
     assert_eq!(p.present, 7);
 }
