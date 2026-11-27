@@ -9,6 +9,7 @@ mod detect;
 mod lod;
 mod lod_settings;
 mod modlist;
+mod modlist_export;
 
 mod nexus;
 pub mod play;
@@ -196,6 +197,11 @@ usage:
                               what the Profile has of the list and what it lacks, where to download each missing Mod
                               (a Nexus page or another link, or what to do by hand) and the install order; nothing
                               is read from Nexus and nothing is written
+  raul modlist export --instance <dir> [--profile <name>] [--id <slug>] [--name <text>] [--target vanilla|ttw] [-o <file>]
+                              write a Profile as a Mod list: the Mods in the order they go in, whether each is on, the
+                              Plugins it brings and, from its meta.ini, the Nexus mod and file; a Mod with no Nexus id is
+                              listed as by hand with a note. Without -o the list goes to standard output; the Instance
+                              is only read
 
   raul nexus key set [--file]|clear|status [--json]
                               the Nexus Mods API key: set reads it from standard input (never the command line) and keeps it

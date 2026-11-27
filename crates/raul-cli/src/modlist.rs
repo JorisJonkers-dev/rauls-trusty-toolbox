@@ -52,9 +52,12 @@ fn parse(args: &[String]) -> Result<Flags, String> {
 /// `raul modlist ...`.
 pub(crate) fn run(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let verb = args.first().map_or("", String::as_str);
+    if verb == "export" {
+        return crate::modlist_export::run(ctx, &args[1..], out, err);
+    }
     let flags = match verb {
         "list" | "show" | "plan" => parse(&args[1..]),
-        _ => Err("modlist needs `list`, `show` or `plan`".to_owned()),
+        _ => Err("modlist needs `list`, `show`, `plan` or `export`".to_owned()),
     };
     let flags = match flags {
         Ok(f) => f,
