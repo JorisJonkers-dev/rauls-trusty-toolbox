@@ -9,6 +9,7 @@ mod detect;
 mod lod;
 mod lod_settings;
 mod modlist;
+mod modlist_install;
 
 mod nexus;
 pub mod play;

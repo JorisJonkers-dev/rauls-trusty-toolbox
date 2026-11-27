@@ -8,6 +8,7 @@ mod bundled;
 mod error;
 mod model;
 mod parse;
+pub mod install;
 pub mod plan;
 
 pub use bundled::{BUNDLED_IDS, bundled};

@@ -14,7 +14,7 @@ use raul_modlist::{BUNDLED_IDS, ModList, Source, bundled};
 use serde_json::json;
 
 const USAGE_LINE: &str = "modlist takes `list [--json]`, `show <list> [--json]` or \
-     `plan <list> [--instance <dir>] [--profile <name>] [--json]`; <list> is a bundled id or a file";
+     `plan <list> [--instance <dir>] [--profile <name>] [--json]` or `install <list>` (see `raul help`); <list> is a bundled id or a file";
 
 struct Flags {
     list: Option<String>,
@@ -52,6 +52,9 @@ fn parse(args: &[String]) -> Result<Flags, String> {
 /// `raul modlist ...`.
 pub(crate) fn run(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let verb = args.first().map_or("", String::as_str);
+    if verb == "install" {
+        return crate::modlist_install::run(ctx, &args[1..], out, err);
+    }
     let flags = match verb {
         "list" | "show" | "plan" => parse(&args[1..]),
         _ => Err("modlist needs `list`, `show` or `plan`".to_owned()),
@@ -126,7 +129,7 @@ fn list(json: bool, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
 }
 
 /// A bundled list by id, else a file by path.
-fn load(name: &str) -> Result<ModList, String> {
+pub(crate) fn load(name: &str) -> Result<ModList, String> {
     if let Some(found) = bundled(name) {
         return found.map_err(|e| e.to_string());
     }
