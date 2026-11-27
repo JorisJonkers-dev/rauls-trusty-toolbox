@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# The one package the site build needs (pure Python). Pinned with its hash: pip install --require-hashes -r site/requirements.txt
+Markdown==3.11.3 \
+    --hash=sha256:e1a31a112232504d753e5c01bb8c2de90d3f0ba986b063e10770cf7695b09e73

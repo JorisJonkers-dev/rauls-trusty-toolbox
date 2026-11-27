@@ -1,0 +1,7 @@
+{
+  "name": "raul-site-check",
+  "private": true,
+  "description": "Dev dependency of site/check.js only; the site itself needs no Node.",
+  "license": "GPL-3.0-only",
+  "devDependencies": { "playwright-core": "1.56.1" }
+}
