@@ -219,6 +219,10 @@ pub fn request_parts(settings: &Settings) -> Value {
     if settings.objects.drop_under_water {
         objects.insert("drop_under_water".into(), true.into());
     }
+    // raul's own default is on (the generator's is off); off is left out, as the generator's own default
+    if settings.objects.far_glow {
+        objects.insert("far_glow".into(), true.into());
+    }
     // absent by default and written only when set, like the object switches
     let mut terrain = json!({
         "enabled": o.terrain,
@@ -309,14 +313,27 @@ pub struct TerrainOptions {
     pub texture_scales: std::collections::BTreeMap<String, f32>,
 }
 
-/// What object LOD leaves out of what it builds (options the generator added after its first release).
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+/// What object LOD leaves out of what it builds, and what it adds (options the generator added after its first
+/// release).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ObjectOptions {
     /// Leave out faces that lie wholly under the land.
     pub drop_under_terrain: bool,
     /// Leave out faces that lie wholly under the water.
     pub drop_under_water: bool,
+    /// Far objects keep the glow of lit windows, signs and lamps (on unless set off: raul's own default).
+    pub far_glow: bool,
+}
+
+impl Default for ObjectOptions {
+    fn default() -> ObjectOptions {
+        ObjectOptions {
+            drop_under_terrain: false,
+            drop_under_water: false,
+            far_glow: true,
+        }
+    }
 }
 
 impl Default for TerrainOptions {
@@ -494,7 +511,7 @@ pub fn plan(
         if !rules.is_empty() {
             request["objects"]["shapes_from_shipped_blocks"] = json!(rules);
         }
-        let include = include_rules::rules_for_load_order(&plugins);
+        let include = include_rules::rules_for_load_order(&plugins, settings.objects.far_glow);
         if !include.is_empty() {
             request["inclusion"]["include_rules"] = json!(include);
         }

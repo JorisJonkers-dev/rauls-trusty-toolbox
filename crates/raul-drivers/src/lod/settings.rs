@@ -196,6 +196,10 @@ pub mod catalogue {
     pub const DROP_UNDER_WATER: &str = "Leave out object faces under the water";
     /// Drop faces under the water, explained.
     pub const DROP_UNDER_WATER_HELP: &str = "Distant objects lose the faces that lie below the water. The files get smaller. A face seen through clear water goes too.";
+    /// Far glow.
+    pub const FAR_GLOW: &str = "Lit windows and signs glow from far";
+    /// Far glow, explained.
+    pub const FAR_GLOW_HELP: &str = "On by default. Distant buildings keep the glow of their lit windows, signs and lamps, so a city and the Strip casinos light up at night from far away. The LOD gets one more texture per atlas. Off builds distant objects without glow, as the game's own far view has them.";
 }
 
 /// What kind of value an option holds.
@@ -279,7 +283,7 @@ macro_rules! level_rows {
 
 const LEVEL_ROWS: [Descriptor; 24] = level_rows!("4", "8", "16", "32");
 
-const BASE_ROWS: [Descriptor; 21] = [
+const BASE_ROWS: [Descriptor; 22] = [
     row(
         "worlds",
         1,
@@ -404,6 +408,14 @@ const BASE_ROWS: [Descriptor; 21] = [
         catalogue::DROP_UNDER_WATER_HELP,
     ),
     row(
+        "objects.far_glow",
+        3,
+        Kind::Switch,
+        NONE,
+        catalogue::FAR_GLOW,
+        catalogue::FAR_GLOW_HELP,
+    ),
+    row(
         "terrain.drop_under_water",
         3,
         Kind::Number,
@@ -454,8 +466,8 @@ const BASE_ROWS: [Descriptor; 21] = [
 ];
 
 /// Every option, in the order a view lists them: tier 1, then the advanced ones.
-pub const OPTIONS: [Descriptor; 45] = {
-    let mut all = [BASE_ROWS[0]; 45];
+pub const OPTIONS: [Descriptor; 46] = {
+    let mut all = [BASE_ROWS[0]; 46];
     let mut i = 0;
     while i < BASE_ROWS.len() {
         all[i] = BASE_ROWS[i];
@@ -487,6 +499,7 @@ fn generator_key(key: &str) -> Option<String> {
         "worlds"
         | "objects.drop_under_terrain"
         | "objects.drop_under_water"
+        | "objects.far_glow"
         | "terrain.drop_under_water"
         | "terrain.water_walls"
         | "terrain.water_shared_vertices"
@@ -537,8 +550,8 @@ pub fn default_value(key: &str) -> Option<Value> {
     if key == "allow_in_repo" {
         return Some(json!(false));
     }
-    // raul's own default: the generator leaves packing off, raul packs.
-    if key == "output.pack" {
+    // raul's own defaults: the generator leaves packing and far glow off, raul packs and lets far objects glow.
+    if key == "output.pack" || key == "objects.far_glow" {
         return Some(json!(true));
     }
     let info = generator().option(&generator_key(key)?)?;
@@ -1833,6 +1846,30 @@ mod tests {
         assert!(old.output.pack);
         let mut without = generator().clone();
         without.options.retain(|o| o.key != "output.pack");
+        assert!(!listed_in(&without, d), "an older generator hides the row");
+    }
+
+    /// The far glow row is tier 3 and on by default (raul's own default; the generator's is off): the request asks for
+    /// far glow and the far glow include rules until it is turned off; off leaves both out, as the generator's own
+    /// default; a restore turns it on again.
+    #[test]
+    fn the_far_glow_row_is_on_by_default_and_turning_it_off_leaves_it_out_of_the_request() {
+        let dir = TempDir::new("raul-lodset-glow");
+        let at = at(&dir);
+        let on = super::super::request_parts(&Settings::default());
+        let d = descriptor("objects.far_glow").unwrap();
+        assert_eq!((d.tier, d.kind), (3, Kind::Switch));
+        assert!(listed_in(generator(), d));
+        assert_eq!(default_value("objects.far_glow"), Some(json!(true)));
+        assert_eq!(on["objects"]["far_glow"], json!(true));
+        set(&at, "objects.far_glow", &json!(false)).unwrap();
+        let off = super::super::request_parts(&Settings::load_file(&at.file).unwrap());
+        assert!(off["objects"].get("far_glow").is_none());
+        reset(&at, false).unwrap();
+        let back = super::super::request_parts(&Settings::load_file(&at.file).unwrap_or_default());
+        assert_eq!(back, on, "a restore turns far glow on again");
+        let mut without = generator().clone();
+        without.options.retain(|o| o.key != "objects.far_glow");
         assert!(!listed_in(&without, d), "an older generator hides the row");
     }
 

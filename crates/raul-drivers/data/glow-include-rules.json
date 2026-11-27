@@ -1,0 +1,10 @@
+[
+  {
+    "models": "architecture/strip/*wl*.nif",
+    "record_type": "ACTI",
+    "generate": {
+      "keep": 0.5,
+      "max_error": 0.01
+    }
+  }
+]
