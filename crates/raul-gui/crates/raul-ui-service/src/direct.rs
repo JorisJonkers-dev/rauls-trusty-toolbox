@@ -1045,6 +1045,7 @@ pub fn install_request(
         extract_limits: nvmod_api::install::LimitOverrides::default(),
         fomod_answers: None,
         on_conflict: nvmod_api::install::OnConflict::default(),
+        placement: nvmod_api::install::Placement::Top,
     }
 }
 

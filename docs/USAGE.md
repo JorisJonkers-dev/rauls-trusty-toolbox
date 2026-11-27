@@ -27,7 +27,7 @@ raul at a list file of your own.
 - `raul modlist list` names the lists raul carries; `raul modlist show beautiful` shows what one holds.
 - `raul modlist plan beautiful --instance <dir>` says which of its Mods the Profile has, and for each one it lacks gives
   the Nexus page or other link, or says what to do by hand, in the order the Mods are installed in. Nothing is written
-  and nothing is fetched; you download the files yourself. Installing a list comes in a later release.
+  and nothing is fetched; you download the files yourself.
 - `raul modlist export --instance <dir> [--profile <name>] -o mine.toml` writes a Profile as a Mod list, so you can share
   your set-up. It takes the order, which Mods are on, their Plugins and, from each Mod's `meta.ini`, the Nexus mod id, file
   id, version and the archive name (whose upload time names the file when the id is missing). A Mod with no Nexus id is
@@ -42,6 +42,12 @@ raul at a list file of your own.
   existing nvmod install, under the list's name and placed last (list order comes with the installer for whole lists);
   a Mod whose installer asks questions stays staged. `--once` scans once and stops, `--scan-existing` also takes
   archives that were already there. It stops when everything it waits for is in, or on Ctrl+C.
+- `raul modlist install beautiful --instance <dir>` installs every Mod of the list whose archive is in the Instance's
+  `downloads` folder (or the one `--downloads <dir>` names), in the list's order, under the list's names and in the place
+  the list gives each one; a Mod the list switches off is installed and switched off. A Mod with no archive is listed and
+  left for the next run, and a Mod whose installer asks questions stays staged. When the list asks for its Plugins to be
+  sorted, raul sorts them with loot-rs at the end (`--no-sort` skips that). `--dry-run` says what would be installed
+  and writes nothing; `--json` reports each step. What was installed is noted in the Instance's `.raul` folder.
 
 ## Nexus API key
 

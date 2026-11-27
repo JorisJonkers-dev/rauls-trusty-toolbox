@@ -348,6 +348,7 @@ fn install(
         name: Some(name.to_owned()),
         dry_run: false,
         answers: None,
+        placement: nvmod_modinstall::Placement::Top,
         max_extract_bytes: None,
         extract_limits: nvmod_modinstall::LimitOverrides::default(),
     };

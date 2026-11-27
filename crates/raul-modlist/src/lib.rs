@@ -7,6 +7,7 @@
 mod bundled;
 mod error;
 mod export;
+pub mod install;
 mod model;
 mod parse;
 pub mod plan;
