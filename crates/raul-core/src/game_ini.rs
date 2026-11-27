@@ -233,6 +233,136 @@ pub fn sync_with(
     Ok(Outcome::Changed(said))
 }
 
+/// The archive that makes the engine take a loose file over the same path in a vanilla archive.
+pub const INVALIDATION_BSA: &str = "Fallout - Invalidation.bsa";
+
+/// The game's own 83-byte dummy archive (one empty `dummy.dds`), written out when a game folder has none. It holds no
+/// game data; the bytes are the header and tables of a one-entry archive.
+const INVALIDATION_BSA_BYTES: [u8; 83] = [
+    0x42, 0x53, 0x41, 0x00, 0x68, 0x00, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00,
+    0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+    0x3e, 0x00, 0x00, 0x00, 0x00, 0xf9, 0xed, 0x05, 0x64, 0xfd, 0xc6, 0x50, 0x8e, 0x00, 0x00, 0x00,
+    0x00, 0x52, 0x00, 0x00, 0x00, 0x64, 0x75, 0x6d, 0x6d, 0x79, 0x2e, 0x64, 0x64, 0x73, 0x00, 0x00,
+    0x00, 0x00, 0x00,
+];
+
+/// `text` with archive invalidation on: `bInvalidateOlderFiles=1`, and [`INVALIDATION_BSA`] first in `SArchiveList`
+/// (as the game's own launcher writes it), the rest of the list kept in its order. When the INI has no list,
+/// `fallback_list` (the default INI's, or the Profile's) is the one that starts it.
+#[must_use]
+pub fn with_archive_invalidation(text: &str, fallback_list: Option<&str>) -> String {
+    let mut out = set(text, "Archive", "bInvalidateOlderFiles", "1");
+    let list = get(&out, "Archive", "SArchiveList")
+        .filter(|l| !l.trim().is_empty())
+        .or_else(|| fallback_list.map(str::to_owned))
+        .unwrap_or_default();
+    // No list anywhere: the engine's own default stays, rather than a list of the one dummy archive.
+    if list.is_empty() {
+        return out;
+    }
+    let mut archives = vec![INVALIDATION_BSA.to_owned()];
+    archives.extend(
+        list.split(',')
+            .map(str::trim)
+            .filter(|a| !a.is_empty() && !a.eq_ignore_ascii_case(INVALIDATION_BSA))
+            .map(str::to_owned),
+    );
+    out = set(&out, "Archive", "SArchiveList", &archives.join(", "));
+    out
+}
+
+/// Makes sure `data` holds [`INVALIDATION_BSA`] (any letter case): writes the dummy when it does not. Returns whether
+/// it was written.
+///
+/// # Errors
+/// The file could not be written.
+pub fn ensure_invalidation_bsa(data: &Path) -> Result<bool, String> {
+    if nvmod_instance::find_ci(data, INVALIDATION_BSA).is_some() {
+        return Ok(false);
+    }
+    let file = data.join(INVALIDATION_BSA);
+    std::fs::write(&file, INVALIDATION_BSA_BYTES)
+        .map_err(|e| format!("{}: {e}", file.display()))?;
+    Ok(true)
+}
+
+/// Whether the Profile folder's `settings.ini` switches `AutomaticArchiveInvalidation` off on purpose. Without the
+/// file, or the key, invalidation stays on: loose files that lose to the game's archives are never what a Mod list
+/// means.
+#[must_use]
+pub fn invalidation_switched_off(profile_dir: &Path) -> bool {
+    nvmod_instance::find_ci(profile_dir, "settings.ini")
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|t| get(&t, "General", "AutomaticArchiveInvalidation"))
+        .is_some_and(|v| {
+            matches!(
+                v.to_ascii_lowercase().as_str(),
+                "false" | "0" | "no" | "off"
+            )
+        })
+}
+
+/// The text a staged `Fallout.ini` starts from, with archive invalidation on: the game's `default_ini`, whose archive
+/// list is replaced by the Profile's own (`profile_ini`) when that has one.
+///
+/// # Errors
+/// A file could not be read.
+pub fn archive_invalidation_seed(
+    default_ini: &Path,
+    profile_ini: Option<&Path>,
+) -> Result<String, String> {
+    let read = |p: &Path| std::fs::read_to_string(p).map_err(|e| format!("{}: {e}", p.display()));
+    let mut text = read(default_ini)?;
+    if let Some(p) = profile_ini.filter(|p| p.is_file())
+        && let Some(list) =
+            get(&read(p)?, "Archive", "SArchiveList").filter(|l| !l.trim().is_empty())
+    {
+        text = set(&text, "Archive", "SArchiveList", &list);
+    }
+    Ok(with_archive_invalidation(&text, None))
+}
+
+/// Puts archive invalidation into the `Fallout.ini` at `fallout_ini`: edited where it is, or, when the file does not
+/// exist yet, started from [`archive_invalidation_seed`] (nothing is written without a default INI to start from; the
+/// engine makes the file at its first start and the next start sets it).
+///
+/// # Errors
+/// A file could not be read or written.
+pub fn sync_archive_invalidation(
+    fallout_ini: &Path,
+    default_ini: Option<&Path>,
+    profile_ini: Option<&Path>,
+) -> Result<Outcome, String> {
+    let (before, after) = if fallout_ini.is_file() {
+        let before = std::fs::read_to_string(fallout_ini)
+            .map_err(|e| format!("{}: {e}", fallout_ini.display()))?;
+        let fallback = profile_ini
+            .filter(|p| p.is_file())
+            .and_then(|p| std::fs::read_to_string(p).ok())
+            .and_then(|t| get(&t, "Archive", "SArchiveList"));
+        let after = with_archive_invalidation(&before, fallback.as_deref());
+        (before, after)
+    } else if let Some(default) = default_ini.filter(|p| p.is_file()) {
+        (
+            String::new(),
+            archive_invalidation_seed(default, profile_ini)?,
+        )
+    } else {
+        return Ok(Outcome::NoFile);
+    };
+    if before == after {
+        return Ok(Outcome::Unchanged);
+    }
+    if let Some(parent) = fallout_ini.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("{}: {e}", parent.display()))?;
+    }
+    std::fs::write(fallout_ini, after).map_err(|e| format!("{}: {e}", fallout_ini.display()))?;
+    Ok(Outcome::Changed(vec![format!(
+        "[Archive] SArchiveList starts with {INVALIDATION_BSA}, bInvalidateOlderFiles=1"
+    )]))
+}
+
 /// [`sync`] for the run folder `<instance>/run/<profile>` that nvmod prepares: the Profile's lists are
 /// `<instance>/profiles/<profile>/plugins.txt`, the settings are in the run's user data.
 ///
@@ -244,18 +374,37 @@ pub fn sync_run_folder(run_dir: &Path) -> Result<Outcome, String> {
     else {
         return Ok(Outcome::Unchanged);
     };
-    let plugins = instance.join("profiles").join(profile).join("plugins.txt");
+    let profile_dir = instance.join("profiles").join(profile);
+    let plugins = profile_dir.join("plugins.txt");
     let ini = nvmod_run::my_games(&run_dir.join("userdata")).join("Fallout.ini");
     // The run folder's `Data` is the staged tree: when it exists, the master has to be in it. A folder that is not
     // staged (yet) says nothing, so the list alone decides.
     let data = run_dir.join("Data");
     let provided = !data.is_dir() || nvmod_instance::find_ci(&data, TTW_MASTER).is_some();
-    sync_with(
-        &plugins,
-        &ini,
-        Some(&run_dir.join("Fallout_default.ini")),
-        provided,
-    )
+    let default_ini = run_dir.join("Fallout_default.ini");
+    let ttw = sync_with(&plugins, &ini, Some(&default_ini), provided)?;
+    if invalidation_switched_off(&profile_dir) {
+        return Ok(ttw);
+    }
+    // Archive invalidation: without it the game's archives beat the loose files of the Mods (the textures of a Mod
+    // list silently do not show). The Profile's own INI archive list is kept, with the invalidation archive first.
+    let mut said = match ttw {
+        Outcome::Changed(said) => said,
+        _ => Vec::new(),
+    };
+    let profile_ini = nvmod_instance::find_ci(&profile_dir, "Fallout.ini");
+    let archives = sync_archive_invalidation(&ini, Some(&default_ini), profile_ini.as_deref())?;
+    if let Outcome::Changed(more) = archives {
+        said.extend(more);
+    }
+    if data.is_dir() && ensure_invalidation_bsa(&data)? {
+        said.push(format!("{INVALIDATION_BSA} added to Data"));
+    }
+    Ok(if said.is_empty() {
+        Outcome::Unchanged
+    } else {
+        Outcome::Changed(said)
+    })
 }
 
 #[cfg(test)]
@@ -337,9 +486,15 @@ mod tests {
         .unwrap();
         std::fs::write(run.join("Fallout_default.ini"), DEFAULTS).unwrap();
         let ini = nvmod_run::my_games(&run.join("userdata")).join("Fallout.ini");
-        // Staged without the master (the Mod is disabled): a plain Profile, no file made.
-        assert_eq!(sync_run_folder(&run).unwrap(), Outcome::Unchanged);
-        assert!(!ini.exists());
+        // Staged without the master (the Mod is disabled): a plain Profile, whose file has only the archive settings.
+        assert!(matches!(
+            sync_run_folder(&run).unwrap(),
+            Outcome::Changed(_)
+        ));
+        assert_eq!(
+            std::fs::read_to_string(&ini).unwrap(),
+            with_archive_invalidation(DEFAULTS, None)
+        );
         // The master is staged: the values are set.
         std::fs::write(run.join("Data/taleoftwowastelands.ESM"), b"x").unwrap();
         assert!(matches!(
@@ -352,7 +507,10 @@ mod tests {
             sync_run_folder(&run).unwrap(),
             Outcome::Changed(_)
         ));
-        assert_eq!(std::fs::read_to_string(&ini).unwrap(), DEFAULTS);
+        assert_eq!(
+            std::fs::read_to_string(&ini).unwrap(),
+            with_archive_invalidation(DEFAULTS, None)
+        );
     }
 
     #[test]
@@ -459,5 +617,139 @@ mod tests {
         );
         // A path with no parents does nothing.
         assert_eq!(sync_run_folder(Path::new("/")).unwrap(), Outcome::Unchanged);
+    }
+
+    /// The game's default list, as `Fallout_default.ini` has it: no invalidation archive, no `bInvalidateOlderFiles`.
+    const VANILLA: &str = "[Archive]\r\nSInvalidationFile=ArchiveInvalidation.txt\r\nbUseArchives=1\r\nSArchiveList=Fallout - Textures.bsa, Fallout - Textures2.bsa, Fallout - Meshes.bsa, Fallout - Voices1.bsa, Fallout - Sound.bsa,  Fallout - Misc.bsa\r\n";
+
+    #[test]
+    fn the_invalidation_archive_goes_first_in_the_vanilla_order_and_older_files_are_invalidated() {
+        let out = with_archive_invalidation(VANILLA, None);
+        assert_eq!(
+            get(&out, "Archive", "SArchiveList").unwrap(),
+            "Fallout - Invalidation.bsa, Fallout - Textures.bsa, Fallout - Textures2.bsa, Fallout - Meshes.bsa, Fallout - Voices1.bsa, Fallout - Sound.bsa, Fallout - Misc.bsa"
+        );
+        assert_eq!(get(&out, "Archive", "bInvalidateOlderFiles").unwrap(), "1");
+        assert_eq!(get(&out, "Archive", "bUseArchives").unwrap(), "1");
+        // Again, and with the archive somewhere else in the list: first, once.
+        assert_eq!(with_archive_invalidation(&out, None), out);
+        let moved = "[Archive]\nSArchiveList=A.bsa, fallout - invalidation.bsa, B.bsa\nbInvalidateOlderFiles=0\n";
+        let moved = with_archive_invalidation(moved, None);
+        assert_eq!(
+            get(&moved, "Archive", "SArchiveList").unwrap(),
+            "Fallout - Invalidation.bsa, A.bsa, B.bsa"
+        );
+        assert_eq!(
+            get(&moved, "Archive", "bInvalidateOlderFiles").unwrap(),
+            "1"
+        );
+        // No list at all: the engine's own default stays.
+        assert_eq!(
+            get(
+                &with_archive_invalidation("[General]\n", None),
+                "Archive",
+                "SArchiveList"
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn the_dummy_archive_is_written_only_when_data_has_none() {
+        let data = scratch("bsa");
+        assert!(ensure_invalidation_bsa(&data).unwrap());
+        let file = data.join(INVALIDATION_BSA);
+        assert_eq!(std::fs::read(&file).unwrap().len(), 83);
+        assert_eq!(&std::fs::read(&file).unwrap()[..4], b"BSA\0");
+        assert!(!ensure_invalidation_bsa(&data).unwrap());
+        // Another letter case counts as there.
+        std::fs::rename(&file, data.join("fallout - invalidation.bsa")).unwrap();
+        assert!(!ensure_invalidation_bsa(&data).unwrap());
+        assert_eq!(std::fs::read_dir(&data).unwrap().count(), 1);
+    }
+
+    /// The bug found on the Megaton pipe: a loose texture lost to `Fallout - Textures.bsa` because the staged INI
+    /// listed no invalidation archive. A run folder as `raul run` and `raul scene run` leave it must list it first,
+    /// with older files invalidated and the archive in `Data`, and the Profile's own list must be the one kept.
+    #[test]
+    fn a_staged_run_folder_lets_a_loose_texture_beat_the_vanilla_archives() {
+        let root = scratch("loose");
+        let run = root.join("run/Default");
+        let profile = root.join("profiles/Default");
+        std::fs::create_dir_all(run.join("Data/textures/architecture/synthetic")).unwrap();
+        std::fs::create_dir_all(&profile).unwrap();
+        std::fs::write(
+            run.join("Data/textures/architecture/synthetic/Pipe01.dds"),
+            b"loose",
+        )
+        .unwrap();
+        std::fs::write(run.join("Fallout_default.ini"), VANILLA).unwrap();
+        std::fs::write(profile.join("plugins.txt"), "FalloutNV.esm\n").unwrap();
+        let ini = nvmod_run::my_games(&run.join("userdata")).join("Fallout.ini");
+
+        assert!(matches!(
+            sync_run_folder(&run).unwrap(),
+            Outcome::Changed(_)
+        ));
+        let text = std::fs::read_to_string(&ini).unwrap();
+        let list = get(&text, "Archive", "SArchiveList").unwrap();
+        assert!(
+            list.starts_with("Fallout - Invalidation.bsa, Fallout - Textures.bsa"),
+            "{list}"
+        );
+        assert_eq!(get(&text, "Archive", "bInvalidateOlderFiles").unwrap(), "1");
+        assert!(run.join("Data").join(INVALIDATION_BSA).is_file());
+        // Nothing left to do on the next start.
+        assert_eq!(sync_run_folder(&run).unwrap(), Outcome::Unchanged);
+
+        // An INI from an earlier run (list without the archive) is repaired in place, the person's other values kept.
+        std::fs::write(&ini, format!("{VANILLA}[Display]\r\niSize W=2560\r\n")).unwrap();
+        assert!(matches!(
+            sync_run_folder(&run).unwrap(),
+            Outcome::Changed(_)
+        ));
+        let text = std::fs::read_to_string(&ini).unwrap();
+        assert!(
+            get(&text, "Archive", "SArchiveList")
+                .unwrap()
+                .starts_with("Fallout - Invalidation.bsa, ")
+        );
+        assert_eq!(get(&text, "Display", "iSize W").unwrap(), "2560");
+    }
+
+    #[test]
+    fn the_profiles_own_archive_list_is_kept_and_switching_invalidation_off_is_respected() {
+        let root = scratch("profile-list");
+        let run = root.join("run/Default");
+        let profile = root.join("profiles/Default");
+        std::fs::create_dir_all(run.join("Data")).unwrap();
+        std::fs::create_dir_all(&profile).unwrap();
+        std::fs::write(run.join("Fallout_default.ini"), VANILLA).unwrap();
+        std::fs::write(profile.join("plugins.txt"), "FalloutNV.esm\n").unwrap();
+        std::fs::write(
+            profile.join("Fallout.ini"),
+            "[Archive]\r\nSArchiveList=Fallout - Textures.bsa, Custom - Textures.bsa\r\n",
+        )
+        .unwrap();
+        let ini = nvmod_run::my_games(&run.join("userdata")).join("Fallout.ini");
+        sync_run_folder(&run).unwrap();
+        let text = std::fs::read_to_string(&ini).unwrap();
+        assert_eq!(
+            get(&text, "Archive", "SArchiveList").unwrap(),
+            "Fallout - Invalidation.bsa, Fallout - Textures.bsa, Custom - Textures.bsa"
+        );
+
+        // A Profile that turns it off on purpose gets no file and no archive.
+        std::fs::remove_file(&ini).unwrap();
+        std::fs::remove_file(run.join("Data").join(INVALIDATION_BSA)).unwrap();
+        std::fs::write(
+            profile.join("settings.ini"),
+            "[General]\r\nAutomaticArchiveInvalidation=false\r\n",
+        )
+        .unwrap();
+        assert!(invalidation_switched_off(&profile));
+        assert_eq!(sync_run_folder(&run).unwrap(), Outcome::Unchanged);
+        assert!(!ini.exists());
+        assert!(!run.join("Data").join(INVALIDATION_BSA).exists());
     }
 }
