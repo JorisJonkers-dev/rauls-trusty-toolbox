@@ -57,6 +57,27 @@
      "caption": "Ultra-Luxe lobby: retextured floor, ambient occlusion, coloured light."
     }
    ]
+  },
+  {
+   "id": "capital-wasteland",
+   "title": "Capital Wasteland",
+   "views": [
+    {
+     "name": "rivet-city-from-the-river-bank",
+     "title": "Rivet City",
+     "caption": "Rivet City over the Potomac: far view, water reflection."
+    },
+    {
+     "name": "tenpenny-tower-from-the-plain",
+     "title": "Tenpenny Tower",
+     "caption": "Tenpenny Tower across the plain: far view and ground textures."
+    },
+    {
+     "name": "megaton-houses-day",
+     "title": "Megaton",
+     "caption": "Megaton: looking into the town from the rim, shadows and bulbs."
+    }
+   ]
   }
  ]
 }
