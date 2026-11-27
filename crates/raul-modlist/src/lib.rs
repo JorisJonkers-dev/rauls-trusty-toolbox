@@ -7,9 +7,9 @@
 mod bundled;
 mod error;
 mod export;
+pub mod install;
 mod model;
 mod parse;
-pub mod install;
 pub mod plan;
 pub mod watch;
 
