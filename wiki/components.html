@@ -1,0 +1,64 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Components · Raul's Toolbox wiki</title>
+<meta name="description" content="Raul's Toolbox: modding New Vegas without the frustration.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23F59E3B%27 stroke-width=%271.8%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%273.2%27/%3E%3Cpath d=%27M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="../index.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>Raul's Toolbox</a><nav aria-label="Site"><a href="../demo/">Demo</a><a href="../tour/">Guided tour</a><a href="../wiki/" aria-current="page">Wiki</a><a href="../bench/">Benchmarks</a><a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox">GitHub</a></nav></header>
+<div class="wikiwrap">
+<aside class="side" aria-label="Wiki pages"><h2>Wiki</h2><a href="index.html">Home</a><a href="getting-started.html">Getting started</a><a href="using-the-toolbox.html">Using the Toolbox</a><a href="features.html">Features</a><a href="roadmap.html">Plans and roadmap</a><a href="components.html" aria-current="page">Components</a><a href="faq.html">FAQ</a><a href="contributing.html">Contributing</a></aside>
+<main>
+<article>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<h1 id="components">Components</h1>
+<p>raul is made of five parts. Each has its own repository, its own tests and its own releases, and each works alone with
+its own command line.</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/JorisJonkers-dev/nv-rs">nv-rs</a></td>
+<td>The game engine. A Rust port of Fallout: New Vegas, from slaterain. This is the project's fork of <a href="https://github.com/slaterain/nv-rs">slaterain/nv-rs</a>. raul starts the game on it.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/JorisJonkers-dev/nvmod-rs">nvmod-rs</a></td>
+<td>Mods. Instances, profiles, installing mods, conflicts and the load order list.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/JorisJonkers-dev/loot-rs">loot-rs</a></td>
+<td>Sorts the load order with the <a href="https://loot.github.io/">LOOT</a> masterlist. It reads the list when it runs and does not copy it.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/JorisJonkers-dev/lodwright-rs">lodwright-rs</a></td>
+<td>Builds the distant terrain, objects and trees for your mods.</td>
+</tr>
+<tr>
+<td><a href="https://github.com/JorisJonkers-dev/ttwright-rs">ttwright-rs</a></td>
+<td>Installs Tale of Two Wastelands from your own game copies. A rewrite of <a href="https://github.com/SulfurNitride/TTW_Linux_Installer">TTW_Linux_Installer</a>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="why-separate">Why separate</h2>
+<p>Each part does one job and can be tested alone. A part can be released when it is ready. raul links them into one
+program, and a raul release uses one set of versions that were tested together.</p>
+<h2 id="more">More</h2>
+<p><a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/COMPONENTS.md">docs/COMPONENTS.md</a> has the reasons and the origins in full, and
+<a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/ARCHITECTURE.md">docs/ARCHITECTURE.md</a> shows how they fit together in the code.</p>
+<div class="pager"><a class="btn sm" href="roadmap.html">&larr; Plans and roadmap</a><a class="btn sm" href="faq.html">FAQ &rarr;</a></div>
+<p class="foot" style="padding-bottom:8px"><a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/wiki/components.md">Source of this page</a></p>
+</article>
+</main>
+</div>
+</body>
+</html>

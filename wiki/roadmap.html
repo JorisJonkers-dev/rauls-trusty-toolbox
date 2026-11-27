@@ -1,0 +1,61 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plans and roadmap · Raul's Toolbox wiki</title>
+<meta name="description" content="Raul's Toolbox: modding New Vegas without the frustration.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23F59E3B%27 stroke-width=%271.8%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%273.2%27/%3E%3Cpath d=%27M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="../index.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>Raul's Toolbox</a><nav aria-label="Site"><a href="../demo/">Demo</a><a href="../tour/">Guided tour</a><a href="../wiki/" aria-current="page">Wiki</a><a href="../bench/">Benchmarks</a><a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox">GitHub</a></nav></header>
+<div class="wikiwrap">
+<aside class="side" aria-label="Wiki pages"><h2>Wiki</h2><a href="index.html">Home</a><a href="getting-started.html">Getting started</a><a href="using-the-toolbox.html">Using the Toolbox</a><a href="features.html">Features</a><a href="roadmap.html" aria-current="page">Plans and roadmap</a><a href="components.html">Components</a><a href="faq.html">FAQ</a><a href="contributing.html">Contributing</a></aside>
+<main>
+<article>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<h1 id="plans-and-roadmap">Plans and roadmap</h1>
+<p>The full plan is <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/PLAN.md">docs/PLAN.md</a>, with the later reorganisation in <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/REORG.md">docs/REORG.md</a>. This page is
+the short version.</p>
+<h2 id="the-idea">The idea</h2>
+<p>raul is the one product. It pins five parts (the <a href="components.html">Components</a>), owns the window and the command line,
+and releases installers for Linux, Windows and macOS. The parts keep their own repositories and releases. A raul
+release uses one set of part versions that were tested together.</p>
+<p>raul runs the whole flow and nvmod-rs only manages mods. Every part is linked into raul and called directly. Only the
+game itself runs as a separate program, started from raul's own binary.</p>
+<h2 id="the-plan-in-phases">The plan in phases</h2>
+<ol>
+<li><strong>Structure:</strong> the five parts as submodules, one workspace, the licence decided.</li>
+<li><strong>Window and command line:</strong> setup, mods, load order, LOD and launch.</li>
+<li><strong>Build and sync:</strong> checks on all three systems, and a workflow that proposes a version bump when a part releases.</li>
+<li><strong>Benchmarks:</strong> <code>raul bench</code> with a <a href="../bench/">history</a>.</li>
+<li><strong>Releases:</strong> installers for Linux, Windows and macOS, checksums, and an update check you ask for. Signing comes when
+   the keys exist.</li>
+<li><strong>Docs:</strong> architecture, code of conduct, install guide.</li>
+</ol>
+<h2 id="where-it-stands">Where it stands</h2>
+<ul>
+<li>Releases are out; the latest is on the <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases">releases page</a>.</li>
+<li>Windows and macOS packages are built and smoke-tested, but still need a full run on real computers, and are unsigned.</li>
+<li>The window is being rebuilt to match the <a href="../demo/">demo</a>, which is the design standard.</li>
+<li>The generated LOD is being improved.</li>
+<li>The nv-rs engine is being ported to the point where it replaces the original game in every case; a chart of that
+  progress is on the <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox#readme">README</a>.</li>
+</ul>
+<h2 id="next">Next</h2>
+<ul>
+<li>Profiles, Doctor and Test your setup from the demo, in the real window.</li>
+<li>Signing for Windows and macOS.</li>
+<li>Frame-time benchmarks, when the engine can record them.</li>
+</ul>
+<p>Dates are not promised. Follow the <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues">issues</a> and the
+<a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/CHANGELOG.md">changelog</a>.</p>
+<div class="pager"><a class="btn sm" href="features.html">&larr; Features</a><a class="btn sm" href="components.html">Components &rarr;</a></div>
+<p class="foot" style="padding-bottom:8px"><a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/wiki/roadmap.md">Source of this page</a></p>
+</article>
+</main>
+</div>
+</body>
+</html>

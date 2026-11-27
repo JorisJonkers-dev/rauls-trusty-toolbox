@@ -1,0 +1,161 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Using the Toolbox · Raul's Toolbox wiki</title>
+<meta name="description" content="Raul's Toolbox: modding New Vegas without the frustration.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23F59E3B%27 stroke-width=%271.8%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%273.2%27/%3E%3Cpath d=%27M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="../index.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>Raul's Toolbox</a><nav aria-label="Site"><a href="../demo/">Demo</a><a href="../tour/">Guided tour</a><a href="../wiki/" aria-current="page">Wiki</a><a href="../bench/">Benchmarks</a><a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox">GitHub</a></nav></header>
+<div class="wikiwrap">
+<aside class="side" aria-label="Wiki pages"><h2>Wiki</h2><a href="index.html">Home</a><a href="getting-started.html">Getting started</a><a href="using-the-toolbox.html" aria-current="page">Using the Toolbox</a><a href="features.html">Features</a><a href="roadmap.html">Plans and roadmap</a><a href="components.html">Components</a><a href="faq.html">FAQ</a><a href="contributing.html">Contributing</a></aside>
+<main>
+<article>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<h1 id="using-the-toolbox">Using the Toolbox</h1>
+<p>This page goes through the pages of raul's window. It keeps two things apart:</p>
+<ul>
+<li><strong>Current release:</strong> what the latest release does today.</li>
+<li><strong>Planned design:</strong> what the <a href="../demo/">clickable demo</a> shows. The demo is the design standard for the next
+  versions of the window. Its data is made up and it does not touch a game.</li>
+</ul>
+<p>Try the planned design yourself in the <a href="../tour/">guided tour</a>.</p>
+<h2 id="at-a-glance">At a glance</h2>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Current release</th>
+<th>Planned design</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Setup</td>
+<td>Five steps</td>
+<td>Eight steps</td>
+</tr>
+<tr>
+<td>Home</td>
+<td>Yes</td>
+<td>Yes, with a profile switcher</td>
+</tr>
+<tr>
+<td>Mods</td>
+<td>Yes</td>
+<td>Yes, with groups, test tab and versions</td>
+</tr>
+<tr>
+<td>Load order</td>
+<td>Yes</td>
+<td>Yes, with missing master warnings</td>
+</tr>
+<tr>
+<td>LOD</td>
+<td>Yes</td>
+<td>Yes, with a quality choice and fine-tuning</td>
+</tr>
+<tr>
+<td>System</td>
+<td>Engine and update page</td>
+<td>Updates for all parts in one place</td>
+</tr>
+<tr>
+<td>Doctor</td>
+<td>Not yet</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Profiles</td>
+<td>Not yet</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Test your setup</td>
+<td>Not yet</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h2 id="setup">Setup</h2>
+<p><strong>Current release.</strong> Five steps: find New Vegas, choose whether you want Tale of Two Wastelands, make the folder for
+your mods, run a quick check, done.</p>
+<p><strong>Planned design.</strong> Eight steps: Welcome, Game, Storage, Engine, TTW, Profile, LOD and Done. Each step shows what was
+found, what went wrong (game not found, wrong folder, low space) and a busy state. If you close the window, setup
+carries on where it stopped.</p>
+<p><img alt="The setup wizard in the demo" src="img/01-wizard-1-welcome.png"></p>
+<h2 id="home">Home</h2>
+<p><strong>Current release.</strong> A check list for the game folder, storage, Tale of Two Wastelands, load order and distant view,
+and a Play button. Play checks your setup first.</p>
+<p><strong>Planned design.</strong> One column: the check list, the active profile, your play time and when you last played. A badge
+on the sidebar tells you when something needs doing. Play always rechecks the setup, and tells you what is wrong in
+plain words.</p>
+<h2 id="mods">Mods</h2>
+<p><strong>Current release.</strong> Install a mod from its archive. A mod with an installer asks its questions in the window. Turn
+mods on and off, move them up and down, remove them, and undo the last change.</p>
+<p><strong>Planned design.</strong> Mods sit in groups you name. Drag a mod into another group, or move it with the keyboard. A banner
+reminds you when this exact setup has not been tested. The page has three views: Mod list, Test your setup and
+Versions.</p>
+<p><img alt="The Mods page in the demo" src="img/32-mods-list.png"></p>
+<h3 id="test-your-setup-planned-design">Test your setup (planned design)</h3>
+<p>Three tools on the Mods page:</p>
+<ul>
+<li><strong>Stability test:</strong> loads 40 places and travels between them, about 20 minutes. If it passes, the setup is marked
+  as tested stable.</li>
+<li><strong>Benchmark:</strong> the frame rate, with a history over time.</li>
+<li><strong>Location pictures:</strong> the same spot at the same time of day, side by side, before and after a change. Scroll to zoom
+  and drag to look around.</li>
+</ul>
+<p>A filtered log shows warnings and errors.</p>
+<h3 id="versions-planned-design">Versions (planned design)</h3>
+<p>Every change to your mods, order or game settings makes a version. You can go back to an earlier one, or forward again.
+The list stays.</p>
+<h2 id="load-order">Load order</h2>
+<p><strong>Current release.</strong> Sorts your plugins with the LOOT masterlist. raul shows every move and the masterlist's messages
+first, and changes nothing until you press Apply.</p>
+<p><strong>Planned design.</strong> The same preview, plus a warning when a plugin needs a master that is not on. The warning also shows
+on Home and in the sidebar.</p>
+<h2 id="lod">LOD</h2>
+<p>LOD is what you see in the distance. Mods change the world, but the game's own far view stays the old one.</p>
+<p><strong>Current release.</strong> Generates the distant land, objects and trees for exactly your load order. The result is one mod,
+<code>Generated LOD (&lt;profile&gt;)</code>, and a new run replaces it. A settings page changes what is built.</p>
+<p><strong>Planned design.</strong> A quality choice (for example Balanced or High), a state that says when the LOD is out of date
+because mods changed, and fine-tuning for texture size and distance.</p>
+<h2 id="profiles-planned-design">Profiles (planned design)</h2>
+<p>A profile is a whole setup: mods on, order, settings, LOD and tests. Installed mods and groups are shared, so you
+install a mod once. Switch, duplicate, rename or delete a profile from the top bar.</p>
+<h2 id="tale-of-two-wastelands">Tale of Two Wastelands</h2>
+<p><strong>Current release.</strong> TTW is built from your own Fallout 3 and New Vegas copies and the installer file from the TTW site.
+raul checks the sources, shows where the output goes and how much space it needs, installs, and adds TTW as one mod.</p>
+<p><strong>Planned design.</strong> The same four steps, started from the Mods page when TTW is shown as Not added.</p>
+<h2 id="system-planned-design">System (planned design)</h2>
+<p>Checks for updates when you open it. One Update button; every part that changes says it will be updated, with a list of
+changes. Engine builds are listed here, and you can switch between them.</p>
+<h2 id="doctor-planned-design">Doctor (planned design)</h2>
+<p>One button runs every check: game folder, storage, engine, TTW, mods, load order, LOD and whether the setup was tested.
+Each problem has a button that fixes it or takes you to the right page.</p>
+<h2 id="settings">Settings</h2>
+<p>Game folders, the TTW installer file, raul's storage folder and the look of the window (including a high contrast mode).
+The planned design adds start-setup-again, reduced motion and larger text.</p>
+<h2 id="keyboard">Keyboard</h2>
+<p>The planned design has a search box on Ctrl+K that jumps to any page, and a list of shortcuts on the question mark key.
+Enter confirms a dialog and Escape cancels it.</p>
+<h2 id="the-same-from-the-command-line">The same from the command line</h2>
+<p>Every page also exists as a command. See <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/USAGE.md">Using raul from the command line</a> and the longer
+<a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/TOUR.md">tour of the current window</a>.</p>
+<div class="pager"><a class="btn sm" href="getting-started.html">&larr; Getting started</a><a class="btn sm" href="features.html">Features &rarr;</a></div>
+<p class="foot" style="padding-bottom:8px"><a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/wiki/using-the-toolbox.md">Source of this page</a></p>
+</article>
+</main>
+</div>
+</body>
+</html>

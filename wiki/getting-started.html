@@ -1,0 +1,87 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting started · Raul's Toolbox wiki</title>
+<meta name="description" content="Raul's Toolbox: modding New Vegas without the frustration.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23F59E3B%27 stroke-width=%271.8%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%273.2%27/%3E%3Cpath d=%27M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="../index.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>Raul's Toolbox</a><nav aria-label="Site"><a href="../demo/">Demo</a><a href="../tour/">Guided tour</a><a href="../wiki/" aria-current="page">Wiki</a><a href="../bench/">Benchmarks</a><a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox">GitHub</a></nav></header>
+<div class="wikiwrap">
+<aside class="side" aria-label="Wiki pages"><h2>Wiki</h2><a href="index.html">Home</a><a href="getting-started.html" aria-current="page">Getting started</a><a href="using-the-toolbox.html">Using the Toolbox</a><a href="features.html">Features</a><a href="roadmap.html">Plans and roadmap</a><a href="components.html">Components</a><a href="faq.html">FAQ</a><a href="contributing.html">Contributing</a></aside>
+<main>
+<article>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<h1 id="getting-started">Getting started</h1>
+<h2 id="what-you-need">What you need</h2>
+<ul>
+<li>Your own copy of Fallout: New Vegas (Steam, GOG or Epic).</li>
+<li>Your own copy of Fallout 3 and the installer file from the TTW site, but only if you want Tale of Two Wastelands.</li>
+<li>About 25 GB of free space for Tale of Two Wastelands, and a few GB without it.</li>
+</ul>
+<h2 id="download">Download</h2>
+<p>Open the <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/releases/latest">latest release</a> and take the file
+for your computer.</p>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>File</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linux (x64, Steam Deck)</td>
+<td><code>.AppImage</code>, <code>.deb</code> or <code>.tar.gz</code></td>
+<td>Make the AppImage runnable (<code>chmod +x</code>) and start it. Or install the <code>.deb</code> with <code>sudo apt install ./raul-*.deb</code>.</td>
+</tr>
+<tr>
+<td>Windows 10 22H2 or 11 (x64)</td>
+<td><code>-setup.exe</code> or <code>-portable.zip</code></td>
+<td>Installs for your user only. It is not signed yet, so SmartScreen may warn you.</td>
+</tr>
+<tr>
+<td>macOS 13 or newer (Apple silicon and Intel)</td>
+<td><code>.dmg</code></td>
+<td>Not signed yet. Allow it under System Settings, Privacy and Security.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="check-the-download">Check the download</h2>
+<p>The release has a file called <code>SHA256SUMS</code>. Compare your download with it:</p>
+<ul>
+<li>Linux: <code>sha256sum -c SHA256SUMS --ignore-missing</code>, in the download folder.</li>
+<li>macOS: <code>shasum -a 256 &lt;file&gt;</code>, then compare with the matching line.</li>
+<li>Windows (PowerShell): <code>Get-FileHash &lt;file&gt;</code>, then compare with the matching line.</li>
+</ul>
+<p>The <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/INSTALL.md">install guide</a> also shows how to check where the file was built.</p>
+<h2 id="linux-libraries">Linux libraries</h2>
+<p>The <code>.deb</code> brings the libraries the window needs. The AppImage and the <code>.tar.gz</code> do not. On Debian or Ubuntu, install
+them first: the list is in the <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/INSTALL.md#which-file-and-how-to-check-it">install guide</a>.</p>
+<h2 id="first-start">First start</h2>
+<p>raul opens a short setup. It looks for New Vegas in your Steam, GOG and Epic libraries, asks if you want Tale of Two
+Wastelands, makes a folder for your mods and profiles, and runs a quick check. Nothing is changed in your game folder.
+See <a href="using-the-toolbox.html">Using the Toolbox</a> for what each page does afterwards.</p>
+<h2 id="build-it-yourself">Build it yourself</h2>
+<pre><code class="language-sh">git clone --recursive https://github.com/JorisJonkers-dev/rauls-trusty-toolbox.git
+cd rauls-trusty-toolbox
+cargo run -p raul-cli -- --version
+</code></pre>
+<p>The install guide has the details: <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/INSTALL.md#from-source">Installing raul</a>.</p>
+<h2 id="updates">Updates</h2>
+<p>raul checks for a new release only when you ask. An update keeps the version before it, so you can go back.</p>
+<h2 id="legal">Legal</h2>
+<p>raul is an independent project. It is not affiliated with or endorsed by Bethesda Softworks, ZeniMax Media or
+Obsidian Entertainment. It is free software under the GPL-3.0-only licence.</p>
+<div class="pager"><a class="btn sm" href="index.html">&larr; Raul&#x27;s Toolbox</a><a class="btn sm" href="using-the-toolbox.html">Using the Toolbox &rarr;</a></div>
+<p class="foot" style="padding-bottom:8px"><a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/wiki/getting-started.md">Source of this page</a></p>
+</article>
+</main>
+</div>
+</body>
+</html>

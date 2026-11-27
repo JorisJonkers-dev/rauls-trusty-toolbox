@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contributing · Raul's Toolbox wiki</title>
+<meta name="description" content="Raul's Toolbox: modding New Vegas without the frustration.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23F59E3B%27 stroke-width=%271.8%27 stroke-linecap=%27round%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%273.2%27/%3E%3Cpath d=%27M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="../index.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>Raul's Toolbox</a><nav aria-label="Site"><a href="../demo/">Demo</a><a href="../tour/">Guided tour</a><a href="../wiki/" aria-current="page">Wiki</a><a href="../bench/">Benchmarks</a><a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox">GitHub</a></nav></header>
+<div class="wikiwrap">
+<aside class="side" aria-label="Wiki pages"><h2>Wiki</h2><a href="index.html">Home</a><a href="getting-started.html">Getting started</a><a href="using-the-toolbox.html">Using the Toolbox</a><a href="features.html">Features</a><a href="roadmap.html">Plans and roadmap</a><a href="components.html">Components</a><a href="faq.html">FAQ</a><a href="contributing.html" aria-current="page">Contributing</a></aside>
+<main>
+<article>
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<h1 id="contributing">Contributing</h1>
+<p>The project is owned by Joris Jonkers and is licensed GPL-3.0-only. Outside contributions are not accepted unless the
+owner asks for them, and public pull requests may be closed without review. The rules are in
+<a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
+<p>If you were invited:</p>
+<ul>
+<li>Keep changes small and tied to one issue.</li>
+<li>Do not include secrets, private data, game files, mod archives or local scratch files.</li>
+<li>Do not edit <code>CHANGELOG.md</code> by hand; the release tool writes it.</li>
+<li>Use Conventional Commits for every commit and pull request title.</li>
+<li>Include the tests or the check output in the pull request.</li>
+</ul>
+<h2 id="parts-are-separate-repositories">Parts are separate repositories</h2>
+<p>The five <a href="components.html">Components</a> live under <code>components/</code> as submodules. A change to a part is a pull request in
+that part's repository. It reaches raul as a version bump.</p>
+<h2 id="this-site">This site</h2>
+<p>The pages you are reading are Markdown files in <code>docs/wiki/</code> and are changed through pull requests like code. The
+<a href="../demo/">demo</a> comes from <code>docs/design/demo/</code>, and the <a href="../tour/">tour</a> from <code>site/</code>. A change to any of them is
+published when it reaches the main branch. <code>python3 site/build.py --out &lt;folder&gt;</code> builds the whole site on your computer.</p>
+<h2 id="security">Security</h2>
+<p>Report security problems as described in <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/SECURITY.md">SECURITY.md</a>.</p>
+<h2 id="behaviour">Behaviour</h2>
+<p>Be kind. See the <a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/CODE_OF_CONDUCT.md">code of conduct</a>.</p>
+<div class="pager"><a class="btn sm" href="faq.html">&larr; FAQ</a><span></span></div>
+<p class="foot" style="padding-bottom:8px"><a href="https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/wiki/contributing.md">Source of this page</a></p>
+</article>
+</main>
+</div>
+</body>
+</html>
