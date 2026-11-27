@@ -28,6 +28,10 @@ raul at a list file of your own.
 - `raul modlist plan beautiful --instance <dir>` says which of its Mods the Profile has, and for each one it lacks gives
   the Nexus page or other link, or says what to do by hand, in the order the Mods are installed in. Nothing is written
   and nothing is fetched; you download the files yourself. Installing a list comes in a later release.
+- `raul modlist export --instance <dir> [--profile <name>] -o mine.toml` writes a Profile as a Mod list, so you can share
+  your set-up. It takes the order, which Mods are on, their Plugins and, from each Mod's `meta.ini`, the Nexus mod id, file
+  id, version and the archive name (whose upload time names the file when the id is missing). A Mod with no Nexus id is
+  listed as "by hand" with a note. Only references are written, never a mod file, and the Instance is not changed.
 - `raul modlist fetch beautiful --instance <dir>` prints the download page of each missing Mod; with `--open` the pages
   open in your browser (10 at a time, `--limit` changes that), through the system's opener.
 - `raul modlist watch beautiful --instance <dir>` waits for the archives you download. It watches your download folder

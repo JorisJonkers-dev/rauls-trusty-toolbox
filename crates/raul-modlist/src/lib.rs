@@ -6,6 +6,7 @@
 
 mod bundled;
 mod error;
+mod export;
 mod model;
 mod parse;
 pub mod plan;
@@ -13,4 +14,5 @@ pub mod watch;
 
 pub use bundled::{BUNDLED_IDS, bundled};
 pub use error::Error;
+pub use export::{ExportError, ExportOptions, export_modlist};
 pub use model::{Game, Group, ModEntry, ModList, PluginOrder, SCHEMA, Source, Target};
