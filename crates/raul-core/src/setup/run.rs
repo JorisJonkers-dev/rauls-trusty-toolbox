@@ -232,6 +232,7 @@ fn execute(
                 extract_limits: api::install::LimitOverrides::default(),
                 fomod_answers: None,
                 on_conflict: api::install::OnConflict::default(),
+                placement: api::install::Placement::Top,
             };
             let r = api::install::install(&request, &mut detail(step, progress), cancel);
             match finish(step, r)? {
