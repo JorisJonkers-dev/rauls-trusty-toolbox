@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795803706820,
+  "lastUpdate": 1795806039513,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13523,6 +13523,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 10.133161,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "5e90d97df647309af9801a38f05a7df08789030e",
+          "message": "feat(lod): far objects glow at night, and the Strip casino lights reach the far view (#709)\n\n* feat(lod): far objects glow at night, and the Strip casino lights reach the far view\n\nA new LOD setting, \"Lit windows and signs glow from far\" (objects.far_glow,\ntier 3), on by default: raul asks lodwright for far glow, so far blocks keep\nthe glow of lit windows, signs and lamps. Off leaves it out of the request,\nthe generator's own default.\n\nWith far glow on, the request also carries the far glow include rules\n(data/glow-include-rules.json): the light strips the Strip casinos show\ntowards the Mojave are activators of their own (architecture/strip/*wl*.nif),\ndrawn without lighting, which only far glow can turn into far shapes.\n\nNeeds the lodwright release with objects.far_glow and glow cards.\n\n* chore(deps): bump lodwright-rs to 0.20.0 (far glow at night)\n\n* fix: drop the reverted replace_lod_model field and refresh the lodwright 0.20.0 request snapshot\n\n* chore(deps): pin file and GUI lock follow lodwright-rs 0.20.0\n\n* test(gui): regenerate the LOD settings snapshots for the far glow setting",
+          "timestamp": "2026-11-27T19:55:12+01:00",
+          "tree_id": "8e15ba7af5965f1cd664fbedde61e884a49683c1",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/5e90d97df647309af9801a38f05a7df08789030e"
+        },
+        "date": 1795806038693,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.298212,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.476159,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 45.945237,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.14612,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.441462,
             "unit": "ms"
           }
         ]
