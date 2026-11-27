@@ -255,3 +255,185 @@ fn a_command_line_that_is_not_understood_is_a_usage_error() {
         Some(i32::from(raul_cli::USAGE))
     );
 }
+
+/// Write a 7z archive of `files` at `path`, making its folder.
+fn make_7z(path: &Path, files: &[(&str, &[u8])]) {
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let mut writer = sevenz_rust2::ArchiveWriter::create(path).unwrap();
+    for (name, data) in files {
+        writer
+            .push_archive_entry(sevenz_rust2::ArchiveEntry::new_file(name), Some(*data))
+            .unwrap();
+    }
+    writer.finish().unwrap();
+}
+
+#[test]
+fn fetch_prints_the_page_of_each_missing_mod_and_nothing_for_a_present_one() {
+    let f = Fixture::new("modlist-fetch");
+    let (list, inst) = (f.path("tiny.toml"), f.path("instance"));
+    let out = f.ok(&["modlist", "fetch", s(&list), "--instance", s(&inst)]);
+    let t = text(&out);
+    assert!(
+        t.contains("   2. Beta\n      https://www.nexusmods.com/newvegas/mods/200?tab=files\n"),
+        "{t}"
+    );
+    assert!(t.contains("Gamma: by hand, ask the author"), "{t}");
+    assert!(!t.contains("Alpha") && !t.contains("Delta"), "{t}");
+    let all = f.ok(&["modlist", "fetch", s(&list), "--all"]);
+    assert!(text(&all).contains("Alpha"), "--all needs no Instance");
+}
+
+#[cfg(unix)]
+#[test]
+fn fetch_open_starts_the_opener_once_per_page_up_to_the_limit() {
+    use std::os::unix::fs::PermissionsExt;
+    let f = Fixture::new("modlist-fetch-open");
+    let (list, inst) = (f.path("tiny.toml"), f.path("instance"));
+    let log = f.path("opened.txt");
+    let opener = f.path("opener.sh");
+    std::fs::write(
+        &opener,
+        format!("#!/bin/sh\necho \"$1\" >> '{}'\n", log.display()),
+    )
+    .unwrap();
+    std::fs::set_permissions(&opener, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let run = |extra: &[&str]| {
+        let mut args = vec!["modlist", "fetch", s(&list), "--all", "--open"];
+        args.extend_from_slice(extra);
+        let _ = &inst;
+        Command::new(env!("CARGO_BIN_EXE_raul"))
+            .args(args)
+            .env("RAUL_URL_OPENER", &opener)
+            .env("RAUL_CONFIG_DIR", f.path("config"))
+            .output()
+            .unwrap()
+    };
+    let out = run(&["--limit", "2"]);
+    assert!(out.status.success(), "{out:?}");
+    let seen = std::fs::read_to_string(&log).unwrap();
+    assert_eq!(
+        seen.lines().collect::<Vec<_>>(),
+        [
+            "https://www.nexusmods.com/newvegas/mods/100?tab=files&file_id=7",
+            "https://www.nexusmods.com/newvegas/mods/200?tab=files"
+        ]
+    );
+    assert!(text(&out).contains("Opened 2 page(s)."), "{}", text(&out));
+}
+
+#[test]
+fn fetch_open_with_an_opener_that_is_missing_fails_with_a_line_per_page() {
+    let f = Fixture::new("modlist-fetch-noopener");
+    let list = f.path("tiny.toml");
+    let out = Command::new(env!("CARGO_BIN_EXE_raul"))
+        .args([
+            "modlist",
+            "fetch",
+            s(&list),
+            "--all",
+            "--open",
+            "--limit",
+            "1",
+        ])
+        .env("RAUL_URL_OPENER", f.path("no-such-opener"))
+        .env("RAUL_CONFIG_DIR", f.path("config"))
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(i32::from(raul_cli::REFUSED)));
+    assert!(
+        text(&out).contains("could not open the page of Alpha"),
+        "{}",
+        text(&out)
+    );
+}
+
+fn watch_once(f: &Fixture, extra: &[&str]) -> Output {
+    let (list, inst, dl) = (f.path("tiny.toml"), f.path("instance"), f.path("Downloads"));
+    let mut args = vec![
+        "modlist",
+        "watch",
+        s(&list),
+        "--once",
+        "--instance",
+        s(&inst),
+        "--downloads",
+        s(&dl),
+    ];
+    args.extend_from_slice(extra);
+    f.raul(&args)
+}
+
+#[test]
+fn watch_stages_the_archive_it_recognises_and_leaves_everything_else() {
+    let f = Fixture::new("modlist-watch-stage");
+    let dl = f.path("Downloads");
+    make_7z(&dl.join("beta.7z"), &[("Beta.esp", b"x")]);
+    std::fs::write(dl.join("holiday.zip"), b"not for the list").unwrap();
+    std::fs::write(dl.join("Beta.7z.part"), b"half").unwrap();
+    let out = watch_once(&f, &[]);
+    assert!(out.status.success(), "{out:?}");
+    let t = text(&out);
+    assert!(t.contains("beta.7z is Beta (by name); staged in"), "{t}");
+    assert!(t.contains("Imported 1; 0 still wanted."), "{t}");
+    let staged = f.path("instance/downloads");
+    assert!(staged.join("beta.7z").is_file());
+    assert!(!staged.join("holiday.zip").exists());
+    assert!(
+        dl.join("beta.7z").is_file(),
+        "the download stays where it was"
+    );
+}
+
+#[test]
+fn watch_install_puts_the_mod_into_the_profile_under_the_lists_name() {
+    let f = Fixture::new("modlist-watch-install");
+    make_7z(&f.path("Downloads/Beta.7z"), &[("Beta.esp", b"x")]);
+    let out = watch_once(&f, &["--install"]);
+    assert!(out.status.success(), "{out:?}");
+    assert!(text(&out).contains("installed Beta"), "{}", text(&out));
+    let plan = f.plan(&["--json"]);
+    let doc: Value = serde_json::from_slice(&plan.stdout).unwrap();
+    assert_eq!(doc["counts"]["present"], 2, "Beta is now in the Instance");
+}
+
+#[test]
+fn watch_refuses_a_file_with_the_listed_name_but_the_wrong_size() {
+    let f = Fixture::new("modlist-watch-size");
+    std::fs::write(
+        f.path("tiny.toml"),
+        LIST.replace(
+            "file_name = \"Beta.7z\", uploaded",
+            "file_name = \"Beta.7z\", size = 999999, uploaded",
+        ),
+    )
+    .unwrap();
+    make_7z(&f.path("Downloads/Beta.7z"), &[("Beta.esp", b"x")]);
+    let out = watch_once(&f, &[]);
+    assert_eq!(
+        out.status.code(),
+        Some(i32::from(raul_cli::REFUSED)),
+        "{out:?}"
+    );
+    assert!(
+        text(&out).contains("Not importing Beta.7z"),
+        "{}",
+        text(&out)
+    );
+    assert!(!f.path("instance/downloads/Beta.7z").exists());
+}
+
+#[test]
+fn watch_without_an_instance_is_refused() {
+    let f = Fixture::new("modlist-watch-no-instance");
+    let (list, dl) = (f.path("tiny.toml"), f.path("Downloads"));
+    let out = f.raul(&[
+        "modlist",
+        "watch",
+        s(&list),
+        "--once",
+        "--downloads",
+        s(&dl),
+    ]);
+    assert_eq!(out.status.code(), Some(i32::from(raul_cli::REFUSED)));
+}
