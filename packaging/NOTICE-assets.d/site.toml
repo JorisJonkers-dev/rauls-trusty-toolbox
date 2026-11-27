@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# The public site on GitHub Pages (site/).
+
+[[asset]]
+path = "site/landing.html"
+what = "landing page template of the public site (docs/wiki, the demo and the tour are published beside it)"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/tour.html"
+what = "guided tour page template of the public site: the demo in a frame and a list of steps"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/wiki.html"
+what = "wiki page template of the public site"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/download.html"
+what = "download page template of the public site: the latest release's files, checksums and install steps"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/demo.html"
+what = "demo page template of the public site: the unchanged demo in a frame under the site's navbar"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/404.html"
+what = "page-not-found template of the public site"
+source = "this repository"
+license = "GPL-3.0-only"

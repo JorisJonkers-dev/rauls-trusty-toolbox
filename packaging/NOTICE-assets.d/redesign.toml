@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# The redesign set.
+
+[[asset]]
+path = "docs/redesign/screens/"
+what = "pictures of the clickable demo taken while walking each user story (made by docs/redesign/scripts/*.js)"
+source = "this repository"
+license = "GPL-3.0-only"
