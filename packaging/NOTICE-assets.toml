@@ -97,8 +97,8 @@ source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's pictu
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 
 [[asset]]
-path = "docs/images/beautiful/compare-high-black-mountain.jpg"
-what = "README picture: Black Mountain's dishes and masts from the air; stock game against Beautiful 3c with raul, labelled composite"
+path = "docs/images/beautiful/compare-night-primm-road-lamps.jpg"
+what = "README picture: Primm at night, the street lamps light the ground; stock game against Beautiful 3c with raul, labelled composite"
 source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (owner-approved use in the README and the Compare page of the public site; small JPEG)"
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 

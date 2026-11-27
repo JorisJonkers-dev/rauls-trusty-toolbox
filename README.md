@@ -53,8 +53,8 @@ features (ambient occlusion, sun shadows, reflections, fill light) and a generat
 </p>
 
 <p align="center">
-  <img src="docs/images/beautiful/compare-high-black-mountain.jpg" alt="Black Mountain from the air, stock game on the left and Beautiful 3c with raul on the right" width="100%">
-  <br><em>Black Mountain's dishes and masts from the air: far terrain and object LOD.</em>
+  <img src="docs/images/beautiful/compare-night-primm-road-lamps.jpg" alt="Primm at night, stock game on the left and Beautiful 3c with raul on the right" width="100%">
+  <br><em>Primm at night: the street lamps light the ground.</em>
 </p>
 
 There are eight views in all, outside and inside, by day and by night. [Slide between them on the site](https://jorisjonkers-dev.github.io/rauls-trusty-toolbox/compare/).
