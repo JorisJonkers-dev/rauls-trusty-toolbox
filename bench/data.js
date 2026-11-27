@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795777344453,
+  "lastUpdate": 1795778487444,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12445,6 +12445,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.735337,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "47f5b8bf8e9aad2f8d3dfcf7dffc0a5777d1db21",
+          "message": "docs: move mod fixes out of the README (#639)",
+          "timestamp": "2026-11-27T11:18:47Z",
+          "tree_id": "a8dc57cac3f38e34354ce7147b2af0bb7a21156b",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/47f5b8bf8e9aad2f8d3dfcf7dffc0a5777d1db21"
+        },
+        "date": 1795778486522,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.660595,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.665955,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 30.621078,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.346791,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.007411,
             "unit": "ms"
           }
         ]
