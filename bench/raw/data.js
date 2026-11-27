@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795784546449,
+  "lastUpdate": 1795785231445,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12935,6 +12935,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.737527999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "74438e5acfd6ab0728ba1396fca0a5a3111d0534",
+          "message": "fix(ci): the site publish job also checks out the app's icon sources (#700)",
+          "timestamp": "2026-11-27T14:11:36+01:00",
+          "tree_id": "bf3905cdd9cf6559d71c13fd59400604c754b7bf",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/74438e5acfd6ab0728ba1396fca0a5a3111d0534"
+        },
+        "date": 1795785230211,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.5215649999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.9497029999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 27.960421999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.021579,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.362311,
             "unit": "ms"
           }
         ]
