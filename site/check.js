@@ -22,7 +22,7 @@ const bad = (m) => { problems.push(m); console.log("FAIL", m); };
 const ok = (c, m) => { if (!c) bad(m); };
 
 /* ---- static server ---- */
-const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml" };
+const TYPES = { ".json": "application/json", ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml" };
 function resolveFile(urlPath) {
   if (!urlPath.startsWith(BASE)) return null;
   let f = path.join(root, decodeURIComponent(urlPath.slice(BASE.length)));
@@ -86,7 +86,13 @@ async function main() {
 
   /* every page loads without errors */
   const pages = allHtml(root).map((f) => path.relative(root, f).replace(/index\.html$/, ""));
-  for (const p of pages) { await page.goto(origin + p, { waitUntil: "load" }); await page.waitForTimeout(200); ok((await page.title()).length > 0, `${p}: no title`); }
+  for (const p of pages) {
+    await page.goto(origin + p, { waitUntil: "load" }); await page.waitForTimeout(200); ok((await page.title()).length > 0, `${p}: no title`);
+    /* every stylesheet and script of the site is linked with its content hash, so no browser keeps an old copy */
+    const unversioned = await page.evaluate(() => [...document.querySelectorAll("link[rel=stylesheet][href], script[src]")]
+      .map((e) => e.getAttribute("href") || e.getAttribute("src")).filter((u) => !/^[a-z]+:|^\/\//.test(u) && !/\?v=[0-9a-f]{10}$/.test(u)));
+    ok(unversioned.length === 0, `${p}: assets linked without a version: ${unversioned}`);
+  }
   console.log(`pages opened: ${pages.length}`);
   ok(pages.includes("demo/app/") && pages.includes("wiki/") && pages.includes("tour/") && pages.includes("demo/") && pages.includes(""), "landing, wiki, demo and tour pages exist");
   ok(pages.includes("download/"), "download page exists");
@@ -108,21 +114,88 @@ async function main() {
   if (shots) for (const [u, n] of [["", "landing"], ["download/", "download-page"], ["wiki/faq.html", "wiki-faq"], ["wiki/", "wiki-home"], ["tour/", "tour-page"], ["demo/", "demo-page"], ["404.html", "not-found"]]) { await page.goto(origin + u); await page.waitForTimeout(600); await page.screenshot({ path: path.join(shots, `page-${n}.png`) }); }
   if (shots) { await page.goto(origin); await page.screenshot({ path: path.join(shots, "landing.png") }); await page.goto(origin + "wiki/using-the-toolbox.html"); await page.screenshot({ path: path.join(shots, "wiki.png") }); }
 
-  /* the benchmark pages: an overview and one page per project, each with bars, no script */
-  for (const p of ["bench/", "bench/nv-rs/", "bench/loot-rs/", "bench/ttwright-rs/", "bench/lodwright-rs/", "bench/nvmod-rs/", "bench/toolbox/"]) {
+  /* the benchmark pages: an overview and one page per project, every figure a real chart that reads without script */
+  const BENCH = ["bench/", "bench/nv-rs/", "bench/loot-rs/", "bench/ttwright-rs/", "bench/lodwright-rs/", "bench/nvmod-rs/", "bench/toolbox/"];
+  const figureFacts = () => [...document.querySelectorAll("figure.bx-fig")].map((f) => {
+    const shown = (e) => e.getBoundingClientRect().width > 0;
+    const svgs = [...f.querySelectorAll("svg.bx-bars, svg.bx-line")].filter(shown);
+    const bars = [...f.querySelectorAll(".bx-bar")].filter(shown);
+    return {
+      id: f.id, svgs: svgs.length, title: !!f.querySelector(".bx-ft"), better: !!f.querySelector(".bx-better"),
+      yaxis: svgs.every((s) => s.querySelectorAll(".bx-yaxis .bx-tick").length >= 2 && s.querySelector(".bx-unit")),
+      xaxis: svgs.every((s) => s.querySelectorAll(".bx-xaxis text").length >= 2),
+      legend: f.querySelectorAll(".bx-legend li").length, bars: bars.length,
+      unlabelled: bars.filter((b) => !b.getAttribute("aria-label") || !(b.querySelector(".bx-val") || b.classList.contains("bx-nmbar"))).length,
+      details: !!f.querySelector("details.bx-det > summary .bx-btn"),
+    };
+  });
+  for (const p of BENCH) {
     ok(pages.includes(p), `${p} exists`);
     await page.goto(origin + p, { waitUntil: "load" }); await page.waitForTimeout(300);
     ok((await page.locator("h1").count()) === 1, `${p}: one h1`);
     ok((await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)), `${p}: scrolls sideways`);
+    for (const f of await page.evaluate(figureFacts)) {
+      const w = `${p}#${f.id}`;
+      ok(f.svgs >= 1, `${w}: no chart`);
+      ok(f.title && f.better, `${w}: no title or no "better" marker`);
+      ok(f.yaxis, `${w}: a chart without a y axis with ticks and unit`);
+      ok(f.xaxis, `${w}: a chart without x axis labels`);
+      ok(f.legend >= 1, `${w}: no legend`);
+      ok(f.unlabelled === 0, `${w}: ${f.unlabelled} bars without a label or value`);
+      ok(f.details, `${w}: no Details button`);
+    }
+    /* Details opens a panel with the method, the raw table and the record to download */
+    const dets = page.locator("figure.bx-fig details.bx-det");
+    for (let i = 0; i < await dets.count(); i++) {
+      const d = dets.nth(i);
+      await d.locator("summary").click();
+      ok(await d.locator(".bx-panel").isVisible(), `${p}: Details ${i} does not open`);
+      ok((await d.locator(".bx-panel tbody tr").count()) >= 1 && (await d.locator(".bx-panel dt").count()) >= 2, `${p}: Details ${i} has no table or method`);
+      ok((await d.locator('.bx-panel a[download][href$=".json"]').count()) === 1, `${p}: Details ${i} has no record to download`);
+    }
+    /* a tooltip on hover and on keyboard focus */
+    const bar = page.locator(".bx-wide .bx-bar, .bx-pt").first();
+    if (await bar.count()) {
+      await bar.hover();
+      ok(await page.locator(".bx-tip.on").isVisible() && (await page.locator(".bx-tip b").innerText()).length > 0, `${p}: no tooltip on hover`);
+      await page.mouse.move(0, 0);
+      await bar.focus();
+      ok(await page.locator(".bx-tip.on").isVisible(), `${p}: no tooltip on focus`);
+    }
   }
   await page.goto(origin + "bench/");
-  ok((await page.locator(".bcard").count()) === 6, "overview has one card per project");
+  ok((await page.locator(".bx-card").count()) === 6, "overview has one card per project");
+  ok((await page.locator(".bx-card svg.bx-mini").count()) === 6, "every overview card has a chart");
+  ok((await page.locator(".bx-card a.bx-btn", { hasText: "Open" }).count()) === 6, "every overview card has an Open button");
+  ok((await page.locator(".bx-sum .bx-kpi").count()) >= 3, "overview has a summary strip");
   await page.goto(origin + "bench/loot-rs/");
-  ok((await page.locator(".track .fill").count()) >= 6, "loot-rs page draws bars");
+  ok((await page.locator(".bx-wide .bx-bar .bx-m").count()) >= 13, "loot-rs page draws bars");
+  ok((await page.locator(".bx-wide .bx-ann", { hasText: "faster" }).count()) === 3, "loot-rs marks the speed-up over each group");
   await page.goto(origin + "bench/nv-rs/");
-  ok((await page.locator(".b.missing").count()) === 0, "nv-rs draws no per-place bar for a tool with no numbers");
-  ok((await page.locator("ul.nm li").filter({ hasText: "Original game" }).count()) >= 1, "nv-rs notes the original game as not measured yet");
-  if (shots) for (const [u, n] of [["bench/", "bench-overview"], ["bench/loot-rs/", "bench-loot-rs"]]) { await page.goto(origin + u); await page.waitForTimeout(1200); await page.screenshot({ path: path.join(shots, n + ".png"), fullPage: true }); }
+  ok((await page.locator('.bx-wide a.bx-nmlink[href$="/issues/1019"] .bx-nmbar').count()) === 10, "nv-rs draws a not-measured slot per place, linked to its issue");
+  await page.goto(origin + "bench/toolbox/");
+  ok((await page.locator(".bx-hist .bx-p30 .bx-ln").count()) >= 5, "toolbox history draws a line per case");
+  await page.locator(".bx-hist label", { hasText: "All" }).click();
+  ok(await page.locator(".bx-hist .bx-pall").isVisible() && !(await page.locator(".bx-hist .bx-p30").isVisible()), "the history range switches");
+  /* reduced motion: the bars do not move */
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(origin + "bench/loot-rs/");
+  ok((await page.locator(".bx-m").first().evaluate((e) => getComputedStyle(e).animationName)) === "none", "bars animate under reduced motion");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  /* a phone: nothing scrolls the page sideways, and the figures draw at a readable size */
+  const phone = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const pp = await phone.newPage();
+  pp.on("pageerror", (e) => errors.push("pageerror: " + e.message));
+  for (const p of BENCH) {
+    await pp.goto(origin + p, { waitUntil: "load" }); await pp.waitForTimeout(200);
+    ok(await pp.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), `${p}: scrolls sideways at 390px`);
+    const small = await pp.evaluate(() => [...document.querySelectorAll("svg.bx-bars")].filter((s) => s.getBoundingClientRect().width > 0)
+      .filter((s) => s.getBoundingClientRect().width / s.viewBox.baseVal.width < 0.95).length);
+    ok(small === 0, `${p}: ${small} bar charts shrunk on a phone`);
+    if (shots) await pp.screenshot({ path: path.join(shots, `bench-${p.split("/")[1] || "overview"}-390.png`), fullPage: true, animations: "disabled" });
+  }
+  await phone.close();
+  if (shots) for (const p of BENCH) { await page.goto(origin + p); await page.waitForTimeout(400); await page.screenshot({ path: path.join(shots, `bench-${p.split("/")[1] || "overview"}-1440.png`), fullPage: true, animations: "disabled" }); }
 
   /* the guided tour */
   await page.goto(origin + "tour/");

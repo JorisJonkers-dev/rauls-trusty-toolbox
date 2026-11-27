@@ -28,7 +28,8 @@ def _strip(text: str, mark: tuple[str, str]) -> str:
 
 def shelled(text: str) -> str:
     text = _strip(_strip(text, HEAD_MARK), BODY_MARK)
-    head = f'{HEAD_MARK[0]}<link rel="stylesheet" href="{UP}assets/site.css"><style>{FIT}</style>{HEAD_MARK[1]}\n'
+    css = f"{UP}assets/site.css?v={shell.asset_version(Path(__file__).resolve().parent / 'site.css')}"
+    head = f'{HEAD_MARK[0]}<link rel="stylesheet" href="{css}"><style>{FIT}</style>{HEAD_MARK[1]}\n'
     body = f"{BODY_MARK[0]}{shell.header('bench', UP)}{BODY_MARK[1]}\n"
     if "</head>" in text:
         text = text.replace("</head>", head + "</head>", 1)
