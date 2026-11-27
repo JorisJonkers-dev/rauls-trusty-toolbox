@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# The design standard: the clickable demo and its screenshots.
+
+[[asset]]
+path = "docs/design/mockup.html"
+what = "GUI mockup, including its inline line icons drawn for it from generic shapes"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/design/demo/index.html"
+what = "clickable demo of the redesigned GUI, the design standard (built from docs/design/demo/src)"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/design/demo/src/body.html"
+what = "the clickable demo's page body (source of docs/design/demo/index.html)"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/design/screenshots/"
+what = "screenshots of the clickable demo, one per flow step (made by docs/design/demo/test/run.js)"
+source = "this repository"
+license = "GPL-3.0-only"

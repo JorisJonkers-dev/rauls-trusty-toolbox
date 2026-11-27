@@ -48,6 +48,9 @@ fn problems(files: &[String], listed: &BTreeSet<String>) -> Vec<String> {
         if ASSET_EXTENSIONS.contains(&ext.as_str())
             && !GENERATED.iter().any(|g| file.starts_with(g))
             && !listed.contains(file)
+            && !listed
+                .iter()
+                .any(|l| l.ends_with('/') && file.starts_with(l.as_str()))
         {
             found.push(format!(
                 "{file}: not listed in packaging/NOTICE-assets.toml"
@@ -55,7 +58,14 @@ fn problems(files: &[String], listed: &BTreeSet<String>) -> Vec<String> {
         }
     }
     for path in listed {
-        if !files.contains(path) {
+        let present = if path.ends_with('/') {
+            files.iter().any(|f| {
+                f.starts_with(path.as_str()) && ASSET_EXTENSIONS.contains(&extension(f).as_str())
+            })
+        } else {
+            files.contains(path)
+        };
+        if !present {
             found.push(format!(
                 "{path}: listed in packaging/NOTICE-assets.toml but not in the repository"
             ));
@@ -98,15 +108,32 @@ fn tracked() -> Vec<String> {
     found
 }
 
+/// The listed paths: `packaging/NOTICE-assets.toml` plus every `packaging/NOTICE-assets.d/*.toml`, so each area keeps
+/// its own file and pull requests do not edit one shared list. A path ending in `/` covers every asset below that
+/// folder (all of one kind and one source, such as a folder of generated screenshots).
 fn listed() -> BTreeSet<String> {
-    let text = std::fs::read_to_string(root().join("packaging/NOTICE-assets.toml")).unwrap();
-    let doc: toml::Table = text.parse().unwrap();
-    doc["asset"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|a| a["path"].as_str().unwrap().to_owned())
-        .collect()
+    let dir = root().join("packaging");
+    let mut files = vec![dir.join("NOTICE-assets.toml")];
+    if let Ok(entries) = std::fs::read_dir(dir.join("NOTICE-assets.d")) {
+        let mut more: Vec<PathBuf> = entries
+            .map(|e| e.unwrap().path())
+            .filter(|p| p.extension().is_some_and(|e| e == "toml"))
+            .collect();
+        more.sort();
+        files.extend(more);
+    }
+    let mut paths = BTreeSet::new();
+    for file in files {
+        let text = std::fs::read_to_string(&file).unwrap();
+        let doc: toml::Table = text
+            .parse()
+            .unwrap_or_else(|e| panic!("{}: {e}", file.display()));
+        for asset in doc.get("asset").and_then(|a| a.as_array()).into_iter().flatten() {
+            let path = asset["path"].as_str().unwrap().to_owned();
+            assert!(paths.insert(path.clone()), "{path}: listed twice");
+        }
+    }
+    paths
 }
 
 fn strings(words: &[&str]) -> Vec<String> {
@@ -151,4 +178,15 @@ fn a_listed_asset_that_is_gone_fails_and_generated_screenshots_need_no_listing()
     );
     assert_eq!(found.len(), 1, "{found:?}");
     assert!(found[0].contains("but not in the repository"));
+}
+
+#[test]
+fn a_folder_entry_covers_the_assets_below_it_and_fails_when_empty() {
+    let listed: BTreeSet<String> = ["docs/shots/".to_owned()].into();
+    assert_eq!(
+        problems(&strings(&["docs/shots/a.png", "docs/shots/sub/b.png"]), &listed),
+        Vec::<String>::new()
+    );
+    let found = problems(&strings(&["docs/other.png"]), &listed);
+    assert_eq!(found.len(), 2, "{found:?}");
 }
