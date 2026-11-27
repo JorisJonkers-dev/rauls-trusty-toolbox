@@ -10,8 +10,12 @@
 #            └─ gui (2) ─────────┘             ├─ Pipeline Complete ─ reports (main only)
 #   policy, quarantine ────────────────────────┘
 #
-# A pull request that only changes documentation skips the Rust build and test jobs (scripts/ci/changes.sh); a push
-# to main always builds, so its feature-catalogue reports carry the results of all three systems.
+# A pull request builds and tests only what it changes and what depends on it (scripts/ci/changes.sh: changed files ->
+# crates -> reverse dependents from `cargo metadata`, in both workspaces; a Component bump -> its dependents). Windows
+# and macOS join a pull request only for platform-specific changes or with the `ci:all-os` label (add it, then re-run
+# the workflow). A documentation or site only pull request builds nothing. A push to main always runs everything on
+# all three systems, so its feature-catalogue reports carry the results of all of them (a nightly full run would
+# leave main without them for up to a day: the catalogue ratchet needs the JUnit files of every system).
 #
 # Pull-request time: the umbrella workspace builds nvmod and loot-rs but never nv-rs (ADR-0002); nv-rs is built only
 # in the release workflow. Rust caches are saved on main only (.github/actions/rust-setup).
@@ -49,18 +53,34 @@ jobs:
   changes:
     name: Changed files
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       code: ${{ steps.diff.outputs.code }}
+      umbrella: ${{ steps.diff.outputs.umbrella }}
+      umbrella_args: ${{ steps.diff.outputs.umbrella_args }}
+      gui: ${{ steps.diff.outputs.gui }}
+      gui_args: ${{ steps.diff.outputs.gui_args }}
+      platforms: ${{ steps.diff.outputs.platforms }}
+      allowed_skips: ${{ steps.diff.outputs.allowed_skips }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
+      # `cargo metadata` reads the Components' manifests (path dependencies); no history of theirs is needed.
+      - name: Components (manifests only)
+        run: git submodule update --init --depth 1
       - id: diff
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD: ${{ github.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+          # Reading the dependency graph needs no pinned compiler; the preinstalled one avoids a download here.
+          RUSTUP_TOOLCHAIN: stable
         run: scripts/ci/changes.sh
 
   # A skipped test whose quarantine ran out, names no issue, or lasts over 14 days fails the build
@@ -131,7 +151,7 @@ jobs:
   lint:
     name: Lint
     needs: changes
-    if: ${{ needs.changes.outputs.code == 'true' }}
+    if: ${{ needs.changes.outputs.umbrella == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -144,10 +164,18 @@ jobs:
         run: cargo fmt --all --check
       - name: Lint
         if: ${{ !cancelled() }}
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+        env:
+          SELECT: ${{ needs.changes.outputs.umbrella_args }}
+        run: |
+          # shellcheck disable=SC2086
+          cargo clippy $SELECT --all-targets --locked -- -D warnings
       - name: Doc tests
         if: ${{ !cancelled() }}
-        run: cargo test --workspace --doc --locked
+        env:
+          SELECT: ${{ needs.changes.outputs.umbrella_args }}
+        run: |
+          # shellcheck disable=SC2086
+          cargo test $SELECT --doc --locked
       - name: Coverage gate tool tests
         if: ${{ !cancelled() }}
         run: cargo test --locked --manifest-path tools/coverage-gate/Cargo.toml
@@ -156,7 +184,7 @@ jobs:
   test-linux:
     name: Build and test (ubuntu-latest)
     needs: changes
-    if: ${{ needs.changes.outputs.code == 'true' }}
+    if: ${{ needs.changes.outputs.umbrella == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -171,7 +199,10 @@ jobs:
         env:
           # The ci profile of .config/nextest.toml: no retries and a JUnit file for the feature catalogue.
           NEXTEST_PROFILE: ci
-        run: mise exec -- cargo llvm-cov nextest --workspace --locked --lcov --output-path lcov.info
+          SELECT: ${{ needs.changes.outputs.umbrella_args }}
+        run: |
+          # shellcheck disable=SC2086
+          mise exec -- cargo llvm-cov nextest $SELECT --locked --lcov --output-path lcov.info
       - name: Keep the JUnit results
         if: ${{ !cancelled() }}
         run: scripts/ci/keep-junit.sh junit-linux
@@ -191,25 +222,16 @@ jobs:
         run: scripts/ci/coverage-gate.sh lcov.info
 
   # Windows and macOS (macos-latest, arm64), one job per workspace so the GUI workspace (crates/raul-gui, its own lock
-  # file) builds beside the umbrella one instead of after it.
+  # file) builds beside the umbrella one instead of after it. The legs come from `changes`: all of them on a push to
+  # main, only the affected workspaces and crates on a pull request that is platform-specific or labelled `ci:all-os`,
+  # none otherwise.
   platforms:
     name: Build and test (${{ matrix.os }}, ${{ matrix.workspace }})
     needs: changes
-    if: ${{ needs.changes.outputs.code == 'true' }}
+    if: ${{ needs.changes.outputs.platforms != '' }}
     strategy:
       fail-fast: false
-      matrix:
-        os: [windows-latest, macos-latest]
-        workspace: [umbrella, gui]
-        include:
-          - workspace: umbrella
-            dir: .
-            root: .
-            suffix: ""
-          - workspace: gui
-            dir: crates/raul-gui
-            root: ../..
-            suffix: -gui
+      matrix: ${{ fromJSON(needs.changes.outputs.platforms) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     defaults:
@@ -231,14 +253,26 @@ jobs:
         run: git submodule foreach --quiet 'git fetch --quiet --tags --depth=1 origin'
       - name: Lint
         if: ${{ !cancelled() }}
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+        env:
+          SELECT: ${{ matrix.args }}
+        run: |
+          # shellcheck disable=SC2086
+          cargo clippy $SELECT --all-targets --locked -- -D warnings
       # Through the ci profile (.config/nextest.toml), so the run leaves JUnit for the feature catalogue.
       - name: Test
         if: ${{ !cancelled() }}
-        run: mise exec -- cargo nextest run --workspace --locked --profile ci
+        env:
+          SELECT: ${{ matrix.args }}
+        run: |
+          # shellcheck disable=SC2086
+          mise exec -- cargo nextest run $SELECT --locked --profile ci
       - name: Doc tests
         if: ${{ !cancelled() && matrix.workspace == 'umbrella' }}
-        run: cargo test --workspace --doc --locked
+        env:
+          SELECT: ${{ matrix.args }}
+        run: |
+          # shellcheck disable=SC2086
+          cargo test $SELECT --doc --locked
       - name: Keep the JUnit results
         if: ${{ !cancelled() }}
         run: ${{ matrix.root }}/scripts/ci/keep-junit.sh "$JUNIT_NAME"
@@ -275,8 +309,10 @@ jobs:
   # The GUI workspace on Linux (crates/raul-gui, its own lock file): a reusable workflow with its lint and test jobs.
   gui:
     needs: changes
-    if: ${{ needs.changes.outputs.code == 'true' }}
+    if: ${{ needs.changes.outputs.gui == 'true' }}
     uses: ./.github/workflows/gui.yml
+    with:
+      args: ${{ needs.changes.outputs.gui_args }}
 
   # The feature catalogue (scripts/ci/feature-catalogue.sh, docs/COVERAGE.md). On a pull request it checks the
   # catalogue; on main it needs the JUnit results of every test job and renders the reports for the `reports` job.
@@ -313,8 +349,9 @@ jobs:
           path: ${{ runner.temp }}/render/docs/coverage/
           retention-days: 3
 
-  # The required check. It runs no check itself: it fails unless every job above passed. The Rust build and test jobs
-  # may be skipped, which happens only for a documentation-only pull request (the `changes` job decides).
+  # The required check. It runs no check itself: it fails unless every job above passed. Only the jobs that `changes`
+  # decided not to run (nothing affected them, or Windows and macOS were not asked for) may be skipped; if `changes`
+  # itself fails, the list is empty and every skip fails the check.
   pipeline-complete:
     name: Pipeline Complete
     needs: [changes, quarantine, policy, lint, test-linux, platforms, gui, catalogue]
@@ -324,7 +361,7 @@ jobs:
     steps:
       - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # release/v1
         with:
-          allowed-skips: ${{ needs.changes.outputs.code == 'false' && 'lint, test-linux, platforms, gui' || '' }}
+          allowed-skips: ${{ needs.changes.outputs.allowed_skips }}
           jobs: ${{ toJSON(needs) }}
 
   reports:
