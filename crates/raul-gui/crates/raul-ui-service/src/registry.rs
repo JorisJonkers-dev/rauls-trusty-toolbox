@@ -63,11 +63,14 @@ pub enum Action {
     /// `raul profile create`: the default profile of an Instance that has none. Setup makes it with its own
     /// steps; this action is the one place a screen asks for it when an Instance made another way has none.
     Profile,
+    /// `raul nexus key`: the Nexus Mods API key. The GUI runs it as a typed job in process ([`crate::nexus`]); the key
+    /// is read from standard input on the command line and is never an argument.
+    Nexus,
 }
 
 impl Action {
     /// Every action.
-    pub const ALL: [Action; 24] = [
+    pub const ALL: [Action; 25] = [
         Action::Setup,
         Action::ImportMo2,
         Action::InstallMod,
@@ -92,6 +95,7 @@ impl Action {
         Action::Detect,
         Action::Space,
         Action::Profile,
+        Action::Nexus,
     ];
 
     /// The subcommand word of the command line.
@@ -121,6 +125,7 @@ impl Action {
             Self::Detect => "detect",
             Self::Space => "space",
             Self::Profile => "profile",
+            Self::Nexus => "nexus",
         }
     }
 
@@ -161,6 +166,7 @@ impl Action {
             Self::Detect => "Find the games",
             Self::Space => "Check the free space",
             Self::Profile => "Make the default profile",
+            Self::Nexus => "Nexus Mods API key",
         }
     }
 

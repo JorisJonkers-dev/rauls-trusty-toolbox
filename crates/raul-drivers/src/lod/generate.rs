@@ -12,7 +12,7 @@ use lodwright_contract::{Request as LodwrightRequest, Status as LodwrightStatus,
 use nvmod_instance::{NvmodInstance, find_ci};
 use nvmod_modinstall::lifecycle::{self, Action};
 use nvmod_modinstall::mods::{Change, ModsError, Place};
-use nvmod_modinstall::{InstallError, Limits, OnConflict, Request};
+use nvmod_modinstall::{InstallError, Limits, OnConflict, Placement, Request};
 use nvmod_plugins::{Edit, Place as PluginPlace, PluginsError};
 use serde_json::Value;
 
@@ -288,6 +288,7 @@ fn replace_mod(
         answers_inline: None,
         limits: Limits::default(),
         on_conflict: OnConflict::default(),
+        placement: Placement::Top,
     };
     let report = match nvmod_modinstall::install(&request) {
         Ok(report) => report,

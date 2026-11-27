@@ -4,7 +4,7 @@ Generated on main by tally from `catalogue/` (docs/COVERAGE.md, "Feature catalog
 
 | | Built | Has a test | Tested on some OSes | Tested on all OSes | Not built yet | Needs the game to test | Not needed |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **Total** | 175/177 | 169 | 169 | 143 | 2 | 3 | 1 |
+| **Total** | 178/180 | 172 | 172 | 146 | 2 | 3 | 1 |
 | **Benchmarks** | 5/6 | 5 | 5 | 5 | 1 | 0 | 0 |
 | raul bench (`bench.suite`) | 5/6 | 5 | 5 | 5 | 1 | 0 | 0 |
 | **Command line** | 7/7 | 7 | 7 | 7 | 0 | 0 | 0 |
@@ -23,10 +23,10 @@ Generated on main by tally from `catalogue/` (docs/COVERAGE.md, "Feature catalog
 | Generating the distant view (`lod.generate`) | 13/13 | 12 | 12 | 12 | 0 | 1 | 0 |
 | The LOD settings (`lod.settings`) | 9/9 | 9 | 9 | 9 | 0 | 0 | 0 |
 | Knowing when the distant view is out of date (`lod.stale`) | 4/4 | 4 | 4 | 4 | 0 | 0 | 0 |
-| **Load order, mods and add-ons** | 23/23 | 23 | 23 | 20 | 0 | 0 | 0 |
+| **Load order, mods and add-ons** | 26/26 | 26 | 26 | 23 | 0 | 0 | 0 |
 | Add-ons for the mods you have (`mods.addons`) | 8/8 | 8 | 8 | 7 | 0 | 0 | 0 |
 | The Instance (`mods.instance`) | 2/2 | 2 | 2 | 1 | 0 | 0 | 0 |
-| Mod lists (`mods.modlist`) | 8/8 | 8 | 8 | 8 | 0 | 0 | 0 |
+| Mod lists (`mods.modlist`) | 11/11 | 11 | 11 | 11 | 0 | 0 | 0 |
 | Sorting the load order (`mods.sort`) | 5/5 | 5 | 5 | 4 | 0 | 0 | 0 |
 | **Play and pictures** | 12/12 | 10 | 10 | 7 | 0 | 1 | 0 |
 | Starting the game (`play.launch`) | 8/8 | 7 | 7 | 7 | 0 | 1 | 0 |
@@ -221,6 +221,9 @@ Generated on main by tally from `catalogue/` (docs/COVERAGE.md, "Feature catalog
 | Every missing Mod comes with where to get it: a Nexus page, another link, or what to do by hand | `mods.modlist.plan_links` | tested on all OSes | `crates/raul-modlist/tests/plan.rs::a_nexus_file_with_an_id_links_the_file_and_one_without_links_the_files_tab`, `crates/raul-modlist/tests/plan.rs::other_links_and_hand_work_are_told_plainly` |
 | A file id the list lacks is asked of a resolver, and the plan works without one | `mods.modlist.plan_resolver` | tested on all OSes | `crates/raul-modlist/tests/plan.rs::a_resolver_supplies_the_file_id_the_list_lacks_and_is_not_asked_when_the_list_has_it` |
 | raul modlist plan shows the plan for an Instance and a Profile, as text or JSON, and writes nothing | `mods.modlist.command_plan` | tested on all OSes | `crates/raul-cli/tests/modlist.rs::the_plan_says_what_the_profile_has_and_where_to_get_the_rest_in_install_order`, `crates/raul-cli/tests/modlist.rs::the_plan_writes_nothing` |
+| A Profile is exported as a Mod list that the parser reads back with the same Mods, order and sources | `mods.modlist.export_roundtrip` | tested on all OSes | `crates/raul-modlist/tests/export.rs::a_profile_is_exported_in_priority_order_and_round_trips`, `crates/raul-modlist/tests/export.rs::beautiful_written_out_as_an_instance_comes_back_with_the_same_mods_order_and_nexus_files`, `crates/raul-modlist/tests/export.rs::nexus_ids_versions_archive_names_and_plugins_are_read` |
+| A Mod with no Nexus id is exported as a manual source with a note | `mods.modlist.export_manual_without_nexus_id` | tested on all OSes | `crates/raul-modlist/tests/export.rs::a_listed_mod_with_no_folder_is_manual`, `crates/raul-modlist/tests/export.rs::a_mod_without_a_nexus_id_is_manual_with_a_note` |
+| raul modlist export writes a Profile as a Mod list file and writes nothing to the Instance | `mods.modlist.command_export` | tested on all OSes | `crates/raul-cli/tests/modlist_export.rs::export_without_a_file_prints_the_list`, `crates/raul-cli/tests/modlist_export.rs::export_writes_a_list_that_show_reads_back_and_leaves_the_instance_alone` |
 
 ### Sorting the load order (`mods.sort`)
 

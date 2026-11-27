@@ -1,0 +1,20 @@
+/* SPDX-License-Identifier: GPL-3.0-only */
+/* The wipe sliders. Colours come from the site's own variables, so the page follows the site's theme. */
+.jump{display:flex;flex-wrap:wrap;gap:6px;padding:4px 8px 8px}
+.jump a{display:inline-flex;align-items:center;height:32px;padding:0 12px;border-radius:10px;background:var(--raise2);color:var(--text);text-decoration:none;font-size:.88rem}
+.jump a:hover{background:var(--hover)}
+.group{font-size:.82rem;letter-spacing:.06em;font-weight:700;text-transform:uppercase;color:var(--muted);margin:22px 4px 10px}
+.cmp{position:relative;margin:0;border-radius:12px;overflow:hidden;background:var(--sunk);aspect-ratio:16/9;--pos:50%;user-select:none;touch-action:pan-y}
+.cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;-webkit-user-drag:none}
+.cmp .stock{clip-path:inset(0 calc(100% - var(--pos)) 0 0)}
+.cmp .bar{position:absolute;top:0;bottom:0;left:var(--pos);width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 6px rgba(0,0,0,.6);pointer-events:none}
+.cmp .knob{position:absolute;top:50%;left:var(--pos);width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:#fff;color:#111;box-shadow:0 1px 8px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-weight:800;pointer-events:none}
+.cmp .tagl,.cmp .tagr{position:absolute;top:10px;padding:3px 9px;border-radius:8px;background:rgba(0,0,0,.65);color:#fff;font-size:.82rem;font-weight:600;pointer-events:none}
+.cmp .tagl{left:10px}.cmp .tagr{right:10px}
+.cmp input[type=range]{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize}
+.cmp:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.cmp:focus-within .knob{box-shadow:0 0 0 3px var(--accent)}
+.cap{margin:8px 4px 2px;color:var(--muted);font-size:.92rem}
+.view h3{margin:0 0 8px;font-size:1.05rem}
+.view{scroll-margin-top:12px}
+@media (prefers-reduced-motion:no-preference){.cmp .stock,.cmp .bar,.cmp .knob{transition:none}}

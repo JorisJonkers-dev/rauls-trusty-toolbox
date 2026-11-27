@@ -909,6 +909,15 @@ pub(crate) fn icon(ui: &mut egui::Ui, t: &Tokens, m: Mark) {
 }
 
 /// A status mark: icon and word in the mark's colour.
+pub(crate) fn mark_truncated(ui: &mut egui::Ui, t: &Tokens, m: Mark, word: &str) {
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 6.0;
+        icon(ui, t, m);
+        ui.add(egui::Label::new(RichText::new(word).color(m.colour(t))).truncate())
+            .on_hover_text(word);
+    });
+}
+
 pub(crate) fn mark(ui: &mut egui::Ui, t: &Tokens, m: Mark, word: &str) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 6.0;

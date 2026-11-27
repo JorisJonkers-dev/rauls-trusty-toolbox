@@ -18,19 +18,32 @@ It works on Linux, Windows and macOS, and it never changes your game folder.
 raul does each step for you in one window. Tale of Two Wastelands, a mod that joins Fallout 3 and New Vegas into one
 game, is optional.
 
-## A distant view that matches your mods
+## The bundled Beautiful profile
 
-Mods change the world, but the game's own far view stays the old one. raul builds a new far view for exactly your mods.
+Left is the vanilla game: no mods, the game's own renderer. Right is the bundled Beautiful profile with raul's engine
+features (ambient occlusion, sun shadows, reflections, fill light) and a generated far view.
 
 <p align="center">
-  <img src="docs/images/lod-overpasses-freeside.jpg" alt="Side by side: on the left the I-15 overpasses north of Freeside vanish at mid distance; on the right they stay in view" width="100%">
-  <br><em>Large far objects stay in view: the I-15 overpasses north of Freeside no longer vanish at mid distance.</em>
+  <img src="docs/images/beautiful/compare-goodsprings-valley.jpg" alt="Goodsprings main street, vanilla game on the left and Beautiful on the right" width="100%">
+  <br><em>Goodsprings main street: new ground and building textures, a street lamp, sun shadows.</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/lod-modded-strip.jpg" alt="The Strip from above, side by side: without a generated far view casinos and buildings are missing (left); with it they are there (right)" width="100%">
-  <br><em>The Strip with 312 mods: the game's far view (left) and the one raul built (right).</em>
+  <img src="docs/images/beautiful/compare-lake-mead.jpg" alt="Lake Mead from the shore, vanilla game on the left and Beautiful on the right" width="100%">
+  <br><em>Lake Mead from the shore: water reflections, sharper rocks and sand.</em>
 </p>
+
+<p align="center">
+  <img src="docs/images/beautiful/compare-nv-ultra-luxe.jpg" alt="The Ultra-Luxe lobby, vanilla game on the left and Beautiful on the right" width="100%">
+  <br><em>Ultra-Luxe lobby: retextured floor, ambient occlusion, coloured light.</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/beautiful/compare-night-primm-road-lamps.jpg" alt="Primm at night, vanilla game on the left and Beautiful on the right" width="100%">
+  <br><em>Primm at night: the street lamps light the ground.</em>
+</p>
+
+There are eight views in all, outside and inside, by day and by night. [Slide between them on the site](https://jorisjonkers-dev.github.io/rauls-trusty-toolbox/compare/).
 
 ## How far along it is
 

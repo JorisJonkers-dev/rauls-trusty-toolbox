@@ -16,9 +16,9 @@ use serde_json::json;
 
 const USAGE_LINE: &str = "modlist takes `list [--json]`, `show <list> [--json]` or \
      `plan <list> [--instance <dir>] [--profile <name>] [--json]`, \
-     `fetch <list> [--open] [--all] [--limit <n>] [--instance <dir>] [--profile <name>]` or \
-     `watch <list> [--downloads <dir>] [--install] [--once] [--scan-existing] [--instance <dir>] [--profile <name>]`; \
-     <list> is a bundled id or a file";
+     `fetch <list> [--open] [--all] [--limit <n>] [--instance <dir>] [--profile <name>]`, \
+     `watch <list> [--downloads <dir>] [--install] [--once] [--scan-existing] [--instance <dir>] [--profile <name>]` \
+     or `install <list>` (see `raul help`); <list> is a bundled id or a file";
 
 #[derive(Default)]
 #[allow(clippy::struct_excessive_bools)] // one switch per command-line flag
@@ -80,9 +80,18 @@ fn parse(args: &[String]) -> Result<Flags, String> {
 /// `raul modlist ...`.
 pub(crate) fn run(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn Write) -> u8 {
     let verb = args.first().map_or("", String::as_str);
+    if verb == "install" {
+        return crate::modlist_install::run(ctx, &args[1..], out, err);
+    }
+    if verb == "export" {
+        return crate::modlist_export::run(ctx, &args[1..], out, err);
+    }
     let flags = match verb {
         "list" | "show" | "plan" | "fetch" | "watch" => parse(&args[1..]),
-        _ => Err("modlist needs `list`, `show`, `plan`, `fetch` or `watch`".to_owned()),
+        _ => Err(
+            "modlist needs `list`, `show`, `plan`, `fetch`, `watch`, `export` or `install`"
+                .to_owned(),
+        ),
     };
     let flags = match flags {
         Ok(f) => f,

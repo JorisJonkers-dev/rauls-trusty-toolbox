@@ -25,6 +25,7 @@ pub mod hold;
 pub mod inproc;
 pub mod jobs;
 pub mod lifecycle;
+pub mod nexus;
 pub mod registry;
 pub mod service;
 pub mod wiring;
