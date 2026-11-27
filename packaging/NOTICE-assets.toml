@@ -627,3 +627,21 @@ path = "docs/design/screenshots/89-far-building-reduced-motion.png"
 what = "screenshot of the clickable demo (made by docs/design/demo/test/run.js)"
 source = "this repository"
 license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/landing.html"
+what = "landing page template of the public site (docs/wiki, the demo and the tour are published beside it)"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/tour.html"
+what = "guided tour page template of the public site: the demo in a frame and a list of steps"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/wiki.html"
+what = "wiki page template of the public site"
+source = "this repository"
+license = "GPL-3.0-only"
