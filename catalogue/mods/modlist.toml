@@ -23,3 +23,13 @@ status = "implemented"
 id = "beautiful_bundled"
 title = "Beautiful is carried by raul, passes the rules and holds the Lucky 38 Mods"
 status = "implemented"
+
+[[item]]
+id = "export_roundtrip"
+title = "A Profile is exported as a Mod list that the parser reads back with the same Mods, order and sources"
+status = "implemented"
+
+[[item]]
+id = "export_manual_without_nexus_id"
+title = "A Mod with no Nexus id is exported as a manual source with a note"
+status = "implemented"
