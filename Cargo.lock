@@ -1247,7 +1247,7 @@ dependencies = [
 
 [[package]]
 name = "lodwright-api"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "fs4",
  "lodwright-assets",
@@ -1262,14 +1262,14 @@ dependencies = [
 
 [[package]]
 name = "lodwright-assets"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "miniz_oxide",
 ]
 
 [[package]]
 name = "lodwright-contract"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "schemars",
  "serde",
@@ -1279,14 +1279,14 @@ dependencies = [
 
 [[package]]
 name = "lodwright-core"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "miniz_oxide",
 ]
 
 [[package]]
 name = "lodwright-dds"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "ddsfile",
  "texpresso",
@@ -1294,7 +1294,7 @@ dependencies = [
 
 [[package]]
 name = "lodwright-gen"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "lodwright-assets",
  "lodwright-contract",
@@ -1306,18 +1306,18 @@ dependencies = [
 
 [[package]]
 name = "lodwright-nif"
-version = "0.20.0"
+version = "0.21.0"
 
 [[package]]
 name = "lodwright-plugin-meta"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "esplugin",
 ]
 
 [[package]]
 name = "lodwright-testkit"
-version = "0.20.0"
+version = "0.21.0"
 dependencies = [
  "miniz_oxide",
 ]
