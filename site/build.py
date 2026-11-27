@@ -9,6 +9,7 @@ docs/wiki/_order.txt; the demo is docs/design/demo/index.html, copied unchanged.
 """
 import argparse
 import html
+import json
 import posixpath
 import re
 import shutil
@@ -26,6 +27,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
 WIKI = ROOT / "docs" / "wiki"
 DEMO = ROOT / "docs" / "design" / "demo" / "index.html"
+BEAUTIFUL = ROOT / "docs" / "images" / "beautiful"
 SHOTS = ROOT / "docs" / "design" / "screenshots"
 PAGES = "https://jorisjonkers-dev.github.io/rauls-trusty-toolbox/"
 
@@ -117,6 +119,33 @@ def build_wiki(out: Path) -> None:
             shutil.copy(SHOTS / name, dest / "img" / name)
 
 
+def build_compare(out: Path) -> None:
+    """The vanilla-against-Beautiful page: one wipe slider per view in docs/images/beautiful/views.json."""
+    data = json.loads((BEAUTIFUL / "views.json").read_text())
+    dest = out / "compare"
+    (dest / "img").mkdir(parents=True)
+    jump, views = [], []
+    for group in data["groups"]:
+        jump.append(f'<a href="#{group["id"]}">{html.escape(group["title"])}</a>')
+        views.append(f'<h2 class="group" id="{group["id"]}">{html.escape(group["title"])}</h2>')
+        for v in group["views"]:
+            name, title = v["name"], html.escape(v["title"])
+            for side in ("stock", "beautiful"):
+                shutil.copy(BEAUTIFUL / "web" / f"{name}-{side}.jpg", dest / "img" / f"{name}-{side}.jpg")
+            alt = html.escape(v["caption"])
+            views.append(
+                f'<section class="card view" id="{name}"><h3>{title}</h3>'
+                f'<figure class="cmp"><img class="beautiful" src="img/{name}-beautiful.jpg" alt="{title}, Beautiful" loading="lazy" width="1600" height="900">'
+                f'<img class="stock" src="img/{name}-stock.jpg" alt="{title}, the vanilla game" loading="lazy" width="1600" height="900">'
+                f'<span class="tagl">Vanilla</span><span class="tagr">Beautiful</span><span class="bar"></span><span class="knob" aria-hidden="true">&harr;</span>'
+                f'<input type="range" min="0" max="100" value="50" aria-label="{title}: slide between vanilla (left) and Beautiful (right)"></figure>'
+                f'<p class="cap">{alt}</p></section>')
+    page = fill((SITE / "compare.html").read_text(), "compare", "../", icon=ic("eye", 24), jump="".join(jump), views="\n".join(views))
+    (dest / "index.html").write_text(page)
+    shutil.copy(SITE / "compare.css", dest / "compare.css")
+    shutil.copy(SITE / "compare.js", dest / "compare.js")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, type=Path)
@@ -142,6 +171,7 @@ def main() -> None:
     (out / "tour" / "index.html").write_text(fill((SITE / "tour.html").read_text(), "tour", "../"))
     shutil.copy(SITE / "tour.js", out / "tour" / "tour.js")
     build_wiki(out)
+    build_compare(out)
     download.build(out, fill)
     records = bench.load_records([ROOT / "docs" / "bench"] + ([args.gh_pages / "bench" / "results"] if args.gh_pages else []))
     if args.gh_pages:
