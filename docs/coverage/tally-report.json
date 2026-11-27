@@ -4,12 +4,12 @@
   "repo": "raul",
   "results": true,
   "totals": {
-    "total": 169,
+    "total": 173,
     "missing": 2,
-    "implemented": 167,
-    "tagged": 161,
-    "passing": 161,
-    "covered": 135,
+    "implemented": 171,
+    "tagged": 165,
+    "passing": 165,
+    "covered": 139,
     "gated": 3,
     "not_applicable": 0,
     "deferred": 1
@@ -17,12 +17,12 @@
   "headline": {
     "title": "All areas",
     "counts": {
-      "total": 169,
+      "total": 173,
       "missing": 2,
-      "implemented": 167,
-      "tagged": 161,
-      "passing": 161,
-      "covered": 135,
+      "implemented": 171,
+      "tagged": 165,
+      "passing": 165,
+      "covered": 139,
       "gated": 3,
       "not_applicable": 0,
       "deferred": 1
@@ -1616,12 +1616,12 @@
       "id": "mods",
       "title": "Load order, mods and add-ons",
       "counts": {
-        "total": 15,
+        "total": 19,
         "missing": 0,
-        "implemented": 15,
-        "tagged": 15,
-        "passing": 15,
-        "covered": 12,
+        "implemented": 19,
+        "tagged": 19,
+        "passing": 19,
+        "covered": 16,
         "gated": 0,
         "not_applicable": 0,
         "deferred": 0
@@ -1799,6 +1799,81 @@
                 "linux": true,
                 "macos": true,
                 "windows": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "mods.modlist",
+          "title": "Mod lists",
+          "origin": "ours",
+          "counts": {
+            "total": 4,
+            "missing": 0,
+            "implemented": 4,
+            "tagged": 4,
+            "passing": 4,
+            "covered": 4,
+            "gated": 0,
+            "not_applicable": 0,
+            "deferred": 0
+          },
+          "items": [
+            {
+              "id": "mods.modlist.list_read",
+              "title": "A Mod list is read and its Mods keep their order",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-modlist/tests/parse.rs::a_list_is_read_with_its_mods_in_order"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.broken_list_refused",
+              "title": "A list that breaks a rule is refused, with every broken rule named",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-modlist/tests/parse.rs::a_list_that_breaks_several_rules_names_each_one"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.other_schema_refused",
+              "title": "A list of another schema version is refused with a plain line",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-modlist/tests/parse.rs::another_schema_version_is_refused_with_a_plain_line"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.beautiful_bundled",
+              "title": "Beautiful is carried by raul, passes the rules and holds the Lucky 38 Mods",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-modlist/tests/beautiful.rs::beautiful_holds_both_lucky_38_mods_at_their_nexus_files",
+                "crates/raul-modlist/tests/beautiful.rs::every_bundled_list_passes_the_rules"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
               }
             }
           ]
