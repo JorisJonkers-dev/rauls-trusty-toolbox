@@ -422,8 +422,10 @@ impl Settings {
         };
         let busy = self.nexus.busy();
         let mut ask = None;
-        let mut enter = false;
         let label_width = label_width(ui);
+        // In a narrow window the buttons drop to a line of their own, so the row never widens the page.
+        let narrow = ui.available_width() < 560.0;
+        let mut enter = false;
         ui.horizontal(|ui| {
             let label_id = ui
                 .vertical(|ui| {
@@ -443,42 +445,37 @@ impl Settings {
                 NEXUS_KEY_HINT_TEXT
             };
             // The key is typed into a masked field and never drawn back: what is stored is not read into the window.
+            let room = if narrow { 0.0 } else { 250.0 };
             let edit = egui::TextEdit::singleline(&mut self.nexus.draft.0)
                 .password(true)
                 .hint_text(hint)
-                .desired_width(ui.available_width().max(80.0));
+                .desired_width((ui.available_width() - room).max(80.0));
             let response = ui.add_enabled(!busy, edit).labelled_by(label_id);
             enter = response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-        });
-        // The buttons sit on a line of their own, so the field and the buttons never push the page wider than the window.
-        ui.horizontal_wrapped(|ui| {
-            ui.add_space(label_width + ui.spacing().item_spacing.x);
-            let typed = !self.nexus.draft.is_empty();
-            let save = if status.saves_to_file() {
-                NEXUS_SAVE_FILE
-            } else {
-                NEXUS_SAVE
-            };
-            if ui
-                .add_enabled(typed && !busy, egui::Button::new(save))
-                .clicked()
-                || (enter && typed && !busy)
-            {
-                ask = Some(Op::Saving);
-            }
-            if ui
-                .add_enabled(status.key_set() && !busy, egui::Button::new(NEXUS_CLEAR))
-                .clicked()
-            {
-                ask = Some(Op::Clearing);
-            }
-            if ui
-                .add_enabled(status.key_set() && !busy, egui::Button::new(NEXUS_CHECK))
-                .clicked()
-            {
-                ask = Some(Op::Checking);
+            if !narrow {
+                nexus_buttons(
+                    ui,
+                    &status,
+                    busy,
+                    !self.nexus.draft.is_empty(),
+                    enter,
+                    &mut ask,
+                );
             }
         });
+        if narrow {
+            ui.horizontal(|ui| {
+                ui.add_space(label_width + ui.spacing().item_spacing.x);
+                nexus_buttons(
+                    ui,
+                    &status,
+                    busy,
+                    !self.nexus.draft.is_empty(),
+                    enter,
+                    &mut ask,
+                );
+            });
+        }
         let working = match self.nexus.op {
             Op::Idle => None,
             Op::Saving => Some(NEXUS_SAVING),
@@ -501,6 +498,41 @@ impl Settings {
         if let Some(ask) = ask {
             self.start_nexus(cx, ask);
         }
+    }
+}
+
+/// Save, Clear and Check. Enter in the key field counts as Save once something is typed.
+fn nexus_buttons(
+    ui: &mut egui::Ui,
+    status: &KeyStatus,
+    busy: bool,
+    typed: bool,
+    enter: bool,
+    ask: &mut Option<Op>,
+) {
+    let save = if status.saves_to_file() {
+        NEXUS_SAVE_FILE
+    } else {
+        NEXUS_SAVE
+    };
+    if ui
+        .add_enabled(typed && !busy, egui::Button::new(save))
+        .clicked()
+        || (enter && typed && !busy)
+    {
+        *ask = Some(Op::Saving);
+    }
+    if ui
+        .add_enabled(status.key_set() && !busy, egui::Button::new(NEXUS_CLEAR))
+        .clicked()
+    {
+        *ask = Some(Op::Clearing);
+    }
+    if ui
+        .add_enabled(status.key_set() && !busy, egui::Button::new(NEXUS_CHECK))
+        .clicked()
+    {
+        *ask = Some(Op::Checking);
     }
 }
 
