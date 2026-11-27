@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795788015576,
+  "lastUpdate": 1795788482612,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13082,6 +13082,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.864925,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "2d74681f0acd42ddb3b4adb72f8b1d86a406ba47",
+          "message": "feat(modlist): open download links and import hand-downloaded archives (#701)\n\n* feat(modlist): install plan and raul modlist list, show and plan\n\n* feat(modlist): open download links and import hand-downloaded archives (raul modlist fetch, watch)",
+          "timestamp": "2026-11-27T15:05:23+01:00",
+          "tree_id": "472f744a26c305fe16c6ce1207002f5591064d31",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/2d74681f0acd42ddb3b4adb72f8b1d86a406ba47"
+        },
+        "date": 1795788481218,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.4356119999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 6.649246,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 34.876478000000006,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 2.184936,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.676072999999999,
             "unit": "ms"
           }
         ]
