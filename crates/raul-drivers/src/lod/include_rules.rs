@@ -132,7 +132,6 @@ mod tests {
             plugin: plugin.map(str::to_owned),
             record_type: None,
             generate: None,
-            replace_lod_model: false,
         };
         let plugins = names(&["FalloutNV.esm", "Lamps.ESP"]);
         assert_eq!(select(vec![rule(Some("lamps.esp"))], &plugins).len(), 1);
