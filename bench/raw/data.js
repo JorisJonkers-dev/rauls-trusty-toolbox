@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795797494431,
+  "lastUpdate": 1795801027032,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13376,6 +13376,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.809756,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6e1f26e8bfba50718e5ac88440941dde5b353182",
+          "message": "fix(play): put the invalidation archive first in the staged Fallout.ini (#710)\n\nThe Fallout.ini a staged game starts from (raul run, and raul scene run) listed only the vanilla archives and did not turn on bInvalidateOlderFiles, so the vanilla texture archives beat the loose textures of the Mods. The archive list now starts with Fallout - Invalidation.bsa, older files are invalidated, the dummy archive is put in Data when the game folder has none, and the Profile's own archive list is kept. A Profile whose settings.ini switches AutomaticArchiveInvalidation off is left alone.",
+          "timestamp": "2026-11-27T17:34:11Z",
+          "tree_id": "197fa63cd0c0ecc11e056d38864a10dab44d8d2b",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6e1f26e8bfba50718e5ac88440941dde5b353182"
+        },
+        "date": 1795801026274,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.3003519999999997,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.522634,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.437014,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.253498,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.470402,
             "unit": "ms"
           }
         ]
