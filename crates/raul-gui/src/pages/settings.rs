@@ -238,23 +238,20 @@ impl Settings {
                 }
             }
         };
-        match cx.jobs.start_nexus(job) {
-            Ok(id) => {
-                self.nexus_pending.add(op, id);
-                self.nexus.failed = None;
-                if op == Op::Idle {
-                    self.nexus.status = Fetch::Loading;
-                } else {
-                    self.nexus.op = op;
-                }
+        if let Ok(id) = cx.jobs.start_nexus(job) {
+            self.nexus_pending.add(op, id);
+            self.nexus.failed = None;
+            if op == Op::Idle {
+                self.nexus.status = Fetch::Loading;
+            } else {
+                self.nexus.op = op;
             }
-            Err(_) => {
-                let why = msg::JOB_NOT_STARTED.what.to_owned();
-                if op == Op::Idle {
-                    self.nexus.status = Fetch::Failed(why);
-                } else {
-                    self.nexus.failed = Some(why);
-                }
+        } else {
+            let why = msg::JOB_NOT_STARTED.what.to_owned();
+            if op == Op::Idle {
+                self.nexus.status = Fetch::Failed(why);
+            } else {
+                self.nexus.failed = Some(why);
             }
         }
     }
@@ -425,6 +422,7 @@ impl Settings {
         };
         let busy = self.nexus.busy();
         let mut ask = None;
+        let mut enter = false;
         let label_width = label_width(ui);
         ui.horizontal(|ui| {
             let label_id = ui
@@ -448,9 +446,13 @@ impl Settings {
             let edit = egui::TextEdit::singleline(&mut self.nexus.draft.0)
                 .password(true)
                 .hint_text(hint)
-                .desired_width((ui.available_width() - 250.0).max(80.0));
+                .desired_width(ui.available_width().max(80.0));
             let response = ui.add_enabled(!busy, edit).labelled_by(label_id);
-            let enter = response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+            enter = response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+        });
+        // The buttons sit on a line of their own, so the field and the buttons never push the page wider than the window.
+        ui.horizontal_wrapped(|ui| {
+            ui.add_space(label_width + ui.spacing().item_spacing.x);
             let typed = !self.nexus.draft.is_empty();
             let save = if status.saves_to_file() {
                 NEXUS_SAVE_FILE
@@ -486,7 +488,7 @@ impl Settings {
         if let Some(word) = working {
             ui.horizontal(|ui| {
                 ui.add_space(label_width + ui.spacing().item_spacing.x);
-                super::home::mark(ui, &t, super::home::Mark::Info, word);
+                super::home::mark_truncated(ui, &t, super::home::Mark::Info, word);
             });
         }
         if let Some(why) = &self.nexus.failed {
@@ -517,7 +519,7 @@ fn nexus_status(ui: &mut egui::Ui, t: &Tokens, status: &KeyStatus) {
     let label_width = label_width(ui);
     ui.horizontal(|ui| {
         key_label(ui, t, label_width, LABEL_NEXUS_KEPT, HINT_NEXUS_KEPT);
-        super::home::mark(ui, t, mark, kept);
+        super::home::mark_truncated(ui, t, mark, kept);
     });
     ui.add_space(6.0);
     if status.key_set() {
