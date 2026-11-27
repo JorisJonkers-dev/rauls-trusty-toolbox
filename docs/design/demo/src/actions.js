@@ -43,7 +43,7 @@ A.toastX = a => { U.toasts = U.toasts.filter(t => t.id !== a); render(); };
 A.scrim = () => { if (U.pal) { U.pal = null; U.focus = U.ret; render(); return; } if (U.dlg && !(U.dlg.t === 'install' && U.dlg.step === 'busy')) closeDlg(); };
 A.dlgClose = () => closeDlg();
 A.shortcuts = () => openDlg({ t: 'shortcuts' });
-A.palette = () => { U.ret = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null; U.pal = { q: '', i: 0 }; U.menu = null; U.focus = 'palIn'; render(); };
+A.palette = () => { U.ret = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null; if (!U.ret) U.ret = 'palette:'; U.pal = { q: '', i: 0 }; U.menu = null; U.focus = 'palIn'; render(); };
 A.palGo = a => { const it = palItems()[+a]; U.pal = null; if (!it) return render(); run(it[2], it[3]); };
 A.openLink = a => { toast(a.startsWith('browse') ? 'Your file browser opened' : a === 'ttwsite' ? 'The TTW download page opened in your browser' : a.startsWith('orig') ? `${a.slice(5)}: the original mod’s page opened in your browser` : `${a.slice(5)}: our version’s source opened in your browser`); render(); };
 A.findMod = a => { U.tab = 'list'; U.q = ''; U.filt = 'all'; U.open[a] = true; U.focus = 'mod:' + a; nav('mods'); };
@@ -52,7 +52,7 @@ A.findMod = a => { U.tab = 'list'; U.q = ''; U.filt = 'all'; U.open[a] = true; U
 A.profMenu = a => { const anchor = 'profMenu:' + a; U.menu = U.menu && U.menu.anchor === anchor ? null : { id: 'prof', anchor, fresh: true, alignLeft: a === 'top' }; render(); };
 A.profSwitch = a => { U.menu = null; if (a === S.active) return render(); S.active = a; U.sortPrev = null; U.open = {}; U.picA = U.picB = null; U.play = null; toast(`Switched to ${P().name}: mods, load order, settings, LOD and tests`); commit(); };
 const nameDlg = (title, v, ok, kind, extra) => openDlg({ t: 'name', title, v, ok, kind, extra });
-A.profNew = () => nameDlg('New profile', '', 'Create', 'profNew', '<p>Starts empty. Use Duplicate to start from this one.</p>');
+A.profNew = () => nameDlg('New profile', '', 'Create', 'profNew', '<p>Starts with every mod off. Your installed mods are shared.</p>');
 A.profDup = () => nameDlg(`Duplicate “${P().name}”`, `${P().name} copy`, 'Duplicate', 'profDup', '<p>Copies mods, groups, load order, settings, LOD and known stable setups. Test history starts fresh.</p>');
 A.profRename = () => nameDlg('Rename profile', P().name, 'Rename', 'profRename');
 A.profDelete = () => confirmDlg(`Delete “${esc(P().name)}”?`, 'Its mod choices, load order, settings and test history go. Installed mod files stay for other profiles.', 'Delete profile', 'doDeleteProfile', '', true);
@@ -193,14 +193,14 @@ A.play = () => {
 A.playCancel = () => { clearInterval(playT); U.play = null; render(); };
 A.playAnyway = () => startGame();
 function startGame() { U.play = { state: 'starting' }; render(); setTimeout(() => { if (!U.play || U.play.state !== 'starting') return; U.play = null; U.run = { pid: S.active, start: Date.now() }; ensureTick(); toast('New Vegas is running'); render(); }, 1500); }
-A.stopGame = () => { const r = U.run; if (!r) return; const mins = Math.max(1, Math.floor((Date.now() - r.start) / 1000)); S.g.sessions.push({ t: Date.now(), mins, pid: r.pid }); U.run = null; toast(`Played ${hm(mins)}. Added to your playtime`); commit(); };
+A.stopGame = () => { const r = U.run; if (!r) return; const mins = Math.max(1, Math.floor((Date.now() - r.start) / 1000)) / 60; S.g.sessions.push({ t: Date.now(), mins, pid: r.pid }); U.run = null; toast(`Played ${hm(mins)}. Added to your playtime`); commit(); };
 
 /* TTW flow */
 A.ttwStart = a => { U.dlg = null; U.ttwFlow = { step: a === 'update' ? 2 : 0 }; if (!S.g.fo3Path && !J['find:fo3']) A.findFolder('fo3'); nav('ttw'); };
 A.ttwNext = () => { U.ttwFlow.step++; render(); };
 A.ttwBack = () => { U.ttwFlow.step = Math.max(0, U.ttwFlow.step - 1); render(); };
 A.ttwClose = () => { U.ttwFlow = null; nav('mods'); };
-A.ttwInstall = () => job('ttw', 8000, () => { S.g.ttwInstalled = true; S.g.ttwUpdate = false; P().ttwOn = true; if (U.ttwFlow) U.ttwFlow.step = 3; toast('Tale of Two Wastelands added'); commit(); }, { label: 'Installing TTW' });
+A.ttwInstall = () => { if (!ttwRoom(S.g.storeFree)) return; job('ttw', 8000, () => { S.g.ttwInstalled = true; S.g.ttwUpdate = false; P().ttwOn = true; if (U.ttwFlow) U.ttwFlow.step = 3; toast('Tale of Two Wastelands added'); commit(); }, { label: 'Installing TTW' }); };
 
 /* folders, storage */
 A.pickFolder = a => openDlg({ t: 'folder', kind: a, sel: null });
@@ -229,12 +229,12 @@ A.repairEngine = () => job('repair', 3000, () => { S.g.scen.engine = false; toas
 /* system */
 function autoCheck() { if (S.g.autoCheck && Date.now() - S.g.lastCheck > 5 * 60000 && !J.check) A.checkUpdates(); }
 A.checkUpdates = a => { if (a === 'go') { U.page = 'system'; U.scrollTop = true; } job('check', 1800, () => { S.g.lastCheck = Date.now(); commit(); }, { label: 'Checking for updates' }); };
-A.update = () => { U.updErr = false; job('update', 7000, () => { S.g.tbVer = '0.6.0'; U.justUpdated = true; U.vopen = 'toolbox'; toast("Updated to Raul's Toolbox 0.6.0"); commit(); }, { label: 'Updating', failAt: S.g.scen.dl ? 0.35 : null, fail: () => { U.updErr = true; toast('The download stopped'); render(); } }); };
+A.update = () => { U.updErr = false; job('update', 7000, () => { S.g.tbVer = TB().nw; U.justUpdated = true; U.vopen = 'toolbox'; toast(`Updated to Raul's Toolbox ${TB().nw}`); commit(); }, { label: 'Updating', failAt: S.g.scen.dl ? 0.35 : null, fail: () => { U.updErr = true; toast('The download stopped'); render(); } }); };
 A.useBuild = a => confirmDlg(`Use engine ${a}?`, `The game runs on ${a} from the next start. You can switch back here.`, `Use ${a}`, 'doUseBuild', a);
 A.doUseBuild = a => { U.dlg = null; S.g.engine = a; toast(`Engine ${a} in use`); commit(); };
 A.removeBuild = a => confirmDlg(`Remove engine ${a}?`, 'You can’t switch back to it after this.', 'Remove', 'doRemoveBuild', a, true);
 A.doRemoveBuild = a => { U.dlg = null; S.g.builds = S.g.builds.filter(b => b !== a); toast(`Engine ${a} removed`); commit(); };
-A.mlUpdate = () => job('ml', 2500, () => { S.g.mlAt = Date.now(); S.g.mlNew = 4; toast('Masterlist updated: 4 new messages'); commit(); }, { label: 'Updating the masterlist' });
+A.mlUpdate = () => job('ml', 2500, () => { S.g.mlAt = Date.now(); S.g.mlNew = ML_NEW; toast(`Masterlist updated: ${plural(ML_NEW, 'new message')}`); commit(); }, { label: 'Updating the masterlist' });
 A.docRun = () => { S.g.docRun = Date.now(); job('doctor', 11 * 320, () => { commit(); }, { label: 'Doctor' }); };
 
 /* settings */
@@ -257,7 +257,7 @@ function wizEnter() {
   if (w.step === 6 && w.prof !== 'empty' && !w.qSet) { w.q = SEED.find(x => x.id === w.prof).q; }
 }
 A.wizEngine = () => { U.wEngErr = false; job('wengine', 4200, () => { W().engine = true; commit(); }, { label: 'Installing the engine', failAt: S.g.scen.dl ? 0.4 : null, fail: () => { U.wEngErr = true; render(); } }); };
-A.wizTtw = a => { const w = W(); if (a === 'skip') w.ttw = 'skipped'; if (a === 'undo') w.ttw = null; if (a === 'add') { job('wttw', 6000, () => { W().ttw = 'added'; commit(); }, { label: 'Installing TTW' }); return; } commit(); };
+A.wizTtw = a => { const w = W(); if (a === 'skip') w.ttw = 'skipped'; if (a === 'undo') w.ttw = null; if (a === 'add') { if (!ttwRoom(W().store ? W().store.free : 0)) return; job('wttw', 6000, () => { W().ttw = 'added'; commit(); }, { label: 'Installing TTW' }); return; } commit(); };
 A.wizProf = a => { W().prof = a; W().qSet = false; U.focus = 'wizProf:' + a; commit(); };
 A.wizQ = a => { W().q = a; W().qSet = true; commit(); };
 A.wizFar = a => { const w = W(); if (a === 'later') w.far = 'later'; if (a === 'undo') w.far = null; if (a === 'build') { job('wfar', 6000, () => { W().far = 'built'; commit(); }, { label: 'Building LOD' }); return; } commit(); };
@@ -331,7 +331,7 @@ document.addEventListener('keydown', ev => {
     if (ev.shiftKey && (i <= 0)) { ev.preventDefault(); f[f.length - 1].focus(); } else if (!ev.shiftKey && (i === f.length - 1 || i < 0)) { ev.preventDefault(); f[0].focus(); }
     return;
   }
-  if ((k === 'ArrowDown' || k === 'ArrowUp') && t.closest && t.closest('.picker') && t.getAttribute('role') === 'option') { ev.preventDefault(); const opts = [...t.closest('.picker').querySelectorAll('[role="option"][tabindex="0"]')]; const i = opts.indexOf(t); const n = opts[i + (k === 'ArrowDown' ? 1 : -1)]; if (n) { n.click(); n.focus(); } return; }
+  if ((k === 'ArrowDown' || k === 'ArrowUp') && t.closest && t.closest('.picker') && t.getAttribute('role') === 'option') { ev.preventDefault(); const opts = [...t.closest('.picker').querySelectorAll('[role="option"][tabindex="0"]')]; const none = !t.closest('.picker').querySelector('[aria-selected="true"]'); const i = none && k === 'ArrowDown' ? -1 : opts.indexOf(t); const n = opts[i + (k === 'ArrowDown' ? 1 : -1)]; if (n) { n.click(); n.focus(); } return; }
   /* Enter is the dialog's primary action (Space still picks an option; a focused plain button keeps its own Enter) */
   if (k === 'Enter' && U.dlg && !ev.shiftKey && t.tagName !== 'TEXTAREA') {
     const box = document.querySelector('.dlg');
@@ -407,7 +407,9 @@ A.doRevert = a => {
 A.ptMenu = a => { const anchor = 'pt:' + a; U.menu = U.menu && U.menu.anchor === anchor ? null : { id: 'pt', run: +a, anchor, fresh: true }; render(); };
 
 /* start */
-A.quitAsk = () => confirmDlg('Quit Raul’s Toolbox?', 'Running jobs stop. Your setup is saved.', 'Quit', 'dlgClose', '');
+A.quitAsk = () => confirmDlg('Quit Raul’s Toolbox?', 'Running jobs stop. Your setup is saved.', 'Quit', 'quitDo', '');
+A.quitDo = () => { U.dlg = null; U.pal = null; U.menu = null; U.quit = true; render(); };
+A.reopen = () => location.reload();
 document.getElementById('tbi').innerHTML = ic('app', 16);
 fitWin();
 S = store.load();
