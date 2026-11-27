@@ -307,7 +307,10 @@ async function main() {
   await page.reload(); await page.waitForTimeout(500);
   ok((await page.locator("#count").innerText()) === `${ids.length} of ${ids.length}`, "progress kept after reload");
   await page.locator("#reset").click(); await page.locator("#reset").click();
-  await page.waitForTimeout(800);
+  /* wait on the condition itself: the demo reloads, and the count must settle at 0 and stay there */
+  await page.waitForFunction((n) => document.getElementById("count").textContent === `0 of ${n}`, ids.length);
+  await dwin().then((f) => f.waitForFunction(() => S && !S.wiz.done));
+  await page.waitForTimeout(500);
   ok((await page.locator("#count").innerText()) === `0 of ${ids.length}`, "reset clears progress");
   await dwin().then((f) => f.waitForFunction(() => S && !S.wiz.done));
   ok(true, "reset restarts the demo setup");
