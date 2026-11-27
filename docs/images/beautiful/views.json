@@ -55,37 +55,6 @@
      "name": "nv-ultra-luxe",
      "title": "Ultra-Luxe lobby",
      "caption": "Ultra-Luxe lobby: retextured floor, ambient occlusion, coloured light."
-    },
-    {
-     "name": "fo3-tenpenny-lobby",
-     "title": "Tenpenny Tower lobby",
-     "caption": "Tenpenny Tower lobby (Fallout 3 interior): strung bulbs, wall and floor shading."
-    }
-   ]
-  },
-  {
-   "id": "capital",
-   "title": "Capital Wasteland (Tale of Two Wastelands)",
-   "views": [
-    {
-     "name": "rivet-city-from-the-river-bank",
-     "title": "Rivet City",
-     "caption": "Rivet City over the Potomac: far view, water reflection."
-    },
-    {
-     "name": "tenpenny-tower-from-the-plain",
-     "title": "Tenpenny Tower",
-     "caption": "Tenpenny Tower across the plain: far view and ground textures."
-    },
-    {
-     "name": "megaton-houses-day",
-     "title": "Megaton",
-     "caption": "Megaton: looking into the town from the rim, shadows and bulbs."
-    },
-    {
-     "name": "megaton-high-dusk",
-     "title": "Megaton at dusk",
-     "caption": "The same Megaton spot at dusk (hour 18.7)."
     }
    ]
   }
