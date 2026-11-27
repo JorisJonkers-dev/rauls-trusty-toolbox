@@ -397,3 +397,4 @@ Settled with the owner on 2026-11-16. The ones that are hard to reverse are ADRs
 Still open: whether nvmod-rs `docs/DECISIONS.md`'s 2026-11-16 row "the GUI shells out to the nvmod
 CLI with `--json`" is amended to point at ADR-0003 once the GUI has moved (an nvmod-rs pull request,
 after 0.6.0).
+
