@@ -6,9 +6,9 @@
 #
 #   changes ─┬─ lint ────────────┐
 #            ├─ test-linux ──────┤
-#            ├─ platforms (4) ───┼─ catalogue ─┐
-#            └─ gui (2) ─────────┘             ├─ Pipeline Complete ─ reports (main only)
-#   policy, quarantine ────────────────────────┘
+#            ├─ platforms (0-4) ─┼─ Pipeline Complete (feature catalogue, then the gate) ─ reports (main only)
+#            └─ gui (0-2) ───────┤
+#   policy, quarantine ──────────┘
 #
 # A pull request builds and tests only what it changes and what depends on it (scripts/ci/changes.sh: changed files ->
 # crates -> reverse dependents from `cargo metadata`, in both workspaces; a Component bump -> its dependents). Windows
@@ -314,23 +314,29 @@ jobs:
     with:
       args: ${{ needs.changes.outputs.gui_args }}
 
-  # The feature catalogue (scripts/ci/feature-catalogue.sh, docs/COVERAGE.md). On a pull request it checks the
-  # catalogue; on main it needs the JUnit results of every test job and renders the reports for the `reports` job.
-  catalogue:
-    name: Feature catalogue
-    needs: [test-linux, platforms, gui]
-    if: ${{ !cancelled() }}
+  # The required check. It first runs the feature catalogue (scripts/ci/feature-catalogue.sh, docs/COVERAGE.md): on a
+  # pull request it checks the catalogue; on main it needs the JUnit results of every test job and renders the reports
+  # for the `reports` job. The catalogue shares this job so a run is one job shorter on the slot and queue side. The
+  # final step runs no check itself: it fails unless every job above passed. Only the jobs that `changes` decided not to
+  # run (nothing affected them, or Windows and macOS were not asked for) may be skipped; if `changes` itself fails, the
+  # list is empty and every skip fails the check. A failing catalogue step fails the job too.
+  pipeline-complete:
+    name: Pipeline Complete
+    needs: [changes, quarantine, policy, lint, test-linux, platforms, gui]
+    if: ${{ always() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     outputs:
       reports: ${{ steps.catalogue.outputs.reports }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: ${{ !cancelled() }}
         with:
           fetch-depth: 0
           persist-credentials: false
-      # A missing file (a job that did not finish, or a documentation-only pull request) is handled by the script.
+      # A missing file (a job that did not finish, or a pull request that ran no tests) is handled by the script.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: ${{ !cancelled() }}
         continue-on-error: true
         with:
           pattern: junit-*
@@ -338,37 +344,28 @@ jobs:
           path: ${{ runner.temp }}/junit
       - name: Feature catalogue (tally)
         id: catalogue
+        if: ${{ !cancelled() }}
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           JUNIT: ${{ runner.temp }}/junit
         run: scripts/ci/feature-catalogue.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: ${{ steps.catalogue.outputs.reports == 'changed' }}
+        if: ${{ !cancelled() && steps.catalogue.outputs.reports == 'changed' }}
         with:
           name: report-files
           path: ${{ runner.temp }}/render/docs/coverage/
           retention-days: 3
-
-  # The required check. It runs no check itself: it fails unless every job above passed. Only the jobs that `changes`
-  # decided not to run (nothing affected them, or Windows and macOS were not asked for) may be skipped; if `changes`
-  # itself fails, the list is empty and every skip fails the check.
-  pipeline-complete:
-    name: Pipeline Complete
-    needs: [changes, quarantine, policy, lint, test-linux, platforms, gui, catalogue]
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
       - uses: re-actors/alls-green@b5b5b37504aa4183270bd3d855c52a67f212be35 # release/v1
+        if: ${{ always() }}
         with:
           allowed-skips: ${{ needs.changes.outputs.allowed_skips }}
           jobs: ${{ toJSON(needs) }}
 
   reports:
     name: Catalogue reports
-    needs: [pipeline-complete, catalogue]
+    needs: [pipeline-complete]
     # Explicit result check: the implicit success() is false when an upstream job was skipped.
-    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.pipeline-complete.result == 'success' && needs.catalogue.outputs.reports == 'changed' }}
+    if: ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.pipeline-complete.result == 'success' && needs.pipeline-complete.outputs.reports == 'changed' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
