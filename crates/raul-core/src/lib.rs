@@ -10,6 +10,7 @@ pub mod detect;
 pub mod game_ini;
 pub mod instance_lock;
 pub mod journal;
+pub mod nexus;
 pub mod pinned;
 pub mod selfupdate;
 pub mod setup;

@@ -8,6 +8,7 @@ mod config;
 mod detect;
 mod lod;
 mod lod_settings;
+mod nexus;
 pub mod play;
 mod printer;
 mod program_name;
@@ -61,6 +62,7 @@ pub const OWN_COMMANDS: &[&str] = &[
     "ttw",
     "lod",
     "addons",
+    "nexus",
     "support-bundle",
     "target",
     "install-nv-rs",
@@ -182,6 +184,10 @@ usage:
                               add or update them: a Profile with the add-on's plugin active gets its Mod, above
                               that mod; one without it is not touched; one you turned off stays off. `raul setup`
                               does this at its end, and `raul run` and `raul scene` check it before the game starts
+  raul nexus key set [--file]|clear|status [--json]
+                              the Nexus Mods API key: set reads it from standard input (never the command line) and keeps it
+                              in the OS keyring, or with --file in a file only you can read; NEXUS_API_KEY overrides both.
+                              status asks Nexus who the key belongs to and whether the account is premium
   raul support-bundle [--instance <dir>] [--hide-names] [--out <file>] [--apply] [--json]
                               what a bug report needs, in one zip: versions, system, the folders of `raul config`,
                               the Instance's Mods, plugins and Doctor report, and the last run logs. Without --apply
@@ -218,6 +224,7 @@ pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn
         Some("ttw") => ttw::run(ctx, &args[1..], out, err),
         Some("lod") => lod::run(ctx, &args[1..], out, err),
         Some("addons") => addons::run(ctx, &args[1..], out, err),
+        Some("nexus") => nexus::run(ctx, &args[1..], out, err),
         Some("support-bundle") => support_bundle::run(ctx, &args[1..], out, err),
         Some("install-nv-rs") => gone_install_nv_rs(err),
         Some("target") => target::run(args, out, err),
