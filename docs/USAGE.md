@@ -39,6 +39,19 @@ raul at a list file of your own.
   a Mod whose installer asks questions stays staged. `--once` scans once and stops, `--scan-existing` also takes
   archives that were already there. It stops when everything it waits for is in, or on Ctrl+C.
 
+## Nexus API key
+
+`raul nexus key set` reads your Nexus Mods API key from standard input (never from an argument) and keeps it in the
+operating system's keyring; `raul nexus key set --file` keeps it in a file only you can read instead, for a machine with
+no keyring. `NEXUS_API_KEY` in the environment overrides both. `raul nexus key status [--json]` asks Nexus whose key it is
+and whether the account is premium; `raul nexus key clear` removes it. The key is never written to `settings.toml`, shown
+or logged. Only a premium account gets download links from Nexus; other files are downloaded by hand.
+
+```sh
+raul nexus key set < my-key.txt
+raul nexus key status
+```
+
 ## Add-ons
 
 An add-on is a small Mod raul makes on your computer for a mod you installed, from numbers and from your own copy of

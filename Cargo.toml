@@ -53,6 +53,8 @@ ttwright-testkit = { path = "components/ttwright-rs/crates/ttwright-testkit" }
 lodwright-api = { path = "components/lodwright-rs/crates/lodwright-api" }
 lodwright-contract = { path = "components/lodwright-rs/crates/lodwright-contract" }
 lodwright-testkit = { path = "components/lodwright-rs/crates/lodwright-testkit" }
+# The OS credential store for the Nexus API key (Secret Service, Credential Manager, Keychain; docs/adr 0024).
+keyring = { version = "=4.2.0", default-features = false, features = ["v1"] }
 jsonschema = { version = "=0.61.2", default-features = false }
 schemars = { version = "=1.2.3", features = ["derive"] }
 semver = "=1.0.28"

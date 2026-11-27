@@ -1,0 +1,164 @@
+{
+  "schema": "toolbox-bench/1",
+  "project": "nv-rs",
+  "run": {
+    "id": "quick-suite",
+    "date": "2026-11-27",
+    "commit": null,
+    "version": null,
+    "machine": "AMD Ryzen 7 5800X3D (16 threads), AMD Radeon RX 7900 series (Navi 31, RADV), 46 GB RAM, Linux; offscreen 1280x720; other work may have been running at the same time",
+    "source": "nv-rs-scene bench --suite quick (local run quick-20261127T094734; suite.json does not record the build)",
+    "method": "nv-rs-scene bench, suite quick: one engine start visits each place on the real clock under the exclusive game lock, warm-up then the median of five passes; mode uncapped, offscreen. A place marked CAPPED measured within 2% of the frame cap, so its fps says nothing about the engine's speed."
+  },
+  "groups": [
+    {
+      "id": "fps",
+      "title": "Frame rate per place",
+      "metric": "Average frames per second and the 1% low",
+      "unit": "fps",
+      "better": "higher",
+      "series": [
+        {
+          "id": "avg",
+          "label": "nv-rs average",
+          "role": "ours"
+        },
+        {
+          "id": "low",
+          "label": "nv-rs 1% low",
+          "role": "ours"
+        },
+        {
+          "id": "original",
+          "label": "Original game (FalloutNV.exe)",
+          "role": "against",
+          "tool": "FalloutNV.exe",
+          "status": "not-measured",
+          "note": "No run of the original executable on these places exists yet."
+        }
+      ],
+      "cases": [
+        {
+          "name": "goodsprings",
+          "values": {
+            "avg": 90.123,
+            "low": 56.0
+          },
+          "flags": {
+            "avg": "capped",
+            "low": "capped"
+          }
+        },
+        {
+          "name": "novac",
+          "values": {
+            "avg": 75.216,
+            "low": 35.5
+          },
+          "flags": {
+            "avg": "capped",
+            "low": "capped"
+          }
+        },
+        {
+          "name": "strip",
+          "values": {
+            "avg": 100.412,
+            "low": 66.7
+          },
+          "flags": {
+            "avg": "capped",
+            "low": "capped"
+          }
+        },
+        {
+          "name": "docs-house",
+          "values": {
+            "avg": 109.493,
+            "low": 76.1
+          },
+          "flags": {}
+        },
+        {
+          "name": "tops-casino-floor",
+          "values": {
+            "avg": 44.932,
+            "low": 34.7
+          },
+          "flags": {}
+        }
+      ]
+    },
+    {
+      "id": "frame-time",
+      "title": "Frame time per place",
+      "metric": "Median (p50) and 99th percentile frame time",
+      "unit": "ms",
+      "better": "lower",
+      "series": [
+        {
+          "id": "p50",
+          "label": "nv-rs p50",
+          "role": "ours"
+        },
+        {
+          "id": "p99",
+          "label": "nv-rs p99",
+          "role": "ours"
+        },
+        {
+          "id": "original",
+          "label": "Original game (FalloutNV.exe)",
+          "role": "against",
+          "tool": "FalloutNV.exe",
+          "status": "not-measured",
+          "note": "No run of the original executable on these places exists yet."
+        }
+      ],
+      "cases": [
+        {
+          "name": "goodsprings",
+          "values": {
+            "p50": 10.758,
+            "p99": 15.76
+          }
+        },
+        {
+          "name": "novac",
+          "values": {
+            "p50": 12.494,
+            "p99": 26.48
+          }
+        },
+        {
+          "name": "strip",
+          "values": {
+            "p50": 9.729,
+            "p99": 13.72
+          }
+        },
+        {
+          "name": "docs-house",
+          "values": {
+            "p50": 8.886,
+            "p99": 11.92
+          }
+        },
+        {
+          "name": "tops-casino-floor",
+          "values": {
+            "p50": 21.796,
+            "p99": 27.63
+          }
+        }
+      ]
+    }
+  ],
+  "pending": [
+    {
+      "tool": "Original game executable",
+      "what": "The quick suite places run with the original FalloutNV.exe on the same machine, and the nv-rs build recorded",
+      "issue": "https://github.com/JorisJonkers-dev/nv-rs/issues/1019"
+    }
+  ]
+}
