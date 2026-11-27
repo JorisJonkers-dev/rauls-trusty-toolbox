@@ -65,7 +65,6 @@ pub const OWN_COMMANDS: &[&str] = &[
     "lod",
     "addons",
     "modlist",
-
     "nexus",
     "support-bundle",
     "target",
