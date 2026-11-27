@@ -18,16 +18,6 @@ It works on Linux, Windows and macOS, and it never changes your game folder.
 raul does each step for you in one window. Tale of Two Wastelands, a mod that joins Fallout 3 and New Vegas into one
 game, is optional.
 
-<p align="center">
-  <img src="docs/images/lod-overpasses-freeside.jpg" alt="Side by side: on the left the I-15 overpasses north of Freeside vanish at mid distance; on the right they stay in view" width="100%">
-  <br><em>Large far objects stay in view: the I-15 overpasses north of Freeside no longer vanish at mid distance.</em>
-</p>
-
-<p align="center">
-  <img src="docs/images/lod-modded-strip.jpg" alt="The Strip from above, side by side: without a generated far view casinos and buildings are missing (left); with it they are there (right)" width="100%">
-  <br><em>The Strip with 312 mods: the game's far view (left) and the one raul built (right).</em>
-</p>
-
 ## The bundled Beautiful profile
 
 Left is the vanilla game: no mods, the game's own renderer. Right is the bundled Beautiful profile with raul's engine
