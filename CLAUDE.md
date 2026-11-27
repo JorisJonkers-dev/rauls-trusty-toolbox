@@ -14,6 +14,8 @@ detached submodule HEADs.
 ## This repository
 
 - The plan is [`docs/PLAN.md`](docs/PLAN.md). Read it before changing structure.
+- The GUI's design standard is [`docs/design/`](docs/design/README.md): its clickable demo is the golden standard for
+  all design work. Change the demo first, then the app.
 - Components under `components/` are git submodules. A change to a component is a pull request
   in that component's repository, then a pointer bump here. Never commit on a detached
   submodule HEAD.

@@ -62,6 +62,8 @@ jobs:
         with:
           workspaces: crates/raul-gui
           prefix-key: engine-check
+          # Saved on main only; pull requests restore main's (ci.yml, .github/actions/rust-setup).
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
 
       - name: The lock and manifest agree with nv-rs
@@ -97,6 +99,8 @@ jobs:
             crates/raul-gui -> target-base
             crates/raul-gui -> target-engine
           prefix-key: engine-time
+          # Saved on main only; pull requests restore main's (ci.yml, .github/actions/rust-setup).
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Release build without the engine, then with it
         env:
