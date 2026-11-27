@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795788482612,
+  "lastUpdate": 1795789041858,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13131,6 +13131,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 8.676072999999999,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1d226ab787b8e52be7b49c6a766090780b485a2b",
+          "message": "docs: stock vs Beautiful 3c comparisons in the README and site",
+          "timestamp": "2026-11-27T15:15:13+01:00",
+          "tree_id": "282937eb71a5be20e0371254c06c5eae4b8ea983",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/1d226ab787b8e52be7b49c6a766090780b485a2b"
+        },
+        "date": 1795789040856,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.052537,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.687824,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.397958000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.5074450000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 5.080055,
             "unit": "ms"
           }
         ]
