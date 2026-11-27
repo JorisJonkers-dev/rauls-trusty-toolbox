@@ -34,7 +34,7 @@ Mods change the world, but the game's own far view stays the old one. raul build
 
 ## The Beautiful mod list
 
-Left is the stock game: no mods, the game's own renderer. Right is the 332-mod Beautiful 3c list with raul's engine
+Left is the stock game: no mods, the game's own renderer. Right is the Beautiful 3c mod list with raul's engine
 features (ambient occlusion, sun shadows, reflections, fill light) and a generated far view.
 
 <p align="center">
@@ -57,7 +57,7 @@ features (ambient occlusion, sun shadows, reflections, fill light) and a generat
   <br><em>Tenpenny Tower in the Capital Wasteland (Tale of Two Wastelands).</em>
 </p>
 
-There are twelve views in all. [Slide between them on the site](https://jorisjonkers-dev.github.io/rauls-trusty-toolbox/compare/).
+There are twelve views in all, interiors and the Capital included. [Slide between them on the site](https://jorisjonkers-dev.github.io/rauls-trusty-toolbox/compare/).
 
 ## How far along it is
 
