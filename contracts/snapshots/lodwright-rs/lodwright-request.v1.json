@@ -285,6 +285,10 @@
           "type": "boolean",
           "default": true
         },
+        "far_glow": {
+          "description": "Write a glow atlas beside each object atlas page whose textures have glow maps, name it in the glow slot of\nthe far blocks and give them an emissive material, so lit windows, signs and lamps glow from far at night. Off\nby default until proven; written only when on.",
+          "type": "boolean"
+        },
         "far_lights": {
           "description": "Draw the steady lights that stand beside far objects as small unlit light points, one marked shape per object\nblock that the engine shows only at night. Off by default, because an engine without that night switch shows\nthem by day too; written only when on.",
           "type": "boolean"
