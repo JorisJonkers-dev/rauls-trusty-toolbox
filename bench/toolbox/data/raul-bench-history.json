@@ -1,0 +1,5651 @@
+{
+ "schema": "toolbox-bench/1",
+ "project": "toolbox",
+ "pending": [],
+ "imported": true,
+ "run": {
+  "id": "raul-bench",
+  "date": "2026-11-27",
+  "commit": "a17ac61",
+  "version": null,
+  "machine": "GitHub-hosted ubuntu-latest runner (shared, so noisy)",
+  "method": "raul bench on synthetic fixtures (no game data), median wall time of the timed runs. Read from the history that github-action-benchmark keeps on the gh-pages branch; the raw chart page is kept at bench/raw/.",
+  "source": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/BENCHMARKS.md"
+ },
+ "groups": [
+  {
+   "id": "cases",
+   "title": "The raul bench suite",
+   "metric": "Median wall time of one run",
+   "unit": "ms",
+   "better": "lower",
+   "series": [
+    {
+     "id": "ours",
+     "label": "raul",
+     "role": "ours"
+    }
+   ],
+   "cases": [
+    {
+     "name": "sort/small",
+     "values": {
+      "ours": 1.0491380000000001
+     }
+    },
+    {
+     "name": "sort/medium",
+     "values": {
+      "ours": 4.609424
+     }
+    },
+    {
+     "name": "sort/ttw-sized",
+     "values": {
+      "ours": 21.413709
+     }
+    },
+    {
+     "name": "plugin-headers/ttw-sized",
+     "values": {
+      "ours": 1.474558
+     }
+    },
+    {
+     "name": "install/zip",
+     "values": {
+      "ours": 4.848122
+     }
+    }
+   ],
+   "history": [
+    {
+     "date": "2026-11-16",
+     "commit": "e47156c",
+     "values": {
+      "sort/small": {
+       "ours": 4.116296999999999
+      },
+      "sort/medium": {
+       "ours": 54.965045999999994
+      },
+      "sort/ttw-sized": {
+       "ours": 531.8287459999999
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.658909
+      },
+      "install/zip": {
+       "ours": 12.532178
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "19783c4",
+     "values": {
+      "sort/small": {
+       "ours": 3.5304830000000003
+      },
+      "sort/medium": {
+       "ours": 44.197862
+      },
+      "sort/ttw-sized": {
+       "ours": 405.622239
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.7281249999999995
+      },
+      "install/zip": {
+       "ours": 11.023672999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "6e0ceac",
+     "values": {
+      "sort/small": {
+       "ours": 4.137766
+      },
+      "sort/medium": {
+       "ours": 55.552517
+      },
+      "sort/ttw-sized": {
+       "ours": 529.250052
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.930466
+      },
+      "install/zip": {
+       "ours": 13.428833
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "bee895e",
+     "values": {
+      "sort/small": {
+       "ours": 1.6020400000000001
+      },
+      "sort/medium": {
+       "ours": 24.412291999999997
+      },
+      "sort/ttw-sized": {
+       "ours": 253.07869
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.408798
+      },
+      "install/zip": {
+       "ours": 5.901101
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "b9c393e",
+     "values": {
+      "sort/small": {
+       "ours": 1.6111140000000002
+      },
+      "sort/medium": {
+       "ours": 24.541303
+      },
+      "sort/ttw-sized": {
+       "ours": 255.16560900000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.402518
+      },
+      "install/zip": {
+       "ours": 6.223546
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "7b7935c",
+     "values": {
+      "sort/small": {
+       "ours": 1.60795
+      },
+      "sort/medium": {
+       "ours": 24.484762
+      },
+      "sort/ttw-sized": {
+       "ours": 253.77519900000001
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.427042
+      },
+      "install/zip": {
+       "ours": 5.918813999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "9275a2d",
+     "values": {
+      "sort/small": {
+       "ours": 1.601858
+      },
+      "sort/medium": {
+       "ours": 24.494054000000002
+      },
+      "sort/ttw-sized": {
+       "ours": 253.94218600000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.403058
+      },
+      "install/zip": {
+       "ours": 6.047341
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "35d5072",
+     "values": {
+      "sort/small": {
+       "ours": 4.573745
+      },
+      "sort/medium": {
+       "ours": 57.502814
+      },
+      "sort/ttw-sized": {
+       "ours": 525.431045
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.879741
+      },
+      "install/zip": {
+       "ours": 13.156897
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "649f273",
+     "values": {
+      "sort/small": {
+       "ours": 3.540682
+      },
+      "sort/medium": {
+       "ours": 44.261408
+      },
+      "sort/ttw-sized": {
+       "ours": 408.398958
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.73888
+      },
+      "install/zip": {
+       "ours": 10.946287
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "d0d3a0a",
+     "values": {
+      "sort/small": {
+       "ours": 1.617221
+      },
+      "sort/medium": {
+       "ours": 24.594880999999997
+      },
+      "sort/ttw-sized": {
+       "ours": 254.867746
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.4586009999999998
+      },
+      "install/zip": {
+       "ours": 5.780435
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "e3b8f10",
+     "values": {
+      "sort/small": {
+       "ours": 1.6079350000000001
+      },
+      "sort/medium": {
+       "ours": 24.519617
+      },
+      "sort/ttw-sized": {
+       "ours": 253.928784
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.411826
+      },
+      "install/zip": {
+       "ours": 6.40585
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "169e4f8",
+     "values": {
+      "sort/small": {
+       "ours": 1.641251
+      },
+      "sort/medium": {
+       "ours": 24.724477
+      },
+      "sort/ttw-sized": {
+       "ours": 254.543659
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.40923
+      },
+      "install/zip": {
+       "ours": 7.110106
+      }
+     }
+    },
+    {
+     "date": "2026-11-16",
+     "commit": "8f5a572",
+     "values": {
+      "sort/small": {
+       "ours": 2.336387
+      },
+      "sort/medium": {
+       "ours": 10.504489000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 46.347903
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.46687
+      },
+      "install/zip": {
+       "ours": 12.841707000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "33029e7",
+     "values": {
+      "sort/small": {
+       "ours": 1.05243
+      },
+      "sort/medium": {
+       "ours": 4.628124
+      },
+      "sort/ttw-sized": {
+       "ours": 21.449838999999997
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.495692
+      },
+      "install/zip": {
+       "ours": 5.938031
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "552c447",
+     "values": {
+      "sort/small": {
+       "ours": 1.0822939999999999
+      },
+      "sort/medium": {
+       "ours": 4.649832
+      },
+      "sort/ttw-sized": {
+       "ours": 21.386472
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.4885689999999998
+      },
+      "install/zip": {
+       "ours": 6.060243
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "ef3ef97",
+     "values": {
+      "sort/small": {
+       "ours": 2.385396
+      },
+      "sort/medium": {
+       "ours": 10.629417
+      },
+      "sort/ttw-sized": {
+       "ours": 46.291404
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.820397
+      },
+      "install/zip": {
+       "ours": 13.314639
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "5d8b1a4",
+     "values": {
+      "sort/small": {
+       "ours": 1.118968
+      },
+      "sort/medium": {
+       "ours": 4.661103
+      },
+      "sort/ttw-sized": {
+       "ours": 21.236993
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.4969549999999998
+      },
+      "install/zip": {
+       "ours": 6.084885
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "58a51fa",
+     "values": {
+      "sort/small": {
+       "ours": 2.387025
+      },
+      "sort/medium": {
+       "ours": 10.604043
+      },
+      "sort/ttw-sized": {
+       "ours": 45.789124
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.768078999999999
+      },
+      "install/zip": {
+       "ours": 13.447308999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "15dd1ca",
+     "values": {
+      "sort/small": {
+       "ours": 1.106593
+      },
+      "sort/medium": {
+       "ours": 4.670967
+      },
+      "sort/ttw-sized": {
+       "ours": 21.591188000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.511391
+      },
+      "install/zip": {
+       "ours": 5.983109000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "9f936ce",
+     "values": {
+      "sort/small": {
+       "ours": 1.110498
+      },
+      "sort/medium": {
+       "ours": 4.776403
+      },
+      "sort/ttw-sized": {
+       "ours": 22.031852
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.536754
+      },
+      "install/zip": {
+       "ours": 7.059385
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "92320af",
+     "values": {
+      "sort/small": {
+       "ours": 1.063302
+      },
+      "sort/medium": {
+       "ours": 4.623278
+      },
+      "sort/ttw-sized": {
+       "ours": 21.557454
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.495345
+      },
+      "install/zip": {
+       "ours": 6.00194
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "c5105cd",
+     "values": {
+      "sort/small": {
+       "ours": 1.0964200000000002
+      },
+      "sort/medium": {
+       "ours": 4.61377
+      },
+      "sort/ttw-sized": {
+       "ours": 21.376735
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.5036509999999998
+      },
+      "install/zip": {
+       "ours": 5.891584
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "f167a6d",
+     "values": {
+      "sort/small": {
+       "ours": 1.094678
+      },
+      "sort/medium": {
+       "ours": 4.667992
+      },
+      "sort/ttw-sized": {
+       "ours": 21.328611000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.514993
+      },
+      "install/zip": {
+       "ours": 6.109001999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "74fff85",
+     "values": {
+      "sort/small": {
+       "ours": 1.089958
+      },
+      "sort/medium": {
+       "ours": 4.614712
+      },
+      "sort/ttw-sized": {
+       "ours": 21.769095
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.506265
+      },
+      "install/zip": {
+       "ours": 6.337442
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "da41bcd",
+     "values": {
+      "sort/small": {
+       "ours": 1.073517
+      },
+      "sort/medium": {
+       "ours": 4.617177
+      },
+      "sort/ttw-sized": {
+       "ours": 21.198960999999997
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.503272
+      },
+      "install/zip": {
+       "ours": 6.008821999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "296335e",
+     "values": {
+      "sort/small": {
+       "ours": 1.4698669999999998
+      },
+      "sort/medium": {
+       "ours": 6.383589000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 30.967669
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.011681
+      },
+      "install/zip": {
+       "ours": 8.835089
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "dfd987a",
+     "values": {
+      "sort/small": {
+       "ours": 1.652225
+      },
+      "sort/medium": {
+       "ours": 7.51176
+      },
+      "sort/ttw-sized": {
+       "ours": 30.362569
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 3.853951
+      },
+      "install/zip": {
+       "ours": 10.287939
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "5119d1a",
+     "values": {
+      "sort/small": {
+       "ours": 1.0761180000000001
+      },
+      "sort/medium": {
+       "ours": 4.673916
+      },
+      "sort/ttw-sized": {
+       "ours": 21.549555
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.512552
+      },
+      "install/zip": {
+       "ours": 5.990805
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "a37324b",
+     "values": {
+      "sort/small": {
+       "ours": 1.9482849999999998
+      },
+      "sort/medium": {
+       "ours": 8.675700999999998
+      },
+      "sort/ttw-sized": {
+       "ours": 36.725712
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.56556
+      },
+      "install/zip": {
+       "ours": 10.327195000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "1795a59",
+     "values": {
+      "sort/small": {
+       "ours": 1.643351
+      },
+      "sort/medium": {
+       "ours": 7.5443999999999996
+      },
+      "sort/ttw-sized": {
+       "ours": 30.278103
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 3.875114
+      },
+      "install/zip": {
+       "ours": 9.953879
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "94c78d5",
+     "values": {
+      "sort/small": {
+       "ours": 1.090157
+      },
+      "sort/medium": {
+       "ours": 4.6480690000000005
+      },
+      "sort/ttw-sized": {
+       "ours": 21.565614
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.504675
+      },
+      "install/zip": {
+       "ours": 6.103669
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "1929615",
+     "values": {
+      "sort/small": {
+       "ours": 2.358101
+      },
+      "sort/medium": {
+       "ours": 10.423306
+      },
+      "sort/ttw-sized": {
+       "ours": 45.958287
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.7765439999999995
+      },
+      "install/zip": {
+       "ours": 13.202264999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "ef32e33",
+     "values": {
+      "sort/small": {
+       "ours": 2.375177
+      },
+      "sort/medium": {
+       "ours": 10.528933
+      },
+      "sort/ttw-sized": {
+       "ours": 46.013323
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.759662
+      },
+      "install/zip": {
+       "ours": 12.999078
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "7ecde77",
+     "values": {
+      "sort/small": {
+       "ours": 1.102484
+      },
+      "sort/medium": {
+       "ours": 4.694496
+      },
+      "sort/ttw-sized": {
+       "ours": 21.681784
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.504637
+      },
+      "install/zip": {
+       "ours": 5.999243
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "9f73539",
+     "values": {
+      "sort/small": {
+       "ours": 1.097714
+      },
+      "sort/medium": {
+       "ours": 4.595472
+      },
+      "sort/ttw-sized": {
+       "ours": 21.292384000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.488893
+      },
+      "install/zip": {
+       "ours": 5.743056
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "265874a",
+     "values": {
+      "sort/small": {
+       "ours": 1.094277
+      },
+      "sort/medium": {
+       "ours": 4.632538
+      },
+      "sort/ttw-sized": {
+       "ours": 21.331916
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.498664
+      },
+      "install/zip": {
+       "ours": 6.3169319999999995
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "c0eaa30",
+     "values": {
+      "sort/small": {
+       "ours": 1.091774
+      },
+      "sort/medium": {
+       "ours": 4.6535709999999995
+      },
+      "sort/ttw-sized": {
+       "ours": 21.564595
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.5354539999999999
+      },
+      "install/zip": {
+       "ours": 6.531339
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "36a8f8f",
+     "values": {
+      "sort/small": {
+       "ours": 1.102108
+      },
+      "sort/medium": {
+       "ours": 4.627328
+      },
+      "sort/ttw-sized": {
+       "ours": 21.736673000000003
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.5254649999999998
+      },
+      "install/zip": {
+       "ours": 5.820186
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "93ad249",
+     "values": {
+      "sort/small": {
+       "ours": 1.514004
+      },
+      "sort/medium": {
+       "ours": 6.534904
+      },
+      "sort/ttw-sized": {
+       "ours": 29.857954
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.191888
+      },
+      "install/zip": {
+       "ours": 10.963465000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "56d2719",
+     "values": {
+      "sort/small": {
+       "ours": 1.080328
+      },
+      "sort/medium": {
+       "ours": 4.621842999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 21.304859999999998
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.488261
+      },
+      "install/zip": {
+       "ours": 5.800451
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "7ede4bc",
+     "values": {
+      "sort/small": {
+       "ours": 1.526224
+      },
+      "sort/medium": {
+       "ours": 6.288581
+      },
+      "sort/ttw-sized": {
+       "ours": 28.704197
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.141251
+      },
+      "install/zip": {
+       "ours": 10.172638
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "b05d8e2",
+     "values": {
+      "sort/small": {
+       "ours": 1.926613
+      },
+      "sort/medium": {
+       "ours": 8.663411
+      },
+      "sort/ttw-sized": {
+       "ours": 36.663492
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.715333
+      },
+      "install/zip": {
+       "ours": 11.09866
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "1e0b4a3",
+     "values": {
+      "sort/small": {
+       "ours": 1.4233959999999999
+      },
+      "sort/medium": {
+       "ours": 6.337844
+      },
+      "sort/ttw-sized": {
+       "ours": 30.126925
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.041991
+      },
+      "install/zip": {
+       "ours": 8.648776999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "e8acb88",
+     "values": {
+      "sort/small": {
+       "ours": 1.1194499999999998
+      },
+      "sort/medium": {
+       "ours": 4.684779
+      },
+      "sort/ttw-sized": {
+       "ours": 21.810964
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.548578
+      },
+      "install/zip": {
+       "ours": 5.894111
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "da82eea",
+     "values": {
+      "sort/small": {
+       "ours": 1.946116
+      },
+      "sort/medium": {
+       "ours": 8.661296
+      },
+      "sort/ttw-sized": {
+       "ours": 36.424344
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.7122079999999995
+      },
+      "install/zip": {
+       "ours": 10.741294
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "66275e3",
+     "values": {
+      "sort/small": {
+       "ours": 1.959583
+      },
+      "sort/medium": {
+       "ours": 8.730478
+      },
+      "sort/ttw-sized": {
+       "ours": 36.529195
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.6329839999999995
+      },
+      "install/zip": {
+       "ours": 11.001873
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "51e787f",
+     "values": {
+      "sort/small": {
+       "ours": 1.092964
+      },
+      "sort/medium": {
+       "ours": 4.625882000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 21.567262
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.49378
+      },
+      "install/zip": {
+       "ours": 5.85272
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "d412a15",
+     "values": {
+      "sort/small": {
+       "ours": 1.085582
+      },
+      "sort/medium": {
+       "ours": 4.628972
+      },
+      "sort/ttw-sized": {
+       "ours": 21.468883
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.482489
+      },
+      "install/zip": {
+       "ours": 6.12256
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "7b99b8c",
+     "values": {
+      "sort/small": {
+       "ours": 1.089311
+      },
+      "sort/medium": {
+       "ours": 4.631049
+      },
+      "sort/ttw-sized": {
+       "ours": 21.759366
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.500499
+      },
+      "install/zip": {
+       "ours": 6.62078
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "116109e",
+     "values": {
+      "sort/small": {
+       "ours": 1.9519069999999998
+      },
+      "sort/medium": {
+       "ours": 8.725857999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 37.200641
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.74914
+      },
+      "install/zip": {
+       "ours": 11.400864
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "625bf7f",
+     "values": {
+      "sort/small": {
+       "ours": 1.1594680000000002
+      },
+      "sort/medium": {
+       "ours": 4.898625
+      },
+      "sort/ttw-sized": {
+       "ours": 22.309359
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.516558
+      },
+      "install/zip": {
+       "ours": 7.77938
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "f4fa06a",
+     "values": {
+      "sort/small": {
+       "ours": 1.7029720000000002
+      },
+      "sort/medium": {
+       "ours": 7.5465
+      },
+      "sort/ttw-sized": {
+       "ours": 29.974896
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 3.90436
+      },
+      "install/zip": {
+       "ours": 10.074744
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "5280df2",
+     "values": {
+      "sort/small": {
+       "ours": 1.6452630000000001
+      },
+      "sort/medium": {
+       "ours": 7.281821
+      },
+      "sort/ttw-sized": {
+       "ours": 29.483462
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 3.771782
+      },
+      "install/zip": {
+       "ours": 9.522285
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "3ffdd65",
+     "values": {
+      "sort/small": {
+       "ours": 1.95028
+      },
+      "sort/medium": {
+       "ours": 8.642768
+      },
+      "sort/ttw-sized": {
+       "ours": 36.40583
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.6163289999999995
+      },
+      "install/zip": {
+       "ours": 10.364134
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "edffb36",
+     "values": {
+      "sort/small": {
+       "ours": 1.100611
+      },
+      "sort/medium": {
+       "ours": 4.631698
+      },
+      "sort/ttw-sized": {
+       "ours": 21.416744
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.52001
+      },
+      "install/zip": {
+       "ours": 5.809026
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "dca2e32",
+     "values": {
+      "sort/small": {
+       "ours": 1.105099
+      },
+      "sort/medium": {
+       "ours": 4.643643
+      },
+      "sort/ttw-sized": {
+       "ours": 21.296305
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.536082
+      },
+      "install/zip": {
+       "ours": 5.9700370000000005
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "ba7ef93",
+     "values": {
+      "sort/small": {
+       "ours": 1.9649590000000001
+      },
+      "sort/medium": {
+       "ours": 8.785438
+      },
+      "sort/ttw-sized": {
+       "ours": 37.450134000000006
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.765145
+      },
+      "install/zip": {
+       "ours": 11.396513
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "0d3065e",
+     "values": {
+      "sort/small": {
+       "ours": 2.3545939999999996
+      },
+      "sort/medium": {
+       "ours": 10.544429
+      },
+      "sort/ttw-sized": {
+       "ours": 45.83983
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.873528
+      },
+      "install/zip": {
+       "ours": 13.092968
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "26763cc",
+     "values": {
+      "sort/small": {
+       "ours": 1.394464
+      },
+      "sort/medium": {
+       "ours": 5.969921
+      },
+      "sort/ttw-sized": {
+       "ours": 27.915257
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.0565100000000003
+      },
+      "install/zip": {
+       "ours": 8.972268
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "acc63e1",
+     "values": {
+      "sort/small": {
+       "ours": 1.0801260000000001
+      },
+      "sort/medium": {
+       "ours": 4.632425
+      },
+      "sort/ttw-sized": {
+       "ours": 21.628729
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.496547
+      },
+      "install/zip": {
+       "ours": 6.028468999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "e4548b0",
+     "values": {
+      "sort/small": {
+       "ours": 1.0968600000000002
+      },
+      "sort/medium": {
+       "ours": 4.597708
+      },
+      "sort/ttw-sized": {
+       "ours": 21.29882
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.502834
+      },
+      "install/zip": {
+       "ours": 5.944703
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "4dbcce1",
+     "values": {
+      "sort/small": {
+       "ours": 1.58133
+      },
+      "sort/medium": {
+       "ours": 7.036002000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 28.395508
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 3.680968
+      },
+      "install/zip": {
+       "ours": 9.201825
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "030560c",
+     "values": {
+      "sort/small": {
+       "ours": 1.945755
+      },
+      "sort/medium": {
+       "ours": 8.659475
+      },
+      "sort/ttw-sized": {
+       "ours": 36.371735
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.715536
+      },
+      "install/zip": {
+       "ours": 10.424106
+      }
+     }
+    },
+    {
+     "date": "2026-11-17",
+     "commit": "da85974",
+     "values": {
+      "sort/small": {
+       "ours": 1.1256140000000001
+      },
+      "sort/medium": {
+       "ours": 4.702123
+      },
+      "sort/ttw-sized": {
+       "ours": 21.871173000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.497751
+      },
+      "install/zip": {
+       "ours": 7.755013
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "e7a57b7",
+     "values": {
+      "sort/small": {
+       "ours": 2.334867
+      },
+      "sort/medium": {
+       "ours": 10.459902
+      },
+      "sort/ttw-sized": {
+       "ours": 45.602594
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.782526
+      },
+      "install/zip": {
+       "ours": 13.073091999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "8a1390e",
+     "values": {
+      "sort/small": {
+       "ours": 1.12757
+      },
+      "sort/medium": {
+       "ours": 4.700626000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 21.710922
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.5077109999999998
+      },
+      "install/zip": {
+       "ours": 6.311735
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "e4b5123",
+     "values": {
+      "sort/small": {
+       "ours": 1.73093
+      },
+      "sort/medium": {
+       "ours": 7.966167999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 33.397973
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.101528
+      },
+      "install/zip": {
+       "ours": 11.614391
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "d9e9cb2",
+     "values": {
+      "sort/small": {
+       "ours": 1.949484
+      },
+      "sort/medium": {
+       "ours": 8.729189
+      },
+      "sort/ttw-sized": {
+       "ours": 37.018418999999994
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.6343369999999995
+      },
+      "install/zip": {
+       "ours": 11.428954
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "3986768",
+     "values": {
+      "sort/small": {
+       "ours": 2.3807
+      },
+      "sort/medium": {
+       "ours": 10.49745
+      },
+      "sort/ttw-sized": {
+       "ours": 46.407424000000006
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.5857600000000005
+      },
+      "install/zip": {
+       "ours": 12.920178
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "7399eb5",
+     "values": {
+      "sort/small": {
+       "ours": 1.1253199999999999
+      },
+      "sort/medium": {
+       "ours": 4.711663
+      },
+      "sort/ttw-sized": {
+       "ours": 21.874036999999998
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.505237
+      },
+      "install/zip": {
+       "ours": 6.1057760000000005
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "7f27796",
+     "values": {
+      "sort/small": {
+       "ours": 1.128998
+      },
+      "sort/medium": {
+       "ours": 4.661592
+      },
+      "sort/ttw-sized": {
+       "ours": 21.583175
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.516512
+      },
+      "install/zip": {
+       "ours": 6.119715
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "6b77a96",
+     "values": {
+      "sort/small": {
+       "ours": 1.5679299999999998
+      },
+      "sort/medium": {
+       "ours": 7.028236000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 29.209008
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 3.7536739999999997
+      },
+      "install/zip": {
+       "ours": 9.921479
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "0839784",
+     "values": {
+      "sort/small": {
+       "ours": 2.3366979999999997
+      },
+      "sort/medium": {
+       "ours": 10.346349
+      },
+      "sort/ttw-sized": {
+       "ours": 44.918118
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.728509
+      },
+      "install/zip": {
+       "ours": 13.346463
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "b51f6b8",
+     "values": {
+      "sort/small": {
+       "ours": 1.495581
+      },
+      "sort/medium": {
+       "ours": 6.259196
+      },
+      "sort/ttw-sized": {
+       "ours": 28.564504
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.1035950000000003
+      },
+      "install/zip": {
+       "ours": 9.674062000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "fa16ee1",
+     "values": {
+      "sort/small": {
+       "ours": 1.097152
+      },
+      "sort/medium": {
+       "ours": 4.637251
+      },
+      "sort/ttw-sized": {
+       "ours": 21.754373
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.49499
+      },
+      "install/zip": {
+       "ours": 5.745789
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "a9cc69b",
+     "values": {
+      "sort/small": {
+       "ours": 1.083642
+      },
+      "sort/medium": {
+       "ours": 4.675396
+      },
+      "sort/ttw-sized": {
+       "ours": 21.397464000000003
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.495524
+      },
+      "install/zip": {
+       "ours": 6.127673
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "1d72715",
+     "values": {
+      "sort/small": {
+       "ours": 2.3249999999999997
+      },
+      "sort/medium": {
+       "ours": 10.552387
+      },
+      "sort/ttw-sized": {
+       "ours": 45.888645
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.650543
+      },
+      "install/zip": {
+       "ours": 12.557649000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "d4f9cfe",
+     "values": {
+      "sort/small": {
+       "ours": 1.727696
+      },
+      "sort/medium": {
+       "ours": 7.679674
+      },
+      "sort/ttw-sized": {
+       "ours": 31.347696000000003
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.042682
+      },
+      "install/zip": {
+       "ours": 11.002932999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "a38ae6f",
+     "values": {
+      "sort/small": {
+       "ours": 2.411546
+      },
+      "sort/medium": {
+       "ours": 10.677956
+      },
+      "sort/ttw-sized": {
+       "ours": 47.628471
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.921435
+      },
+      "install/zip": {
+       "ours": 13.761033000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "0416fa8",
+     "values": {
+      "sort/small": {
+       "ours": 1.088436
+      },
+      "sort/medium": {
+       "ours": 4.678947999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 21.337836999999997
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.496837
+      },
+      "install/zip": {
+       "ours": 5.99292
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "8099a86",
+     "values": {
+      "sort/small": {
+       "ours": 1.1375300000000002
+      },
+      "sort/medium": {
+       "ours": 4.7002440000000005
+      },
+      "sort/ttw-sized": {
+       "ours": 21.885516
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.502532
+      },
+      "install/zip": {
+       "ours": 6.1487
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "02ffd22",
+     "values": {
+      "sort/small": {
+       "ours": 2.307829
+      },
+      "sort/medium": {
+       "ours": 10.472627
+      },
+      "sort/ttw-sized": {
+       "ours": 45.469404
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.08869
+      },
+      "install/zip": {
+       "ours": 12.538307
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "46add02",
+     "values": {
+      "sort/small": {
+       "ours": 2.447154
+      },
+      "sort/medium": {
+       "ours": 11.193641000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 46.957001
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 6.533551
+      },
+      "install/zip": {
+       "ours": 13.54221
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "292c685",
+     "values": {
+      "sort/small": {
+       "ours": 1.8771470000000001
+      },
+      "sort/medium": {
+       "ours": 8.624416
+      },
+      "sort/ttw-sized": {
+       "ours": 36.935140999999994
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.522418999999999
+      },
+      "install/zip": {
+       "ours": 18.68691
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "d193bb0",
+     "values": {
+      "sort/small": {
+       "ours": 1.449313
+      },
+      "sort/medium": {
+       "ours": 6.426318
+      },
+      "sort/ttw-sized": {
+       "ours": 29.857257
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.1475359999999997
+      },
+      "install/zip": {
+       "ours": 9.806828999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "8809928",
+     "values": {
+      "sort/small": {
+       "ours": 1.904277
+      },
+      "sort/medium": {
+       "ours": 8.695319
+      },
+      "sort/ttw-sized": {
+       "ours": 37.58082
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.136593
+      },
+      "install/zip": {
+       "ours": 10.918796
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "66c5350",
+     "values": {
+      "sort/small": {
+       "ours": 1.6687500000000002
+      },
+      "sort/medium": {
+       "ours": 7.656325000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 31.048927
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.257897
+      },
+      "install/zip": {
+       "ours": 10.296244
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "adb9498",
+     "values": {
+      "sort/small": {
+       "ours": 2.281183
+      },
+      "sort/medium": {
+       "ours": 10.459090000000002
+      },
+      "sort/ttw-sized": {
+       "ours": 46.617309000000006
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.1106620000000005
+      },
+      "install/zip": {
+       "ours": 13.457913
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "ab64d4b",
+     "values": {
+      "sort/small": {
+       "ours": 2.303295
+      },
+      "sort/medium": {
+       "ours": 10.473905
+      },
+      "sort/ttw-sized": {
+       "ours": 45.720265000000005
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.087737
+      },
+      "install/zip": {
+       "ours": 13.057746999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "6a32f95",
+     "values": {
+      "sort/small": {
+       "ours": 2.170147
+      },
+      "sort/medium": {
+       "ours": 9.608764
+      },
+      "sort/ttw-sized": {
+       "ours": 38.145443
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.286476
+      },
+      "install/zip": {
+       "ours": 11.332208
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "1047abe",
+     "values": {
+      "sort/small": {
+       "ours": 2.318979
+      },
+      "sort/medium": {
+       "ours": 10.531749999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 46.091611
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 7.1382959999999995
+      },
+      "install/zip": {
+       "ours": 13.491869
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "fe96385",
+     "values": {
+      "sort/small": {
+       "ours": 2.25265
+      },
+      "sort/medium": {
+       "ours": 10.357417
+      },
+      "sort/ttw-sized": {
+       "ours": 45.532825
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.013914000000001
+      },
+      "install/zip": {
+       "ours": 12.300099
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "ac540fb",
+     "values": {
+      "sort/small": {
+       "ours": 1.914342
+      },
+      "sort/medium": {
+       "ours": 8.763074
+      },
+      "sort/ttw-sized": {
+       "ours": 37.063001
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.094475999999999
+      },
+      "install/zip": {
+       "ours": 11.21866
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "c8505b2",
+     "values": {
+      "sort/small": {
+       "ours": 1.9286159999999999
+      },
+      "sort/medium": {
+       "ours": 8.758327
+      },
+      "sort/ttw-sized": {
+       "ours": 37.383465
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.159988
+      },
+      "install/zip": {
+       "ours": 11.126009
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "c860246",
+     "values": {
+      "sort/small": {
+       "ours": 2.2871129999999997
+      },
+      "sort/medium": {
+       "ours": 10.440227
+      },
+      "sort/ttw-sized": {
+       "ours": 45.813072000000005
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.144948
+      },
+      "install/zip": {
+       "ours": 12.825656
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "87da4f5",
+     "values": {
+      "sort/small": {
+       "ours": 2.297557
+      },
+      "sort/medium": {
+       "ours": 10.52569
+      },
+      "sort/ttw-sized": {
+       "ours": 46.584058
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.080365
+      },
+      "install/zip": {
+       "ours": 13.139863
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "a1fbb35",
+     "values": {
+      "sort/small": {
+       "ours": 1.4257300000000002
+      },
+      "sort/medium": {
+       "ours": 6.099768
+      },
+      "sort/ttw-sized": {
+       "ours": 28.445417
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.075771
+      },
+      "install/zip": {
+       "ours": 8.877555000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "b70f398",
+     "values": {
+      "sort/small": {
+       "ours": 1.6696739999999999
+      },
+      "sort/medium": {
+       "ours": 7.610892
+      },
+      "sort/ttw-sized": {
+       "ours": 30.62425
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.260105
+      },
+      "install/zip": {
+       "ours": 10.110782
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "e26c534",
+     "values": {
+      "sort/small": {
+       "ours": 2.282171
+      },
+      "sort/medium": {
+       "ours": 10.476999000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 46.103402
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.1650849999999995
+      },
+      "install/zip": {
+       "ours": 12.568117
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "f3bc9de",
+     "values": {
+      "sort/small": {
+       "ours": 1.422276
+      },
+      "sort/medium": {
+       "ours": 6.553239
+      },
+      "sort/ttw-sized": {
+       "ours": 31.726676
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.1661319999999997
+      },
+      "install/zip": {
+       "ours": 9.687206999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "c8cccee",
+     "values": {
+      "sort/small": {
+       "ours": 2.446852
+      },
+      "sort/medium": {
+       "ours": 11.235261
+      },
+      "sort/ttw-sized": {
+       "ours": 46.931656000000004
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 6.372193
+      },
+      "install/zip": {
+       "ours": 13.238541
+      }
+     }
+    },
+    {
+     "date": "2026-11-18",
+     "commit": "173d464",
+     "values": {
+      "sort/small": {
+       "ours": 1.896553
+      },
+      "sort/medium": {
+       "ours": 8.683105
+      },
+      "sort/ttw-sized": {
+       "ours": 36.770269
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.082661
+      },
+      "install/zip": {
+       "ours": 11.108104
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "010a3c1",
+     "values": {
+      "sort/small": {
+       "ours": 1.9007539999999998
+      },
+      "sort/medium": {
+       "ours": 8.698020000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 36.482800000000005
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.0923560000000005
+      },
+      "install/zip": {
+       "ours": 11.250403
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "0777c71",
+     "values": {
+      "sort/small": {
+       "ours": 1.545105
+      },
+      "sort/medium": {
+       "ours": 6.910728
+      },
+      "sort/ttw-sized": {
+       "ours": 32.91751
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.297529
+      },
+      "install/zip": {
+       "ours": 11.171930999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "2b39b94",
+     "values": {
+      "sort/small": {
+       "ours": 1.374297
+      },
+      "sort/medium": {
+       "ours": 6.059314
+      },
+      "sort/ttw-sized": {
+       "ours": 27.956165000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.052508
+      },
+      "install/zip": {
+       "ours": 9.171859
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "a4e477f",
+     "values": {
+      "sort/small": {
+       "ours": 1.411386
+      },
+      "sort/medium": {
+       "ours": 6.132518
+      },
+      "sort/ttw-sized": {
+       "ours": 28.083530999999997
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.1386209999999997
+      },
+      "install/zip": {
+       "ours": 9.806505999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "c9e7d88",
+     "values": {
+      "sort/small": {
+       "ours": 1.918258
+      },
+      "sort/medium": {
+       "ours": 8.767158
+      },
+      "sort/ttw-sized": {
+       "ours": 36.838558
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.163443
+      },
+      "install/zip": {
+       "ours": 10.939849
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "fe6193c",
+     "values": {
+      "sort/small": {
+       "ours": 2.356137
+      },
+      "sort/medium": {
+       "ours": 10.89071
+      },
+      "sort/ttw-sized": {
+       "ours": 48.450638
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.118677
+      },
+      "install/zip": {
+       "ours": 13.594256000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "d39c341",
+     "values": {
+      "sort/small": {
+       "ours": 2.451759
+      },
+      "sort/medium": {
+       "ours": 11.207937
+      },
+      "sort/ttw-sized": {
+       "ours": 47.045556000000005
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 6.516231
+      },
+      "install/zip": {
+       "ours": 13.387013999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "9f3a203",
+     "values": {
+      "sort/small": {
+       "ours": 1.902352
+      },
+      "sort/medium": {
+       "ours": 8.647692000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 36.250087
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.1031260000000005
+      },
+      "install/zip": {
+       "ours": 10.651845
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "108aabf",
+     "values": {
+      "sort/small": {
+       "ours": 2.276612
+      },
+      "sort/medium": {
+       "ours": 10.387894
+      },
+      "sort/ttw-sized": {
+       "ours": 45.388444
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.126179
+      },
+      "install/zip": {
+       "ours": 12.361222999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "77a3ba2",
+     "values": {
+      "sort/small": {
+       "ours": 1.3910529999999999
+      },
+      "sort/medium": {
+       "ours": 6.38502
+      },
+      "sort/ttw-sized": {
+       "ours": 31.053779
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.183937
+      },
+      "install/zip": {
+       "ours": 9.735816
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "3bddc0a",
+     "values": {
+      "sort/small": {
+       "ours": 2.340542
+      },
+      "sort/medium": {
+       "ours": 10.696202
+      },
+      "sort/ttw-sized": {
+       "ours": 47.742481000000005
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.487912000000001
+      },
+      "install/zip": {
+       "ours": 13.498415
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "a5c1f0d",
+     "values": {
+      "sort/small": {
+       "ours": 1.8967420000000002
+      },
+      "sort/medium": {
+       "ours": 8.645819000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 36.51861
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.122645
+      },
+      "install/zip": {
+       "ours": 10.426268
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "08b8387",
+     "values": {
+      "sort/small": {
+       "ours": 1.558371
+      },
+      "sort/medium": {
+       "ours": 7.223475
+      },
+      "sort/ttw-sized": {
+       "ours": 29.963658000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 3.972512
+      },
+      "install/zip": {
+       "ours": 9.560992
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "6e68927",
+     "values": {
+      "sort/small": {
+       "ours": 1.3764560000000001
+      },
+      "sort/medium": {
+       "ours": 6.168882
+      },
+      "sort/ttw-sized": {
+       "ours": 28.532229
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.086026
+      },
+      "install/zip": {
+       "ours": 10.262022
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "f4b2f7f",
+     "values": {
+      "sort/small": {
+       "ours": 2.371324
+      },
+      "sort/medium": {
+       "ours": 10.863904
+      },
+      "sort/ttw-sized": {
+       "ours": 49.194802
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.591232
+      },
+      "install/zip": {
+       "ours": 14.267464
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "bcb4485",
+     "values": {
+      "sort/small": {
+       "ours": 2.2947699999999998
+      },
+      "sort/medium": {
+       "ours": 10.486304
+      },
+      "sort/ttw-sized": {
+       "ours": 45.728958
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.140084
+      },
+      "install/zip": {
+       "ours": 12.256576
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "a88904f",
+     "values": {
+      "sort/small": {
+       "ours": 1.4021050000000002
+      },
+      "sort/medium": {
+       "ours": 6.1346609999999995
+      },
+      "sort/ttw-sized": {
+       "ours": 28.256726
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.079039
+      },
+      "install/zip": {
+       "ours": 8.980772
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "b5459bf",
+     "values": {
+      "sort/small": {
+       "ours": 1.0471840000000001
+      },
+      "sort/medium": {
+       "ours": 4.732968
+      },
+      "sort/ttw-sized": {
+       "ours": 21.747607
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.5012459999999999
+      },
+      "install/zip": {
+       "ours": 6.200411
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "37d6001",
+     "values": {
+      "sort/small": {
+       "ours": 1.91414
+      },
+      "sort/medium": {
+       "ours": 8.744546000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 37.121872
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.981143
+      },
+      "install/zip": {
+       "ours": 12.011625
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "a028658",
+     "values": {
+      "sort/small": {
+       "ours": 1.627526
+      },
+      "sort/medium": {
+       "ours": 7.4401340000000005
+      },
+      "sort/ttw-sized": {
+       "ours": 30.138937000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.064398000000001
+      },
+      "install/zip": {
+       "ours": 10.479481
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "c2fc259",
+     "values": {
+      "sort/small": {
+       "ours": 2.304757
+      },
+      "sort/medium": {
+       "ours": 10.780892
+      },
+      "sort/ttw-sized": {
+       "ours": 46.148027
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.065666
+      },
+      "install/zip": {
+       "ours": 12.989712
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "13b23e5",
+     "values": {
+      "sort/small": {
+       "ours": 2.378669
+      },
+      "sort/medium": {
+       "ours": 10.792821
+      },
+      "sort/ttw-sized": {
+       "ours": 47.555582
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.108983
+      },
+      "install/zip": {
+       "ours": 13.936405
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "d9ec0cf",
+     "values": {
+      "sort/small": {
+       "ours": 1.8933769999999999
+      },
+      "sort/medium": {
+       "ours": 8.681343
+      },
+      "sort/ttw-sized": {
+       "ours": 36.430557
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.977543
+      },
+      "install/zip": {
+       "ours": 10.702065000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-19",
+     "commit": "8d915ff",
+     "values": {
+      "sort/small": {
+       "ours": 1.072529
+      },
+      "sort/medium": {
+       "ours": 4.617467
+      },
+      "sort/ttw-sized": {
+       "ours": 21.290584000000003
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.48933
+      },
+      "install/zip": {
+       "ours": 5.907433999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "290797f",
+     "values": {
+      "sort/small": {
+       "ours": 2.327248
+      },
+      "sort/medium": {
+       "ours": 10.629608000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 45.92657
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.120617
+      },
+      "install/zip": {
+       "ours": 15.490950999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "90575ef",
+     "values": {
+      "sort/small": {
+       "ours": 1.0604900000000002
+      },
+      "sort/medium": {
+       "ours": 4.704556999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 22.135416000000003
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.5189489999999999
+      },
+      "install/zip": {
+       "ours": 6.52057
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "a9d8662",
+     "values": {
+      "sort/small": {
+       "ours": 1.918491
+      },
+      "sort/medium": {
+       "ours": 8.72873
+      },
+      "sort/ttw-sized": {
+       "ours": 37.109363
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.229364
+      },
+      "install/zip": {
+       "ours": 36.051014
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "f0e7549",
+     "values": {
+      "sort/small": {
+       "ours": 1.691201
+      },
+      "sort/medium": {
+       "ours": 7.684533
+      },
+      "sort/ttw-sized": {
+       "ours": 31.606983999999997
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.2775240000000005
+      },
+      "install/zip": {
+       "ours": 11.178645
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "17d4fac",
+     "values": {
+      "sort/small": {
+       "ours": 1.535386
+      },
+      "sort/medium": {
+       "ours": 7.027731
+      },
+      "sort/ttw-sized": {
+       "ours": 29.879521999999998
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.279568
+      },
+      "install/zip": {
+       "ours": 10.306636
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "e86498d",
+     "values": {
+      "sort/small": {
+       "ours": 2.290623
+      },
+      "sort/medium": {
+       "ours": 10.380398000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 45.450522
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.114794
+      },
+      "install/zip": {
+       "ours": 13.03805
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "2fd8776",
+     "values": {
+      "sort/small": {
+       "ours": 1.556602
+      },
+      "sort/medium": {
+       "ours": 7.140518999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 28.382008
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.008578
+      },
+      "install/zip": {
+       "ours": 9.335532
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "434b710",
+     "values": {
+      "sort/small": {
+       "ours": 1.646132
+      },
+      "sort/medium": {
+       "ours": 7.589417
+      },
+      "sort/ttw-sized": {
+       "ours": 30.592301
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.140975
+      },
+      "install/zip": {
+       "ours": 10.601098
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "bacf1d5",
+     "values": {
+      "sort/small": {
+       "ours": 2.282639
+      },
+      "sort/medium": {
+       "ours": 10.449065000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 45.977648
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.311509
+      },
+      "install/zip": {
+       "ours": 13.088154
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "6cd9c62",
+     "values": {
+      "sort/small": {
+       "ours": 2.3309960000000003
+      },
+      "sort/medium": {
+       "ours": 10.547142000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 46.63953
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.240551000000001
+      },
+      "install/zip": {
+       "ours": 13.136132
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "8c30b9d",
+     "values": {
+      "sort/small": {
+       "ours": 2.238598
+      },
+      "sort/medium": {
+       "ours": 10.290741
+      },
+      "sort/ttw-sized": {
+       "ours": 45.216356
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.026023
+      },
+      "install/zip": {
+       "ours": 12.911079
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "3ccb98a",
+     "values": {
+      "sort/small": {
+       "ours": 1.663347
+      },
+      "sort/medium": {
+       "ours": 7.752591
+      },
+      "sort/ttw-sized": {
+       "ours": 30.765431
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.256436
+      },
+      "install/zip": {
+       "ours": 10.166579
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "52ca49e",
+     "values": {
+      "sort/small": {
+       "ours": 1.487258
+      },
+      "sort/medium": {
+       "ours": 6.759035
+      },
+      "sort/ttw-sized": {
+       "ours": 32.125780999999996
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.268952
+      },
+      "install/zip": {
+       "ours": 10.739902
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "72dc555",
+     "values": {
+      "sort/small": {
+       "ours": 1.7027139999999998
+      },
+      "sort/medium": {
+       "ours": 7.789931
+      },
+      "sort/ttw-sized": {
+       "ours": 31.489538999999997
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.244877
+      },
+      "install/zip": {
+       "ours": 10.770480000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "3c540d1",
+     "values": {
+      "sort/small": {
+       "ours": 2.303775
+      },
+      "sort/medium": {
+       "ours": 10.516579
+      },
+      "sort/ttw-sized": {
+       "ours": 45.80998700000001
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.248411
+      },
+      "install/zip": {
+       "ours": 12.797864
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "d16a17d",
+     "values": {
+      "sort/small": {
+       "ours": 2.3145100000000003
+      },
+      "sort/medium": {
+       "ours": 10.565658
+      },
+      "sort/ttw-sized": {
+       "ours": 45.647409
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.117555
+      },
+      "install/zip": {
+       "ours": 13.139694
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "89b915a",
+     "values": {
+      "sort/small": {
+       "ours": 2.315637
+      },
+      "sort/medium": {
+       "ours": 10.504739
+      },
+      "sort/ttw-sized": {
+       "ours": 45.531578
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.118026
+      },
+      "install/zip": {
+       "ours": 8.970862
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "e6ee004",
+     "values": {
+      "sort/small": {
+       "ours": 1.396768
+      },
+      "sort/medium": {
+       "ours": 6.324337
+      },
+      "sort/ttw-sized": {
+       "ours": 31.278157
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.168349
+      },
+      "install/zip": {
+       "ours": 7.364808
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "9c1de20",
+     "values": {
+      "sort/small": {
+       "ours": 1.035328
+      },
+      "sort/medium": {
+       "ours": 4.632697
+      },
+      "sort/ttw-sized": {
+       "ours": 21.603753
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.4984
+      },
+      "install/zip": {
+       "ours": 5.249699
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "d4f9930",
+     "values": {
+      "sort/small": {
+       "ours": 2.2937510000000003
+      },
+      "sort/medium": {
+       "ours": 10.493974999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 45.875467
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.121681000000001
+      },
+      "install/zip": {
+       "ours": 9.043717999999998
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "37def83",
+     "values": {
+      "sort/small": {
+       "ours": 1.0463639999999998
+      },
+      "sort/medium": {
+       "ours": 4.636389
+      },
+      "sort/ttw-sized": {
+       "ours": 21.388507
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.487193
+      },
+      "install/zip": {
+       "ours": 4.950149
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "336879a",
+     "values": {
+      "sort/small": {
+       "ours": 1.914078
+      },
+      "sort/medium": {
+       "ours": 8.735588
+      },
+      "sort/ttw-sized": {
+       "ours": 36.832294000000005
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.180985
+      },
+      "install/zip": {
+       "ours": 7.192548
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "8bc5c71",
+     "values": {
+      "sort/small": {
+       "ours": 1.065631
+      },
+      "sort/medium": {
+       "ours": 4.612736
+      },
+      "sort/ttw-sized": {
+       "ours": 21.257729
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.5037880000000001
+      },
+      "install/zip": {
+       "ours": 5.173935999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "53011ed",
+     "values": {
+      "sort/small": {
+       "ours": 1.394981
+      },
+      "sort/medium": {
+       "ours": 6.096591
+      },
+      "sort/ttw-sized": {
+       "ours": 28.076373
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.086061
+      },
+      "install/zip": {
+       "ours": 7.672707
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "7fbdc35",
+     "values": {
+      "sort/small": {
+       "ours": 1.892115
+      },
+      "sort/medium": {
+       "ours": 8.711291
+      },
+      "sort/ttw-sized": {
+       "ours": 36.489836999999994
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.0213410000000005
+      },
+      "install/zip": {
+       "ours": 7.337855
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "53d70fb",
+     "values": {
+      "sort/small": {
+       "ours": 1.697079
+      },
+      "sort/medium": {
+       "ours": 7.667433000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 30.552034
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.283487
+      },
+      "install/zip": {
+       "ours": 6.791265
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "a39222e",
+     "values": {
+      "sort/small": {
+       "ours": 1.911049
+      },
+      "sort/medium": {
+       "ours": 8.647747
+      },
+      "sort/ttw-sized": {
+       "ours": 35.918944
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.001008000000001
+      },
+      "install/zip": {
+       "ours": 6.9908030000000005
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "60ed294",
+     "values": {
+      "sort/small": {
+       "ours": 1.059168
+      },
+      "sort/medium": {
+       "ours": 4.604083999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 21.4723
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.503725
+      },
+      "install/zip": {
+       "ours": 5.120185
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "1b4d1b2",
+     "values": {
+      "sort/small": {
+       "ours": 1.0217690000000001
+      },
+      "sort/medium": {
+       "ours": 4.665826
+      },
+      "sort/ttw-sized": {
+       "ours": 21.677345
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.5403
+      },
+      "install/zip": {
+       "ours": 5.369403
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "3b55f1f",
+     "values": {
+      "sort/small": {
+       "ours": 2.4329780000000003
+      },
+      "sort/medium": {
+       "ours": 11.095464
+      },
+      "sort/ttw-sized": {
+       "ours": 46.928456
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 6.397833
+      },
+      "install/zip": {
+       "ours": 9.261151
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "e916aa8",
+     "values": {
+      "sort/small": {
+       "ours": 1.06765
+      },
+      "sort/medium": {
+       "ours": 4.670611
+      },
+      "sort/ttw-sized": {
+       "ours": 21.251308
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.500095
+      },
+      "install/zip": {
+       "ours": 5.190843
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "c875f7f",
+     "values": {
+      "sort/small": {
+       "ours": 1.888308
+      },
+      "sort/medium": {
+       "ours": 8.717921
+      },
+      "sort/ttw-sized": {
+       "ours": 36.985834000000004
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.1709570000000005
+      },
+      "install/zip": {
+       "ours": 7.6332379999999995
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "0d6aa95",
+     "values": {
+      "sort/small": {
+       "ours": 1.524267
+      },
+      "sort/medium": {
+       "ours": 7.015665
+      },
+      "sort/ttw-sized": {
+       "ours": 28.092481999999997
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.001918
+      },
+      "install/zip": {
+       "ours": 6.109886
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "806207b",
+     "values": {
+      "sort/small": {
+       "ours": 1.390793
+      },
+      "sort/medium": {
+       "ours": 6.1934499999999995
+      },
+      "sort/ttw-sized": {
+       "ours": 28.399735
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.0874650000000003
+      },
+      "install/zip": {
+       "ours": 7.848696
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "842bec7",
+     "values": {
+      "sort/small": {
+       "ours": 1.0092020000000002
+      },
+      "sort/medium": {
+       "ours": 4.431348
+      },
+      "sort/ttw-sized": {
+       "ours": 19.924946
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.448008
+      },
+      "install/zip": {
+       "ours": 6.249214
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "31d908d",
+     "values": {
+      "sort/small": {
+       "ours": 2.268896
+      },
+      "sort/medium": {
+       "ours": 10.306498000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 45.544858
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.085025
+      },
+      "install/zip": {
+       "ours": 9.272209
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "24310bb",
+     "values": {
+      "sort/small": {
+       "ours": 1.0837970000000001
+      },
+      "sort/medium": {
+       "ours": 4.599874000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 21.558363
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.496771
+      },
+      "install/zip": {
+       "ours": 5.138694
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "ab0006c",
+     "values": {
+      "sort/small": {
+       "ours": 1.2313960000000002
+      },
+      "sort/medium": {
+       "ours": 5.221741000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 24.565772
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.667147
+      },
+      "install/zip": {
+       "ours": 8.187497
+      }
+     }
+    },
+    {
+     "date": "2026-11-20",
+     "commit": "f4499c9",
+     "values": {
+      "sort/small": {
+       "ours": 1.7189009999999998
+      },
+      "sort/medium": {
+       "ours": 8.009452
+      },
+      "sort/ttw-sized": {
+       "ours": 31.928402000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.3910290000000005
+      },
+      "install/zip": {
+       "ours": 7.490931
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "b7e72f7",
+     "values": {
+      "sort/small": {
+       "ours": 1.095931
+      },
+      "sort/medium": {
+       "ours": 4.697857
+      },
+      "sort/ttw-sized": {
+       "ours": 21.599712
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.521207
+      },
+      "install/zip": {
+       "ours": 5.573211
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "849bfaa",
+     "values": {
+      "sort/small": {
+       "ours": 1.519812
+      },
+      "sort/medium": {
+       "ours": 6.936006
+      },
+      "sort/ttw-sized": {
+       "ours": 28.039991
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.025637000000001
+      },
+      "install/zip": {
+       "ours": 6.670968
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "3308f4d",
+     "values": {
+      "sort/small": {
+       "ours": 1.092419
+      },
+      "sort/medium": {
+       "ours": 4.7306919999999995
+      },
+      "sort/ttw-sized": {
+       "ours": 21.360246999999998
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.497785
+      },
+      "install/zip": {
+       "ours": 5.027661
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "3816401",
+     "values": {
+      "sort/small": {
+       "ours": 2.318593
+      },
+      "sort/medium": {
+       "ours": 10.42245
+      },
+      "sort/ttw-sized": {
+       "ours": 45.789664
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.108627
+      },
+      "install/zip": {
+       "ours": 9.380911000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "4b0245c",
+     "values": {
+      "sort/small": {
+       "ours": 1.066422
+      },
+      "sort/medium": {
+       "ours": 4.688742
+      },
+      "sort/ttw-sized": {
+       "ours": 21.395294
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.509156
+      },
+      "install/zip": {
+       "ours": 5.156766
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "dc06571",
+     "values": {
+      "sort/small": {
+       "ours": 2.325068
+      },
+      "sort/medium": {
+       "ours": 10.450723
+      },
+      "sort/ttw-sized": {
+       "ours": 45.200900000000004
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.163911000000001
+      },
+      "install/zip": {
+       "ours": 8.961502
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "8b4f929",
+     "values": {
+      "sort/small": {
+       "ours": 2.780246
+      },
+      "sort/medium": {
+       "ours": 12.074995
+      },
+      "sort/ttw-sized": {
+       "ours": 47.584988
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.114941
+      },
+      "install/zip": {
+       "ours": 9.741952
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "5d12702",
+     "values": {
+      "sort/small": {
+       "ours": 1.4851809999999999
+      },
+      "sort/medium": {
+       "ours": 6.431081
+      },
+      "sort/ttw-sized": {
+       "ours": 31.137962
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.359572
+      },
+      "install/zip": {
+       "ours": 7.137422
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "5d596c7",
+     "values": {
+      "sort/small": {
+       "ours": 1.663915
+      },
+      "sort/medium": {
+       "ours": 7.501581
+      },
+      "sort/ttw-sized": {
+       "ours": 30.242953999999997
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.231125
+      },
+      "install/zip": {
+       "ours": 30.020398
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "27c168a",
+     "values": {
+      "sort/small": {
+       "ours": 1.883885
+      },
+      "sort/medium": {
+       "ours": 8.645536
+      },
+      "sort/ttw-sized": {
+       "ours": 36.852622000000004
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.003078
+      },
+      "install/zip": {
+       "ours": 7.630188
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "691693d",
+     "values": {
+      "sort/small": {
+       "ours": 2.301938
+      },
+      "sort/medium": {
+       "ours": 10.537108
+      },
+      "sort/ttw-sized": {
+       "ours": 46.129816
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.154711
+      },
+      "install/zip": {
+       "ours": 9.338518
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "b6d8cab",
+     "values": {
+      "sort/small": {
+       "ours": 1.648772
+      },
+      "sort/medium": {
+       "ours": 7.833453
+      },
+      "sort/ttw-sized": {
+       "ours": 31.301501000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.0283109999999995
+      },
+      "install/zip": {
+       "ours": 7.240246
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "911f44d",
+     "values": {
+      "sort/small": {
+       "ours": 1.477965
+      },
+      "sort/medium": {
+       "ours": 6.1802719999999995
+      },
+      "sort/ttw-sized": {
+       "ours": 27.450584
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.05967
+      },
+      "install/zip": {
+       "ours": 7.243105
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "78fb6e4",
+     "values": {
+      "sort/small": {
+       "ours": 2.273666
+      },
+      "sort/medium": {
+       "ours": 10.362361
+      },
+      "sort/ttw-sized": {
+       "ours": 45.342747
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.161695
+      },
+      "install/zip": {
+       "ours": 9.169089
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "305589e",
+     "values": {
+      "sort/small": {
+       "ours": 1.896032
+      },
+      "sort/medium": {
+       "ours": 8.606001000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 35.92412100000001
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.928393
+      },
+      "install/zip": {
+       "ours": 7.05307
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "e0d3ceb",
+     "values": {
+      "sort/small": {
+       "ours": 1.904575
+      },
+      "sort/medium": {
+       "ours": 8.632197
+      },
+      "sort/ttw-sized": {
+       "ours": 36.268750000000004
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.083291999999999
+      },
+      "install/zip": {
+       "ours": 7.529027
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "07e4a7c",
+     "values": {
+      "sort/small": {
+       "ours": 2.245208
+      },
+      "sort/medium": {
+       "ours": 10.256401
+      },
+      "sort/ttw-sized": {
+       "ours": 44.811175
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.0122
+      },
+      "install/zip": {
+       "ours": 8.950725
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "63e3e7c",
+     "values": {
+      "sort/small": {
+       "ours": 2.2661830000000003
+      },
+      "sort/medium": {
+       "ours": 10.367961
+      },
+      "sort/ttw-sized": {
+       "ours": 45.692792000000004
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.130221
+      },
+      "install/zip": {
+       "ours": 9.423402000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "0db3872",
+     "values": {
+      "sort/small": {
+       "ours": 1.052489
+      },
+      "sort/medium": {
+       "ours": 4.679238
+      },
+      "sort/ttw-sized": {
+       "ours": 21.932999000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.515476
+      },
+      "install/zip": {
+       "ours": 5.245808
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "941a836",
+     "values": {
+      "sort/small": {
+       "ours": 1.8894490000000002
+      },
+      "sort/medium": {
+       "ours": 8.591184
+      },
+      "sort/ttw-sized": {
+       "ours": 36.075340999999995
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.9511069999999995
+      },
+      "install/zip": {
+       "ours": 7.44637
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "658a799",
+     "values": {
+      "sort/small": {
+       "ours": 1.893823
+      },
+      "sort/medium": {
+       "ours": 8.576298
+      },
+      "sort/ttw-sized": {
+       "ours": 36.463952
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.956033000000001
+      },
+      "install/zip": {
+       "ours": 7.7712650000000005
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "19508c1",
+     "values": {
+      "sort/small": {
+       "ours": 1.9265219999999998
+      },
+      "sort/medium": {
+       "ours": 8.772492
+      },
+      "sort/ttw-sized": {
+       "ours": 37.160303
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.992125
+      },
+      "install/zip": {
+       "ours": 7.832515
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "b53c67a",
+     "values": {
+      "sort/small": {
+       "ours": 1.880729
+      },
+      "sort/medium": {
+       "ours": 8.6072
+      },
+      "sort/ttw-sized": {
+       "ours": 36.021344
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.053669
+      },
+      "install/zip": {
+       "ours": 7.026453999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "0fdb51d",
+     "values": {
+      "sort/small": {
+       "ours": 1.882618
+      },
+      "sort/medium": {
+       "ours": 8.598101
+      },
+      "sort/ttw-sized": {
+       "ours": 36.594972000000006
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.0758540000000005
+      },
+      "install/zip": {
+       "ours": 7.389031
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "1e5cfea",
+     "values": {
+      "sort/small": {
+       "ours": 2.281981
+      },
+      "sort/medium": {
+       "ours": 10.459123
+      },
+      "sort/ttw-sized": {
+       "ours": 45.737118
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.154112
+      },
+      "install/zip": {
+       "ours": 9.127154
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "57f42ef",
+     "values": {
+      "sort/small": {
+       "ours": 2.289197
+      },
+      "sort/medium": {
+       "ours": 10.435557999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 45.861450999999995
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.149529
+      },
+      "install/zip": {
+       "ours": 9.158661
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "5107f2f",
+     "values": {
+      "sort/small": {
+       "ours": 2.434645
+      },
+      "sort/medium": {
+       "ours": 11.172368
+      },
+      "sort/ttw-sized": {
+       "ours": 47.552986999999995
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 6.552734999999999
+      },
+      "install/zip": {
+       "ours": 9.356122999999998
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "bc9d6c8",
+     "values": {
+      "sort/small": {
+       "ours": 1.164361
+      },
+      "sort/medium": {
+       "ours": 4.956402000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 23.755470000000003
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.727861
+      },
+      "install/zip": {
+       "ours": 7.512807
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "cf02b15",
+     "values": {
+      "sort/small": {
+       "ours": 2.314328
+      },
+      "sort/medium": {
+       "ours": 10.659503
+      },
+      "sort/ttw-sized": {
+       "ours": 47.333923999999996
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.282984999999999
+      },
+      "install/zip": {
+       "ours": 9.661356
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "b898767",
+     "values": {
+      "sort/small": {
+       "ours": 2.277949
+      },
+      "sort/medium": {
+       "ours": 10.526004
+      },
+      "sort/ttw-sized": {
+       "ours": 45.981365000000004
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.142416000000001
+      },
+      "install/zip": {
+       "ours": 9.277716999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "1db3c7f",
+     "values": {
+      "sort/small": {
+       "ours": 2.2904
+      },
+      "sort/medium": {
+       "ours": 10.62811
+      },
+      "sort/ttw-sized": {
+       "ours": 46.675398
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.181373000000001
+      },
+      "install/zip": {
+       "ours": 9.524647
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "8972ff9",
+     "values": {
+      "sort/small": {
+       "ours": 1.913527
+      },
+      "sort/medium": {
+       "ours": 8.713955
+      },
+      "sort/ttw-sized": {
+       "ours": 37.309162
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.097362
+      },
+      "install/zip": {
+       "ours": 7.364804
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "8e73ac3",
+     "values": {
+      "sort/small": {
+       "ours": 1.525916
+      },
+      "sort/medium": {
+       "ours": 7.0116950000000005
+      },
+      "sort/ttw-sized": {
+       "ours": 28.010928
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.017909
+      },
+      "install/zip": {
+       "ours": 6.271887
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "dd75f28",
+     "values": {
+      "sort/small": {
+       "ours": 1.66014
+      },
+      "sort/medium": {
+       "ours": 7.126473000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 28.495981999999998
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.006267
+      },
+      "install/zip": {
+       "ours": 6.401338
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "4cf1335",
+     "values": {
+      "sort/small": {
+       "ours": 2.2885560000000003
+      },
+      "sort/medium": {
+       "ours": 10.412101999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 45.280729
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.3220089999999995
+      },
+      "install/zip": {
+       "ours": 9.097961
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "996b04c",
+     "values": {
+      "sort/small": {
+       "ours": 1.457636
+      },
+      "sort/medium": {
+       "ours": 6.2006179999999995
+      },
+      "sort/ttw-sized": {
+       "ours": 28.37527
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.140838
+      },
+      "install/zip": {
+       "ours": 9.033559
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "b4c845b",
+     "values": {
+      "sort/small": {
+       "ours": 2.312369
+      },
+      "sort/medium": {
+       "ours": 10.526983
+      },
+      "sort/ttw-sized": {
+       "ours": 46.727179
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.195411
+      },
+      "install/zip": {
+       "ours": 9.791622
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "7c2dbc9",
+     "values": {
+      "sort/small": {
+       "ours": 1.358543
+      },
+      "sort/medium": {
+       "ours": 6.026946
+      },
+      "sort/ttw-sized": {
+       "ours": 27.443661000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.086738
+      },
+      "install/zip": {
+       "ours": 7.315302
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "57f8465",
+     "values": {
+      "sort/small": {
+       "ours": 2.2494009999999998
+      },
+      "sort/medium": {
+       "ours": 10.341033
+      },
+      "sort/ttw-sized": {
+       "ours": 45.666724
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.100912
+      },
+      "install/zip": {
+       "ours": 9.550331
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "f335397",
+     "values": {
+      "sort/small": {
+       "ours": 2.343429
+      },
+      "sort/medium": {
+       "ours": 10.862758
+      },
+      "sort/ttw-sized": {
+       "ours": 47.813431
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.141633
+      },
+      "install/zip": {
+       "ours": 9.704782999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "3bf9212",
+     "values": {
+      "sort/small": {
+       "ours": 1.68771
+      },
+      "sort/medium": {
+       "ours": 7.8427180000000005
+      },
+      "sort/ttw-sized": {
+       "ours": 32.725257
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.403913
+      },
+      "install/zip": {
+       "ours": 7.720453
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "973f6a6",
+     "values": {
+      "sort/small": {
+       "ours": 1.470345
+      },
+      "sort/medium": {
+       "ours": 6.337921
+      },
+      "sort/ttw-sized": {
+       "ours": 29.282253
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.150525
+      },
+      "install/zip": {
+       "ours": 8.358492
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "b9c007c",
+     "values": {
+      "sort/small": {
+       "ours": 1.414884
+      },
+      "sort/medium": {
+       "ours": 6.258992
+      },
+      "sort/ttw-sized": {
+       "ours": 29.431137
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.161876
+      },
+      "install/zip": {
+       "ours": 8.19017
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "c11e3f7",
+     "values": {
+      "sort/small": {
+       "ours": 2.307677
+      },
+      "sort/medium": {
+       "ours": 10.551725
+      },
+      "sort/ttw-sized": {
+       "ours": 46.744561
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.205806
+      },
+      "install/zip": {
+       "ours": 9.518742999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "e8eed29",
+     "values": {
+      "sort/small": {
+       "ours": 2.4261600000000003
+      },
+      "sort/medium": {
+       "ours": 11.242297
+      },
+      "sort/ttw-sized": {
+       "ours": 47.006364000000005
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 6.484537
+      },
+      "install/zip": {
+       "ours": 8.984256
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "e675bd6",
+     "values": {
+      "sort/small": {
+       "ours": 1.8876570000000001
+      },
+      "sort/medium": {
+       "ours": 8.606917000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 35.990758
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.938542
+      },
+      "install/zip": {
+       "ours": 7.984256
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "9a47f17",
+     "values": {
+      "sort/small": {
+       "ours": 2.296196
+      },
+      "sort/medium": {
+       "ours": 10.495970999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 45.966986
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.155043
+      },
+      "install/zip": {
+       "ours": 9.454447
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "ce72a51",
+     "values": {
+      "sort/small": {
+       "ours": 1.902002
+      },
+      "sort/medium": {
+       "ours": 8.642185
+      },
+      "sort/ttw-sized": {
+       "ours": 36.660923999999994
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.951327
+      },
+      "install/zip": {
+       "ours": 7.552013
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "1a066ad",
+     "values": {
+      "sort/small": {
+       "ours": 2.306983
+      },
+      "sort/medium": {
+       "ours": 10.568273
+      },
+      "sort/ttw-sized": {
+       "ours": 47.873461999999996
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.2781
+      },
+      "install/zip": {
+       "ours": 10.130774
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "562b91c",
+     "values": {
+      "sort/small": {
+       "ours": 2.283022
+      },
+      "sort/medium": {
+       "ours": 10.431051
+      },
+      "sort/ttw-sized": {
+       "ours": 45.67217
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.074485999999999
+      },
+      "install/zip": {
+       "ours": 8.985432999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "d4da3b2",
+     "values": {
+      "sort/small": {
+       "ours": 1.898293
+      },
+      "sort/medium": {
+       "ours": 8.653005
+      },
+      "sort/ttw-sized": {
+       "ours": 36.68923
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.006211
+      },
+      "install/zip": {
+       "ours": 7.72868
+      }
+     }
+    },
+    {
+     "date": "2026-11-21",
+     "commit": "77b796c",
+     "values": {
+      "sort/small": {
+       "ours": 1.898589
+      },
+      "sort/medium": {
+       "ours": 8.663983
+      },
+      "sort/ttw-sized": {
+       "ours": 36.293467
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.067448
+      },
+      "install/zip": {
+       "ours": 7.3329320000000004
+      }
+     }
+    },
+    {
+     "date": "2026-11-22",
+     "commit": "d0c4ba0",
+     "values": {
+      "sort/small": {
+       "ours": 1.598733
+      },
+      "sort/medium": {
+       "ours": 7.360436
+      },
+      "sort/ttw-sized": {
+       "ours": 30.818797
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.0142880000000005
+      },
+      "install/zip": {
+       "ours": 6.662534
+      }
+     }
+    },
+    {
+     "date": "2026-11-22",
+     "commit": "604fe87",
+     "values": {
+      "sort/small": {
+       "ours": 2.299567
+      },
+      "sort/medium": {
+       "ours": 10.512988
+      },
+      "sort/ttw-sized": {
+       "ours": 45.286039
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.120516
+      },
+      "install/zip": {
+       "ours": 9.264211
+      }
+     }
+    },
+    {
+     "date": "2026-11-23",
+     "commit": "427dc7e",
+     "values": {
+      "sort/small": {
+       "ours": 2.293399
+      },
+      "sort/medium": {
+       "ours": 10.382684
+      },
+      "sort/ttw-sized": {
+       "ours": 45.210899999999995
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.1705309999999995
+      },
+      "install/zip": {
+       "ours": 9.139348
+      }
+     }
+    },
+    {
+     "date": "2026-11-23",
+     "commit": "5bc5512",
+     "values": {
+      "sort/small": {
+       "ours": 1.607229
+      },
+      "sort/medium": {
+       "ours": 7.312652
+      },
+      "sort/ttw-sized": {
+       "ours": 30.103728999999998
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.009019
+      },
+      "install/zip": {
+       "ours": 7.220002
+      }
+     }
+    },
+    {
+     "date": "2026-11-23",
+     "commit": "6bd943b",
+     "values": {
+      "sort/small": {
+       "ours": 2.271468
+      },
+      "sort/medium": {
+       "ours": 10.329021000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 45.130339
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.080007999999999
+      },
+      "install/zip": {
+       "ours": 9.054316
+      }
+     }
+    },
+    {
+     "date": "2026-11-23",
+     "commit": "708d740",
+     "values": {
+      "sort/small": {
+       "ours": 2.301347
+      },
+      "sort/medium": {
+       "ours": 10.441875999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 47.60941
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.158356
+      },
+      "install/zip": {
+       "ours": 9.354997000000001
+      }
+     }
+    },
+    {
+     "date": "2026-11-23",
+     "commit": "9d345c4",
+     "values": {
+      "sort/small": {
+       "ours": 1.518105
+      },
+      "sort/medium": {
+       "ours": 6.926884
+      },
+      "sort/ttw-sized": {
+       "ours": 28.021606000000002
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 3.9620109999999995
+      },
+      "install/zip": {
+       "ours": 6.296742999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-23",
+     "commit": "6835ab0",
+     "values": {
+      "sort/small": {
+       "ours": 2.3051999999999997
+      },
+      "sort/medium": {
+       "ours": 10.524138
+      },
+      "sort/ttw-sized": {
+       "ours": 47.086869
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.467229
+      },
+      "install/zip": {
+       "ours": 10.080069
+      }
+     }
+    },
+    {
+     "date": "2026-11-23",
+     "commit": "0e2d3d2",
+     "values": {
+      "sort/small": {
+       "ours": 1.893713
+      },
+      "sort/medium": {
+       "ours": 8.589818000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 35.772049
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.1000630000000005
+      },
+      "install/zip": {
+       "ours": 7.393083
+      }
+     }
+    },
+    {
+     "date": "2026-11-23",
+     "commit": "ef51fe7",
+     "values": {
+      "sort/small": {
+       "ours": 1.041953
+      },
+      "sort/medium": {
+       "ours": 4.614567
+      },
+      "sort/ttw-sized": {
+       "ours": 21.260905
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.495479
+      },
+      "install/zip": {
+       "ours": 4.989821999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-23",
+     "commit": "bf8a803",
+     "values": {
+      "sort/small": {
+       "ours": 1.1469589999999998
+      },
+      "sort/medium": {
+       "ours": 5.052195
+      },
+      "sort/ttw-sized": {
+       "ours": 23.338528
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.687639
+      },
+      "install/zip": {
+       "ours": 7.787268
+      }
+     }
+    },
+    {
+     "date": "2026-11-23",
+     "commit": "0bc0fa3",
+     "values": {
+      "sort/small": {
+       "ours": 1.4044699999999999
+      },
+      "sort/medium": {
+       "ours": 6.417104
+      },
+      "sort/ttw-sized": {
+       "ours": 31.437694
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.1843510000000004
+      },
+      "install/zip": {
+       "ours": 8.10281
+      }
+     }
+    },
+    {
+     "date": "2026-11-24",
+     "commit": "6c900e4",
+     "values": {
+      "sort/small": {
+       "ours": 2.413775
+      },
+      "sort/medium": {
+       "ours": 11.355766999999998
+      },
+      "sort/ttw-sized": {
+       "ours": 51.238833
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.902609
+      },
+      "install/zip": {
+       "ours": 11.546397
+      }
+     }
+    },
+    {
+     "date": "2026-11-24",
+     "commit": "2294c13",
+     "values": {
+      "sort/small": {
+       "ours": 2.265022
+      },
+      "sort/medium": {
+       "ours": 10.131924
+      },
+      "sort/ttw-sized": {
+       "ours": 45.278304999999996
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.026368
+      },
+      "install/zip": {
+       "ours": 8.686617
+      }
+     }
+    },
+    {
+     "date": "2026-11-24",
+     "commit": "35fcb43",
+     "values": {
+      "sort/small": {
+       "ours": 2.293453
+      },
+      "sort/medium": {
+       "ours": 10.543017
+      },
+      "sort/ttw-sized": {
+       "ours": 45.653012
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.135072
+      },
+      "install/zip": {
+       "ours": 9.017589
+      }
+     }
+    },
+    {
+     "date": "2026-11-24",
+     "commit": "802199f",
+     "values": {
+      "sort/small": {
+       "ours": 1.514334
+      },
+      "sort/medium": {
+       "ours": 7.045588
+      },
+      "sort/ttw-sized": {
+       "ours": 27.905006
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 3.966494
+      },
+      "install/zip": {
+       "ours": 6.432956
+      }
+     }
+    },
+    {
+     "date": "2026-11-24",
+     "commit": "560f901",
+     "values": {
+      "sort/small": {
+       "ours": 2.249575
+      },
+      "sort/medium": {
+       "ours": 10.325656
+      },
+      "sort/ttw-sized": {
+       "ours": 45.111672999999996
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.036611
+      },
+      "install/zip": {
+       "ours": 9.152386
+      }
+     }
+    },
+    {
+     "date": "2026-11-24",
+     "commit": "d0fc468",
+     "values": {
+      "sort/small": {
+       "ours": 1.050747
+      },
+      "sort/medium": {
+       "ours": 4.626168
+      },
+      "sort/ttw-sized": {
+       "ours": 21.333701
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.500778
+      },
+      "install/zip": {
+       "ours": 5.011653
+      }
+     }
+    },
+    {
+     "date": "2026-11-24",
+     "commit": "ed8fd6a",
+     "values": {
+      "sort/small": {
+       "ours": 1.470313
+      },
+      "sort/medium": {
+       "ours": 6.782897
+      },
+      "sort/ttw-sized": {
+       "ours": 31.972120999999998
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.196605
+      },
+      "install/zip": {
+       "ours": 9.002213
+      }
+     }
+    },
+    {
+     "date": "2026-11-24",
+     "commit": "d626fc9",
+     "values": {
+      "sort/small": {
+       "ours": 1.270911
+      },
+      "sort/medium": {
+       "ours": 5.305993
+      },
+      "sort/ttw-sized": {
+       "ours": 24.694263
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.7895269999999999
+      },
+      "install/zip": {
+       "ours": 6.0991800000000005
+      }
+     }
+    },
+    {
+     "date": "2026-11-24",
+     "commit": "27084d3",
+     "values": {
+      "sort/small": {
+       "ours": 1.6706480000000001
+      },
+      "sort/medium": {
+       "ours": 7.7745180000000005
+      },
+      "sort/ttw-sized": {
+       "ours": 31.04404
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.523064000000001
+      },
+      "install/zip": {
+       "ours": 6.771757
+      }
+     }
+    },
+    {
+     "date": "2026-11-24",
+     "commit": "3ab0e9d",
+     "values": {
+      "sort/small": {
+       "ours": 1.407433
+      },
+      "sort/medium": {
+       "ours": 6.380564
+      },
+      "sort/ttw-sized": {
+       "ours": 30.743375999999998
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.126621
+      },
+      "install/zip": {
+       "ours": 6.815887
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "169c660",
+     "values": {
+      "sort/small": {
+       "ours": 1.650644
+      },
+      "sort/medium": {
+       "ours": 7.439995
+      },
+      "sort/ttw-sized": {
+       "ours": 29.779080999999998
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.274089
+      },
+      "install/zip": {
+       "ours": 6.840536999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "f1a1d9a",
+     "values": {
+      "sort/small": {
+       "ours": 2.309776
+      },
+      "sort/medium": {
+       "ours": 10.821786
+      },
+      "sort/ttw-sized": {
+       "ours": 47.274912
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.244129999999999
+      },
+      "install/zip": {
+       "ours": 9.757286
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "0ab4946",
+     "values": {
+      "sort/small": {
+       "ours": 1.8773730000000002
+      },
+      "sort/medium": {
+       "ours": 8.600192
+      },
+      "sort/ttw-sized": {
+       "ours": 35.877924
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.091718
+      },
+      "install/zip": {
+       "ours": 7.247034
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "c7d72dd",
+     "values": {
+      "sort/small": {
+       "ours": 1.529199
+      },
+      "sort/medium": {
+       "ours": 7.095815999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 29.114048
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.189182
+      },
+      "install/zip": {
+       "ours": 6.55766
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "2031f4a",
+     "values": {
+      "sort/small": {
+       "ours": 1.461974
+      },
+      "sort/medium": {
+       "ours": 6.429893
+      },
+      "sort/ttw-sized": {
+       "ours": 30.070185
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 2.142408
+      },
+      "install/zip": {
+       "ours": 9.495872
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "e414dae",
+     "values": {
+      "sort/small": {
+       "ours": 1.887614
+      },
+      "sort/medium": {
+       "ours": 8.606756
+      },
+      "sort/ttw-sized": {
+       "ours": 36.745857
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.081275
+      },
+      "install/zip": {
+       "ours": 7.608862
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "261a8da",
+     "values": {
+      "sort/small": {
+       "ours": 2.30597
+      },
+      "sort/medium": {
+       "ours": 10.671771999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 47.347146
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.2263079999999995
+      },
+      "install/zip": {
+       "ours": 9.848788
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "41dce89",
+     "values": {
+      "sort/small": {
+       "ours": 1.906262
+      },
+      "sort/medium": {
+       "ours": 8.684488
+      },
+      "sort/ttw-sized": {
+       "ours": 36.873508
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.95835
+      },
+      "install/zip": {
+       "ours": 7.725968
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "f079f6a",
+     "values": {
+      "sort/small": {
+       "ours": 1.575035
+      },
+      "sort/medium": {
+       "ours": 7.3266
+      },
+      "sort/ttw-sized": {
+       "ours": 29.51425
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.063034
+      },
+      "install/zip": {
+       "ours": 6.897049
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "42b5fce",
+     "values": {
+      "sort/small": {
+       "ours": 1.620605
+      },
+      "sort/medium": {
+       "ours": 7.416324
+      },
+      "sort/ttw-sized": {
+       "ours": 30.048976000000003
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.136583999999999
+      },
+      "install/zip": {
+       "ours": 7.213685
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "4e93b89",
+     "values": {
+      "sort/small": {
+       "ours": 1.625641
+      },
+      "sort/medium": {
+       "ours": 7.4050899999999995
+      },
+      "sort/ttw-sized": {
+       "ours": 29.733158
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.185762
+      },
+      "install/zip": {
+       "ours": 6.9034379999999995
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "1a89485",
+     "values": {
+      "sort/small": {
+       "ours": 2.479194
+      },
+      "sort/medium": {
+       "ours": 10.35244
+      },
+      "sort/ttw-sized": {
+       "ours": 45.097542999999995
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.058142
+      },
+      "install/zip": {
+       "ours": 9.021339
+      }
+     }
+    },
+    {
+     "date": "2026-11-25",
+     "commit": "7bdcf64",
+     "values": {
+      "sort/small": {
+       "ours": 1.8931969999999998
+      },
+      "sort/medium": {
+       "ours": 8.61436
+      },
+      "sort/ttw-sized": {
+       "ours": 36.31496
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.9592
+      },
+      "install/zip": {
+       "ours": 7.264342
+      }
+     }
+    },
+    {
+     "date": "2026-11-26",
+     "commit": "1634aea",
+     "values": {
+      "sort/small": {
+       "ours": 1.899071
+      },
+      "sort/medium": {
+       "ours": 8.611245
+      },
+      "sort/ttw-sized": {
+       "ours": 35.83842
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.6772100000000005
+      },
+      "install/zip": {
+       "ours": 7.167143
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "f2207a1",
+     "values": {
+      "sort/small": {
+       "ours": 1.902981
+      },
+      "sort/medium": {
+       "ours": 8.757457
+      },
+      "sort/ttw-sized": {
+       "ours": 37.311752
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.014619
+      },
+      "install/zip": {
+       "ours": 7.735337
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "47f5b8b",
+     "values": {
+      "sort/small": {
+       "ours": 1.660595
+      },
+      "sort/medium": {
+       "ours": 7.665955
+      },
+      "sort/ttw-sized": {
+       "ours": 30.621078
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.346791
+      },
+      "install/zip": {
+       "ours": 7.007411
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "d5c04ca",
+     "values": {
+      "sort/small": {
+       "ours": 1.8822649999999999
+      },
+      "sort/medium": {
+       "ours": 8.660916
+      },
+      "sort/ttw-sized": {
+       "ours": 36.268021999999995
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.08882
+      },
+      "install/zip": {
+       "ours": 7.256361999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "a27ca83",
+     "values": {
+      "sort/small": {
+       "ours": 1.68779
+      },
+      "sort/medium": {
+       "ours": 7.636971
+      },
+      "sort/ttw-sized": {
+       "ours": 30.772622
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.198608
+      },
+      "install/zip": {
+       "ours": 7.380357
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "7abe85d",
+     "values": {
+      "sort/small": {
+       "ours": 2.329698
+      },
+      "sort/medium": {
+       "ours": 10.561375
+      },
+      "sort/ttw-sized": {
+       "ours": 45.919644000000005
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.164109
+      },
+      "install/zip": {
+       "ours": 9.149264
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "53b1d6d",
+     "values": {
+      "sort/small": {
+       "ours": 2.265632
+      },
+      "sort/medium": {
+       "ours": 10.398136000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 45.004717
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.774209
+      },
+      "install/zip": {
+       "ours": 9.03522
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "ab1cd9f",
+     "values": {
+      "sort/small": {
+       "ours": 1.905618
+      },
+      "sort/medium": {
+       "ours": 8.782715999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 36.729502
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.97288
+      },
+      "install/zip": {
+       "ours": 7.5665000000000004
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "563e094",
+     "values": {
+      "sort/small": {
+       "ours": 1.083287
+      },
+      "sort/medium": {
+       "ours": 4.681557000000001
+      },
+      "sort/ttw-sized": {
+       "ours": 21.848488
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.517859
+      },
+      "install/zip": {
+       "ours": 5.343762
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "be1d6fe",
+     "values": {
+      "sort/small": {
+       "ours": 2.3070500000000003
+      },
+      "sort/medium": {
+       "ours": 10.490494
+      },
+      "sort/ttw-sized": {
+       "ours": 46.926325999999996
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.267322
+      },
+      "install/zip": {
+       "ours": 9.32822
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "9fe4bd3",
+     "values": {
+      "sort/small": {
+       "ours": 1.60884
+      },
+      "sort/medium": {
+       "ours": 7.468464999999999
+      },
+      "sort/ttw-sized": {
+       "ours": 29.242366999999998
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.18249
+      },
+      "install/zip": {
+       "ours": 6.5295250000000005
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "1b3c5f1",
+     "values": {
+      "sort/small": {
+       "ours": 1.908386
+      },
+      "sort/medium": {
+       "ours": 8.890058
+      },
+      "sort/ttw-sized": {
+       "ours": 37.864454
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 5.1306210000000005
+      },
+      "install/zip": {
+       "ours": 7.737527999999999
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "74438e5",
+     "values": {
+      "sort/small": {
+       "ours": 1.5215649999999998
+      },
+      "sort/medium": {
+       "ours": 6.9497029999999995
+      },
+      "sort/ttw-sized": {
+       "ours": 27.960421999999998
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 4.021579
+      },
+      "install/zip": {
+       "ours": 6.362311
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "a17ac61",
+     "values": {
+      "sort/small": {
+       "ours": 1.0491380000000001
+      },
+      "sort/medium": {
+       "ours": 4.609424
+      },
+      "sort/ttw-sized": {
+       "ours": 21.413709
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 1.474558
+      },
+      "install/zip": {
+       "ours": 4.848122
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

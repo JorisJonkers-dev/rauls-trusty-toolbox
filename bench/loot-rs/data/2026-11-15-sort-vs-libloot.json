@@ -1,0 +1,111 @@
+{
+ "schema": "toolbox-bench/1",
+ "project": "loot-rs",
+ "run": {
+  "id": "sort-vs-libloot",
+  "date": "2026-11-15",
+  "commit": "c7c42f2",
+  "version": "loot-rs after issue #33, libloot 0.29.7",
+  "machine": "16 threads, release build, files in the page cache (CPU model not recorded)",
+  "method": "task bench (examples/bench.rs): a generated Data directory with one base master of 400,000 records, three masters of 40,000, mods of 50 to 20,000 records and BSAs for one mod in four; median of 5 to 7 runs. libloot 0.29.7 (the Rust crate at opt-level 3, load_plugins then sort_plugins) was timed on the same directories and gave the same order for all three sizes. loot-rs times the whole api::sort call, which also evaluates the masterlist, checksums and generated messages; libloot's time is the plugin load and the sort only.",
+  "source": "https://github.com/JorisJonkers-dev/loot-rs/blob/main/docs/RESOURCE-LIMITS.md"
+ },
+ "groups": [
+  {
+   "id": "sort-time",
+   "title": "Sorting a load order",
+   "metric": "Wall time of one sort",
+   "unit": "ms",
+   "better": "lower",
+   "series": [
+    {
+     "id": "ours",
+     "label": "loot-rs",
+     "role": "ours"
+    },
+    {
+     "id": "cached",
+     "label": "loot-rs, second sort (SortCache)",
+     "role": "ours"
+    },
+    {
+     "id": "libloot",
+     "label": "libloot 0.29.7",
+     "role": "against",
+     "tool": "libloot",
+     "version": "0.29.7"
+    }
+   ],
+   "cases": [
+    {
+     "name": "133 plugins",
+     "values": {
+      "ours": 29,
+      "cached": 14,
+      "libloot": 69
+     }
+    },
+    {
+     "name": "255 plugins",
+     "values": {
+      "ours": 52,
+      "cached": 33,
+      "libloot": 142
+     }
+    },
+    {
+     "name": "1024 plugins",
+     "values": {
+      "ours": 680,
+      "cached": 630,
+      "libloot": 3000
+     }
+    }
+   ]
+  },
+  {
+   "id": "sort-memory",
+   "title": "Memory while sorting",
+   "metric": "Peak resident memory (about)",
+   "unit": "MiB",
+   "better": "lower",
+   "series": [
+    {
+     "id": "ours",
+     "label": "loot-rs",
+     "role": "ours"
+    },
+    {
+     "id": "libloot",
+     "label": "libloot 0.29.7",
+     "role": "against",
+     "tool": "libloot",
+     "version": "0.29.7"
+    }
+   ],
+   "cases": [
+    {
+     "name": "255 plugins",
+     "values": {
+      "ours": 60,
+      "libloot": 55
+     }
+    },
+    {
+     "name": "1024 plugins",
+     "values": {
+      "ours": 200,
+      "libloot": 154
+     }
+    }
+   ]
+  }
+ ],
+ "pending": [
+  {
+   "tool": "LOOT application",
+   "what": "Masterlist evaluation and a sort with the real masterlist against the LOOT application, and a CI run that publishes this record on every release",
+   "issue": "https://github.com/JorisJonkers-dev/loot-rs/issues/119"
+  }
+ ]
+}
