@@ -645,3 +645,9 @@ path = "site/wiki.html"
 what = "wiki page template of the public site"
 source = "this repository"
 license = "GPL-3.0-only"
+
+[[asset]]
+path = "site/bench.html"
+what = "benchmark page template of the public site (the charts are inline SVG drawn by site/bench.py)"
+source = "this repository"
+license = "GPL-3.0-only"

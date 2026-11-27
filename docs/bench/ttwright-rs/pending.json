@@ -1,0 +1,9 @@
+{
+  "schema": "toolbox-bench/1",
+  "project": "ttwright-rs",
+  "run": null,
+  "groups": [],
+  "pending": [
+    {"tool": "official TTW installer", "what": "Total install time, the BSA, audio and patching steps, and peak memory, against the official Tale of Two Wastelands installer on the same machine and the same game copies", "issue": ""}
+  ]
+}

@@ -92,15 +92,56 @@ jobs:
       - name: Convert for github-action-benchmark
         run: |
           jq '[.results[] | {name, unit: "ms", value: .median_ms}]' "$RUNNER_TEMP/bench/bench.json" > "$RUNNER_TEMP/history.json"
+      - name: Move the raw chart page to bench/raw/ (once)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git clone --branch gh-pages --single-branch "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/pages"
+          sh site/bench-migrate.sh "$RUNNER_TEMP/pages"
+          cd "$RUNNER_TEMP/pages"
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "chore(bench): move the raw benchmark page to bench/raw"
+            git push origin HEAD:gh-pages
+          fi
       - uses: benchmark-action/github-action-benchmark@4322e5726e6334590d251fc4f92bec0efafc45dc # v1.22.2
         with:
           name: raul bench
           tool: customSmallerIsBetter
           output-file-path: ${{ runner.temp }}/history.json
           gh-pages-branch: gh-pages
-          benchmark-data-dir-path: bench
+          benchmark-data-dir-path: bench/raw
           github-token: ${{ github.token }}
           auto-push: true
           alert-threshold: "125%"
           comment-on-alert: false
           fail-on-alert: false
+      - name: Publish the run as a site record
+        # The site's /bench/ pages read bench/results/<project>/*.json from gh-pages (format: docs/wiki/benchmarks.md).
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          date_utc=$(date -u +%Y-%m-%d)
+          jq --arg date "$date_utc" --arg sha "${SHA::7}" --arg repo "$GITHUB_REPOSITORY" '{
+            schema: "toolbox-bench/1", project: "toolbox",
+            run: {id: "raul-bench", date: $date, commit: $sha, version: ("raul " + .raul),
+                  machine: ("GitHub-hosted ubuntu-latest runner, " + .os + " " + .arch + " (shared, so noisy)"),
+                  method: "raul bench on synthetic fixtures (no game data): median wall time of the timed runs of each case.",
+                  source: ("https://github.com/" + $repo + "/blob/main/docs/BENCHMARKS.md")},
+            groups: [{id: "cases", title: "The raul bench suite", metric: "Median wall time of one run", unit: "ms", better: "lower",
+                      series: [{id: "ours", label: "raul", role: "ours"}],
+                      cases: [.results[] | {name, values: {ours: .median_ms}}]}],
+            pending: []}' "$RUNNER_TEMP/bench/bench.json" > "$RUNNER_TEMP/record.json"
+          git clone --branch gh-pages --single-branch "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$RUNNER_TEMP/results"
+          cd "$RUNNER_TEMP/results"
+          mkdir -p bench/results/toolbox
+          cp "$RUNNER_TEMP/record.json" "bench/results/toolbox/${date_utc}-${SHA::7}.json"
+          git add bench/results
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "chore(bench): record the run of ${SHA::7} for the site"
+          for _ in 1 2 3 4 5; do
+            git push origin HEAD:gh-pages && exit 0
+            git pull --rebase origin gh-pages
+          done
+          exit 1

@@ -6,3 +6,4 @@ roadmap
 components
 faq
 contributing
+benchmarks

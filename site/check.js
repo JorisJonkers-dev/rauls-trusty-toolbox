@@ -15,8 +15,8 @@ const shots = process.argv[3] ? path.resolve(process.argv[3]) : null;
 if (!process.argv[2] || !fs.existsSync(root)) { console.error("usage: node site/check.js <built site folder> [screenshot folder]"); process.exit(2); }
 if (shots) fs.mkdirSync(shots, { recursive: true });
 const BASE = "/rauls-trusty-toolbox/";
-/* Lives on the gh-pages branch, written by the bench workflow, so it is not in the built folder. */
-const OUTSIDE = ["bench/"];
+/* The raw chart page lives on the gh-pages branch, written by the bench workflow, so it is not in the built folder. */
+const OUTSIDE = ["bench/raw/"];
 const problems = [];
 const bad = (m) => { problems.push(m); console.log("FAIL", m); };
 const ok = (c, m) => { if (!c) bad(m); };
@@ -88,6 +88,21 @@ async function main() {
   console.log(`pages opened: ${pages.length}`);
   ok(pages.includes("wiki/") && pages.includes("tour/") && pages.includes("demo/") && pages.includes(""), "landing, wiki, demo and tour pages exist");
   if (shots) { await page.goto(origin); await page.screenshot({ path: path.join(shots, "landing.png") }); await page.goto(origin + "wiki/using-the-toolbox.html"); await page.screenshot({ path: path.join(shots, "wiki.png") }); }
+
+  /* the benchmark pages: an overview and one page per project, each with bars, no script */
+  for (const p of ["bench/", "bench/nv-rs/", "bench/loot-rs/", "bench/ttwright-rs/", "bench/lodwright-rs/", "bench/nvmod-rs/", "bench/toolbox/"]) {
+    ok(pages.includes(p), `${p} exists`);
+    await page.goto(origin + p, { waitUntil: "load" }); await page.waitForTimeout(300);
+    ok((await page.locator("h1").count()) === 1, `${p}: one h1`);
+    ok((await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)), `${p}: scrolls sideways`);
+  }
+  await page.goto(origin + "bench/");
+  ok((await page.locator(".bcard").count()) === 6, "overview has one card per project");
+  await page.goto(origin + "bench/loot-rs/");
+  ok((await page.locator(".track .fill").count()) >= 6, "loot-rs page draws bars");
+  await page.goto(origin + "bench/nv-rs/");
+  ok((await page.locator(".b.missing").count()) >= 5, "nv-rs shows the original game as not measured yet");
+  if (shots) for (const [u, n] of [["bench/", "bench-overview"], ["bench/loot-rs/", "bench-loot-rs"]]) { await page.goto(origin + u); await page.waitForTimeout(1200); await page.screenshot({ path: path.join(shots, n + ".png"), fullPage: true }); }
 
   /* the guided tour */
   await page.goto(origin + "tour/");
