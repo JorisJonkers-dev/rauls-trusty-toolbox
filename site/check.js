@@ -76,9 +76,11 @@ async function main() {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
   const errors = [];
-  page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") errors.push(`${m.type()}: ${m.text()} (${m.location().url})`); });
+  /* The demo page is published unchanged and has no icon, so Chrome's request for /favicon.ico when it is opened on its own is not a finding. */
+  const icon = (u) => u.endsWith("/favicon.ico");
+  page.on("console", (m) => { if ((m.type() === "error" || m.type() === "warning") && !icon(m.location().url || "")) errors.push(`${m.type()}: ${m.text()} (${m.location().url})`); });
   page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
-  page.on("response", (r) => { if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`); });
+  page.on("response", (r) => { if (r.status() >= 400 && !icon(r.url())) errors.push(`${r.status()} ${r.url()}`); });
 
   /* every page loads without errors */
   const pages = allHtml(root).map((f) => path.relative(root, f).replace(/index\.html$/, ""));
