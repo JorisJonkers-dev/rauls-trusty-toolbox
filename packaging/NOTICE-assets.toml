@@ -80,25 +80,25 @@ license = "GPL-3.0-only"
 
 [[asset]]
 path = "docs/images/beautiful/compare-goodsprings-valley.jpg"
-what = "README picture: Goodsprings: richer sky, real shadows and new lamp posts, stock game against Beautiful 3c with raul, labelled composite"
+what = "README picture: Goodsprings main street: new ground and building textures, a street lamp, sun shadows; stock game against Beautiful 3c with raul, labelled composite"
 source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (owner-approved use in the README and the Compare page of the public site; small JPEG)"
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 
 [[asset]]
-path = "docs/images/beautiful/compare-high-black-mountain.jpg"
-what = "README picture: Black Mountain from above: more on the ridge, and a generated far view behind it, stock game against Beautiful 3c with raul, labelled composite"
+path = "docs/images/beautiful/compare-lake-mead.jpg"
+what = "README picture: Lake Mead from the shore: water reflections, sharper rocks and sand; stock game against Beautiful 3c with raul, labelled composite"
 source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (owner-approved use in the README and the Compare page of the public site; small JPEG)"
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 
 [[asset]]
-path = "docs/images/beautiful/compare-interior-lucky38-casino.jpg"
-what = "README picture: The Lucky 38 casino floor, stock game against Beautiful 3c with raul, labelled composite"
+path = "docs/images/beautiful/compare-nv-ultra-luxe.jpg"
+what = "README picture: Ultra-Luxe lobby: retextured floor, ambient occlusion, coloured light; stock game against Beautiful 3c with raul, labelled composite"
 source = "a screenshot of Fallout: New Vegas taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (owner-approved use in the README and the Compare page of the public site; small JPEG)"
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 
 [[asset]]
-path = "docs/images/beautiful/compare-tenpenny-tower-from-the-plain.jpg"
-what = "README picture: Tenpenny Tower in the Capital Wasteland (Tale of Two Wastelands), stock game against Beautiful 3c with raul, labelled composite"
+path = "docs/images/beautiful/compare-megaton-houses-day.jpg"
+what = "README picture: Megaton (Tale of Two Wastelands): shadows and bulbs; stock game against Beautiful 3c with raul, labelled composite"
 source = "a screenshot of Fallout: New Vegas with Tale of Two Wastelands taken with the nv-rs engine's picture tool from a legally owned copy; documentation only, never in a package (owner-approved use in the README and the Compare page of the public site; small JPEG)"
 license = "game content is the property of its owners (Bethesda Softworks / ZeniMax); kept as a small screenshot for documentation"
 
