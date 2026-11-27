@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795786216608,
+  "lastUpdate": 1795788015576,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13033,6 +13033,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 4.848122,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3d42aeab235fda07e9c3abae3689b2dea9e98c0b",
+          "message": "feat(site): benchmark dashboard with grouped bar charts, details and history (#706)\n\nEach benchmark group is now a grouped vertical bar figure: a y axis with\ngridlines, ticks and unit, value labels on the bars, a legend, the\nspeed-up over each group, dashed not-measured slots linked to their\nissue, and a Details panel with the method, machine, commit, the numbers\nas a table and the record to download. History is a line chart per case\nwith a dated axis, the daily median and a 30 days, 90 days or all range\nthat works without script. The overview has a summary strip and a card\nper project with a small chart and an Open button. Phones get a figure\ndrawn for their width.\n\nEvery stylesheet and script link of the site now carries a content hash\n(?v=...), and the bench styles live in their own assets/bench.css, so a\ncached older site.css can no longer leave the pages unstyled.\n\nsite/check.js checks every figure for axes, legend, labelled bars and a\nDetails button that opens, the tooltip on hover and focus, the history\nrange, reduced motion, versioned asset links and no sideways scroll at\n390px.",
+          "timestamp": "2026-11-27T14:57:40+01:00",
+          "tree_id": "17576a11a37022485fcab888c4613ffec96f81e7",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3d42aeab235fda07e9c3abae3689b2dea9e98c0b"
+        },
+        "date": 1795788014581,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.4281900000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 11.091788,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.914030000000004,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 6.4416459999999995,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 8.864925,
             "unit": "ms"
           }
         ]
