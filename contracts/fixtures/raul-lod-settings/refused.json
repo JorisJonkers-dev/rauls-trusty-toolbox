@@ -178,6 +178,17 @@
       "value": false
     },
     {
+      "default": true,
+      "key": "objects.far_glow",
+      "kind": "switch",
+      "max": null,
+      "min": null,
+      "overridden": false,
+      "restores": true,
+      "tier": 3,
+      "value": true
+    },
+    {
       "default": null,
       "key": "terrain.drop_under_water",
       "kind": "number",

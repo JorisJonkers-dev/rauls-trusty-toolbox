@@ -523,6 +523,7 @@ impl LodSettings {
                 "allow_in_repo",
                 "objects.drop_under_terrain",
                 "objects.drop_under_water",
+                "objects.far_glow",
                 "terrain.drop_under_water",
                 "terrain.water_walls",
                 "terrain.water_shared_vertices",
