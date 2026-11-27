@@ -8,6 +8,7 @@ mod config;
 mod detect;
 mod lod;
 mod lod_settings;
+mod modlist;
 pub mod play;
 mod printer;
 mod program_name;
@@ -61,6 +62,7 @@ pub const OWN_COMMANDS: &[&str] = &[
     "ttw",
     "lod",
     "addons",
+    "modlist",
     "support-bundle",
     "target",
     "install-nv-rs",
@@ -182,6 +184,15 @@ usage:
                               add or update them: a Profile with the add-on's plugin active gets its Mod, above
                               that mod; one without it is not touched; one you turned off stays off. `raul setup`
                               does this at its end, and `raul run` and `raul scene` check it before the game starts
+  raul modlist list [--json]
+                              the Mod lists raul carries
+  raul modlist show <list> [--json]
+                              what a Mod list holds, in the order the Mods go in; <list> is a bundled id (such as
+                              beautiful) or a file; nothing is written
+  raul modlist plan <list> [--instance <dir>] [--profile <name>] [--json]
+                              what the Profile has of the list and what it lacks, where to download each missing Mod
+                              (a Nexus page or another link, or what to do by hand) and the install order; nothing
+                              is read from Nexus and nothing is written
   raul support-bundle [--instance <dir>] [--hide-names] [--out <file>] [--apply] [--json]
                               what a bug report needs, in one zip: versions, system, the folders of `raul config`,
                               the Instance's Mods, plugins and Doctor report, and the last run logs. Without --apply
@@ -218,6 +229,7 @@ pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn
         Some("ttw") => ttw::run(ctx, &args[1..], out, err),
         Some("lod") => lod::run(ctx, &args[1..], out, err),
         Some("addons") => addons::run(ctx, &args[1..], out, err),
+        Some("modlist") => modlist::run(ctx, &args[1..], out, err),
         Some("support-bundle") => support_bundle::run(ctx, &args[1..], out, err),
         Some("install-nv-rs") => gone_install_nv_rs(err),
         Some("target") => target::run(args, out, err),
