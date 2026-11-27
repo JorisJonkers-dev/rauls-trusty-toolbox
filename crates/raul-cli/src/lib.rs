@@ -8,6 +8,9 @@ mod config;
 mod detect;
 mod lod;
 mod lod_settings;
+mod modlist;
+mod modlist_watch;
+
 mod nexus;
 pub mod play;
 mod printer;
@@ -62,6 +65,7 @@ pub const OWN_COMMANDS: &[&str] = &[
     "ttw",
     "lod",
     "addons",
+    "modlist",
     "nexus",
     "support-bundle",
     "target",
@@ -184,6 +188,29 @@ usage:
                               add or update them: a Profile with the add-on's plugin active gets its Mod, above
                               that mod; one without it is not touched; one you turned off stays off. `raul setup`
                               does this at its end, and `raul run` and `raul scene` check it before the game starts
+  raul modlist list [--json]
+                              the Mod lists raul carries
+  raul modlist show <list> [--json]
+                              what a Mod list holds, in the order the Mods go in; <list> is a bundled id (such as
+                              beautiful) or a file; nothing is written
+  raul modlist plan <list> [--instance <dir>] [--profile <name>] [--json]
+                              what the Profile has of the list and what it lacks, where to download each missing Mod
+                              (a Nexus page or another link, or what to do by hand) and the install order; nothing
+                              is read from Nexus and nothing is written
+  raul modlist fetch <list> [--open] [--all] [--limit <n>] [--instance <dir>] [--profile <name>]
+                              the page to download each missing Mod from, one per line; with --open each page opens
+                              in your browser (at most --limit, 10 by default), through the system's opener. --all
+                              lists every Mod and not only the missing ones; nothing is written
+  raul modlist watch <list> [--downloads <dir>] [--install] [--once] [--scan-existing] [--instance <dir>] [--profile <name>]
+                              wait for archives you download by hand and recognise each one by file name, then size,
+                              then md5 (when the list has them): without --downloads it watches your download folders
+                              (XDG, ~/Downloads) and the Instance's downloads folder. A match is copied into the
+                              Instance's downloads folder (your file stays where it is); --install then installs it
+                              into the Profile with `nvmod downloads install` (placed last, not yet in list order,
+                              #681; a FOMOD that asks questions is left staged). --once scans what is there and stops;
+                              --scan-existing also takes archives already in the folder. Stops when everything wanted
+                              is in, or on Ctrl+C
+
   raul nexus key set [--file]|clear|status [--json]
                               the Nexus Mods API key: set reads it from standard input (never the command line) and keeps it
                               in the OS keyring, or with --file in a file only you can read; NEXUS_API_KEY overrides both.
@@ -224,6 +251,8 @@ pub fn run_in(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut dyn
         Some("ttw") => ttw::run(ctx, &args[1..], out, err),
         Some("lod") => lod::run(ctx, &args[1..], out, err),
         Some("addons") => addons::run(ctx, &args[1..], out, err),
+        Some("modlist") => modlist::run(ctx, &args[1..], out, err),
+
         Some("nexus") => nexus::run(ctx, &args[1..], out, err),
         Some("support-bundle") => support_bundle::run(ctx, &args[1..], out, err),
         Some("install-nv-rs") => gone_install_nv_rs(err),

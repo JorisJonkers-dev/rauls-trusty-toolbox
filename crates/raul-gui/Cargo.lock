@@ -4578,11 +4578,13 @@ dependencies = [
  "nvmod-formats",
  "nvmod-instance",
  "nvmod-loadorder",
+ "nvmod-modinstall",
  "nvmod-run",
  "nvmod-stage",
  "raul-bench",
  "raul-core",
  "raul-drivers",
+ "raul-modlist",
  "raul-runner",
  "serde_json",
 ]
@@ -4666,6 +4668,15 @@ dependencies = [
  "raul-ui-service",
  "serde_json",
  "ttwright-testkit",
+]
+
+[[package]]
+name = "raul-modlist"
+version = "0.0.0"
+dependencies = [
+ "md-5",
+ "serde",
+ "toml",
 ]
 
 [[package]]

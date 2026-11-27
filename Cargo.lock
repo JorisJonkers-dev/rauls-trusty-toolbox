@@ -2206,12 +2206,14 @@ dependencies = [
  "nvmod-formats",
  "nvmod-instance",
  "nvmod-loadorder",
+ "nvmod-modinstall",
  "nvmod-run",
  "nvmod-stage",
  "nvmod-testkit",
  "raul-bench",
  "raul-core",
  "raul-drivers",
+ "raul-modlist",
  "raul-runner",
  "raul-testkit",
  "serde_json",
@@ -2280,6 +2282,7 @@ dependencies = [
 name = "raul-modlist"
 version = "0.0.0"
 dependencies = [
+ "md-5",
  "raul-testkit",
  "serde",
  "toml",
