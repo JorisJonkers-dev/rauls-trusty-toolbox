@@ -20,57 +20,58 @@ it holds a rule that more than one page reads, it is core. If it is drawn or cli
 
 ## Tickets
 
-| Id | Title | Project | Size | Milestone | Depends on | Gap now |
-|---|---|---|---|---|---|---|
-| GUI-01 | Theme, fonts, tokens and motion | raul GUI (crates/raul-gui) | M | M0 | none | 0/1/3 |
-| GUI-02 | Widget kit: card, section, row, button, tag, switch, checkbox, segmented control, input, banner, progress | raul GUI (crates/raul-gui) | L | M0 | GUI-01 | 0/2/1 |
-| GUI-03 | App shell: window, top bar, sidebar, badges, status line, floating action bar | raul GUI (crates/raul-gui) | L | M0 | GUI-01, GUI-02 | 0/8/1 |
-| GUI-04 | Overlays: toasts, dialog frame, confirm, name dialog, menus | raul GUI (crates/raul-gui) | L | M0 | GUI-02 | 0/1/5 |
-| GUI-05 | Folder picker dialog | raul GUI (crates/raul-gui) | S | M1 | GUI-04 | 0/0/1 |
-| GUI-06 | Command palette and shortcuts sheet | raul GUI (crates/raul-gui) | M | M1 | GUI-04, CORE-09 | 0/2/1 |
-| GUI-07 | Focus look and keyboard map | raul GUI (crates/raul-gui) | M | M1 | GUI-02, GUI-03 | 0/2/0 |
-| GUI-08 | Setup wizard pages | raul GUI (crates/raul-gui) | L | M1 | GUI-03, GUI-05, CORE-06 | 0/6/4 |
-| GUI-09 | Home page and play-check cards | raul GUI (crates/raul-gui) | L | M1 | GUI-03, CORE-02, CORE-04, CORE-05 | 0/4/4 |
-| GUI-10 | Mods page: frame, search, filters, built-in section, rows, details, empty states, TTW row | raul GUI (crates/raul-gui) | L | M2 | GUI-03, NVMOD-02, CORE-01, CORE-02 | 0/9/1 |
-| GUI-11 | Groups and drag and drop | raul GUI (crates/raul-gui) | M | M2 | GUI-10, CORE-01 | 0/0/2 |
-| GUI-12 | Install dialog | raul GUI (crates/raul-gui) | M | M2 | GUI-04, NVMOD-01 | 0/4/1 |
-| GUI-13 | Test tab: stability, known stable, benchmark | raul GUI (crates/raul-gui) | M | M3 | GUI-10, CORE-05, NV-01, NV-02 | 0/0/3 |
-| GUI-14 | Location pictures viewer and log | raul GUI (crates/raul-gui) | M | M3 | GUI-13, NV-03, NV-04 | 0/0/3 |
-| GUI-15 | Versions tab and revert | raul GUI (crates/raul-gui) | M | M3 | GUI-10, CORE-01 | 0/0/3 |
-| GUI-16 | Profiles UI: pill, menu, dialogs | raul GUI (crates/raul-gui) | M | M2 | GUI-04, CORE-01 | 0/0/4 |
-| GUI-17 | Load order page and sort preview | raul GUI (crates/raul-gui) | L | M2 | GUI-10, LOOT-01 | 0/2/4 |
-| GUI-18 | LOD page and LOD settings page | raul GUI (crates/raul-gui) | M | M2 | GUI-03, LOD-01 | 0/4/2 |
-| GUI-19 | Tale of Two Wastelands flow | raul GUI (crates/raul-gui) | M | M2 | GUI-05, TTW-01 | 0/5/0 |
-| GUI-20 | System page | raul GUI (crates/raul-gui) | M | M3 | GUI-03, CORE-07 | 0/2/3 |
-| GUI-21 | Doctor page | raul GUI (crates/raul-gui) | S | M3 | GUI-03, CORE-02 | 0/0/3 |
-| GUI-22 | Settings page | raul GUI (crates/raul-gui) | M | M3 | GUI-03, CORE-08 | 0/1/5 |
-| CORE-01 | App state, profiles, shared library, versions and undo | raul core/orchestration (raul-core, Toolbox app logic) | L | M0 | none | 0/1/6 |
-| CORE-02 | Checks model for badges, Home rows, Doctor and Play checks | raul core/orchestration (raul-core, Toolbox app logic) | L | M0 | CORE-01 | 0/3/4 |
-| CORE-03 | Job runner: progress, cancel, per-profile keys, status line, resume | raul core/orchestration (raul-core, Toolbox app logic) | M | M0 | none | 0/2/0 |
-| CORE-04 | Play orchestration: check, start, run, stop, playtime | raul core/orchestration (raul-core, Toolbox app logic) | M | M1 | CORE-02, CORE-03, NV-06 | 0/2/3 |
-| CORE-05 | Stability recommendation and known-stable logic | raul core/orchestration (raul-core, Toolbox app logic) | M | M1 | CORE-01 | 0/0/3 |
-| CORE-06 | Setup wizard orchestration | raul core/orchestration (raul-core, Toolbox app logic) | M | M1 | CORE-03, NV-05 | 0/5/3 |
-| CORE-07 | Update orchestration: check, update parts, engine builds | raul core/orchestration (raul-core, Toolbox app logic) | L | M3 | CORE-03, NV-05 | 0/2/2 |
-| CORE-08 | Settings, game folders, storage and cache | raul core/orchestration (raul-core, Toolbox app logic) | M | M1 | CORE-01 | 0/2/5 |
-| CORE-09 | Palette index and action registry | raul core/orchestration (raul-core, Toolbox app logic) | S | M1 | none | 0/1/0 |
-| CORE-10 | Fake service and scenario states for app tests | raul core/orchestration (raul-core, Toolbox app logic) | M | M0 | none | 0/0/1 |
-| NVMOD-01 | Archive inspection and install with options | nvmod-rs | L | M2 | none | 0/4/1 |
-| NVMOD-02 | Mod library: toggle, remove, plugins, kinds, masters | nvmod-rs | M | M2 | none | 0/5/0 |
-| LOOT-01 | Sort preview with reasons, notes and missing masters | loot-rs | M | M2 | none | 0/2/1 |
-| LOOT-02 | Masterlist update with message count | loot-rs | S | M3 | LOOT-01 | 0/0/1 |
-| LOD-01 | Build with named stages, estimates and fine-tune parameters | lodwright-rs | M | M2 | none | 0/4/2 |
-| TTW-01 | TTW install: Fallout 3 detection, installer file, space check, staged install, update check | ttwright-rs | M | M2 | none | 0/5/0 |
-| NV-01 | Stability run over 40 places | nv-rs | L | M3 | none | 0/0/1 |
-| NV-02 | Benchmark run | nv-rs | M | M3 | none | 0/0/1 |
-| NV-03 | Location picture sets | nv-rs | M | M3 | none | 0/0/1 |
-| NV-04 | Run log with levels | nv-rs | S | M3 | none | 0/0/1 |
-| NV-05 | Engine install, builds, integrity check and repair | nv-rs | M | M1 | none | 0/1/2 |
-| NV-06 | Game launch, stop and session time; per-profile graphics settings | nv-rs | M | M1 | none | 0/1/1 |
+| Id | Title | Project | Size | Milestone | Depends on | Gap now | Issue |
+|---|---|---|---|---|---|---|---|
+| GUI-01 | Theme, fonts, tokens and motion | raul GUI (crates/raul-gui) | M | M0 | none | 0/1/3 | JorisJonkers-dev/rauls-trusty-toolbox#641 |
+| GUI-02 | Widget kit: card, section, row, button, tag, switch, checkbox, segmented control, input, banner, progress | raul GUI (crates/raul-gui) | L | M0 | GUI-01 | 0/2/1 | JorisJonkers-dev/rauls-trusty-toolbox#642 |
+| GUI-03 | App shell: window, top bar, sidebar, badges, status line, floating action bar | raul GUI (crates/raul-gui) | L | M0 | GUI-01, GUI-02 | 0/8/1 | JorisJonkers-dev/rauls-trusty-toolbox#643 |
+| GUI-04 | Overlays: toasts, dialog frame, confirm, name dialog, menus | raul GUI (crates/raul-gui) | L | M0 | GUI-02 | 0/1/5 | JorisJonkers-dev/rauls-trusty-toolbox#644 |
+| GUI-05 | Folder picker dialog | raul GUI (crates/raul-gui) | S | M1 | GUI-04 | 0/0/1 | JorisJonkers-dev/rauls-trusty-toolbox#645 |
+| GUI-06 | Command palette and shortcuts sheet | raul GUI (crates/raul-gui) | M | M1 | GUI-04, CORE-09 | 0/2/1 | JorisJonkers-dev/rauls-trusty-toolbox#646 |
+| GUI-07 | Focus look and keyboard map | raul GUI (crates/raul-gui) | M | M1 | GUI-02, GUI-03 | 0/2/0 | JorisJonkers-dev/rauls-trusty-toolbox#647 |
+| GUI-08 | Setup wizard pages | raul GUI (crates/raul-gui) | L | M1 | GUI-03, GUI-05, CORE-06 | 0/6/4 | JorisJonkers-dev/rauls-trusty-toolbox#648 |
+| GUI-09 | Home page and play-check cards | raul GUI (crates/raul-gui) | L | M1 | GUI-03, CORE-02, CORE-04, CORE-05 | 0/4/4 | JorisJonkers-dev/rauls-trusty-toolbox#649 |
+| GUI-10 | Mods page: frame, search, filters, built-in section, rows, details, empty states, TTW row | raul GUI (crates/raul-gui) | L | M2 | GUI-03, NVMOD-02, CORE-01, CORE-02 | 0/9/1 | JorisJonkers-dev/rauls-trusty-toolbox#650 |
+| GUI-11 | Groups and drag and drop | raul GUI (crates/raul-gui) | M | M2 | GUI-10, CORE-01 | 0/0/2 | JorisJonkers-dev/rauls-trusty-toolbox#651 |
+| GUI-12 | Install dialog | raul GUI (crates/raul-gui) | M | M2 | GUI-04, NVMOD-01 | 0/4/1 | JorisJonkers-dev/rauls-trusty-toolbox#652 |
+| GUI-13 | Test tab: stability, known stable, benchmark | raul GUI (crates/raul-gui) | M | M3 | GUI-10, CORE-05, NV-01, NV-02 | 0/0/3 | JorisJonkers-dev/rauls-trusty-toolbox#653 |
+| GUI-14 | Location pictures viewer and log | raul GUI (crates/raul-gui) | M | M3 | GUI-13, NV-03, NV-04 | 0/0/3 | JorisJonkers-dev/rauls-trusty-toolbox#654 |
+| GUI-15 | Versions tab and revert | raul GUI (crates/raul-gui) | M | M3 | GUI-10, CORE-01 | 0/0/3 | JorisJonkers-dev/rauls-trusty-toolbox#655 |
+| GUI-16 | Profiles UI: pill, menu, dialogs | raul GUI (crates/raul-gui) | M | M2 | GUI-04, CORE-01 | 0/0/4 | JorisJonkers-dev/rauls-trusty-toolbox#656 |
+| GUI-17 | Load order page and sort preview | raul GUI (crates/raul-gui) | L | M2 | GUI-10, LOOT-01 | 0/2/4 | JorisJonkers-dev/rauls-trusty-toolbox#657 |
+| GUI-18 | LOD page and LOD settings page | raul GUI (crates/raul-gui) | M | M2 | GUI-03, LOD-01 | 0/4/2 | JorisJonkers-dev/rauls-trusty-toolbox#658 |
+| GUI-19 | Tale of Two Wastelands flow | raul GUI (crates/raul-gui) | M | M2 | GUI-05, TTW-01 | 0/5/0 | JorisJonkers-dev/rauls-trusty-toolbox#659 |
+| GUI-20 | System page | raul GUI (crates/raul-gui) | M | M3 | GUI-03, CORE-07 | 0/2/3 | JorisJonkers-dev/rauls-trusty-toolbox#660 |
+| GUI-21 | Doctor page | raul GUI (crates/raul-gui) | S | M3 | GUI-03, CORE-02 | 0/0/3 | JorisJonkers-dev/rauls-trusty-toolbox#661 |
+| GUI-22 | Settings page | raul GUI (crates/raul-gui) | M | M3 | GUI-03, CORE-08 | 0/1/5 | JorisJonkers-dev/rauls-trusty-toolbox#662 |
+| CORE-01 | App state, profiles, shared library, versions and undo | raul core/orchestration (raul-core, Toolbox app logic) | L | M0 | none | 0/1/6 | JorisJonkers-dev/rauls-trusty-toolbox#663 |
+| CORE-02 | Checks model for badges, Home rows, Doctor and Play checks | raul core/orchestration (raul-core, Toolbox app logic) | L | M0 | CORE-01 | 0/3/4 | JorisJonkers-dev/rauls-trusty-toolbox#664 |
+| CORE-03 | Job runner: progress, cancel, per-profile keys, status line, resume | raul core/orchestration (raul-core, Toolbox app logic) | M | M0 | none | 0/2/0 | JorisJonkers-dev/rauls-trusty-toolbox#665 |
+| CORE-04 | Play orchestration: check, start, run, stop, playtime | raul core/orchestration (raul-core, Toolbox app logic) | M | M1 | CORE-02, CORE-03, NV-06 | 0/2/3 | JorisJonkers-dev/rauls-trusty-toolbox#666 |
+| CORE-05 | Stability recommendation and known-stable logic | raul core/orchestration (raul-core, Toolbox app logic) | M | M1 | CORE-01 | 0/0/3 | JorisJonkers-dev/rauls-trusty-toolbox#667 |
+| CORE-06 | Setup wizard orchestration | raul core/orchestration (raul-core, Toolbox app logic) | M | M1 | CORE-03, NV-05 | 0/5/3 | JorisJonkers-dev/rauls-trusty-toolbox#668 |
+| CORE-07 | Update orchestration: check, update parts, engine builds | raul core/orchestration (raul-core, Toolbox app logic) | L | M3 | CORE-03, NV-05 | 0/2/2 | JorisJonkers-dev/rauls-trusty-toolbox#669 |
+| CORE-08 | Settings, game folders, storage and cache | raul core/orchestration (raul-core, Toolbox app logic) | M | M1 | CORE-01 | 0/2/5 | JorisJonkers-dev/rauls-trusty-toolbox#670 |
+| CORE-09 | Palette index and action registry | raul core/orchestration (raul-core, Toolbox app logic) | S | M1 | none | 0/1/0 | JorisJonkers-dev/rauls-trusty-toolbox#671 |
+| CORE-10 | Fake service and scenario states for app tests | raul core/orchestration (raul-core, Toolbox app logic) | M | M0 | none | 0/0/1 | JorisJonkers-dev/rauls-trusty-toolbox#672 |
+| NVMOD-01 | Archive inspection and install with options | nvmod-rs | L | M2 | none | 0/4/1 | JorisJonkers-dev/nvmod-rs#291 |
+| NVMOD-02 | Mod library: toggle, remove, plugins, kinds, masters | nvmod-rs | M | M2 | none | 0/5/0 | JorisJonkers-dev/nvmod-rs#292 |
+| LOOT-01 | Sort preview with reasons, notes and missing masters | loot-rs | M | M2 | none | 0/2/1 | JorisJonkers-dev/loot-rs#117 |
+| LOOT-02 | Masterlist update with message count | loot-rs | S | M3 | LOOT-01 | 0/0/1 | JorisJonkers-dev/loot-rs#118 |
+| LOD-01 | Build with named stages, estimates and fine-tune parameters | lodwright-rs | M | M2 | none | 0/4/2 | JorisJonkers-dev/lodwright-rs#437 |
+| TTW-01 | TTW install: Fallout 3 detection, installer file, space check, staged install, update check | ttwright-rs | M | M2 | none | 0/5/0 | JorisJonkers-dev/ttwright-rs#80 |
+| NV-01 | Stability run over 40 places | nv-rs | L | M3 | none | 0/0/1 | JorisJonkers-dev/nv-rs#1012 |
+| NV-02 | Benchmark run | nv-rs | M | M3 | none | 0/0/1 | JorisJonkers-dev/nv-rs#1013 |
+| NV-03 | Location picture sets | nv-rs | M | M3 | none | 0/0/1 | JorisJonkers-dev/nv-rs#1014 |
+| NV-04 | Run log with levels | nv-rs | S | M3 | none | 0/0/1 | JorisJonkers-dev/nv-rs#1015 |
+| NV-05 | Engine install, builds, integrity check and repair | nv-rs | M | M1 | none | 0/1/2 | JorisJonkers-dev/nv-rs#1016 |
+| NV-06 | Game launch, stop and session time; per-profile graphics settings | nv-rs | M | M1 | none | 0/1/1 | JorisJonkers-dev/nv-rs#1017 |
 
 Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-01 Theme, fonts, tokens and motion
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#641
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M0. Depends on: none.
 - Functions: F-ACCESS-04, F-ACCESS-05, F-ACCESS-06, F-OVERLAY-11
@@ -82,6 +83,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-02 Widget kit: card, section, row, button, tag, switch, checkbox, segmented control, input, banner, progress
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#642
 - Project: raul GUI (crates/raul-gui)
 - Size: L. Milestone: M0. Depends on: GUI-01.
 - Functions: F-SHELL-07, F-SHELL-08, F-ACCESS-02
@@ -93,6 +95,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-03 App shell: window, top bar, sidebar, badges, status line, floating action bar
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#643
 - Project: raul GUI (crates/raul-gui)
 - Size: L. Milestone: M0. Depends on: GUI-01, GUI-02.
 - Functions: F-SHELL-01, F-SHELL-02, F-SHELL-03, F-SHELL-04, F-SHELL-05, F-SHELL-06, F-SHELL-08, F-SHELL-09, F-SHELL-10
@@ -104,6 +107,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-04 Overlays: toasts, dialog frame, confirm, name dialog, menus
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#644
 - Project: raul GUI (crates/raul-gui)
 - Size: L. Milestone: M0. Depends on: GUI-02.
 - Functions: F-OVERLAY-01, F-OVERLAY-03, F-OVERLAY-04, F-OVERLAY-05, F-OVERLAY-07, F-OVERLAY-10
@@ -115,6 +119,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-05 Folder picker dialog
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#645
 - Project: raul GUI (crates/raul-gui)
 - Size: S. Milestone: M1. Depends on: GUI-04.
 - Functions: F-OVERLAY-06
@@ -126,6 +131,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-06 Command palette and shortcuts sheet
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#646
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M1. Depends on: GUI-04, CORE-09.
 - Functions: F-OVERLAY-08, F-OVERLAY-09, F-OVERLAY-12
@@ -137,6 +143,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-07 Focus look and keyboard map
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#647
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M1. Depends on: GUI-02, GUI-03.
 - Functions: F-ACCESS-01, F-ACCESS-03
@@ -148,6 +155,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-08 Setup wizard pages
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#648
 - Project: raul GUI (crates/raul-gui)
 - Size: L. Milestone: M1. Depends on: GUI-03, GUI-05, CORE-06.
 - Functions: F-SETUP-01, F-SETUP-02, F-SETUP-03, F-SETUP-04, F-SETUP-05, F-SETUP-06, F-SETUP-07, F-SETUP-08, F-SETUP-09, F-SETUP-10
@@ -159,6 +167,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-09 Home page and play-check cards
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#649
 - Project: raul GUI (crates/raul-gui)
 - Size: L. Milestone: M1. Depends on: GUI-03, CORE-02, CORE-04, CORE-05.
 - Functions: F-HOME-01, F-HOME-02, F-HOME-03, F-HOME-04, F-PLAY-01, F-PLAY-02, F-PLAY-03, F-PLAY-04
@@ -170,6 +179,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-10 Mods page: frame, search, filters, built-in section, rows, details, empty states, TTW row
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#650
 - Project: raul GUI (crates/raul-gui)
 - Size: L. Milestone: M2. Depends on: GUI-03, NVMOD-02, CORE-01, CORE-02.
 - Functions: F-MODS-01, F-MODS-02, F-MODS-03, F-MODS-04, F-MODS-05, F-MODS-07, F-MODS-08, F-MODS-10, F-MODS-11, F-MODS-12
@@ -181,6 +191,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-11 Groups and drag and drop
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#651
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M2. Depends on: GUI-10, CORE-01.
 - Functions: F-MODS-06, F-MODS-09
@@ -192,6 +203,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-12 Install dialog
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#652
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M2. Depends on: GUI-04, NVMOD-01.
 - Functions: F-INSTALL-01, F-INSTALL-02, F-INSTALL-03, F-INSTALL-04, F-INSTALL-05
@@ -203,6 +215,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-13 Test tab: stability, known stable, benchmark
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#653
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M3. Depends on: GUI-10, CORE-05, NV-01, NV-02.
 - Functions: F-TEST-01, F-TEST-02, F-TEST-03
@@ -214,6 +227,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-14 Location pictures viewer and log
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#654
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M3. Depends on: GUI-13, NV-03, NV-04.
 - Functions: F-TEST-04, F-TEST-05, F-TEST-06
@@ -225,6 +239,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-15 Versions tab and revert
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#655
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M3. Depends on: GUI-10, CORE-01.
 - Functions: F-VERS-01, F-VERS-02, F-VERS-03
@@ -236,6 +251,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-16 Profiles UI: pill, menu, dialogs
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#656
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M2. Depends on: GUI-04, CORE-01.
 - Functions: F-PROF-01, F-PROF-02, F-PROF-03, F-PROF-04
@@ -247,6 +263,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-17 Load order page and sort preview
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#657
 - Project: raul GUI (crates/raul-gui)
 - Size: L. Milestone: M2. Depends on: GUI-10, LOOT-01.
 - Functions: F-LOAD-01, F-LOAD-02, F-LOAD-03, F-LOAD-04, F-LOAD-05, F-LOAD-06
@@ -258,6 +275,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-18 LOD page and LOD settings page
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#658
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M2. Depends on: GUI-03, LOD-01.
 - Functions: F-LOD-01, F-LOD-02, F-LOD-03, F-LOD-04, F-LOD-05, F-LOD-06
@@ -269,6 +287,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-19 Tale of Two Wastelands flow
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#659
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M2. Depends on: GUI-05, TTW-01.
 - Functions: F-TTW-01, F-TTW-02, F-TTW-03, F-TTW-04, F-TTW-05
@@ -280,6 +299,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-20 System page
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#660
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M3. Depends on: GUI-03, CORE-07.
 - Functions: F-SYSTEM-01, F-SYSTEM-02, F-SYSTEM-03, F-SYSTEM-04, F-SYSTEM-05
@@ -291,6 +311,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-21 Doctor page
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#661
 - Project: raul GUI (crates/raul-gui)
 - Size: S. Milestone: M3. Depends on: GUI-03, CORE-02.
 - Functions: F-DOCTOR-01, F-DOCTOR-02, F-DOCTOR-03
@@ -302,6 +323,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### GUI-22 Settings page
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#662
 - Project: raul GUI (crates/raul-gui)
 - Size: M. Milestone: M3. Depends on: GUI-03, CORE-08.
 - Functions: F-SETTINGS-01, F-SETTINGS-02, F-SETTINGS-03, F-SETTINGS-04, F-SETTINGS-05, F-SETTINGS-06
@@ -313,6 +335,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### CORE-01 App state, profiles, shared library, versions and undo
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#663
 - Project: raul core/orchestration (raul-core, Toolbox app logic)
 - Size: L. Milestone: M0. Depends on: none.
 - Functions: F-PROF-01, F-PROF-02, F-PROF-03, F-PROF-04, F-VERS-01, F-VERS-02, F-OVERLAY-02
@@ -324,6 +347,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### CORE-02 Checks model for badges, Home rows, Doctor and Play checks
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#664
 - Project: raul core/orchestration (raul-core, Toolbox app logic)
 - Size: L. Milestone: M0. Depends on: CORE-01.
 - Functions: F-SHELL-05, F-HOME-04, F-DOCTOR-02, F-MODS-11, F-PLAY-01, F-PLAY-02, F-PLAY-03
@@ -335,6 +359,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### CORE-03 Job runner: progress, cancel, per-profile keys, status line, resume
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#665
 - Project: raul core/orchestration (raul-core, Toolbox app logic)
 - Size: M. Milestone: M0. Depends on: none.
 - Functions: F-SHELL-06, F-OVERLAY-11
@@ -346,6 +371,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### CORE-04 Play orchestration: check, start, run, stop, playtime
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#666
 - Project: raul core/orchestration (raul-core, Toolbox app logic)
 - Size: M. Milestone: M1. Depends on: CORE-02, CORE-03, NV-06.
 - Functions: F-PLAY-01, F-PLAY-02, F-PLAY-03, F-PLAY-04, F-SHELL-03
@@ -357,6 +383,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### CORE-05 Stability recommendation and known-stable logic
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#667
 - Project: raul core/orchestration (raul-core, Toolbox app logic)
 - Size: M. Milestone: M1. Depends on: CORE-01.
 - Functions: F-HOME-02, F-TEST-02, F-VERS-03
@@ -368,6 +395,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### CORE-06 Setup wizard orchestration
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#668
 - Project: raul core/orchestration (raul-core, Toolbox app logic)
 - Size: M. Milestone: M1. Depends on: CORE-03, NV-05.
 - Functions: F-SETUP-01, F-SETUP-03, F-SETUP-04, F-SETUP-06, F-SETUP-07, F-SETUP-08, F-SETUP-09, F-SETUP-10
@@ -379,6 +407,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### CORE-07 Update orchestration: check, update parts, engine builds
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#669
 - Project: raul core/orchestration (raul-core, Toolbox app logic)
 - Size: L. Milestone: M3. Depends on: CORE-03, NV-05.
 - Functions: F-SYSTEM-01, F-SYSTEM-02, F-SYSTEM-03, F-SYSTEM-04
@@ -390,6 +419,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### CORE-08 Settings, game folders, storage and cache
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#670
 - Project: raul core/orchestration (raul-core, Toolbox app logic)
 - Size: M. Milestone: M1. Depends on: CORE-01.
 - Functions: F-SETTINGS-01, F-SETTINGS-02, F-SETTINGS-03, F-SETTINGS-04, F-SETTINGS-05, F-SETUP-03, F-SETUP-04
@@ -401,6 +431,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### CORE-09 Palette index and action registry
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#671
 - Project: raul core/orchestration (raul-core, Toolbox app logic)
 - Size: S. Milestone: M1. Depends on: none.
 - Functions: F-OVERLAY-08
@@ -412,6 +443,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### CORE-10 Fake service and scenario states for app tests
 
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#672
 - Project: raul core/orchestration (raul-core, Toolbox app logic)
 - Size: M. Milestone: M0. Depends on: none.
 - Functions: F-OVERLAY-04
@@ -423,6 +455,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### NVMOD-01 Archive inspection and install with options
 
+- Issue: JorisJonkers-dev/nvmod-rs#291
 - Project: nvmod-rs
 - Size: L. Milestone: M2. Depends on: none.
 - Functions: F-INSTALL-01, F-INSTALL-02, F-INSTALL-03, F-INSTALL-04, F-INSTALL-05
@@ -434,6 +467,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### NVMOD-02 Mod library: toggle, remove, plugins, kinds, masters
 
+- Issue: JorisJonkers-dev/nvmod-rs#292
 - Project: nvmod-rs
 - Size: M. Milestone: M2. Depends on: none.
 - Functions: F-MODS-02, F-MODS-07, F-MODS-08, F-MODS-10, F-MODS-11
@@ -445,6 +479,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### LOOT-01 Sort preview with reasons, notes and missing masters
 
+- Issue: JorisJonkers-dev/loot-rs#117
 - Project: loot-rs
 - Size: M. Milestone: M2. Depends on: none.
 - Functions: F-LOAD-01, F-LOAD-03, F-LOAD-05
@@ -456,6 +491,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### LOOT-02 Masterlist update with message count
 
+- Issue: JorisJonkers-dev/loot-rs#118
 - Project: loot-rs
 - Size: S. Milestone: M3. Depends on: LOOT-01.
 - Functions: F-SYSTEM-05
@@ -467,6 +503,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### LOD-01 Build with named stages, estimates and fine-tune parameters
 
+- Issue: JorisJonkers-dev/lodwright-rs#437
 - Project: lodwright-rs
 - Size: M. Milestone: M2. Depends on: none.
 - Functions: F-LOD-01, F-LOD-02, F-LOD-03, F-LOD-04, F-LOD-05, F-LOD-06
@@ -478,6 +515,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### TTW-01 TTW install: Fallout 3 detection, installer file, space check, staged install, update check
 
+- Issue: JorisJonkers-dev/ttwright-rs#80
 - Project: ttwright-rs
 - Size: M. Milestone: M2. Depends on: none.
 - Functions: F-TTW-02, F-TTW-03, F-TTW-04, F-TTW-05, F-MODS-05
@@ -489,6 +527,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### NV-01 Stability run over 40 places
 
+- Issue: JorisJonkers-dev/nv-rs#1012
 - Project: nv-rs
 - Size: L. Milestone: M3. Depends on: none.
 - Functions: F-TEST-01
@@ -500,6 +539,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### NV-02 Benchmark run
 
+- Issue: JorisJonkers-dev/nv-rs#1013
 - Project: nv-rs
 - Size: M. Milestone: M3. Depends on: none.
 - Functions: F-TEST-03
@@ -511,6 +551,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### NV-03 Location picture sets
 
+- Issue: JorisJonkers-dev/nv-rs#1014
 - Project: nv-rs
 - Size: M. Milestone: M3. Depends on: none.
 - Functions: F-TEST-04
@@ -522,6 +563,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### NV-04 Run log with levels
 
+- Issue: JorisJonkers-dev/nv-rs#1015
 - Project: nv-rs
 - Size: S. Milestone: M3. Depends on: none.
 - Functions: F-TEST-06
@@ -533,6 +575,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### NV-05 Engine install, builds, integrity check and repair
 
+- Issue: JorisJonkers-dev/nv-rs#1016
 - Project: nv-rs
 - Size: M. Milestone: M1. Depends on: none.
 - Functions: F-SETUP-05, F-SYSTEM-04, F-DOCTOR-03
@@ -544,6 +587,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 
 ### NV-06 Game launch, stop and session time; per-profile graphics settings
 
+- Issue: JorisJonkers-dev/nv-rs#1017
 - Project: nv-rs
 - Size: M. Milestone: M1. Depends on: none.
 - Functions: F-PLAY-04, F-SETTINGS-03
