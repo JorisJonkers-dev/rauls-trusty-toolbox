@@ -36,9 +36,3 @@ path = "site/404.html"
 what = "page-not-found template of the public site"
 source = "this repository"
 license = "GPL-3.0-only"
-
-[[asset]]
-path = "site/bench.html"
-what = "benchmark page template of the public site: the overview and one page per project"
-source = "this repository"
-license = "GPL-3.0-only"
