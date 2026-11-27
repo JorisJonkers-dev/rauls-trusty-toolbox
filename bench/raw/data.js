@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795784311912,
+  "lastUpdate": 1795784546449,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12886,6 +12886,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.5295250000000005,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "1b3c5f1f417fede92ae53145301ed8c33b0cfaa3",
+          "message": "chore(components): bump nvmod-rs to 4b4d8fa (#699)\n\nMoves the nvmod-rs Component to main after #295, which redacts the Nexus apikey forms and the nxm key query parameter from the run log.",
+          "timestamp": "2026-11-27T14:00:27+01:00",
+          "tree_id": "c0eaa81e6e6600852257da4531fae8246f2fe97a",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/1b3c5f1f417fede92ae53145301ed8c33b0cfaa3"
+        },
+        "date": 1795784545665,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.908386,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.890058,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 37.864454,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.1306210000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.737527999999999,
             "unit": "ms"
           }
         ]
