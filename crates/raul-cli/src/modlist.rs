@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! `raul modlist list|show|plan` (ADR-0023): the Mod lists raul carries, what is in one, and what an Instance has and
-//! lacks of it. Nothing is written. Fetching and installing come after this (#680, #681).
+//! `raul modlist list|show|plan|fetch|watch` (ADR-0023): the Mod lists raul carries, what is in one, what an Instance
+//! has and lacks of it, opening the download pages of what is missing, and importing the archives a person downloads
+//! (`fetch` and `watch` are in `modlist_watch`). Only `watch` writes. Installing a whole list is #681.
 
 use std::fmt::Write as _;
 use std::io::Write;
@@ -14,22 +15,36 @@ use raul_modlist::{BUNDLED_IDS, ModList, Source, bundled};
 use serde_json::json;
 
 const USAGE_LINE: &str = "modlist takes `list [--json]`, `show <list> [--json]` or \
-     `plan <list> [--instance <dir>] [--profile <name>] [--json]`; <list> is a bundled id or a file";
+     `plan <list> [--instance <dir>] [--profile <name>] [--json]`, \
+     `fetch <list> [--open] [--all] [--limit <n>] [--instance <dir>] [--profile <name>]` or \
+     `watch <list> [--downloads <dir>] [--install] [--once] [--scan-existing] [--instance <dir>] [--profile <name>]`; \
+     <list> is a bundled id or a file";
 
-struct Flags {
-    list: Option<String>,
-    instance: Option<PathBuf>,
-    profile: Option<String>,
-    json: bool,
+#[derive(Default)]
+#[allow(clippy::struct_excessive_bools)] // one switch per command-line flag
+pub(crate) struct Flags {
+    pub(crate) list: Option<String>,
+    pub(crate) instance: Option<PathBuf>,
+    pub(crate) profile: Option<String>,
+    pub(crate) json: bool,
+    /// `fetch`: open the pages instead of printing them only.
+    pub(crate) open: bool,
+    /// `fetch`: every Mod, not only the ones the Instance lacks.
+    pub(crate) all: bool,
+    /// `fetch --open`: the most pages to open in one go.
+    pub(crate) limit: Option<usize>,
+    /// `watch`: the folder to watch instead of the usual download folders.
+    pub(crate) downloads: Option<PathBuf>,
+    /// `watch`: install into the Profile after staging.
+    pub(crate) install: bool,
+    /// `watch`: one scan of what is there, then stop.
+    pub(crate) once: bool,
+    /// `watch`: also take archives that were in the folder before it started.
+    pub(crate) scan_existing: bool,
 }
 
 fn parse(args: &[String]) -> Result<Flags, String> {
-    let mut f = Flags {
-        list: None,
-        instance: None,
-        profile: None,
-        json: false,
-    };
+    let mut f = Flags::default();
     let mut rest = args.iter();
     while let Some(a) = rest.next() {
         let mut value = || {
@@ -41,6 +56,19 @@ fn parse(args: &[String]) -> Result<Flags, String> {
             "--json" => f.json = true,
             "--instance" => f.instance = Some(PathBuf::from(value()?)),
             "--profile" => f.profile = Some(value()?),
+            "--open" => f.open = true,
+            "--all" => f.all = true,
+            "--limit" => {
+                f.limit = Some(
+                    value()?
+                        .parse()
+                        .map_err(|_| "--limit needs a number".to_owned())?,
+                );
+            }
+            "--downloads" => f.downloads = Some(PathBuf::from(value()?)),
+            "--install" => f.install = true,
+            "--once" => f.once = true,
+            "--scan-existing" => f.scan_existing = true,
             other if other.starts_with("--") => return Err(format!("unknown option {other}")),
             other if f.list.is_none() => f.list = Some(other.to_owned()),
             other => return Err(format!("unexpected argument {other}")),
@@ -56,8 +84,8 @@ pub(crate) fn run(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut
         return crate::modlist_export::run(ctx, &args[1..], out, err);
     }
     let flags = match verb {
-        "list" | "show" | "plan" => parse(&args[1..]),
-        _ => Err("modlist needs `list`, `show`, `plan` or `export`".to_owned()),
+        "list" | "show" | "plan" | "fetch" | "watch" => parse(&args[1..]),
+        _ => Err("modlist needs `list`, `show`, `plan`, `fetch`, `watch` or `export`".to_owned()),
     };
     let flags = match flags {
         Ok(f) => f,
@@ -87,6 +115,18 @@ pub(crate) fn run(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut
             show_text(&list)
         };
         return crate::write_or_fail(out, err, &text);
+    }
+    if verb == "fetch" {
+        return match crate::modlist_watch::fetch(ctx, &list, &flags, out) {
+            Ok(code) => code,
+            Err(why) => refuse(err, why),
+        };
+    }
+    if verb == "watch" {
+        return match crate::modlist_watch::watch(ctx, &list, &flags, out) {
+            Ok(code) => code,
+            Err(why) => refuse(err, why),
+        };
     }
     let plan = match present_in_instance(ctx, &flags) {
         Ok(present) => plan::plan(&list, &present, &NoResolver),
@@ -129,7 +169,7 @@ fn list(json: bool, out: &mut dyn Write, err: &mut dyn Write) -> u8 {
 }
 
 /// A bundled list by id, else a file by path.
-fn load(name: &str) -> Result<ModList, String> {
+pub(crate) fn load(name: &str) -> Result<ModList, String> {
     if let Some(found) = bundled(name) {
         return found.map_err(|e| e.to_string());
     }
@@ -142,13 +182,21 @@ fn load(name: &str) -> Result<ModList, String> {
     ModList::parse(&text).map_err(|e| format!("{name}: {e}"))
 }
 
-/// The names of the Mods the Profile lists and whose folders exist.
-fn present_in_instance(ctx: &Context, flags: &Flags) -> Result<Vec<String>, String> {
-    let root = flags
+/// The Instance folder: `--instance`, else the configured one.
+pub(crate) fn instance_root(ctx: &Context, flags: &Flags) -> Result<PathBuf, String> {
+    flags
         .instance
         .clone()
         .or_else(|| crate::lod::configured_instance(ctx))
-        .ok_or("no Instance: pass --instance <dir> or run `raul config set storage.root <dir>`")?;
+        .ok_or_else(|| {
+            "no Instance: pass --instance <dir> or run `raul config set storage.root <dir>`"
+                .to_owned()
+        })
+}
+
+/// The names of the Mods the Profile lists and whose folders exist.
+pub(crate) fn present_in_instance(ctx: &Context, flags: &Flags) -> Result<Vec<String>, String> {
+    let root = instance_root(ctx, flags)?;
     let instance =
         NvmodInstance::open_read_only(&root).map_err(|e| format!("{}: {e}", root.display()))?;
     let profile = instance

@@ -40,8 +40,11 @@ One JSON file is one recorded run of one project (`toolbox-bench/1`). Many files
   `"status": "not-measured"` and no values is drawn as an empty dashed bar.
 - A case with a missing value for an `against` series that is not marked `not-measured` simply shows no bar.
 - `flags` (`capped`, `noisy`) stripe a bar that is not a headline number.
-- Groups with the same `id` in several records of one project form a **history line** (one line per case, each against its
-  own median). A group can also carry its own `history` list of `{date, commit, values: {case: {series: value}}}`.
+- Groups with the same `id` in several records of one project form a **history**: a line chart per case on its own scale,
+  one point per day (the day's median), with a 30 days, 90 days or all range. A group can also carry its own `history`
+  list of `{date, commit, values: {case: {series: value}}}`.
+- Every figure has a **Details** button with the method, the machine, the commit, the numbers as a table and the record
+  itself to download.
 - The build stops with an error when a record does not match the format.
 
 ## Where results come from

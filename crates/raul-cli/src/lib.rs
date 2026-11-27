@@ -10,6 +10,7 @@ mod lod;
 mod lod_settings;
 mod modlist;
 mod modlist_export;
+mod modlist_watch;
 
 mod nexus;
 pub mod play;
@@ -202,6 +203,19 @@ usage:
                               Plugins it brings and, from its meta.ini, the Nexus mod and file; a Mod with no Nexus id is
                               listed as by hand with a note. Without -o the list goes to standard output; the Instance
                               is only read
+  raul modlist fetch <list> [--open] [--all] [--limit <n>] [--instance <dir>] [--profile <name>]
+                              the page to download each missing Mod from, one per line; with --open each page opens
+                              in your browser (at most --limit, 10 by default), through the system's opener. --all
+                              lists every Mod and not only the missing ones; nothing is written
+  raul modlist watch <list> [--downloads <dir>] [--install] [--once] [--scan-existing] [--instance <dir>] [--profile <name>]
+                              wait for archives you download by hand and recognise each one by file name, then size,
+                              then md5 (when the list has them): without --downloads it watches your download folders
+                              (XDG, ~/Downloads) and the Instance's downloads folder. A match is copied into the
+                              Instance's downloads folder (your file stays where it is); --install then installs it
+                              into the Profile with `nvmod downloads install` (placed last, not yet in list order,
+                              #681; a FOMOD that asks questions is left staged). --once scans what is there and stops;
+                              --scan-existing also takes archives already in the folder. Stops when everything wanted
+                              is in, or on Ctrl+C
 
   raul nexus key set [--file]|clear|status [--json]
                               the Nexus Mods API key: set reads it from standard input (never the command line) and keeps it

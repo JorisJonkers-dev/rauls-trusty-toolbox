@@ -32,6 +32,16 @@ raul at a list file of your own.
   your set-up. It takes the order, which Mods are on, their Plugins and, from each Mod's `meta.ini`, the Nexus mod id, file
   id, version and the archive name (whose upload time names the file when the id is missing). A Mod with no Nexus id is
   listed as "by hand" with a note. Only references are written, never a mod file, and the Instance is not changed.
+- `raul modlist fetch beautiful --instance <dir>` prints the download page of each missing Mod; with `--open` the pages
+  open in your browser (10 at a time, `--limit` changes that), through the system's opener.
+- `raul modlist watch beautiful --instance <dir>` waits for the archives you download. It watches your download folder
+  (the XDG one, `~/Downloads`) and the Instance's `downloads` folder, or the one `--downloads <dir>` names, and
+  ignores partial files. Each new archive is recognised by its file name, then its size, then its md5 when the list
+  has one; a file with the right name and the wrong size or md5 is refused. A match is copied into
+  `<Instance>/downloads` (your download stays where it is). `--install` also installs it into the Profile with the
+  existing nvmod install, under the list's name and placed last (list order comes with the installer for whole lists);
+  a Mod whose installer asks questions stays staged. `--once` scans once and stops, `--scan-existing` also takes
+  archives that were already there. It stops when everything it waits for is in, or on Ctrl+C.
 
 ## Nexus API key
 
