@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795785231445,
+  "lastUpdate": 1795786216608,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12984,6 +12984,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 6.362311,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a17ac615e01121df842da28e8f94dcdde52f1eb3",
+          "message": "feat(modlist): install plan and raul modlist list, show and plan (#697)\n\n* feat(modlist): install plan and raul modlist list, show and plan\n\n* style: cargo fmt after merging main",
+          "timestamp": "2026-11-27T14:27:58+01:00",
+          "tree_id": "9aace69865be1fa2e7a796bf1a043fff904ec9b0",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a17ac615e01121df842da28e8f94dcdde52f1eb3"
+        },
+        "date": 1795786216072,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.0491380000000001,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 4.609424,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 21.413709,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 1.474558,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 4.848122,
             "unit": "ms"
           }
         ]
