@@ -19,7 +19,7 @@ source = { type = "nexus", game = "newvegas", mod = 1, file = 1, file_name = "A.
 [[mods]]
 id = "b"
 name = "B"
-source = { type = "url", url = "https://x.example/b.7z", sha256 = "00", file_name = "B.7z" }
+source = { type = "url", url = "https://x.example/b.7z", sha256 = "0000000000000000000000000000000000000000000000000000000000000000", file_name = "B.7z" }
 [[mods]]
 id = "c"
 name = "C"

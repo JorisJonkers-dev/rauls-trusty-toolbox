@@ -159,10 +159,10 @@ pub(crate) fn run(ctx: &Context, args: &[String], out: &mut dyn Write, err: &mut
             }
         }
     }
-    if installed > 0 {
-        if let Err(why) = write_state(&root, &list, &profile, &results) {
-            let _ = writeln!(err, "raul modlist install: could not write {STATE_FILE}: {why}");
-        }
+    if installed > 0
+        && let Err(why) = write_state(&root, &list, &profile, &results)
+    {
+        let _ = writeln!(err, "raul modlist install: could not write {STATE_FILE}: {why}");
     }
     let text = if flags.json {
         let doc = document(&plan, &profile, &results, flags.dry_run, sort_note.as_deref());
@@ -276,11 +276,10 @@ fn write_state(
         .ok()
         .and_then(|t| serde_json::from_str(&t).ok())
         .unwrap_or_else(|| json!({}));
-    let mut known: BTreeMap<String, Value> = doc
-        .get("lists")
-        .and_then(Value::as_object)
-        .map(|o| o.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
-        .unwrap_or_default();
+    let mut known: BTreeMap<String, Value> = doc.get("lists").and_then(Value::as_object).map_or_else(
+        BTreeMap::new,
+        |o| o.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
+    );
     let key = format!("{}@{profile}", list.id);
     let entry = known
         .entry(key)
