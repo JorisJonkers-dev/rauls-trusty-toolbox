@@ -22,6 +22,8 @@ raul-bench = { workspace = true }
 nvmod-cli = { workspace = true }
 raul-runner = { workspace = true }
 raul-drivers = { workspace = true }
+raul-modlist = { workspace = true }
+nvmod-modinstall = { workspace = true }
 fork-scene = { workspace = true }
 nvmod-api = { workspace = true }
 nvmod-core = { workspace = true }
