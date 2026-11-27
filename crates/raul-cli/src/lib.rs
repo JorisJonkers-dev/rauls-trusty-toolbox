@@ -10,6 +10,7 @@ mod lod;
 mod lod_settings;
 mod modlist;
 mod modlist_export;
+mod modlist_install;
 mod modlist_watch;
 
 mod nexus;
@@ -216,6 +217,12 @@ usage:
                               #681; a FOMOD that asks questions is left staged). --once scans what is there and stops;
                               --scan-existing also takes archives already in the folder. Stops when everything wanted
                               is in, or on Ctrl+C
+  raul modlist install <list> [--instance <dir>] [--profile <name>] [--downloads <dir>] [--dry-run] [--no-sort] [--masterlist <file>] [--json]
+                              install every Mod of the list whose archive is in the downloads folder, in the list's order
+                              and under the list's names (the list's own place for each Mod, a disabled Mod switched off).
+                              A Mod with no archive is reported and left; a FOMOD that asks questions is left staged. When
+                              the list says plugins = loot the Plugins are then sorted with loot-rs (--no-sort skips that).
+                              --dry-run lists what would be installed and writes nothing
 
   raul nexus key set [--file]|clear|status [--json]
                               the Nexus Mods API key: set reads it from standard input (never the command line) and keeps it

@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use nvmod_instance::{NvmodInstance, find_ci};
-use nvmod_modinstall::{InstallError, Limits, OnConflict, Request};
+use nvmod_modinstall::{InstallError, Limits, OnConflict, Placement, Request};
 
 use super::package::{self, Package};
 use super::{CONTRACT, MOD_NAME, SCHEMA_VERSION, TtwError, TtwErrorCode, TtwResult};
@@ -557,6 +557,7 @@ fn run(req: &TtwRequest, stop: Stop<'_>, emit: &mut dyn FnMut(Event)) -> Outcome
         answers_inline: None,
         limits: Limits::default(),
         on_conflict: OnConflict::default(),
+        placement: Placement::Top,
     };
     let why = match nvmod_modinstall::install(&request) {
         Ok(report) => {
@@ -939,6 +940,7 @@ mod sort_tests {
             answers_inline: None,
             limits: Limits::default(),
             on_conflict: OnConflict::default(),
+            placement: Placement::Top,
         })
         .expect("install");
         (dir, instance, report.plugins)

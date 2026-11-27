@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use nvmod_formats::metaini::{MetaIni, quote_value};
 use nvmod_instance::{NvmodInstance, find_ci};
 use nvmod_modinstall::mods::{Change, ModsError, Place};
-use nvmod_modinstall::{InstallError, Limits, OnConflict, Request};
+use nvmod_modinstall::{InstallError, Limits, OnConflict, Placement, Request};
 use nvmod_plugins::{Edit, Place as PluginPlace, PluginsError};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -377,6 +377,7 @@ fn install(
             answers_inline: None,
             limits: Limits::default(),
             on_conflict: OnConflict::Replace,
+            placement: Placement::Top,
         };
         nvmod_modinstall::install(&request).map_err(|e| match e {
             InstallError::Refused(w) | InstallError::Failed(w) => w,
