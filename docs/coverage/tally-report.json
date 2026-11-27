@@ -4,12 +4,12 @@
   "repo": "raul",
   "results": true,
   "totals": {
-    "total": 173,
+    "total": 180,
     "missing": 2,
-    "implemented": 171,
-    "tagged": 165,
-    "passing": 165,
-    "covered": 139,
+    "implemented": 178,
+    "tagged": 172,
+    "passing": 172,
+    "covered": 146,
     "gated": 3,
     "not_applicable": 0,
     "deferred": 1
@@ -17,12 +17,12 @@
   "headline": {
     "title": "All areas",
     "counts": {
-      "total": 173,
+      "total": 180,
       "missing": 2,
-      "implemented": 171,
-      "tagged": 165,
-      "passing": 165,
-      "covered": 139,
+      "implemented": 178,
+      "tagged": 172,
+      "passing": 172,
+      "covered": 146,
       "gated": 3,
       "not_applicable": 0,
       "deferred": 1
@@ -1616,12 +1616,12 @@
       "id": "mods",
       "title": "Load order, mods and add-ons",
       "counts": {
-        "total": 19,
+        "total": 26,
         "missing": 0,
-        "implemented": 19,
-        "tagged": 19,
-        "passing": 19,
-        "covered": 16,
+        "implemented": 26,
+        "tagged": 26,
+        "passing": 26,
+        "covered": 23,
         "gated": 0,
         "not_applicable": 0,
         "deferred": 0
@@ -1808,12 +1808,12 @@
           "title": "Mod lists",
           "origin": "ours",
           "counts": {
-            "total": 4,
+            "total": 11,
             "missing": 0,
-            "implemented": 4,
-            "tagged": 4,
-            "passing": 4,
-            "covered": 4,
+            "implemented": 11,
+            "tagged": 11,
+            "passing": 11,
+            "covered": 11,
             "gated": 0,
             "not_applicable": 0,
             "deferred": 0
@@ -1869,6 +1869,110 @@
               "tests": [
                 "crates/raul-modlist/tests/beautiful.rs::beautiful_holds_both_lucky_38_mods_at_their_nexus_files",
                 "crates/raul-modlist/tests/beautiful.rs::every_bundled_list_passes_the_rules"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.plan_present_missing",
+              "title": "The plan says which Mods the Instance has, lacks and the list switches off",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-modlist/tests/plan.rs::present_missing_and_switched_off_mods_are_told_apart"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.plan_links",
+              "title": "Every missing Mod comes with where to get it: a Nexus page, another link, or what to do by hand",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-modlist/tests/plan.rs::a_nexus_file_with_an_id_links_the_file_and_one_without_links_the_files_tab",
+                "crates/raul-modlist/tests/plan.rs::other_links_and_hand_work_are_told_plainly"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.plan_resolver",
+              "title": "A file id the list lacks is asked of a resolver, and the plan works without one",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-modlist/tests/plan.rs::a_resolver_supplies_the_file_id_the_list_lacks_and_is_not_asked_when_the_list_has_it"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.command_plan",
+              "title": "raul modlist plan shows the plan for an Instance and a Profile, as text or JSON, and writes nothing",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-cli/tests/modlist.rs::the_plan_says_what_the_profile_has_and_where_to_get_the_rest_in_install_order",
+                "crates/raul-cli/tests/modlist.rs::the_plan_writes_nothing"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.export_roundtrip",
+              "title": "A Profile is exported as a Mod list that the parser reads back with the same Mods, order and sources",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-modlist/tests/export.rs::a_profile_is_exported_in_priority_order_and_round_trips",
+                "crates/raul-modlist/tests/export.rs::beautiful_written_out_as_an_instance_comes_back_with_the_same_mods_order_and_nexus_files",
+                "crates/raul-modlist/tests/export.rs::nexus_ids_versions_archive_names_and_plugins_are_read"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.export_manual_without_nexus_id",
+              "title": "A Mod with no Nexus id is exported as a manual source with a note",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-modlist/tests/export.rs::a_listed_mod_with_no_folder_is_manual",
+                "crates/raul-modlist/tests/export.rs::a_mod_without_a_nexus_id_is_manual_with_a_note"
+              ],
+              "platforms": {
+                "linux": true,
+                "macos": true,
+                "windows": true
+              }
+            },
+            {
+              "id": "mods.modlist.command_export",
+              "title": "raul modlist export writes a Profile as a Mod list file and writes nothing to the Instance",
+              "origin": "ours",
+              "state": "covered",
+              "tests": [
+                "crates/raul-cli/tests/modlist_export.rs::export_without_a_file_prints_the_list",
+                "crates/raul-cli/tests/modlist_export.rs::export_writes_a_list_that_show_reads_back_and_leaves_the_instance_alone"
               ],
               "platforms": {
                 "linux": true,

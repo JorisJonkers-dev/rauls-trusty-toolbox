@@ -1,0 +1,62 @@
+{
+ "groups": [
+  {
+   "id": "mojave-day",
+   "title": "Mojave by day",
+   "views": [
+    {
+     "name": "goodsprings-valley",
+     "title": "Goodsprings",
+     "caption": "Goodsprings main street: new ground and building textures, a street lamp, sun shadows."
+    },
+    {
+     "name": "lake-mead",
+     "title": "Lake Mead",
+     "caption": "Lake Mead from the shore: water reflections, sharper rocks and sand."
+    },
+    {
+     "name": "high-black-mountain",
+     "title": "Black Mountain",
+     "caption": "Black Mountain's dishes and masts from the air: far terrain and object LOD."
+    },
+    {
+     "name": "high-hoover-river",
+     "title": "Hoover Dam",
+     "caption": "Hoover Dam and the Colorado from above: far view and rock detail."
+    }
+   ]
+  },
+  {
+   "id": "mojave-night",
+   "title": "Mojave by night",
+   "views": [
+    {
+     "name": "night-primm-road-lamps",
+     "title": "Primm",
+     "caption": "Primm at night: street lamps light their ground."
+    },
+    {
+     "name": "night-elrey-north-vegas-lamps",
+     "title": "North Vegas",
+     "caption": "North Vegas at night by the El Rey: lamp light and neon."
+    }
+   ]
+  },
+  {
+   "id": "interiors",
+   "title": "Interiors",
+   "views": [
+    {
+     "name": "interior-lucky38-casino",
+     "title": "Lucky 38",
+     "caption": "Lucky 38 casino floor: ambient occlusion, light balance and the neon."
+    },
+    {
+     "name": "nv-ultra-luxe",
+     "title": "Ultra-Luxe lobby",
+     "caption": "Ultra-Luxe lobby: retextured floor, ambient occlusion, coloured light."
+    }
+   ]
+  }
+ ]
+}

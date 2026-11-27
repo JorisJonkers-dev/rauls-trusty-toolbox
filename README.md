@@ -32,6 +32,33 @@ Mods change the world, but the game's own far view stays the old one. raul build
   <br><em>The Strip with 312 mods: the game's far view (left) and the one raul built (right).</em>
 </p>
 
+## The Beautiful mod list
+
+Left is the vanilla game: no mods, the game's own renderer. Right is the Beautiful mod list with raul's engine
+features (ambient occlusion, sun shadows, reflections, fill light) and a generated far view.
+
+<p align="center">
+  <img src="docs/images/beautiful/compare-goodsprings-valley.jpg" alt="Goodsprings main street, vanilla game on the left and Beautiful on the right" width="100%">
+  <br><em>Goodsprings main street: new ground and building textures, a street lamp, sun shadows.</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/beautiful/compare-lake-mead.jpg" alt="Lake Mead from the shore, vanilla game on the left and Beautiful on the right" width="100%">
+  <br><em>Lake Mead from the shore: water reflections, sharper rocks and sand.</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/beautiful/compare-nv-ultra-luxe.jpg" alt="The Ultra-Luxe lobby, vanilla game on the left and Beautiful on the right" width="100%">
+  <br><em>Ultra-Luxe lobby: retextured floor, ambient occlusion, coloured light.</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/beautiful/compare-night-primm-road-lamps.jpg" alt="Primm at night, vanilla game on the left and Beautiful on the right" width="100%">
+  <br><em>Primm at night: the street lamps light the ground.</em>
+</p>
+
+There are eight views in all, outside and inside, by day and by night. [Slide between them on the site](https://jorisjonkers-dev.github.io/rauls-trusty-toolbox/compare/).
+
 ## How far along it is
 
 - ✅ Setup, mods, load order, distant view, Tale of Two Wastelands and Play work on Linux, Windows and macOS.
