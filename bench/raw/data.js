@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795790613790,
+  "lastUpdate": 1795794682261,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13229,6 +13229,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.4289760000000005,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "cfacdda0d7fcd1fb89648fc446c75a66950491b1",
+          "message": "feat(modlist): raul modlist install installs a list into a Profile in list order (#704)\n\n* wip(modlist): raul modlist install, the install steps and the nvmod bump\n\n* chore(deps): bump nvmod-rs to the downloads install placement\n\n* test(modlist): install integration tests, usage and help text\n\n* fix(deps): name the placement at every Mod install after the nvmod-rs bump\n\n* fix(modlist): name the placement in the watch install\n\n* fix(modlist): valid sha256 in the install test list, clippy, and the process guard allowance\n\n* style(modlist): rustfmt\n\n* style(modlist): module order",
+          "timestamp": "2026-11-27T16:49:20+01:00",
+          "tree_id": "ef71311ed94c42ae7216ff990b014b31e4f6cc6b",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/cfacdda0d7fcd1fb89648fc446c75a66950491b1"
+        },
+        "date": 1795794681193,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.544981,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.004966,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 28.136059000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 3.9550460000000003,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.533796,
             "unit": "ms"
           }
         ]
