@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795806039513,
+  "lastUpdate": 1795816560769,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13572,6 +13572,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.441462,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com",
+            "name": "jorisjonkers-dev-agents[bot]",
+            "username": "jorisjonkers-dev-agents[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "26e62c07aa575b890b4614b38946782576887558",
+          "message": "chore(deps): bump lodwright-rs to 0.21.0 (#717)\n\n* chore(deps): bump lodwright-rs to 0.21.0\n\n* test: refresh the lodwright request snapshot for 0.21.0\n\n---------\n\nCo-authored-by: jorisjonkers-dev-agents[bot] <290081373+jorisjonkers-dev-agents[bot]@users.noreply.github.com>\nCo-authored-by: J.W. Jonkers <info@jorisjonkers.dev>",
+          "timestamp": "2026-11-27T21:54:09Z",
+          "tree_id": "6f07772e7eb7a83660f22bb8a775a193a219702d",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/26e62c07aa575b890b4614b38946782576887558"
+        },
+        "date": 1795816559532,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.6100260000000002,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.355213999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 29.451911,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.1818230000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.78368,
             "unit": "ms"
           }
         ]
