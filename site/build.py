@@ -135,10 +135,10 @@ def build_compare(out: Path) -> None:
             alt = html.escape(v["caption"])
             views.append(
                 f'<section class="card view" id="{name}"><h3>{title}</h3>'
-                f'<figure class="cmp"><img class="beautiful" src="img/{name}-beautiful.jpg" alt="{title}, Beautiful 3c with raul" loading="lazy" width="1600" height="900">'
+                f'<figure class="cmp"><img class="beautiful" src="img/{name}-beautiful.jpg" alt="{title}, Beautiful" loading="lazy" width="1600" height="900">'
                 f'<img class="stock" src="img/{name}-stock.jpg" alt="{title}, the stock game" loading="lazy" width="1600" height="900">'
-                f'<span class="tagl">Stock</span><span class="tagr">Beautiful 3c + raul</span><span class="bar"></span><span class="knob" aria-hidden="true">&harr;</span>'
-                f'<input type="range" min="0" max="100" value="50" aria-label="{title}: slide between stock (left) and Beautiful 3c with raul (right)"></figure>'
+                f'<span class="tagl">Stock</span><span class="tagr">Beautiful</span><span class="bar"></span><span class="knob" aria-hidden="true">&harr;</span>'
+                f'<input type="range" min="0" max="100" value="50" aria-label="{title}: slide between stock (left) and Beautiful (right)"></figure>'
                 f'<p class="cap">{alt}</p></section>')
     page = fill((SITE / "compare.html").read_text(), "compare", "../", icon=ic("eye", 24), jump="".join(jump), views="\n".join(views))
     (dest / "index.html").write_text(page)
