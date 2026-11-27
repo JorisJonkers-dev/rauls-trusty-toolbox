@@ -6,7 +6,7 @@
  "run": {
   "id": "raul-bench",
   "date": "2026-11-27",
-  "commit": "6e1f26e",
+  "commit": "d3122fe",
   "version": null,
   "machine": "GitHub-hosted ubuntu-latest runner (shared, so noisy)",
   "method": "raul bench on synthetic fixtures (no game data), median wall time of the timed runs. Read from the history that github-action-benchmark keeps on the gh-pages branch; the raw chart page is kept at bench/raw/.",
@@ -30,31 +30,31 @@
     {
      "name": "sort/small",
      "values": {
-      "ours": 2.3003519999999997
+      "ours": 1.939032
      }
     },
     {
      "name": "sort/medium",
      "values": {
-      "ours": 10.522634
+      "ours": 9.355304
      }
     },
     {
      "name": "sort/ttw-sized",
      "values": {
-      "ours": 46.437014
+      "ours": 34.608841
      }
     },
     {
      "name": "plugin-headers/ttw-sized",
      "values": {
-      "ours": 5.253498
+      "ours": 3.842667
      }
     },
     {
      "name": "install/zip",
      "values": {
-      "ours": 9.470402
+      "ours": 14.3245
      }
     }
    ],
@@ -5810,6 +5810,27 @@
       },
       "install/zip": {
        "ours": 9.470402
+      }
+     }
+    },
+    {
+     "date": "2026-11-27",
+     "commit": "d3122fe",
+     "values": {
+      "sort/small": {
+       "ours": 1.939032
+      },
+      "sort/medium": {
+       "ours": 9.355304
+      },
+      "sort/ttw-sized": {
+       "ours": 34.608841
+      },
+      "plugin-headers/ttw-sized": {
+       "ours": 3.842667
+      },
+      "install/zip": {
+       "ours": 14.3245
       }
      }
     }

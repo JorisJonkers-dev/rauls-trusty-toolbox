@@ -115,7 +115,7 @@
 
   /* ---- panel ---- */
   const list = document.getElementById("steps");
-  let open = null, shown = null, resetTimer = 0;
+  let open = null, shown = null, resetTimer = 0, reloading = false;
   const items = STEPS.map((st, i) => {
     const li = document.createElement("li");
     li.className = "step"; li.dataset.step = st.id; li.dataset.done = "false";
@@ -161,6 +161,7 @@
   }
 
   function poll() {
+    if (reloading) return; /* the demo still on screen is the one Reset just cleared; its state would tick "Finish setup" again */
     const r = read();
     if (!r || !r.snap) return;
     const s = r.snap;
@@ -203,6 +204,7 @@
     saved = { done: {}, base: null }; STEPS.forEach((st) => { memory[st.id] = {}; });
     try { localStorage.removeItem(TOUR_KEY); localStorage.removeItem(DEMO_KEY); } catch (e) { /* ignore */ }
     shown = null; open = null; render(); place();
+    reloading = true; frame.addEventListener("load", () => { reloading = false; }, { once: true });
     try { frame.contentWindow.location.reload(); } catch (e) { frame.src = frame.src; }
   });
 
