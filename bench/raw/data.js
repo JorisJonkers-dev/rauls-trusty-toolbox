@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795783665975,
+  "lastUpdate": 1795784311912,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12837,6 +12837,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.32822,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "9fe4bd3b3c6877f9c412842ef6db45b835286f0f",
+          "message": "fix(ci): the site publish job checks out site/ for its scripts (#698)",
+          "timestamp": "2026-11-27T13:56:56+01:00",
+          "tree_id": "8ef8a97edea4b08e45faf18fdfae84aa39733b2c",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/9fe4bd3b3c6877f9c412842ef6db45b835286f0f"
+        },
+        "date": 1795784310985,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.60884,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 7.468464999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 29.242366999999998,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.18249,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 6.5295250000000005,
             "unit": "ms"
           }
         ]
