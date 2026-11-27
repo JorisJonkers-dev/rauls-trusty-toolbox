@@ -11,15 +11,13 @@
 <style>
 html,body{height:100%}
 body{display:flex;flex-direction:column;overflow:hidden}
-.tourwrap{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;padding:16px}
-.stage{position:relative;min-height:0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#07080A}
+.tourwrap{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;padding:16px}
+.stage{position:relative;justify-self:center;align-self:center;width:min(100%,calc((100vh - 110px) * 1312 / 752));aspect-ratio:1312/752;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#07080A}
 .stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#07080A}
 #ring{position:absolute;pointer-events:none;border:2px solid var(--accent);border-radius:10px;box-shadow:0 0 0 4px rgba(61,214,198,.25),0 0 24px rgba(61,214,198,.5);animation:pulse 1.4s ease-in-out infinite;display:none;z-index:5}
-#ring span{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);white-space:nowrap;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:.82rem;padding:3px 10px;border-radius:8px}
-#ring.below span{bottom:auto;top:calc(100% + 8px)}
 @keyframes pulse{50%{box-shadow:0 0 0 8px rgba(61,214,198,.12),0 0 32px rgba(61,214,198,.7)}}
 @media (prefers-reduced-motion:reduce){#ring{animation:none}}
-.panel{min-height:0;display:flex;flex-direction:column;background:var(--raise);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.panel{align-self:stretch;max-height:calc(100vh - 110px);min-height:0;display:flex;flex-direction:column;background:var(--raise);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .phead{padding:16px 18px 12px;border-bottom:1px solid var(--line)}
 .phead h1{margin:0 0 4px;font-size:1.2rem}
 .phead p{margin:0;color:var(--muted);font-size:.9rem}
@@ -43,7 +41,9 @@ ol.steps{list-style:none;margin:0;padding:8px;overflow:auto;flex:1}
 .done[hidden]{display:none}
 @media (max-width:900px){
   body{overflow:auto}
-  .tourwrap{grid-template-columns:1fr;grid-template-rows:70vh auto}
+  .tourwrap{grid-template-columns:1fr;grid-template-rows:auto auto}
+  .stage{width:100%}
+  .panel{max-height:none}
 }
 </style>
 </head>
@@ -52,7 +52,7 @@ ol.steps{list-style:none;margin:0;padding:8px;overflow:auto;flex:1}
 <div class="tourwrap">
 <div class="stage">
 <iframe id="demo" src="{{up}}demo/" title="Raul's Toolbox clickable demo"></iframe>
-<div id="ring" role="presentation"><span id="ringlabel"></span></div>
+<div id="ring" role="presentation"></div>
 </div>
 <section class="panel" aria-label="Guided tour">
 <div class="phead">

@@ -110,6 +110,11 @@ async function main() {
   await dwin().then((f) => f.waitForFunction(() => typeof S !== "undefined" && S !== null));
   for (const id of ids) ok(!(await isDone(id)), `step ${id} is ticked before anything was done`);
 
+  /* the demo fills the stage: its window is drawn at the largest size that fits */
+  const scale = await dev(() => parseFloat(getComputedStyle(document.getElementById("win")).getPropertyValue("--ws")));
+  const stage = await page.locator(".stage").boundingBox();
+  ok(scale >= Math.min(1, (stage.width - 32) / 1280) - 0.02, `demo drawn at ${scale}, smaller than the stage allows`);
+  ok(stage.height >= 720 * scale, "stage is smaller than the demo window");
   /* Show me highlights an element of the demo */
   const showMe = async (id, label) => {
     await page.locator(`[data-step="${id}"] .head`).click();
@@ -119,7 +124,7 @@ async function main() {
     const box = await page.locator("#ring").boundingBox();
     const fb = await page.locator("#demo").boundingBox();
     ok(box && box.x >= fb.x - 10 && box.y >= fb.y - 10 && box.x + box.width <= fb.x + fb.width + 10, `highlight for ${id} is outside the demo`);
-    if (label) ok((await page.locator("#ringlabel").innerText()) === label, `highlight label for ${id}`);
+    if (label) ok((await page.locator("#ring").getAttribute("data-target")) === label, `highlight label for ${id}`);
   };
   await showMe("setup", "Start");
   if (shots) await page.screenshot({ path: path.join(shots, "tour-start.png") });

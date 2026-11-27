@@ -7,7 +7,6 @@
   const DEMO_KEY = "rauls-toolbox-state-1";
   const frame = document.getElementById("demo");
   const ring = document.getElementById("ring");
-  const ringLabel = document.getElementById("ringlabel");
 
   /* One read of the demo's state, as plain data. Runs inside the iframe, where S, U, J and P() are in scope. */
   const SNAP = `(() => {
@@ -193,8 +192,7 @@
     const bb = el.getBoundingClientRect(), fb = frame.getBoundingClientRect(), sb = frame.parentElement.getBoundingClientRect();
     const x = fb.left - sb.left + bb.left - 4, y = fb.top - sb.top + bb.top - 4;
     ring.style.display = "block"; ring.style.left = `${x}px`; ring.style.top = `${y}px`; ring.style.width = `${bb.width + 8}px`; ring.style.height = `${bb.height + 8}px`;
-    ring.classList.toggle("below", y < 40);
-    ringLabel.textContent = t.label || (el.textContent || "").trim().slice(0, 30);
+    ring.dataset.target = t.label || (el.textContent || "").trim().slice(0, 30);
   }
 
   document.getElementById("hide").addEventListener("click", () => { shown = null; place(); });
