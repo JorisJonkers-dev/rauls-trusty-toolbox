@@ -280,7 +280,7 @@ mark{background:rgba(61,214,198,.3);color:inherit;border-radius:3px}
 
 /* wizard */
 .wizm{grid-column:1/3;grid-row:2/3}
-.wiz{flex:1 1 auto;min-height:0;overflow:auto;padding:22px 32px 84px;display:flex;flex-direction:column}
+.wiz{flex:1 1 auto;min-height:0;overflow:auto;padding:22px 32px 120px;display:flex;flex-direction:column}
 .wiz .inner{max-width:900px;width:100%;margin:0 auto;flex:1}
 .wiz .hero{display:flex;gap:28px;align-items:center;background:var(--raise);border-radius:20px;padding:28px}
 .wiz h1{font-size:1.9rem;margin:0 0 8px;letter-spacing:-.01em}
@@ -336,7 +336,7 @@ div.sec>.sech:last-child{margin-bottom:0}
 <body>
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 <div class="desk"><div class="win" id="win" aria-label="Raul's Toolbox window">
-<div class="tbar"><span class="tbi" id="tbi"></span><span class="tbt">Raul's Toolbox</span><span class="tsp"></span><button type="button" class="wbtn" aria-label="Minimise" data-act="noop" data-arg=""><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" stroke="currentColor" stroke-width="1.3"/></svg></button><button type="button" class="wbtn" aria-label="Maximise" data-act="noop" data-arg=""><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></button><button type="button" class="wbtn close" aria-label="Close" data-act="quitAsk" data-arg="" data-k="quitAsk:"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="1.3"/></svg></button></div>
+<div class="tbar"><span class="tbi" id="tbi"></span><span class="tbt">Raul's Toolbox</span><span class="tsp"></span><button type="button" class="wbtn" aria-label="Minimise" tabindex="-1" data-act="noop" data-arg=""><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" stroke="currentColor" stroke-width="1.3"/></svg></button><button type="button" class="wbtn" aria-label="Maximise" tabindex="-1" data-act="noop" data-arg=""><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></button><button type="button" class="wbtn close" aria-label="Close" data-act="quitAsk" data-arg="" data-k="quitAsk:"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7" stroke="currentColor" stroke-width="1.3"/></svg></button></div>
 <div id="app"></div></div></div>
 <script>
 "use strict";
@@ -415,6 +415,7 @@ const CAT = {
   war: { name: 'Weapon Animation Replacers', ver: '3.2', kind: 'assets', size: 120, plugins: [], what: 'New first-person animations for many weapons.' }
 };
 /* patch plugins an install option can add */
+const ML_NEW = 4;
 const EXTRA_PLUGINS = { 'B42 Optics - WMX.esp': [54, ['WMX.esm'], 'Needs Weapon Mods Expanded.', 'b42'], 'B42 Optics - WRP.esp': [57, ['WeaponRetexture.esp'], 'Needs Weapon Retexture Project.', 'b42'], 'The Living Desert - JSUE.esp': [59, ['JSawyer Ultimate.esm'], 'Needs JSawyer Ultimate Edition.', 'tld'], 'Nevada Skies - Full Edition.esp': [60, [], 'Load near the end: weather records win last.', 'nsk'] };
 
 /* archives in the picker ("Downloads" in the Toolbox's download folder) */
@@ -535,7 +536,7 @@ const fdate = t => { const d = new Date(t); return `${d.getDate()} ${MON[d.getMo
 const ftime = t => { const d = new Date(t); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 const ago = t => { const m = Math.round((Date.now() - t) / 60000); if (m < 1) return 'just now'; if (m < 60) return `${m} min ago`; const h = Math.round(m / 60); if (h < 24) return `${h} h ago`; const d = Math.round(h / 24); return d === 1 ? 'yesterday' : `${d} days ago`; };
 const dayLabel = t => { const d0 = new Date(); d0.setHours(0, 0, 0, 0); const dd = Math.floor((d0 - new Date(t).setHours(0, 0, 0, 0)) / 864e5); return dd <= 0 ? 'Today' : dd === 1 ? 'Yesterday' : fdate(t); };
-const hm = mins => mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)} h${mins % 60 ? ' ' + (mins % 60) + ' min' : ''}`;
+const hm = mins => mins < 1 ? `${Math.max(1, Math.round(mins * 60))} s` : (mins = Math.round(mins)) < 60 ? `${mins} min` : `${Math.floor(mins / 60)} h${mins % 60 ? ' ' + (mins % 60) + ' min' : ''}`;
 const DAY = 864e5;
 const clone = o => JSON.parse(JSON.stringify(o));
 const uid = () => Math.random().toString(36).slice(2, 8);
@@ -707,8 +708,9 @@ function farState(p) {
 const qLabel = p => p.far.fine ? 'Custom' : QUAL[p.far.q][0];
 const farSize = p => { let s = QUAL[p.far.q][1]; if (p.far.fine) s = +(s * (0.6 + p.far.fine.tex / 1024 * 0.4 + p.far.fine.dist * 0.08)).toFixed(1); return s + (p.mods.some(m => m.on && m.id === 'wfo') ? 0.3 : 0) + (ttwActive(p) ? 0.8 : 0); };
 const storeLow = () => S.g.storeFree < 20;
+const TTW_GB = 25, ttwRoom = free => free >= TTW_GB;
 const gameOk = () => S.g.gameOk && !S.g.scen.game;
-const updAvail = () => S.g.tbVer !== '0.6.0';
+const TB = () => PARTS.find(c => c.id === 'toolbox'), updAvail = () => S.g.tbVer !== TB().nw;
 
 /* play checks: one list feeds Home, the Play flow and the Doctor */
 function checks(p = P()) {
@@ -747,7 +749,7 @@ function change(label, fn, o = {}) {
 }
 function undo() {
   const p = P(); const st = U.undo[p.id]; if (!st || !st.length) return;
-  const u = st.pop(); Object.assign(p, clone(u.s)); syncShared(p); recordVersion(p); toast(`Undone: ${u.label}`); commit();
+  const u = st.pop(); U.toasts = U.toasts.filter(t => t.text !== u.label); Object.assign(p, clone(u.s)); syncShared(p); recordVersion(p); toast(`Undone: ${u.label}`); commit();
 }
 
 /* ===== jobs: timed mock work with progress ===== */
@@ -801,7 +803,7 @@ function render() { if (rq) return; rq = true; requestAnimationFrame(() => { rq 
 function commit() { store.save(); render(); }
 function draw() {
   const root = document.getElementById('app');
-  const html = S.wiz.done ? appHTML() : wizHTML();
+  const html = U.quit ? `<div class="wiz"><div class="inner" style="text-align:center;padding-top:160px"><h1>Raul’s Toolbox has closed</h1><p class="lead" style="margin:0 auto 18px">Your setup is saved.</p><button type="button" class="btn primary" data-act="reopen" data-arg="" data-k="reopen:">Open again</button></div></div>` : S.wiz.done ? appHTML() : wizHTML();
   const t = document.createElement('div'); t.innerHTML = html;
   morph(root, t);
   document.documentElement.dataset.hc = S.g.hc ? '1' : '0';
@@ -976,7 +978,7 @@ function sideHTML() {
   const doc = docSummary();
   const p = P(), mm = missingMasters(p).length, ooo = outOfOrder(p), unt = stableNow(p) ? 0 : 1, fs = farState(p), att = p.mods.filter(m => modAttention(m, p)).length + (p.ttwOn && !S.g.ttwInstalled ? 1 : 0);
   const b = (n, k, t) => n ? `<span class="bdg ${k}" title="${t}" aria-label="${t}">${n}</span>` : '';
-  const bdg = { load: b(mm + ooo + unt, mm ? 'err' : 'warn', [mm && plural(mm, 'missing master'), ooo && `${ooo} out of order`, unt && 'untested change'].filter(Boolean).join(', ')), far: fs === 'never' || fs.startsWith('stale') ? b(1, 'warn', fs === 'never' ? 'LOD not built' : 'LOD out of date') : '', mods: b(att, mm ? 'err' : 'warn', plural(att, 'mod') + ' need attention'), system: updAvail() ? `<span class="bdg" title="Update available">${ic('up', 13)}</span>` : '', doctor: doc ? `<span class="bdg ${doc[0]}" title="${doc[1]}">${doc[2]}</span>` : '' };
+  const bdg = { load: b(mm + ooo + unt, mm ? 'err' : 'warn', [mm && plural(mm, 'missing master'), ooo && `${ooo} out of order`, unt && 'untested change'].filter(Boolean).join(', ')), far: fs === 'never' || fs.startsWith('stale') ? b(1, 'warn', fs === 'never' ? 'LOD not built' : 'LOD out of date') : '', mods: b(att, mm ? 'err' : 'warn', plural(att, 'mod') + (att === 1 ? ' needs' : ' need') + ' attention'), system: updAvail() ? `<span class="bdg" title="Update available">${ic('up', 13)}</span>` : '', doctor: doc ? `<span class="bdg ${doc[0]}" title="${doc[1]}">${doc[2]}</span>` : '' };
   return `<nav class="side" aria-label="Pages">${NAV.map(([h, items]) => `<div class="navh">${h}</div>${items.map(([id, t, icon]) => `<button type="button" class="nav ${U.page === id || (id === 'far' && U.page === 'farset') || (id === 'mods' && U.page === 'ttw') ? 'on' : ''}" data-act="nav" data-arg="${id}" data-k="nav:${id}" ${U.page === id ? 'aria-current="page"' : ''}>${ic(icon, 18)}<span>${t}</span>${bdg[id] || ''}</button>`).join('')}`).join('')}</nav>`;
 }
 function docSummary() { if (!S.g.docRun) return null; const L = checks(); const f = L.filter(c => c.st === 'fail').length, w = L.filter(c => c.st === 'warn').length; return f ? ['err', `${f} failed`, f] : w ? ['warn', `${w} warnings`, w] : null; }
@@ -1169,7 +1171,7 @@ const logLine = (l, full) => { const k = l.k + l.tm; const o = U.logOpen[k]; ret
 PAGES.load = () => {
   const p = P(), prev = U.sortPrev && U.sortPrev.pid === p.id ? U.sortPrev : null;
   const vis = visPlugins(p), act = allActiveFiles(p), mm = missingMasters(p), ooo = outOfOrder(p);
-  const status = `${plural(BASE.length + (ttwActive(p) ? TTWP.length : 0) + vis.length, 'plugin')} · ${act.length} active · ${prev ? `preview, ${plural(prev.moves.length, 'move')}` : mm.length ? `<span class="errc">${plural(mm.length, 'missing master')}</span>` : ooo ? `<span class="warnc">${ooo} out of order</span>` : '<span class="okc">sorted</span>'}`;
+  const status = `${plural(BASE.length + (ttwActive(p) ? TTWP.length : 0) + vis.length, 'plugin')} · ${act.length} active · ${prev ? `preview, ${plural(prev.moves.length, 'move')}` : mm.length ? `<span class="errc">${plural(mm.length, 'missing master')}</span>` : ooo ? `<span class="warnc">${ooo} out of order</span>` : '<span class="okc">sorted</span>'}${stableNow(p) ? '' : ' · <span class="warnc">untested change</span>'}`;
   const q = U.lq, filt = U.lfilt;
   const order = prev ? prev.sorted.map(f => p.plugins.find(x => x.f === f)) : vis;
   const movedSet = new Set(prev ? prev.moves.map(m => m[0]) : []);
@@ -1241,30 +1243,30 @@ PAGES.ttw = () => {
   if (s === 0) body = `<div class="rows"><div class="r" style="min-height:64px"><div style="flex:1"><div class="nm">Fallout 3</div><div class="sub mono">${fo3 ? esc(S.g.fo3Path) : 'No Fallout 3 folder found'}</div></div><span class="end">${J['find:fo3'] ? stt('run', 'Looking…') : fo3 ? stt('ok', 'Found') : stt('fail', 'Not found')}${btn('Browse…', { k: 'ghost', icon: 'folder', act: 'pickFolder', arg: 'fo3' })}${btn('Find', { k: 'ghost', icon: 'search', act: 'findFolder', arg: 'fo3', busy: !!J['find:fo3'] })}</span></div></div>${fo3 ? '' : '<p class="muted" style="margin:10px 4px">TTW needs Fallout 3 GOTY installed. Steam and GOG copies both work.</p>'}`;
   if (s === 1) body = `<div class="rows"><div class="r" style="min-height:64px"><div style="flex:1"><div class="nm">TTW installer file</div><div class="sub mono">Downloads › ${esc(S.g.ttwFile)}</div></div><span class="end">${stt('ok', 'Found')}${btn('Browse…', { k: 'ghost', icon: 'folder', act: 'openLink', arg: 'browse:ttw' })}</span></div></div><div class="cca" style="justify-content:flex-start">${btn('Get the file', { k: 'ghost', icon: 'link', act: 'openLink', arg: 'ttwsite' })}</div>`;
   if (s === 2) {
-    const low = storeLow();
+    const low = !ttwRoom(S.g.storeFree);
     body = j ? `<div class="card sunk"><div style="display:flex;gap:12px;align-items:center;margin-bottom:8px">${ic('refresh', 18, 'spin accc')}<b>${['Checking the Fallout 3 files', 'Converting sound', 'Building archives', 'Patching plugins', 'Adding TTW to your mods'][Math.min(4, Math.floor(j.p * 5))]}</b><span class="muted">${Math.round(j.p * 100)} % · about ${Math.max(1, Math.round((1 - j.p) * 22))} min left</span></div>${pbar(j.p)}</div>`
       : `<div class="rows"><div class="r"><span class="nm">Space needed</span><span class="end">${low ? stt('fail', `25 GB, only ${S.g.storeFree} GB free`) : stt('ok', `25 GB of ${S.g.storeFree} GB free`)}</span></div><div class="r"><span class="nm">Takes about</span><span class="end">22 min</span></div><div class="r"><span class="nm">Lands in</span><span class="end">Mods, pinned at the top</span></div></div>${low ? `<div class="banner err" style="margin-top:12px"><span class="bi">${ic('err', 22)}</span><div><div class="bt">Not enough space</div><div class="bs">Free some space or move the Toolbox storage.</div></div><div class="ba">${btn('Free up space…', { k: 'sec', act: 'cleanCache', arg: '' })}${btn('Change storage', { k: 'sec', act: 'pickFolder', arg: 'store' })}</div></div>` : ''}`;
   }
   if (s === 3) body = `<div class="banner ok"><span class="bi">${ic('ok', 22)}</span><div><div class="bt">Tale of Two Wastelands ${S.g.ttwVer} is in your mods</div><div class="bs">Switch it on or off per profile in Mods.</div></div></div>`;
-  const next = s === 0 ? btn('Next: TTW file', { k: 'primary', act: 'ttwNext', arg: '', dis: !fo3 }) : s === 1 ? btn('Next: Install', { k: 'primary', act: 'ttwNext', arg: '' }) : s === 2 ? (j ? '' : btn('Install', { k: 'primary', icon: 'dl', act: 'ttwInstall', arg: '', dis: storeLow() })) : btn('Done', { k: 'primary', act: 'ttwClose', arg: '' });
+  const next = s === 0 ? btn('Next: TTW file', { k: 'primary', act: 'ttwNext', arg: '', dis: !fo3 }) : s === 1 ? btn('Next: Install', { k: 'primary', act: 'ttwNext', arg: '' }) : s === 2 ? (j ? '' : btn('Install', { k: 'primary', icon: 'dl', act: 'ttwInstall', arg: '', dis: !ttwRoom(S.g.storeFree) })) : btn('Done', { k: 'primary', act: 'ttwClose', arg: '' });
   abar((j ? btn('Cancel', { k: 'ghost', act: 'cancelJob', arg: 'ttw' }) : btn('Close', { k: 'ghost', icon: 'x', act: 'ttwClose', arg: '' }) + (s > 0 && s < 3 ? btn('Back', { k: 'ghost', act: 'ttwBack', arg: '' }) : '')) + next);
   return pageWrap('ttw', hdr('ttw', 'Add Tale of Two Wastelands', `Step ${s + 1} of 4`) + stepper + body);
 };
 
 /* ---------- System ---------- */
 const vcmp = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0; };
-const parts = () => PARTS.map(c => S.g.tbVer === '0.6.0' ? { ...c, cur: c.nw } : c);
-const updLine = () => `Updates Raul's Toolbox 0.5.0 → 0.6.0, including ${PARTS.filter(c => c.id !== 'toolbox' && vcmp(c.nw, c.cur) > 0).map(c => `${c.n} ${c.nw}`).join(', ')}`;
+const parts = () => PARTS.map(c => S.g.tbVer === TB().nw ? { ...c, cur: c.nw } : c);
+const updLine = () => `Updates Raul's Toolbox ${TB().cur} → ${TB().nw}, including ${PARTS.filter(c => c.id !== 'toolbox' && vcmp(c.nw, c.cur) > 0).map(c => `${c.n} ${c.nw}`).join(', ')}`;
 PAGES.system = () => {
   const chk = J.check, up = J.update, ml = J.ml, avail = updAvail();
   const checked = chk ? '' : S.g.lastCheck ? `<span class="muted" style="margin-left:8px">Checked ${ago(S.g.lastCheck)}</span>` : '';
   const status = (chk ? stt('run', 'Checking for updates…') : up ? stt('run', 'Updating') : avail ? stt('info', 'Update available') : stt('ok', 'Up to date')) + checked;
   let top = '';
   if (chk) top = `<div class="banner acc"><span class="bi">${ic('refresh', 22, 'spin')}</span><div style="flex:1"><div class="bt">Checking for updates…</div><div style="margin-top:8px">${pbar(0, 'ind')}</div></div></div>`;
-  else if (up) top = `<div class="banner acc"><span class="bi">${ic('refresh', 22, 'spin')}</span><div style="flex:1"><div class="bt">Updating to 0.6.0 · ${Math.round(up.p * 100)} %</div><div class="bs">${['Downloading', 'Checking the download', 'Installing the parts', 'Restarting Raul’s Toolbox'][Math.min(3, Math.floor(up.p * 4))]}</div><div style="margin-top:8px">${pbar(up.p)}</div></div></div>`;
+  else if (up) top = `<div class="banner acc"><span class="bi">${ic('refresh', 22, 'spin')}</span><div style="flex:1"><div class="bt">Updating to ${TB().nw} · ${Math.round(up.p * 100)} %</div><div class="bs">${['Downloading', 'Checking the download', 'Installing the parts', 'Restarting Raul’s Toolbox'][Math.min(3, Math.floor(up.p * 4))]}</div><div style="margin-top:8px">${pbar(up.p)}</div></div></div>`;
   else if (U.updErr) top = `<div class="banner err" role="alert"><span class="bi">${ic('err', 22)}</span><div><div class="bt">The download stopped</div><div class="bs">The server didn't answer. Your current version is untouched.</div></div></div>`;
   else if (avail) top = `<div class="banner info"><span class="bi">${ic('dl', 22)}</span><div><div class="bt">Update available</div><div class="bs">${updLine()}</div></div></div>`;
-  else if (U.justUpdated) top = `<div class="banner ok"><span class="bi">${ic('ok', 22)}</span><div><div class="bt">Updated to 0.6.0</div><div class="bs">The change list is under Raul's Toolbox below. 0.5.0 is kept, so you can go back.</div></div></div>`;
+  else if (U.justUpdated) top = `<div class="banner ok"><span class="bi">${ic('ok', 22)}</span><div><div class="bt">Updated to ${TB().nw}</div><div class="bs">The change list is under Raul's Toolbox below. ${TB().cur} is kept, so you can go back.</div></div></div>`;
   abar(chk ? '' : up ? btn('Cancel', { k: 'ghost', act: 'cancelJob', arg: 'update' }) : btn('Check again', { k: 'sec', icon: 'refresh', act: 'checkUpdates', arg: '' }) + (avail ? btn(U.updErr ? 'Try again' : 'Update', { k: 'primary', icon: 'dl', act: 'update', arg: '', title: updLine() }) : ''));
   const rowsH = parts().map(c => {
     const upd = vcmp(c.nw, c.cur) > 0, o = U.vopen === c.id;
@@ -1273,7 +1275,7 @@ PAGES.system = () => {
   }).join('');
   const eo = U.secs.engines;
   const eng = `<div class="sec">${sech('Engine builds', `${S.g.builds.length}`, { fold: eo, click: ['sec', 'engines'], plain: 'Engine builds' })}${eo ? `<div class="rows">${S.g.builds.map(v => `<div class="r">${ic('bolt', 18)}<span class="nm">Engine <span class="mono">${v}</span></span><span class="end">${v === S.g.engine ? tag('In use', 'ok') : btn('Use this build…', { k: 'sec', cls: 'sm', act: 'useBuild', arg: v }) + btn('Remove…', { k: 'ghost', cls: 'sm', act: 'removeBuild', arg: v })}</span></div>`).join('')}</div><p class="muted" style="margin:8px 6px 2px">Older builds stay so you can go back if a new one misbehaves.</p>` : ''}</div>`;
-  const mlH = `<div class="sec">${sech('Masterlist', `<span class="muted">${ml ? 'Updating…' : `Updated ${ago(S.g.mlAt)}`}</span>`)}<div class="rows"><div class="r"><span class="nm">Load order rules and plugin messages</span><span class="sub">${S.g.mlNew ? `${S.g.mlNew} new messages` : 'Used by Sort on Load order'}</span><span class="end">${ml ? `<div style="width:140px">${pbar(ml.p)}</div>` : btn('Update masterlist', { k: 'sec', cls: 'sm', icon: 'refresh', act: 'mlUpdate', arg: '' })}</span></div></div></div>`;
+  const mlH = `<div class="sec">${sech('Masterlist', `<span class="muted">${ml ? 'Updating…' : `Updated ${ago(S.g.mlAt)}`}</span>`)}<div class="rows"><div class="r"><span class="nm">Load order rules and plugin messages</span><span class="sub">${S.g.mlNew ? plural(S.g.mlNew, 'new message') : 'Used by Sort on Load order'}</span><span class="end">${ml ? `<div style="width:140px">${pbar(ml.p)}</div>` : btn('Update masterlist', { k: 'sec', cls: 'sm', icon: 'refresh', act: 'mlUpdate', arg: '' })}</span></div></div></div>`;
   return pageWrap('system', hdr('versions', 'System', status) + top + `<div class="sec">${sech('Toolbox and its parts', `<span title="The parts ship inside the app and update with it.">${ic('info', 15)}</span>`)}<div class="rows">${rowsH}</div></div>` + eng + mlH);
 };
 
@@ -1283,7 +1285,7 @@ function docItems(p) {
   const C = Object.fromEntries(checks(p).map(c => [c.id, c])), mm = missingMasters(p), ooo = outOfOrder(p), n = allActiveFiles(p).length;
   return {
     game: { ...C.game, n: 'Game folder' }, gamefiles: gameOk() ? { n: 'Game files', st: 'ok', t: 'Intact' } : { n: 'Game files', st: 'wait', t: 'Needs the game folder' }, store: { ...C.store, t: C.store.st === 'ok' ? `${S.g.storeFree} GB free` : C.store.t },
-    engine: { ...C.engine, t: C.engine.st === 'ok' ? `${S.g.engine} · OK` : C.engine.t }, tb: updAvail() ? { n: "Raul's Toolbox", st: 'info', t: 'Update available', fix: ['Open System', 'nav', 'system'] } : { n: "Raul's Toolbox", st: 'ok', t: '0.6.0 · newest' },
+    engine: { ...C.engine, t: C.engine.st === 'ok' ? `${S.g.engine} · OK` : C.engine.t }, tb: updAvail() ? { n: "Raul's Toolbox", st: 'info', t: 'Update available', fix: ['Open System', 'nav', 'system'] } : { n: "Raul's Toolbox", st: 'ok', t: `${TB().nw} · newest` },
     masters: mm.length ? { n: 'Masters', st: 'fail', t: `${mm[0][0]} needs ${mm[0][1]}`, fix: ['Show load order', 'nav', 'load'] } : { n: 'Masters', st: 'ok', t: 'All present' },
     sorted: ooo ? { n: 'Load order', st: 'warn', t: `${ooo} out of order`, fix: ['Sort…', 'sortGo', ''] } : { n: 'Load order', st: 'ok', t: 'Sorted' },
     count: { n: 'Plugin count', st: n > 230 ? 'warn' : 'ok', t: `${n} of 255` }, ext: { n: 'Script extenders', st: 'ok', t: 'Built into the engine' },
@@ -1315,7 +1317,7 @@ PAGES.settings = () => {
   const ttwRow = row('Tale of Two Wastelands', '', `${gp.ttwInstalled ? stt('ok', 'Added') : stt('wait', 'Not added')}${btn(gp.ttwInstalled ? 'Show in Mods' : 'Add…', { k: 'ghost', act: gp.ttwInstalled ? 'nav' : 'ttwStart', arg: gp.ttwInstalled ? 'mods' : '' })}`);
   return pageWrap('settings', hdr('settings', 'Settings', 'Changes save as you go') +
     sec('s_game', 'Game installations', pathRow('Fallout: New Vegas', 'Required', gp.gamePath, gameOk(), 'fnv', gameOk() ? 'Found' : gp.gamePath && !gp.scen.game ? 'No game here' : 'Not found') + pathRow('Fallout 3', 'For TTW', gp.fo3Path, gp.fo3Path && !gp.scen.fo3 ? true : false, 'fo3') + ttwRow) +
-    sec('s_store', 'Toolbox storage', pathRow('Storage folder', 'Mods, LOD and backups live here', gp.storePath, storeLow() ? 'warn' : true, 'store', storeLow() ? `${gp.storeFree} GB free` : `${gp.storeFree} GB free`) + row('Download cache', `${gp.cache.toFixed(1)} GB of archives you already installed`, btn('Clean up…', { k: 'sec', cls: 'sm', act: 'cleanCache', arg: '', dis: gp.cache < 0.1 }))) +
+    sec('s_store', 'Toolbox storage', pathRow('Storage folder', 'Mods, LOD and backups live here', gp.storePath, storeLow() ? 'warn' : true, 'store', storeLow() ? `${gp.storeFree} GB free, low on space` : `${gp.storeFree} GB free`) + row('Download cache', `${gp.cache.toFixed(1)} GB of archives you already installed`, btn('Clean up…', { k: 'sec', cls: 'sm', act: 'cleanCache', arg: '', dis: gp.cache < 0.1 }))) +
     sec('s_prof', `Game settings for ${esc(p.name)}`, row('Resolution', '', `<select class="inp" data-in="gfx" data-id="res" data-val="${p.gfx.res}" data-k="gfx:res" aria-label="Resolution">${['1280 × 720', '1920 × 1080', '2560 × 1440', '3840 × 2160'].map(v => `<option>${v}</option>`).join('')}</select>`) +
       row('Frame rate limit', '', `<select class="inp" data-in="gfx" data-id="cap" data-val="${p.gfx.cap}" data-k="gfx:cap" aria-label="Frame rate limit">${['60', '90', '120', '144', 'Off'].map(v => `<option>${v}</option>`).join('')}</select>`) +
       row('Upscaling', 'Renders smaller and sharpens. More frames.', seg([['Off', 'Off'], ['FSR', 'FSR']], p.gfx.up, 'gfxSeg', 'Upscaling').replace(/data-arg="(Off|FSR)"/g, 'data-arg="up:$1"')) +
@@ -1384,12 +1386,13 @@ const WIZ = [
   },
   () => {
     const W = S.wiz, j = J.wttw, f = J['find:wfo3'], fo3 = W.fo3 && W.fo3.ok;
-    const decided = W.ttw === 'added' || W.ttw === 'skipped';
-    wbar(btn(W.ttw === 'skipped' ? 'Next' : 'Next', { k: 'primary', act: 'wizNext', arg: '', dis: !decided || !!j }), { busy: !!j, extra: !decided && !j ? btn('Skip for now', { k: 'ghost', act: 'wizTtw', arg: 'skip' }) + btn('Add TTW', { k: 'sec', icon: 'plus', act: 'wizTtw', arg: 'add', dis: !fo3 }) : W.ttw === 'skipped' ? btn('Add TTW instead', { k: 'ghost', act: 'wizTtw', arg: 'undo' }) : '' });
+    const decided = W.ttw === 'added' || W.ttw === 'skipped', room = ttwRoom(W.store ? W.store.free : 0);
+    wbar(btn(W.ttw === 'skipped' ? 'Next without TTW' : 'Next', { k: 'primary', act: 'wizNext', arg: '', dis: !decided || !!j }), { busy: !!j, extra: !decided && !j ? btn('Skip for now', { k: 'ghost', act: 'wizTtw', arg: 'skip' }) + btn('Add TTW', { k: 'sec', icon: 'plus', act: 'wizTtw', arg: 'add', dis: !fo3 || !room }) : W.ttw === 'skipped' ? btn('Add TTW instead', { k: 'ghost', act: 'wizTtw', arg: 'undo' }) : '' });
     return `<h2 style="margin:4px 0 4px">Tale of Two Wastelands <span class="tag">Optional</span></h2><p class="muted" style="margin:0 0 12px">Plays Fallout 3 inside New Vegas. You can add it later from Mods.</p>
       <div class="rows">${wrow('Fallout 3', W.fo3 && W.fo3.path ? esc(W.fo3.path) : f ? 'Looking…' : 'No folder yet', (f ? stt('run', 'Looking…') : fo3 ? stt('ok', 'Found') : W.fo3 ? stt('fail', 'Not found') : '') + btn('Browse…', { k: 'ghost', icon: 'folder', act: 'pickFolder', arg: 'wfo3' }) + btn('Find', { k: 'ghost', icon: 'search', act: 'findFolder', arg: 'wfo3', busy: !!f }))}
       ${wrow('TTW installer file', `Downloads › ${S.g.ttwFile}`, stt('ok', 'Found'))}</div>
       ${j ? `<div class="card sunk" style="margin-top:12px"><div style="margin-bottom:8px"><b>${['Checking the Fallout 3 files', 'Converting sound', 'Building archives', 'Patching plugins'][Math.min(3, Math.floor(j.p * 4))]}</b> <span class="muted">${Math.round(j.p * 100)} %</span></div>${pbar(j.p)}</div>` : ''}
+      ${!room && !decided ? `<div class="banner warn" style="margin-top:12px"><span class="bi">${ic('warn', 22)}</span><div><div class="bt">Not enough space for TTW</div><div class="bs">TTW needs ${TTW_GB} GB; the storage folder has ${W.store ? W.store.free : 0} GB free. Skip it, or add it later from Mods.</div></div></div>` : ''}
       ${W.ttw === 'added' ? `<div class="banner ok" style="margin-top:12px"><span class="bi">${ic('ok', 22)}</span><div><div class="bt">TTW ${S.g.ttwVer} added</div><div class="bs">It shows in Mods, pinned at the top.</div></div></div>` : ''}
       ${W.ttw === 'skipped' ? `<div class="banner info" style="margin-top:12px"><span class="bi">${ic('info', 22)}</span><div><div class="bt">Skipped</div><div class="bs">Mods shows TTW as Not added, with an Add button.</div></div></div>` : ''}`;
   },
@@ -1492,7 +1495,7 @@ function instPlugins(d) {
   const a = ARCH[d.sel]; if (!a.mod) return [];
   let pl = CAT[a.mod].plugins.map(x => x[0]);
   if (a.mod === 'nsk' && d.ch.ed === 'full') pl = ['Nevada Skies - Full Edition.esp'];
-  (d.ch.patch || []).forEach(x => pl.push(x === 'wmx' ? 'B42 Optics - WMX.esp' : 'B42 Optics - WRP.esp'));
+  (d.ch.patch || []).forEach(x => pl.push({ wmx: 'B42 Optics - WMX.esp', wrp: 'B42 Optics - WRP.esp', jsue: 'The Living Desert - JSUE.esp' }[x]));
   return pl;
 }
 function optLabels(d) { const a = ARCH[d.sel]; if (!a.fomod) return []; return a.fomod.flatMap(g => g.opts.filter(o => g.kind === 'one' ? d.ch[g.id] === o[0] : (d.ch[g.id] || []).includes(o[0])).map(o => o[1])); }
@@ -1563,7 +1566,7 @@ A.toastX = a => { U.toasts = U.toasts.filter(t => t.id !== a); render(); };
 A.scrim = () => { if (U.pal) { U.pal = null; U.focus = U.ret; render(); return; } if (U.dlg && !(U.dlg.t === 'install' && U.dlg.step === 'busy')) closeDlg(); };
 A.dlgClose = () => closeDlg();
 A.shortcuts = () => openDlg({ t: 'shortcuts' });
-A.palette = () => { U.ret = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null; U.pal = { q: '', i: 0 }; U.menu = null; U.focus = 'palIn'; render(); };
+A.palette = () => { U.ret = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null; if (!U.ret) U.ret = 'palette:'; U.pal = { q: '', i: 0 }; U.menu = null; U.focus = 'palIn'; render(); };
 A.palGo = a => { const it = palItems()[+a]; U.pal = null; if (!it) return render(); run(it[2], it[3]); };
 A.openLink = a => { toast(a.startsWith('browse') ? 'Your file browser opened' : a === 'ttwsite' ? 'The TTW download page opened in your browser' : a.startsWith('orig') ? `${a.slice(5)}: the original mod’s page opened in your browser` : `${a.slice(5)}: our version’s source opened in your browser`); render(); };
 A.findMod = a => { U.tab = 'list'; U.q = ''; U.filt = 'all'; U.open[a] = true; U.focus = 'mod:' + a; nav('mods'); };
@@ -1572,7 +1575,7 @@ A.findMod = a => { U.tab = 'list'; U.q = ''; U.filt = 'all'; U.open[a] = true; U
 A.profMenu = a => { const anchor = 'profMenu:' + a; U.menu = U.menu && U.menu.anchor === anchor ? null : { id: 'prof', anchor, fresh: true, alignLeft: a === 'top' }; render(); };
 A.profSwitch = a => { U.menu = null; if (a === S.active) return render(); S.active = a; U.sortPrev = null; U.open = {}; U.picA = U.picB = null; U.play = null; toast(`Switched to ${P().name}: mods, load order, settings, LOD and tests`); commit(); };
 const nameDlg = (title, v, ok, kind, extra) => openDlg({ t: 'name', title, v, ok, kind, extra });
-A.profNew = () => nameDlg('New profile', '', 'Create', 'profNew', '<p>Starts empty. Use Duplicate to start from this one.</p>');
+A.profNew = () => nameDlg('New profile', '', 'Create', 'profNew', '<p>Starts with every mod off. Your installed mods are shared.</p>');
 A.profDup = () => nameDlg(`Duplicate “${P().name}”`, `${P().name} copy`, 'Duplicate', 'profDup', '<p>Copies mods, groups, load order, settings, LOD and known stable setups. Test history starts fresh.</p>');
 A.profRename = () => nameDlg('Rename profile', P().name, 'Rename', 'profRename');
 A.profDelete = () => confirmDlg(`Delete “${esc(P().name)}”?`, 'Its mod choices, load order, settings and test history go. Installed mod files stay for other profiles.', 'Delete profile', 'doDeleteProfile', '', true);
@@ -1713,14 +1716,14 @@ A.play = () => {
 A.playCancel = () => { clearInterval(playT); U.play = null; render(); };
 A.playAnyway = () => startGame();
 function startGame() { U.play = { state: 'starting' }; render(); setTimeout(() => { if (!U.play || U.play.state !== 'starting') return; U.play = null; U.run = { pid: S.active, start: Date.now() }; ensureTick(); toast('New Vegas is running'); render(); }, 1500); }
-A.stopGame = () => { const r = U.run; if (!r) return; const mins = Math.max(1, Math.floor((Date.now() - r.start) / 1000)); S.g.sessions.push({ t: Date.now(), mins, pid: r.pid }); U.run = null; toast(`Played ${hm(mins)}. Added to your playtime`); commit(); };
+A.stopGame = () => { const r = U.run; if (!r) return; const mins = Math.max(1, Math.floor((Date.now() - r.start) / 1000)) / 60; S.g.sessions.push({ t: Date.now(), mins, pid: r.pid }); U.run = null; toast(`Played ${hm(mins)}. Added to your playtime`); commit(); };
 
 /* TTW flow */
 A.ttwStart = a => { U.dlg = null; U.ttwFlow = { step: a === 'update' ? 2 : 0 }; if (!S.g.fo3Path && !J['find:fo3']) A.findFolder('fo3'); nav('ttw'); };
 A.ttwNext = () => { U.ttwFlow.step++; render(); };
 A.ttwBack = () => { U.ttwFlow.step = Math.max(0, U.ttwFlow.step - 1); render(); };
 A.ttwClose = () => { U.ttwFlow = null; nav('mods'); };
-A.ttwInstall = () => job('ttw', 8000, () => { S.g.ttwInstalled = true; S.g.ttwUpdate = false; P().ttwOn = true; if (U.ttwFlow) U.ttwFlow.step = 3; toast('Tale of Two Wastelands added'); commit(); }, { label: 'Installing TTW' });
+A.ttwInstall = () => { if (!ttwRoom(S.g.storeFree)) return; job('ttw', 8000, () => { S.g.ttwInstalled = true; S.g.ttwUpdate = false; P().ttwOn = true; if (U.ttwFlow) U.ttwFlow.step = 3; toast('Tale of Two Wastelands added'); commit(); }, { label: 'Installing TTW' }); };
 
 /* folders, storage */
 A.pickFolder = a => openDlg({ t: 'folder', kind: a, sel: null });
@@ -1749,12 +1752,12 @@ A.repairEngine = () => job('repair', 3000, () => { S.g.scen.engine = false; toas
 /* system */
 function autoCheck() { if (S.g.autoCheck && Date.now() - S.g.lastCheck > 5 * 60000 && !J.check) A.checkUpdates(); }
 A.checkUpdates = a => { if (a === 'go') { U.page = 'system'; U.scrollTop = true; } job('check', 1800, () => { S.g.lastCheck = Date.now(); commit(); }, { label: 'Checking for updates' }); };
-A.update = () => { U.updErr = false; job('update', 7000, () => { S.g.tbVer = '0.6.0'; U.justUpdated = true; U.vopen = 'toolbox'; toast("Updated to Raul's Toolbox 0.6.0"); commit(); }, { label: 'Updating', failAt: S.g.scen.dl ? 0.35 : null, fail: () => { U.updErr = true; toast('The download stopped'); render(); } }); };
+A.update = () => { U.updErr = false; job('update', 7000, () => { S.g.tbVer = TB().nw; U.justUpdated = true; U.vopen = 'toolbox'; toast(`Updated to Raul's Toolbox ${TB().nw}`); commit(); }, { label: 'Updating', failAt: S.g.scen.dl ? 0.35 : null, fail: () => { U.updErr = true; toast('The download stopped'); render(); } }); };
 A.useBuild = a => confirmDlg(`Use engine ${a}?`, `The game runs on ${a} from the next start. You can switch back here.`, `Use ${a}`, 'doUseBuild', a);
 A.doUseBuild = a => { U.dlg = null; S.g.engine = a; toast(`Engine ${a} in use`); commit(); };
 A.removeBuild = a => confirmDlg(`Remove engine ${a}?`, 'You can’t switch back to it after this.', 'Remove', 'doRemoveBuild', a, true);
 A.doRemoveBuild = a => { U.dlg = null; S.g.builds = S.g.builds.filter(b => b !== a); toast(`Engine ${a} removed`); commit(); };
-A.mlUpdate = () => job('ml', 2500, () => { S.g.mlAt = Date.now(); S.g.mlNew = 4; toast('Masterlist updated: 4 new messages'); commit(); }, { label: 'Updating the masterlist' });
+A.mlUpdate = () => job('ml', 2500, () => { S.g.mlAt = Date.now(); S.g.mlNew = ML_NEW; toast(`Masterlist updated: ${plural(ML_NEW, 'new message')}`); commit(); }, { label: 'Updating the masterlist' });
 A.docRun = () => { S.g.docRun = Date.now(); job('doctor', 11 * 320, () => { commit(); }, { label: 'Doctor' }); };
 
 /* settings */
@@ -1777,7 +1780,7 @@ function wizEnter() {
   if (w.step === 6 && w.prof !== 'empty' && !w.qSet) { w.q = SEED.find(x => x.id === w.prof).q; }
 }
 A.wizEngine = () => { U.wEngErr = false; job('wengine', 4200, () => { W().engine = true; commit(); }, { label: 'Installing the engine', failAt: S.g.scen.dl ? 0.4 : null, fail: () => { U.wEngErr = true; render(); } }); };
-A.wizTtw = a => { const w = W(); if (a === 'skip') w.ttw = 'skipped'; if (a === 'undo') w.ttw = null; if (a === 'add') { job('wttw', 6000, () => { W().ttw = 'added'; commit(); }, { label: 'Installing TTW' }); return; } commit(); };
+A.wizTtw = a => { const w = W(); if (a === 'skip') w.ttw = 'skipped'; if (a === 'undo') w.ttw = null; if (a === 'add') { if (!ttwRoom(W().store ? W().store.free : 0)) return; job('wttw', 6000, () => { W().ttw = 'added'; commit(); }, { label: 'Installing TTW' }); return; } commit(); };
 A.wizProf = a => { W().prof = a; W().qSet = false; U.focus = 'wizProf:' + a; commit(); };
 A.wizQ = a => { W().q = a; W().qSet = true; commit(); };
 A.wizFar = a => { const w = W(); if (a === 'later') w.far = 'later'; if (a === 'undo') w.far = null; if (a === 'build') { job('wfar', 6000, () => { W().far = 'built'; commit(); }, { label: 'Building LOD' }); return; } commit(); };
@@ -1851,7 +1854,7 @@ document.addEventListener('keydown', ev => {
     if (ev.shiftKey && (i <= 0)) { ev.preventDefault(); f[f.length - 1].focus(); } else if (!ev.shiftKey && (i === f.length - 1 || i < 0)) { ev.preventDefault(); f[0].focus(); }
     return;
   }
-  if ((k === 'ArrowDown' || k === 'ArrowUp') && t.closest && t.closest('.picker') && t.getAttribute('role') === 'option') { ev.preventDefault(); const opts = [...t.closest('.picker').querySelectorAll('[role="option"][tabindex="0"]')]; const i = opts.indexOf(t); const n = opts[i + (k === 'ArrowDown' ? 1 : -1)]; if (n) { n.click(); n.focus(); } return; }
+  if ((k === 'ArrowDown' || k === 'ArrowUp') && t.closest && t.closest('.picker') && t.getAttribute('role') === 'option') { ev.preventDefault(); const opts = [...t.closest('.picker').querySelectorAll('[role="option"][tabindex="0"]')]; const none = !t.closest('.picker').querySelector('[aria-selected="true"]'); const i = none && k === 'ArrowDown' ? -1 : opts.indexOf(t); const n = opts[i + (k === 'ArrowDown' ? 1 : -1)]; if (n) { n.click(); n.focus(); } return; }
   /* Enter is the dialog's primary action (Space still picks an option; a focused plain button keeps its own Enter) */
   if (k === 'Enter' && U.dlg && !ev.shiftKey && t.tagName !== 'TEXTAREA') {
     const box = document.querySelector('.dlg');
@@ -1927,7 +1930,9 @@ A.doRevert = a => {
 A.ptMenu = a => { const anchor = 'pt:' + a; U.menu = U.menu && U.menu.anchor === anchor ? null : { id: 'pt', run: +a, anchor, fresh: true }; render(); };
 
 /* start */
-A.quitAsk = () => confirmDlg('Quit Raul’s Toolbox?', 'Running jobs stop. Your setup is saved.', 'Quit', 'dlgClose', '');
+A.quitAsk = () => confirmDlg('Quit Raul’s Toolbox?', 'Running jobs stop. Your setup is saved.', 'Quit', 'quitDo', '');
+A.quitDo = () => { U.dlg = null; U.pal = null; U.menu = null; U.quit = true; render(); };
+A.reopen = () => location.reload();
 document.getElementById('tbi').innerHTML = ic('app', 16);
 fitWin();
 S = store.load();

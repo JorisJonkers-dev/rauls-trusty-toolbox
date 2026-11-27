@@ -39,12 +39,13 @@ const WIZ = [
   },
   () => {
     const W = S.wiz, j = J.wttw, f = J['find:wfo3'], fo3 = W.fo3 && W.fo3.ok;
-    const decided = W.ttw === 'added' || W.ttw === 'skipped';
-    wbar(btn(W.ttw === 'skipped' ? 'Next' : 'Next', { k: 'primary', act: 'wizNext', arg: '', dis: !decided || !!j }), { busy: !!j, extra: !decided && !j ? btn('Skip for now', { k: 'ghost', act: 'wizTtw', arg: 'skip' }) + btn('Add TTW', { k: 'sec', icon: 'plus', act: 'wizTtw', arg: 'add', dis: !fo3 }) : W.ttw === 'skipped' ? btn('Add TTW instead', { k: 'ghost', act: 'wizTtw', arg: 'undo' }) : '' });
+    const decided = W.ttw === 'added' || W.ttw === 'skipped', room = ttwRoom(W.store ? W.store.free : 0);
+    wbar(btn(W.ttw === 'skipped' ? 'Next without TTW' : 'Next', { k: 'primary', act: 'wizNext', arg: '', dis: !decided || !!j }), { busy: !!j, extra: !decided && !j ? btn('Skip for now', { k: 'ghost', act: 'wizTtw', arg: 'skip' }) + btn('Add TTW', { k: 'sec', icon: 'plus', act: 'wizTtw', arg: 'add', dis: !fo3 || !room }) : W.ttw === 'skipped' ? btn('Add TTW instead', { k: 'ghost', act: 'wizTtw', arg: 'undo' }) : '' });
     return `<h2 style="margin:4px 0 4px">Tale of Two Wastelands <span class="tag">Optional</span></h2><p class="muted" style="margin:0 0 12px">Plays Fallout 3 inside New Vegas. You can add it later from Mods.</p>
       <div class="rows">${wrow('Fallout 3', W.fo3 && W.fo3.path ? esc(W.fo3.path) : f ? 'Looking…' : 'No folder yet', (f ? stt('run', 'Looking…') : fo3 ? stt('ok', 'Found') : W.fo3 ? stt('fail', 'Not found') : '') + btn('Browse…', { k: 'ghost', icon: 'folder', act: 'pickFolder', arg: 'wfo3' }) + btn('Find', { k: 'ghost', icon: 'search', act: 'findFolder', arg: 'wfo3', busy: !!f }))}
       ${wrow('TTW installer file', `Downloads › ${S.g.ttwFile}`, stt('ok', 'Found'))}</div>
       ${j ? `<div class="card sunk" style="margin-top:12px"><div style="margin-bottom:8px"><b>${['Checking the Fallout 3 files', 'Converting sound', 'Building archives', 'Patching plugins'][Math.min(3, Math.floor(j.p * 4))]}</b> <span class="muted">${Math.round(j.p * 100)} %</span></div>${pbar(j.p)}</div>` : ''}
+      ${!room && !decided ? `<div class="banner warn" style="margin-top:12px"><span class="bi">${ic('warn', 22)}</span><div><div class="bt">Not enough space for TTW</div><div class="bs">TTW needs ${TTW_GB} GB; the storage folder has ${W.store ? W.store.free : 0} GB free. Skip it, or add it later from Mods.</div></div></div>` : ''}
       ${W.ttw === 'added' ? `<div class="banner ok" style="margin-top:12px"><span class="bi">${ic('ok', 22)}</span><div><div class="bt">TTW ${S.g.ttwVer} added</div><div class="bs">It shows in Mods, pinned at the top.</div></div></div>` : ''}
       ${W.ttw === 'skipped' ? `<div class="banner info" style="margin-top:12px"><span class="bi">${ic('info', 22)}</span><div><div class="bt">Skipped</div><div class="bs">Mods shows TTW as Not added, with an Add button.</div></div></div>` : ''}`;
   },

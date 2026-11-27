@@ -629,8 +629,20 @@ source = "this repository"
 license = "GPL-3.0-only"
 
 [[asset]]
+path = "docs/redesign/screens/mods/01-search-no-match.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
 path = "site/landing.html"
 what = "landing page template of the public site (docs/wiki, the demo and the tour are published beside it)"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/02-search-match-by-name.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
 source = "this repository"
 license = "GPL-3.0-only"
 
@@ -641,7 +653,1376 @@ source = "this repository"
 license = "GPL-3.0-only"
 
 [[asset]]
+path = "docs/redesign/screens/mods/03-search-match-by-plugin.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/04-filter-off.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/05-filter-attention-empty.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/06-builtin-open.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/07-bundled-plugins-details.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/08-ttw-off.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/09-ttw-checked.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/10-ttw-update-available.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/11-new-group-empty.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/12-new-group-duplicate.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/13-new-group-created.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/14-group-menu.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/15-group-renamed.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/16-group-delete-confirm.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/17-group-deleted.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/18-group-unfolded.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/19-group-all-on.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/20-group-moved-down.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/21-group-drag-ghost.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/22-mod-off-toast.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/23-mod-details-open.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/24-mod-moved-up.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/25-mod-drag-ghost.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/26-mod-dropped-in-group.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/27-mod-group-select.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/28-remove-confirm.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/29-mod-removed.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/30-install-review-missing-master.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/31-installed-with-missing-master.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/32-missing-master.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/33-untested-card.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/34-empty-profile.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/35-install-pick.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/36-install-options-1.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/37-install-options-2.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/38-install-review.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/39-install-progress.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/40-install-done.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/41-broken-archive.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/42-install-cancelled-review.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/43-palette-mod.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/44-palette-jumped.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/45-badge-appears.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/46-badge-cleared.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/47-ttw-not-added.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/mods/48-new-profile-not-empty.png"
+what = "picture of the clickable demo taken while walking a user story (Mods page and install), made by docs/redesign/scripts/mods.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/01-load-01-hardcore-unsorted.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/02-load-02-search-wmx.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/03-load-03-search-none.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/04-load-04-filter-out-of-order.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/05-load-05-plugin-toggled.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/06-load-06-sort-preview.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/07-load-07-sorted.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/08-load-08-profile-menu.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/09-load-09-beautiful.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/10-load-10-alt-down.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/11-lod-01-hardcore-up-to-date.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/12-lod-02-fine-tune.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/13-lod-03-fine-tune-changed.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/14-lod-03b-plants-on.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/15-lod-04-fine-reset.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/16-lod-05-quality-high-out-of-date.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/17-lod-06-details-open.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/18-lod-07-beautiful-not-built.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/19-lod-08-building.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/20-lod-09-stop-confirm.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/21-lod-10-build-stopped.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/22-lod-11-beautiful-built.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/23-ttw-01-mods-add-card.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/24-ttw-02-step1-fallout3-found.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/25-ttw-02b-step1-fallout3-not-found.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/26-ttw-02c-find-not-found.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/27-ttw-02d-browse-picker.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/28-ttw-02e-fo3-browsed-found.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/29-ttw-03-step2-ttw-file.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/30-ttw-03b-site-link-toast.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/31-ttw-04a-step3-low-disk.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/32-ttw-04-step3-install.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/33-ttw-05-installing.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/34-ttw-06-done.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/35-system-01-checking.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/36-system-02-after-check.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/37-system-03-part-toolbox-open.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/38-system-04-part-engine-open.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/39-system-05-masterlist-updating.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/40-system-05b-engine-builds-open.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/41-system-06-use-build-confirm.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/42-system-07-remove-build-confirm.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/43-system-08-update-progress.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/44-system-09-update-failed.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/45-system-10-updated.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/46-doctor-01-not-run.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/47-doctor-02-running.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/48-doctor-03-results.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/49-doctor-04-folded.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/50-doctor-05-engine-damaged.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/51-doctor-06-repairing.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/52-doctor-07-repaired.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/53-settings-01-top.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/54-settings-01b-all-sections-open.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/55-settings-02-game-settings-changed.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/56-settings-03-appearance-on.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/57-settings-04-clean-cache-confirm.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/58-settings-05-reset-confirm.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/pages/59-settings-06-storage-picker.png"
+what = "picture of the clickable demo taken while walking a user story (Load order, LOD, TTW, System, Doctor and Settings), made by docs/redesign/scripts/pages.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/01-walk-home.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/02-walk-mods.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/03-walk-load.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/04-walk-far.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/05-walk-system.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/06-walk-doctor.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/07-walk-settings.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/08-palette-mod.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/09-shortcuts-sheet.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/10-quit-confirm.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/11-profile-menu.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/12-name-dialog.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/13-toast-undo.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/14-abar-mods.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/15-abar-load.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/16-abar-far.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/17-abar-doctor.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/18-settings-reduce-motion-on.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/19-settings-high-contrast.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/20-larger-text-mods.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/21-viewport-1920.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/22-focus-first-stop.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/shell/23-final-mods.png"
+what = "picture of the clickable demo taken while walking a user story (window, dialogs, menus and keys), made by docs/redesign/scripts/shell.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/01-wizard-welcome.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/02-game-found.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/03-storage-default.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/04-engine-not-installed.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/05-engine-installing.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/06-engine-installed.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/07-ttw-decision.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/08-ttw-installing.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/09-ttw-added.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/10-profile-cards.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/11-profile-hard-selected.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/12-lod-default.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/13-lod-balanced.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/14-lod-building.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/15-done-step.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/16-home-after-setup.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/17-game-not-found.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/18-picker-game.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/19-game-wrong-folder.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/20-game-found-after-browse.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/21-storage-low.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/22-engine-failed.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/23-engine-retry-ok.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/24-ttw-fo3-not-found.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/25-ttw-skipped.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/26-profile-empty.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/27-lod-default-empty.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/28-lod-later.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/29-home-skipped-setup.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/30-home-hardcore.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/31-profile-menu-open.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/32-search-palette.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/33-stability-banner.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/34-revert-to-last-stable-dialog.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/35-stability-test-tab.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/36-stability-running-banner.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/37-stability-passed-home.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/38-home-after-profile-switch.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/39-row-game.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/40-row-ttw.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/41-row-mods.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/42-row-load.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/43-row-far.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/44-play-checking.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/45-play-warned.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/46-play-running.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/47-play-stopped.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/48-play-failed-engine.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/49-engine-repaired.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/50-play-failed-game.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/51-picker-from-play.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/52-start-again-confirm.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/53-after-start-again.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/start/54-ttw-blocked-low-space.png"
+what = "picture of the clickable demo taken while walking a user story (setup wizard, Home and Play), made by docs/redesign/scripts/start.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/01-test-tab-initial.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/02-stab-running.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/03-stab-cancelled.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/04-stab-passed.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/05-known-stable-open.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/06-known-stable-forgotten.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/07-stab-crashed.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/08-bench-running.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/09-bench-result.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/10-bench-history-graph.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/11-pics-running.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/12-pics-side-by-side.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/13-pics-single.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/14-pics-all.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/15-pics-search.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/16-pics-zoom-wheel.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/17-pics-pan.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/18-pics-reset.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/19-pics-zoom-chips.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/20-log-open.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/21-log-warnings.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/22-log-errors.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/23-log-search-none.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/24-log-search-freeside.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/25-versions-list.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/26-versions-expanded.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/27-revert-dialog.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/28-versions-after-revert.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/29-rec-after-toggle.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/30-rec-after-toggle-back.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/31-home.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/32-home-banner-run-lands-on-test.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/33-home-untested-banner.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/34-home-banner-revert-dialog.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/35-profile-menu-top.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/36-profile-new-dialog.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/37-profile-new-duplicate-name.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/38-profile-new-created.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/39-profile-duplicate-dialog.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/40-profile-rename-dialog.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/41-profile-menu-from-load.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/42-profile-menu-from-lod.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/43-profile-duplicate-of-beautiful.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/44-profile-after-delete.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/45-profile-delete-confirm.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
+path = "docs/redesign/screens/tests/46-pics-capital-wasteland.png"
+what = "picture of the clickable demo taken while walking a user story (Test your setup and profiles), made by docs/redesign/scripts/tests.js"
+source = "this repository"
+license = "GPL-3.0-only"
+
+[[asset]]
 path = "site/wiki.html"
 what = "wiki page template of the public site"
 source = "this repository"
 license = "GPL-3.0-only"
+
