@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795677541850,
+  "lastUpdate": 1795777344453,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -12396,6 +12396,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.167143,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "f2207a126b64fc4ea068bf8242b5a865f8b7af8e",
+          "message": "docs(site): public site on GitHub Pages with demo, guided tour and wiki (#637)\n\n* docs(site): public site on GitHub Pages with demo, guided tour and wiki\n\n* fix(site): give the pages an inline icon so browsers do not ask for favicon.ico\n\n* fix(site): do not count the demo's missing favicon as a page error\n\n* fix(site): fit the demo to the tour stage, drop the duplicate label, pin the check dependency, keep bench untouched\n\n* fix(site): point the lockfile at the public npm registry",
+          "timestamp": "2026-11-27T12:00:13+01:00",
+          "tree_id": "d239de0bd52b13f450c9d58ffafc5970856d8852",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f2207a126b64fc4ea068bf8242b5a865f8b7af8e"
+        },
+        "date": 1795777343333,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.902981,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.757457,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 37.311752,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.014619,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.735337,
             "unit": "ms"
           }
         ]
