@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795801027032,
+  "lastUpdate": 1795801873367,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13425,6 +13425,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 9.470402,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "d3122fe40ae2c3799c10139fc8b3729f6a07f4bf",
+          "message": "fix(site): stop the tour ticking steps from the demo that Reset just cleared (#712)",
+          "timestamp": "2026-11-27T17:48:51Z",
+          "tree_id": "60f16882d7eb3293783d62c60dfd0496a07a8cbc",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d3122fe40ae2c3799c10139fc8b3729f6a07f4bf"
+        },
+        "date": 1795801872396,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.939032,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 9.355304,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 34.608841,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 3.842667,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 14.3245,
             "unit": "ms"
           }
         ]
