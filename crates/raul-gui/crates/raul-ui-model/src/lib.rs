@@ -25,6 +25,7 @@ pub mod error;
 pub mod events;
 pub mod job;
 pub mod keymap;
+pub mod menu;
 pub mod mods;
 pub mod pages;
 pub mod palette;
