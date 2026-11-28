@@ -180,11 +180,7 @@ impl Display {
 
     /// The base text size in points: 14 px, or 15.5 px with Larger text (section 3).
     pub fn base(self) -> f32 {
-        if self.larger_text {
-            BASE_LARGER
-        } else {
-            BASE
-        }
+        if self.larger_text { BASE_LARGER } else { BASE }
     }
 
     /// The motion timings of the display (section 6).
@@ -600,7 +596,9 @@ mod tests {
         let ctx = egui::Context::default();
         apply(&ctx, Display::default());
         assert_eq!(
-            ctx.style_of(egui::Theme::Dark).text_styles.get(&TextStyle::Body),
+            ctx.style_of(egui::Theme::Dark)
+                .text_styles
+                .get(&TextStyle::Body),
             Some(&FontId::proportional(BASE))
         );
         let larger = Display {
@@ -609,7 +607,9 @@ mod tests {
         };
         apply(&ctx, larger);
         assert_eq!(
-            ctx.style_of(egui::Theme::Dark).text_styles.get(&TextStyle::Body),
+            ctx.style_of(egui::Theme::Dark)
+                .text_styles
+                .get(&TextStyle::Body),
             Some(&FontId::proportional(BASE_LARGER))
         );
     }

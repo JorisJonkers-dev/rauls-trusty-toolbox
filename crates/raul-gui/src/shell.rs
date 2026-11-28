@@ -557,10 +557,7 @@ fn setup_entry(ui: &mut egui::Ui, t: &Tokens, what: &str, value: Option<&str>) -
     job.append(
         what,
         0.0,
-        egui::TextFormat::simple(
-            egui::FontId::proportional(base * 0.84),
-            t.muted.color(),
-        ),
+        egui::TextFormat::simple(egui::FontId::proportional(base * 0.84), t.muted.color()),
     );
     let value_font = if value.is_some() {
         egui::FontId::monospace(base * 0.9)
