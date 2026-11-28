@@ -42,11 +42,12 @@ fn enable_play_mode_if(engine_linked: bool) {
     }
 }
 
-/// Installs the fonts and the dark theme in `ctx`. They apply from the next frame, so a host calls this before the
-/// first one (eframe's creation closure, a test harness's context setup); [`shell::App`] does it itself otherwise.
+/// Installs the fonts and the default display (the dark theme, 14 px text) in `ctx`. They apply from the next
+/// frame, so a host calls this before the first one (eframe's creation closure, a test harness's context setup);
+/// [`shell::App`] does it itself otherwise.
 pub fn set_up(ctx: &eframe::egui::Context) {
     fonts::install(ctx);
-    theme::apply(ctx, &theme::DARK);
+    theme::apply(ctx, theme::Display::default());
     ctx.data_mut(|d| d.insert_temp(set_up_id(), true));
 }
 

@@ -551,20 +551,21 @@ pub fn severity_colour(t: &Tokens, s: Severity) -> Color32 {
 }
 
 fn setup_entry(ui: &mut egui::Ui, t: &Tokens, what: &str, value: Option<&str>) -> egui::Response {
+    let base = theme::base(ui.ctx());
     let value_text = value.unwrap_or(msg::NOT_SET);
     let mut job = egui::text::LayoutJob::default();
     job.append(
         what,
         0.0,
         egui::TextFormat::simple(
-            egui::FontId::proportional(theme::BASE * 0.84),
+            egui::FontId::proportional(base * 0.84),
             t.muted.color(),
         ),
     );
     let value_font = if value.is_some() {
-        egui::FontId::monospace(theme::BASE * 0.9)
+        egui::FontId::monospace(base * 0.9)
     } else {
-        egui::FontId::proportional(theme::BASE)
+        egui::FontId::proportional(base)
     };
     job.append(
         value_text,
@@ -594,10 +595,11 @@ fn nav_entry(
     attention: Option<&raul_ui_model::pages::Attention>,
     full_width: bool,
 ) -> egui::Response {
+    let base = theme::base(ui.ctx());
     let font = if current {
-        egui::FontId::new(theme::BASE, egui::FontFamily::Name(theme::SEMIBOLD.into()))
+        egui::FontId::new(base, egui::FontFamily::Name(theme::SEMIBOLD.into()))
     } else {
-        egui::FontId::proportional(theme::BASE)
+        egui::FontId::proportional(base)
     };
     let colour = if current { t.text } else { t.muted };
     let galley = ui
@@ -606,7 +608,7 @@ fn nav_entry(
     let chip = attention.map(|a| {
         ui.painter().layout_no_wrap(
             a.count.to_string(),
-            egui::FontId::proportional(theme::BASE * 0.78),
+            egui::FontId::proportional(base * 0.78),
             severity_colour(t, a.severity),
         )
     });

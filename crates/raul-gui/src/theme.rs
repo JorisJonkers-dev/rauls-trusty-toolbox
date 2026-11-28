@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The themes: the colour tokens of `docs/redesign/SPEC.md` section 2 (default and high contrast) as egui styles
-//! (ADR-0013).
+//! The theme: the colour tokens of `docs/redesign/SPEC.md` section 2 (default and high contrast) as egui styles
+//! (ADR-0013), and the display options of Settings > Appearance: the text sizes of section 3 and the motion
+//! timings of section 6.
 //!
 //! Every colour a page uses comes from [`Tokens`]; a page never writes a colour of its own. The contrast rule is
 //! checked by a test over the table: every text colour is at least 4.5:1 on every surface, and control borders at
 //! least 3:1.
+//!
+//! The display options ([`Display`]) pick the tokens, the base text size and the motion. [`apply`] puts them on
+//! the context; a page reads them back with [`display`], [`base`] and [`Display::motion`], never a constant of its
+//! own.
 
 use eframe::egui::{self, Color32, CornerRadius, FontFamily, FontId, Margin, Stroke, TextStyle};
 
@@ -152,8 +157,140 @@ impl Tokens {
     }
 }
 
+/// The display options of Settings > Appearance (`docs/redesign/SPEC.md` sections 2, 3 and 6).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Display {
+    /// High contrast: the colours of section 2's high contrast column, plus a 1 px line border.
+    pub high_contrast: bool,
+    /// Larger text: the base text size of section 3 grows from 14 to 15.5 px.
+    pub larger_text: bool,
+    /// Reduce motion: the animations of section 6 become instant, except the spinners, which never stop.
+    pub reduce_motion: bool,
+}
+
+impl Display {
+    /// The colour tokens of the display: high contrast when asked for, else the dark theme.
+    pub fn tokens(self) -> Tokens {
+        if self.high_contrast {
+            HIGH_CONTRAST
+        } else {
+            DARK
+        }
+    }
+
+    /// The base text size in points: 14 px, or 15.5 px with Larger text (section 3).
+    pub fn base(self) -> f32 {
+        if self.larger_text {
+            BASE_LARGER
+        } else {
+            BASE
+        }
+    }
+
+    /// The motion timings of the display (section 6).
+    pub fn motion(self) -> Motion {
+        if self.reduce_motion {
+            Motion::reduced()
+        } else {
+            Motion::full()
+        }
+    }
+}
+
+/// The duration of an instant animation under reduced motion: the CSS `0.01ms` of section 6.
+const INSTANT: f32 = 0.000_01;
+
+/// The motion timings of the app in seconds (`docs/redesign/SPEC.md` section 6).
+///
+/// The duration fields are named after the CSS keyframes and transitions they time. Reduced motion makes every
+/// duration instant, except the spinners: they never stop, but slow to a pulse.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Motion {
+    /// A page fading in (`pgin`): 0.22 s.
+    pub page_in: f32,
+    /// Opened mod details fading in (`pgin` again): 0.18 s.
+    pub details_in: f32,
+    /// The scrim behind a dialog (`fade`): 0.15 s.
+    pub scrim_fade: f32,
+    /// A dialog or toast popping in (`pop`): 0.18 s.
+    pub dialog_pop: f32,
+    /// A menu popping in (`pop` again): 0.12 s.
+    pub menu_pop: f32,
+    /// One turn of a spinner (`spin`): 1 s.
+    pub spin_period: f32,
+    /// One cycle of a pulsing dot (`pulse`): 1.4 s.
+    pub pulse_period: f32,
+    /// One pass of the sheen over a progress fill (`sheen`): 1.4 s.
+    pub sheen_period: f32,
+    /// One pass of the indeterminate bar (`slide`): 1.2 s.
+    pub slide_period: f32,
+    /// The progress fill changing width (`width`): 0.35 s.
+    pub progress_width: f32,
+    /// The fold chevron turning (`transform`): 0.18 s.
+    pub chevron: f32,
+    /// A button or row filling on hover (`background`): 0.15 s.
+    pub hover_fill: f32,
+    /// A button pressed down a pixel (`transform` again): 0.1 s.
+    pub press: f32,
+    /// A switch track and knob moving (`background`, `left`): 0.15 s.
+    pub switch: f32,
+    /// Whether spinners pulse in place instead of turning: reduced motion only.
+    pub spin_pulses: bool,
+    /// Where the indeterminate bar parks instead of sliding, as a fraction of the width: reduced motion only.
+    pub indeterminate_park: Option<f32>,
+}
+
+impl Motion {
+    /// The timings at full motion.
+    fn full() -> Motion {
+        Motion {
+            page_in: 0.22,
+            details_in: 0.18,
+            scrim_fade: 0.15,
+            dialog_pop: 0.18,
+            menu_pop: 0.12,
+            spin_period: 1.0,
+            pulse_period: 1.4,
+            sheen_period: 1.4,
+            slide_period: 1.2,
+            progress_width: 0.35,
+            chevron: 0.18,
+            hover_fill: 0.15,
+            press: 0.1,
+            switch: 0.15,
+            spin_pulses: false,
+            indeterminate_park: None,
+        }
+    }
+
+    /// The timings with reduced motion: instant everywhere, except the spinners, which stay visible as a slow
+    /// pulse, and the indeterminate bar, which parks at 35 %.
+    fn reduced() -> Motion {
+        Motion {
+            page_in: INSTANT,
+            details_in: INSTANT,
+            scrim_fade: INSTANT,
+            dialog_pop: INSTANT,
+            menu_pop: INSTANT,
+            spin_period: 1.0,
+            pulse_period: 1.6,
+            sheen_period: INSTANT,
+            slide_period: INSTANT,
+            progress_width: INSTANT,
+            chevron: INSTANT,
+            hover_fill: INSTANT,
+            press: INSTANT,
+            switch: INSTANT,
+            spin_pulses: true,
+            indeterminate_park: Some(0.35),
+        }
+    }
+}
+
 /// The base text size in points (UI-RULES T1: 14 px).
 pub const BASE: f32 = 14.0;
+/// The base text size with Larger text (section 3: 15.5 px).
+pub const BASE_LARGER: f32 = 15.5;
 /// The family of the semibold Inter face (see [`crate::fonts`]).
 pub const SEMIBOLD: &str = "inter-semibold";
 
@@ -176,19 +313,33 @@ fn semibold(size: f32) -> FontId {
     FontId::new(size, FontFamily::Name(SEMIBOLD.into()))
 }
 
-/// Applies `tokens` and the type scale to `ctx`.
-pub fn apply(ctx: &egui::Context, tokens: &Tokens) {
-    ctx.set_visuals_of(egui::Theme::Dark, visuals(tokens));
+/// Applies the display to `ctx`: its tokens become the visuals, its base size the type scale. The display is
+/// stored too, so [`display`], [`base`] and [`Display::motion`] answer for the pages.
+pub fn apply(ctx: &egui::Context, display: Display) {
+    let tokens = display.tokens();
+    let mut v = visuals(&tokens);
+    if display.high_contrast {
+        // Section 2, last paragraph: high contrast adds a 1 px line border to every filled shape.
+        let border = Stroke::new(1.0, tokens.line.color());
+        let widgets = &mut v.widgets;
+        widgets.noninteractive.bg_stroke = border;
+        widgets.inactive.bg_stroke = border;
+        widgets.hovered.bg_stroke = border;
+        widgets.active.bg_stroke = border;
+        widgets.open.bg_stroke = border;
+    }
+    ctx.set_visuals_of(egui::Theme::Dark, v);
     ctx.set_theme(egui::Theme::Dark);
+    let base = display.base();
     ctx.all_styles_mut(|style| {
         style.text_styles = [
-            (TextStyle::Body, FontId::proportional(BASE)),
-            (TextStyle::Button, FontId::proportional(BASE)),
-            (TextStyle::Small, FontId::proportional(BASE * 0.9)),
-            (TextStyle::Monospace, FontId::monospace(BASE * 0.92)),
-            (TextStyle::Heading, semibold(BASE * 1.12)),
-            (title_style(), semibold(BASE * 1.4)),
-            (section_style(), semibold(BASE * 0.74)),
+            (TextStyle::Body, FontId::proportional(base)),
+            (TextStyle::Button, FontId::proportional(base)),
+            (TextStyle::Small, FontId::proportional(base * 0.9)),
+            (TextStyle::Monospace, FontId::monospace(base * 0.92)),
+            (TextStyle::Heading, semibold(base * 1.12)),
+            (title_style(), semibold(base * 1.4)),
+            (section_style(), semibold(base * 0.74)),
         ]
         .into();
         let spacing = &mut style.spacing;
@@ -197,6 +348,7 @@ pub fn apply(ctx: &egui::Context, tokens: &Tokens) {
         spacing.interact_size.y = 28.0;
         spacing.window_margin = Margin::same(20);
     });
+    ctx.data_mut(|d| d.insert_temp(display_id(), display));
 }
 
 /// The egui visuals of `tokens`.
@@ -238,6 +390,21 @@ pub fn visuals(t: &Tokens) -> egui::Visuals {
     // The keyboard focus ring and text selection (UI-RULES X1): 2 px of the accent.
     v.selection.stroke = Stroke::new(2.0, t.accent.color());
     v
+}
+
+/// The display [`apply`] stored on `ctx`; the default display when it never ran.
+pub fn display(ctx: &egui::Context) -> Display {
+    ctx.data(|d| d.get_temp::<Display>(display_id()).unwrap_or_default())
+}
+
+/// The base text size of the display [`apply`] stored on `ctx`.
+pub fn base(ctx: &egui::Context) -> f32 {
+    display(ctx).base()
+}
+
+/// The id the display is stored under; one helper, so `apply` and `display` agree on it.
+fn display_id() -> egui::Id {
+    egui::Id::unique("raul-display")
 }
 
 #[cfg(test)]
@@ -341,5 +508,123 @@ mod tests {
             );
             assert_eq!(v.extreme_bg_color, t.sunk.color(), "{theme}: input fill");
         }
+    }
+
+    #[test]
+    fn the_default_display_is_the_dark_theme_at_the_base_size() {
+        let display = Display::default();
+        assert_eq!(display.tokens(), DARK);
+        assert!((display.base() - BASE).abs() < 1e-9);
+        assert!((display.base() - 14.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn larger_text_grows_the_base_size() {
+        let display = Display {
+            larger_text: true,
+            ..Display::default()
+        };
+        assert!((display.base() - BASE_LARGER).abs() < 1e-9);
+        assert!((display.base() - 15.5).abs() < 1e-9);
+        assert_eq!(display.tokens(), DARK);
+    }
+
+    #[test]
+    fn high_contrast_swaps_in_the_high_contrast_tokens() {
+        let display = Display {
+            high_contrast: true,
+            ..Display::default()
+        };
+        assert_eq!(display.tokens(), HIGH_CONTRAST);
+    }
+
+    #[test]
+    fn full_motion_follows_the_spec() {
+        assert_eq!(
+            Display::default().motion(),
+            Motion {
+                page_in: 0.22,
+                details_in: 0.18,
+                scrim_fade: 0.15,
+                dialog_pop: 0.18,
+                menu_pop: 0.12,
+                spin_period: 1.0,
+                pulse_period: 1.4,
+                sheen_period: 1.4,
+                slide_period: 1.2,
+                progress_width: 0.35,
+                chevron: 0.18,
+                hover_fill: 0.15,
+                press: 0.1,
+                switch: 0.15,
+                spin_pulses: false,
+                indeterminate_park: None,
+            }
+        );
+    }
+
+    #[test]
+    fn reduced_motion_is_instant_except_the_spinners() {
+        let display = Display {
+            reduce_motion: true,
+            ..Display::default()
+        };
+        let motion = display.motion();
+        // The CSS 0.01 ms: every duration is instant, but a busy state stays visible.
+        assert!(motion.page_in < 0.001, "page_in is instant");
+        assert_eq!(
+            motion,
+            Motion {
+                page_in: INSTANT,
+                details_in: INSTANT,
+                scrim_fade: INSTANT,
+                dialog_pop: INSTANT,
+                menu_pop: INSTANT,
+                spin_period: 1.0,
+                pulse_period: 1.6,
+                sheen_period: INSTANT,
+                slide_period: INSTANT,
+                progress_width: INSTANT,
+                chevron: INSTANT,
+                hover_fill: INSTANT,
+                press: INSTANT,
+                switch: INSTANT,
+                spin_pulses: true,
+                indeterminate_park: Some(0.35),
+            }
+        );
+    }
+
+    #[test]
+    fn apply_sets_the_body_text_size_of_the_display() {
+        let ctx = egui::Context::default();
+        apply(&ctx, Display::default());
+        assert_eq!(
+            ctx.style_of(egui::Theme::Dark).text_styles.get(&TextStyle::Body),
+            Some(&FontId::proportional(BASE))
+        );
+        let larger = Display {
+            larger_text: true,
+            ..Display::default()
+        };
+        apply(&ctx, larger);
+        assert_eq!(
+            ctx.style_of(egui::Theme::Dark).text_styles.get(&TextStyle::Body),
+            Some(&FontId::proportional(BASE_LARGER))
+        );
+    }
+
+    #[test]
+    fn apply_stores_the_display_for_the_pages() {
+        let ctx = egui::Context::default();
+        assert_eq!(display(&ctx), Display::default());
+        let shown = Display {
+            high_contrast: true,
+            larger_text: true,
+            reduce_motion: true,
+        };
+        apply(&ctx, shown);
+        assert_eq!(display(&ctx), shown);
+        assert!((base(&ctx) - BASE_LARGER).abs() < 1e-9);
     }
 }
