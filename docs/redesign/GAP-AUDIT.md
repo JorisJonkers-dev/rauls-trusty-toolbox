@@ -238,7 +238,7 @@ Treat file references as starting points, not proof of every word.
 
 | Id | Function | State | What differs or is missing | Where in the app |
 |---|---|---|---|---|
-| F-SETTINGS-01 | Game installations | differs | New Vegas (Required), Fallout 3 (Only for TTW), TTW installer rows exist as text fields saved on leave; no Browse…/Find buttons, no "Add". | `crates/raul-gui/src/pages/settings.rs:form,path_field` |
+| F-SETTINGS-01 | Game installations | differs | New Vegas (Required), Fallout 3 (Only for TTW), TTW installer rows exist as text fields saved on leave; no Browse…/Find buttons, no "Add". Since 7728d87 (#702) Settings also has a Nexus Mods section with the API key, which the demo does not show yet. | `crates/raul-gui/src/pages/settings.rs:form,path_field` |
 | F-SETTINGS-02 | Toolbox storage | missing | Storage folder row only; no free space, cache or "Clean up…". | `crates/raul-gui/src/pages/settings.rs:SECTION_STORAGE` |
 | F-SETTINGS-03 | Game settings for profile | missing | Settings page is paths only; no Look/Resolution/Upscaling/V-sync/Frame-rate settings. | `crates/raul-gui/src/pages/settings.rs:form` |
 | F-SETTINGS-04 | Updates setting | missing | No update-check setting exists. | `crates/raul-gui/src/pages/settings.rs` |

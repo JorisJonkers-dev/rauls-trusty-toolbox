@@ -1,5 +1,9 @@
 # GUI rules
 
+> **Replaced.** The GUI's design standard is now the clickable demo in [`design/`](design/README.md) and the
+> redesign set in [`redesign/`](redesign/README.md). Where this file or `design/mockup.html` disagrees with them, the
+> redesign wins. This file is kept for history.
+
 The rules every screen of the Toolbox GUI follows. MUST rules block a release; SHOULD rules need a written reason to
 break. Each rule names how it is checked where a test, a lint or a snapshot review can check it. The reference is
 the interactive mockup [`design/mockup.html`](design/mockup.html); the decisions behind these rules are

@@ -165,7 +165,7 @@ impl Dialogs {
                     egui::Label::new(
                         egui::RichText::new(&dialog.title)
                             .text_style(crate::theme::title_style())
-                            .size(crate::theme::BASE * 1.1),
+                            .size(crate::theme::base(ctx) * 1.1),
                     )
                     .wrap()
                     .selectable(true),

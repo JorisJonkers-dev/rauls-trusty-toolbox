@@ -120,4 +120,22 @@ Items marked "fix demo" are fixed in the demo (see its NOTES.md). "app spec only
 - LOD quality preset over changed fine-tune values: ask first ("Replace your fine-tune settings with the <preset> preset?").
 - Stopping a running job: ask only when stopping throws work away (LOD build, TTW install); otherwise stop at once.
 - After an update, System offers "Go back to <old version>" for the kept version.
-- Defaults pending the owner's word: place search shows the first match when the shown place is filtered out; deleting a profile switches to the neighbouring profile; Settings sections start open on first visit.
+- Place search shows the first match when the shown place is filtered out; deleting a profile switches to the neighbouring profile; Settings sections start open on first visit (confirmed 2026-11-28).
+
+## Owner decisions (2026-11-28)
+
+Decisions taken after checking the tickets against the code. The demo is changed first where a decision changes what it shows.
+
+- Engine (F-SETUP-05, F-SYSTEM-04, F-DOCTOR-03): ADR-0016 stays. The setup engine step shows the check only. The engine builds on System are kept Toolbox versions, with "Go back to <old version>". "Repair engine" checks the game folder again and fixes it. NV-05 is narrowed to the check and repair; builds move to CORE-07.
+- TTW space (F-TTW-04): the space needed is the installer manifest's figure once a file is picked, 25 GB before that. No hard-coded figure.
+- LOD stages (F-LOD-02): the Toolbox maps lodwright's phases onto the five stage names; lodwright adds minutes left.
+- LOD fine-tune (F-LOD-05): all four parameters (distance 1 to 5, texture 256/512/1024, tree density, far desert plants) are built in lodwright.
+- Stability run (F-TEST-01): the full sweeps, 80 Mojave places plus 42 Capital Wasteland places with TTW. The demo's counts and estimates change to match.
+- Location pictures (F-TEST-04): 44 places in 5 areas, curated from the sweep places and kept in nv-rs.
+- Old GUI rules: the redesign replaces `docs/UI-RULES.md` and `docs/design/mockup.html`. The test `no_screen_says_profile` goes in GUI-16.
+- Mod lists: their screens are designed in the demo first (GUI-23, #720); #690 waits for that.
+- Playtime (F-PLAY-04, F-HOME-03): Home's total is the Toolbox's session record per profile. New: a "Continue from" save picker on Home (GUI-24 / CORE-11, #719) that shows each save's in-game time and profile, offers "Switch to <profile>", and starts the game into the save.
+- Undo and versions (CORE-01): built on nvmod-journal, one store.
+- Checks (CORE-02): a typed in-process call, no parsing of text output.
+- Game settings (F-SETTINGS-03): Resolution, V-sync and Frame rate ship first; Upscaling with #569, Look with #586.
+- Start order: GUI-01, GUI-02, CORE-01, CORE-02 and LOOT-01's structured missing masters start together.
