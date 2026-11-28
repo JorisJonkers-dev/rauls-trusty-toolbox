@@ -8,6 +8,7 @@ pub mod contracts;
 pub mod data;
 pub mod detect;
 pub mod game_ini;
+pub mod history;
 pub mod instance_lock;
 pub mod journal;
 pub mod nexus;
