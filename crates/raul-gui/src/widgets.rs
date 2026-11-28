@@ -330,9 +330,11 @@ fn text_button(
     let display = theme::display(ui.ctx());
     let t = display.tokens();
     let enabled = ui.is_enabled();
-    let galley = ui
-        .painter()
-        .layout_no_wrap(label.to_owned(), semibold(text_size), t.text.color());
+    let galley = ui.painter().layout_no_wrap(
+        label.to_owned(),
+        semibold(text_size),
+        egui::Color32::PLACEHOLDER,
+    );
     let size = egui::vec2(galley.size().x + 2.0 * padding_x, height);
     let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, enabled, false, label));
@@ -377,7 +379,7 @@ pub fn icon_button(ui: &mut egui::Ui, icon: &str) -> egui::Response {
     let galley = ui.painter().layout_no_wrap(
         icon.to_owned(),
         egui::FontId::proportional(theme::base(ui.ctx())),
-        t.muted.color(),
+        egui::Color32::PLACEHOLDER,
     );
     let (rect, response) = ui.allocate_exact_size(
         egui::vec2(sizes::ICON_BUTTON, sizes::ICON_BUTTON),
