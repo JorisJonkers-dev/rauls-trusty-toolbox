@@ -5,6 +5,7 @@
 //! * [`pages`]: the page registry, one file per page or flow.
 //! * [`theme`], [`fonts`] and [`catalogue`]: the colours, the bundled Inter and every string.
 //! * [`dialog`] and [`jobs`]: modal dialogs, and `raul` commands running in the background.
+//! * [`widgets`]: the redesign's widget kit, the cards, rows, buttons, tags and bars of the spec's section 4.
 //!
 //! The GUI renders the toolkit-free view model of `raul-ui-model` and changes nothing itself: every write is a
 //! `raul` command started through `raul-ui-service`.
@@ -19,6 +20,7 @@ pub mod jobs;
 pub mod pages;
 pub mod shell;
 pub mod theme;
+pub mod widgets;
 
 use std::process::ExitCode;
 
