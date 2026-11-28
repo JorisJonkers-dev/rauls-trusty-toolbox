@@ -15,4 +15,5 @@ pub mod pinned;
 pub mod selfupdate;
 pub mod setup;
 pub mod space;
+pub mod stability;
 pub mod update;
