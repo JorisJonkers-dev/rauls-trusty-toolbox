@@ -99,13 +99,12 @@ pub fn tab(controls: &[Control], focused: Option<usize>, back: bool) -> Option<u
 /// primary or danger button is the default. Returns `None` when there is no
 /// suitable target.
 pub fn enter_target(controls: &[Control], focused: Option<usize>) -> Option<usize> {
-    if let Some(index) = focused {
-        if controls
+    if let Some(index) = focused
+        && controls
             .get(index)
             .is_some_and(|control| control.enabled && control.kind == ControlKind::Plain)
-        {
-            return Some(index);
-        }
+    {
+        return Some(index);
     }
 
     controls
@@ -127,7 +126,10 @@ pub enum Layer {
     /// The command palette.
     Palette,
     /// A dialog. `Escape` is ignored while `busy` is true.
-    Dialog { busy: bool },
+    Dialog {
+        /// True while the dialog's job runs (an install), so `Escape` leaves it open.
+        busy: bool,
+    },
     /// A drag in progress.
     Drag,
 }
@@ -177,19 +179,27 @@ pub enum NameError {
     /// The name is longer than [`NAME_MAX`] characters.
     TooLong,
     /// Another profile or group already uses this name (case-insensitive).
-    ///
-    /// The demo uses "A group with that name exists." for groups; this model
-    /// returns the profile message for every kind because the API has no kind.
     Duplicate,
 }
 
+/// What the name dialog names: the duplicate error says which.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Named {
+    /// A profile.
+    Profile,
+    /// A group of mods.
+    Group,
+}
+
 impl NameError {
-    /// The inline error text shown under the name field.
-    pub fn text(&self) -> &'static str {
-        match self {
-            Self::Empty => "Name cannot be empty.",
-            Self::TooLong => "Name cannot be longer than 40 characters.",
-            Self::Duplicate => "A profile with that name exists.",
+    /// The inline error under the name field, as the demo shows it. Only a duplicate has one: an empty name keeps
+    /// OK disabled, and the field takes no more than [`NAME_MAX`] characters.
+    #[must_use]
+    pub fn text(&self, named: Named) -> Option<&'static str> {
+        match (self, named) {
+            (Self::Duplicate, Named::Profile) => Some("A profile with that name exists."),
+            (Self::Duplicate, Named::Group) => Some("A group with that name exists."),
+            (Self::Empty | Self::TooLong, _) => None,
         }
     }
 }
@@ -200,6 +210,9 @@ impl NameError {
 /// than [`NAME_MAX`] characters returns [`NameError::TooLong`], and a name that
 /// equals an existing one ignoring case (other than `current`) returns
 /// [`NameError::Duplicate`]. On success the trimmed name is returned.
+///
+/// # Errors
+/// The [`NameError`] of the first rule the name breaks.
 pub fn validate_name(
     name: &str,
     existing: &[&str],
@@ -319,6 +332,20 @@ mod tests {
     fn escape_skips_busy_dialog() {
         let open = [Layer::Palette, Layer::Dialog { busy: true }, Layer::Drag];
         assert_eq!(escape_closes(&open), Some(0));
+    }
+
+    #[test]
+    fn only_a_duplicate_shows_an_error_text() {
+        assert_eq!(NameError::Empty.text(Named::Profile), None);
+        assert_eq!(NameError::TooLong.text(Named::Group), None);
+        assert_eq!(
+            NameError::Duplicate.text(Named::Profile),
+            Some("A profile with that name exists.")
+        );
+        assert_eq!(
+            NameError::Duplicate.text(Named::Group),
+            Some("A group with that name exists.")
+        );
     }
 
     #[test]
