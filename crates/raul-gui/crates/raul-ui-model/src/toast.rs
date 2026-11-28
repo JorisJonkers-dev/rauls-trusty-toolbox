@@ -53,6 +53,12 @@ pub struct Toasts {
     items: Vec<Toast>,
 }
 
+impl Default for Toasts {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Toasts {
     /// Create an empty toast queue.
     pub fn new() -> Self {
@@ -74,7 +80,8 @@ impl Toasts {
 
         if let Some(ref target) = undo {
             let cid = target.change_id.as_str();
-            self.items.retain(|t| t.undo.as_ref().map(|u| u.change_id.as_str()) != Some(cid));
+            self.items
+                .retain(|t| t.undo.as_ref().map(|u| u.change_id.as_str()) != Some(cid));
         }
 
         let lifetime = Toast::lifetime_secs(undo.as_ref());
@@ -152,7 +159,7 @@ impl Toasts {
             .iter()
             .filter(|t| t.remaining > 0.0)
             .map(|t| t.remaining)
-            .min()?;
+            .min_by(f64::total_cmp)?;
         Some(self.last_tick + min)
     }
 
