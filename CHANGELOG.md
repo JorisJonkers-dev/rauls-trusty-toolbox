@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.9.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.8.0...v0.9.0) (2026-11-28)
+
+
+### Features
+
+* **core:** fill the setup facts from the typed doctor report, sort proposal, LOD staleness and engine record (CORE-02) ([#738](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/738)) ([4d1997c](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/4d1997c04fc2eee112082dcacc5bcd8eaadc27a9))
+* **core:** one pure checks model that badges, play verdict and doctor groups read (CORE-02) ([#724](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/724)) ([53975ef](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/53975ef5a2c4403b327dd99c90ee6428b6876621))
+* **core:** per-profile undo stack and version history rules on the journal ([#723](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/723)) ([b4c5fa6](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/b4c5fa60d01d60be4c5f096981c12a35c01265d4))
+* **core:** play sessions, playtime total and last played ([#732](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/732)) ([7da0651](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7da065112ccd9681a375ab51d0d137afe30b5c11))
+* **core:** stability recommendation rules (setup signature, dismissal, known stable) ([#731](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/731)) ([7fa52d7](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7fa52d7329122f4f2fa73c03977b13effa653dce))
+* **gui:** colour tokens of the redesign spec, with a high contrast theme ([#722](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/722)) ([6d227d1](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6d227d13f8724eaa4543ae64297a6ab75bd16edb))
+* **gui:** Nexus API key field on Settings ([#702](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/702)) ([7728d87](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7728d87967b0eb94a1f0ef5f1aa5f39bcefcd200))
+* **gui:** widget kit of the redesign (card, section, row, buttons, tag, badge, progress) ([#737](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/737)) ([3159d72](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3159d7248ccbb6262c994da36adcc96ff492a4b6))
+* **lod:** far objects glow at night, and the Strip casino lights reach the far view ([#709](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/709)) ([5e90d97](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/5e90d97df647309af9801a38f05a7df08789030e))
+* **modlist:** export a Mod list from an Instance Profile ([#703](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/703)) ([6cf2612](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6cf26128a434c797303382c287c416908168c5b4))
+* **modlist:** install plan and raul modlist list, show and plan ([#697](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/697)) ([a17ac61](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/a17ac615e01121df842da28e8f94dcdde52f1eb3))
+* **modlist:** open download links and import hand-downloaded archives ([#701](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/701)) ([2d74681](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/2d74681f0acd42ddb3b4adb72f8b1d86a406ba47))
+* **modlist:** raul modlist install installs a list into a Profile in list order ([#704](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/704)) ([cfacdda](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/cfacdda0d7fcd1fb89648fc446c75a66950491b1))
+* **modlist:** the raul-modlist/1 format, its parser and the Beautiful list ([#694](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/694)) ([ab1cd9f](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/ab1cd9f8b5a9676904dc6ba1f077571d6df7eaaf))
+* **nexus:** API key storage, raul nexus key set|clear|status and a Nexus client ([#695](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/695)) ([be1d6fe](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/be1d6fe55ab777bcb41f01dd47143e6af90a06ca))
+* **site:** benchmark dashboard with grouped bar charts, details and history ([#706](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/706)) ([3d42aea](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3d42aeab235fda07e9c3abae3689b2dea9e98c0b))
+* **site:** benchmark pages per project, with comparisons and history ([#674](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/674)) ([563e094](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/563e094d1fc4ffc6f2b2144ccac9b71db6bf6236))
+* **site:** download page, and the app's look and one navbar on every page ([#675](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/675)) ([7abe85d](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7abe85df19dcec5acf892ed3ddd387af7f655ced))
+* **ui-model:** command palette of the redesign ([#730](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/730)) ([9a53b1a](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/9a53b1a4abc3e283cad1d8d4fc61fd9e09cf6b0c))
+* **ui-model:** dialog focus, Enter, Escape and name rules of the redesign ([#729](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/729)) ([388ead0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/388ead0c4cc524ed95ce2531af173fc945132014))
+* **ui-model:** menu placement and keyboard rules of the redesign ([#728](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/728)) ([f553fed](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/f553fedf1f124678168e10fd731db7ab5e0ca161))
+* **ui-model:** minutes-left estimate, job keys and status line of the redesign ([#733](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/733)) ([7b23ba9](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7b23ba93f6dcd25fa687b33a69443cf1710b068e))
+* **ui-model:** toast queue rules of the redesign ([#726](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/726)) ([168571e](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/168571e1c22ddb3c00197e7d6ad7c577561da47f))
+
+
+### Bug Fixes
+
+* **ci:** the site publish job also checks out the app's icon sources ([#700](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/700)) ([74438e5](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/74438e5acfd6ab0728ba1396fca0a5a3111d0534))
+* **ci:** the site publish job checks out site/ for its scripts ([#698](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/698)) ([9fe4bd3](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/9fe4bd3b3c6877f9c412842ef6db45b835286f0f))
+* **packaging:** asset lists per area with folder entries ([#676](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/676)) ([9778cca](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/9778cca6f53e0ccc958e58a438ac1c6e205a042d))
+* **play:** put the invalidation archive first in the staged Fallout.ini ([#710](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/710)) ([6e1f26e](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/6e1f26e8bfba50718e5ac88440941dde5b353182))
+* **site:** stop the tour ticking steps from the demo that Reset just cleared ([#712](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/issues/712)) ([d3122fe](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/d3122fe40ae2c3799c10139fc8b3729f6a07f4bf))
+
 ## [0.8.0](https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/compare/v0.7.0...v0.8.0) (2026-11-25)
 
 
