@@ -75,18 +75,29 @@ fn candidates(folders: &[PathBuf]) -> Vec<(SystemTime, PathBuf, u64)> {
 }
 
 /// The newest file in `folders` (and one level of folders under each) that is the TTW package or an archive that
-/// holds it, as its path and size. An archive is returned as it is: raul reads the package out of it. A package
-/// smaller than [`MIN_PACKAGE_BYTES`] is a download that has only begun and is skipped until it grows.
+/// holds it, as its path, size and the installer's space figure when it is known. An archive is returned as it is:
+/// raul reads the package out of it. A package smaller than [`MIN_PACKAGE_BYTES`] is a download that has only begun
+/// and is skipped until it grows.
 pub fn newest_accepted(folders: &[PathBuf], refused: &mut Refused) -> Option<PackageInfo> {
     for (_, path, size) in candidates(folders) {
         if refused.get(&path) == Some(&size) {
             continue;
         }
         match inspect(&path) {
-            Ok(Package::Mpi { .. }) if size >= MIN_PACKAGE_BYTES => {
-                return Some(PackageInfo { path, size });
+            Ok(package @ Package::Mpi { .. }) if size >= MIN_PACKAGE_BYTES => {
+                return Some(PackageInfo {
+                    path,
+                    size,
+                    needed_bytes: package.needed_bytes(),
+                });
             }
-            Ok(Package::Archive { .. }) => return Some(PackageInfo { path, size }),
+            Ok(package @ Package::Archive { .. }) => {
+                return Some(PackageInfo {
+                    path,
+                    size,
+                    needed_bytes: package.needed_bytes(),
+                });
+            }
             _ => {
                 refused.insert(path, size);
             }

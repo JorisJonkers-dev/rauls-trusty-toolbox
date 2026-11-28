@@ -277,7 +277,7 @@ fn mpi_for(
 ) -> Result<PathBuf, String> {
     let Package::Archive { unpacked_bytes, .. } = package else {
         return match package {
-            Package::Mpi { path } => Ok(path.clone()),
+            Package::Mpi { path, .. } => Ok(path.clone()),
             Package::Archive { .. } => unreachable!("matched above"),
         };
     };
@@ -864,6 +864,7 @@ mod unpack_tests {
         assert_eq!(fresh, first);
         let mpi = Package::Mpi {
             path: dir.path().join("x.mpi"),
+            needed_bytes: None,
         };
         assert_eq!(
             mpi_for(
