@@ -297,7 +297,12 @@ pub struct Palette {
 impl Palette {
     /// A closed palette over `all`, the entries the query searches.
     pub fn new(all: Vec<Entry>) -> Self {
-        Self { all, query: String::new(), selected: 0, open: false }
+        Self {
+            all,
+            query: String::new(),
+            selected: 0,
+            open: false,
+        }
     }
 
     /// Whether it is shown.
@@ -418,13 +423,15 @@ mod tests {
     #[test]
     fn pages_carry_the_rail_chord_and_no_action_a_chord() {
         let p = palette(true);
-        let doctor = p.results().iter().find(|e| e.action == Do::Page(Page::Doctor)).unwrap();
+        let results = p.results();
+        let find = |action: &Do| *results.iter().find(|e| &e.action == action).unwrap();
+        let doctor = find(&Do::Page(Page::Doctor));
         assert_eq!(doctor.shortcut, Some(Chord::ctrl(Key::Char('5'))));
-        let load = p.results().iter().find(|e| e.action == Do::Page(Page::LoadOrder)).unwrap();
-        assert_eq!(load.shortcut, Some(Chord::ctrl(Key::Char('3'))));
-        let lod = p.results().iter().find(|e| e.action == Do::Page(Page::Lod)).unwrap();
-        assert_eq!(lod.shortcut, None);
-        let play = p.results().iter().find(|e| e.action == Do::Action(Action::Play)).unwrap();
+        let load_order = find(&Do::Page(Page::LoadOrder));
+        assert_eq!(load_order.shortcut, Some(Chord::ctrl(Key::Char('3'))));
+        let lod_page = find(&Do::Page(Page::Lod));
+        assert_eq!(lod_page.shortcut, None);
+        let play = find(&Do::Action(Action::Play));
         assert_eq!(play.shortcut, None);
     }
 
@@ -448,13 +455,19 @@ mod tests {
         p.open();
         p.set_query("nevada");
         assert_eq!(p.results().len(), 1);
-        assert_eq!(p.results()[0].action, Do::OpenMod("Nevada Skies".to_owned()));
+        assert_eq!(
+            p.results()[0].action,
+            Do::OpenMod("Nevada Skies".to_owned())
+        );
         p.set_query("NSK");
         assert_eq!(p.results().len(), 1, "the short id matches, any case");
         p.set_query("basic edition");
         assert_eq!(p.results().len(), 1, "a plugin file name matches");
         assert_eq!(p.results()[0].kind, Kind::Mod);
-        assert_eq!(p.run_selected(), Some(Do::OpenMod("Nevada Skies".to_owned())));
+        assert_eq!(
+            p.run_selected(),
+            Some(Do::OpenMod("Nevada Skies".to_owned()))
+        );
         assert!(!p.is_open(), "running the mod closes the palette");
     }
 
@@ -550,7 +563,11 @@ mod tests {
         let mut all = entries(&Keymap::default(), true);
         all.extend(mod_entries(&[mod_ref()]));
         for e in &all {
-            assert!(!e.title.contains("raul "), "{:?} shows a command line", e.title);
+            assert!(
+                !e.title.contains("raul "),
+                "{:?} shows a command line",
+                e.title
+            );
         }
     }
 
