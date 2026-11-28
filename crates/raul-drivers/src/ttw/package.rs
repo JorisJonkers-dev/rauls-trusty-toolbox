@@ -468,10 +468,7 @@ fn max_free_size(value: &serde_json::Value) -> Option<i64> {
     match value {
         serde_json::Value::Object(map) => {
             let own = map.get("FreeSize").and_then(serde_json::Value::as_i64);
-            map.values()
-                .filter_map(max_free_size)
-                .chain(own)
-                .max()
+            map.values().filter_map(max_free_size).chain(own).max()
         }
         serde_json::Value::Array(arr) => arr.iter().filter_map(max_free_size).max(),
         _ => None,
