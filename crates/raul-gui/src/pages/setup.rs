@@ -461,7 +461,7 @@ impl Setup {
         ui.label(
             RichText::new(title)
                 .text_style(theme::title_style())
-                .size(theme::BASE * 1.25),
+                .size(theme::base(ui.ctx()) * 1.25),
         );
         ui.label(RichText::new(sub).color(t.muted.color()));
         ui.add_space(4.0);
