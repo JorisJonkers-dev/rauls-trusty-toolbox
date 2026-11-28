@@ -9,6 +9,7 @@
 //! * [`events`]: the `raul-events` stream of the driver commands (`raul ttw`, `raul lod generate`).
 //! * [`error`]: exit classes of the command line and the error shape every screen shows.
 //! * [`copy`]: the plain, self-contained text an error's "Copy details" button puts on the clipboard.
+//! * [`eta`]: minutes-left estimate, per-profile job keys and status line text.
 //! * [`job`]: the job events and the table that orders and de-duplicates them.
 //! * [`doctor`] and [`mods`]: the state of the Doctor and Mods screens.
 //! * [`setup`]: the real `raul setup --json` event stream and the setup wizard it drives.
@@ -23,6 +24,7 @@ pub mod copy;
 pub mod dialog;
 pub mod doctor;
 pub mod error;
+pub mod eta;
 pub mod events;
 pub mod job;
 pub mod keymap;
