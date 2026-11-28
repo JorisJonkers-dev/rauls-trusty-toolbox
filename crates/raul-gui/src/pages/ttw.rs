@@ -1322,7 +1322,8 @@ fn source_row(
 /// Label and value rows; a path value is monospace and truncates with the whole in a tooltip.
 /// Bytes as whole gigabytes, rounded up, so a shortage is never understated.
 fn gb(bytes: u64) -> String {
-    const GB: u64 = 1024 * 1024 * 1024;
+    // Decimal gigabytes, as the demo and drive tools show them.
+    const GB: u64 = 1000 * 1000 * 1000;
     bytes.div_ceil(GB).to_string()
 }
 
