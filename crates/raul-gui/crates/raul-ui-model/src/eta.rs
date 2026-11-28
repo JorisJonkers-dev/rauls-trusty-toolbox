@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! Minutes-left estimate, job keys and status line text for running jobs.
 
+use std::fmt::Write as _;
+
 const MIN_SAMPLE_SPAN_SECONDS: f64 = 5.0;
 const RECENT_WINDOW_SECONDS: f64 = 60.0;
 
@@ -27,10 +29,10 @@ impl Eta {
     /// range `0.0` to `1.0`. A fraction that goes backwards clears the sample
     /// history.
     pub fn sample(&mut self, now: f64, fraction: f32) {
-        if let Some(&(_, last)) = self.samples.last() {
-            if fraction < last {
-                self.samples.clear();
-            }
+        if let Some(&(_, last)) = self.samples.last()
+            && fraction < last
+        {
+            self.samples.clear();
         }
         self.samples.push((now, fraction));
     }
@@ -60,7 +62,7 @@ impl Eta {
             .copied()
             .collect();
         if window.len() < 2 {
-            window = self.samples.clone();
+            window.clone_from(&self.samples);
         }
         if window.len() < 2 {
             return None;
@@ -78,20 +80,17 @@ impl Eta {
         let remaining = 1.0 - f64::from(last_fraction);
         let seconds_left = remaining / rate;
         let minutes = (seconds_left / 60.0).ceil().max(1.0);
+        // Positive and at least 1 here; a job of more than u32::MAX minutes is not a case.
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         Some(minutes as u32)
     }
 }
 
 /// Format a minute estimate the way the demo does.
 ///
-/// `None` stays `None`. `Some(0)` becomes `"0 min left"`, `Some(1)` becomes
-/// `"1 min left"`, and any larger value becomes `"about N min left"`.
+/// `None` stays `None`; otherwise `"about N min left"` with N at least 1, as the demo's LOD and TTW pages say it.
 pub fn minutes_left_text(minutes: Option<u32>) -> Option<String> {
-    minutes.map(|m| match m {
-        0 => "0 min left".to_owned(),
-        1 => "1 min left".to_owned(),
-        _ => format!("about {m} min left"),
-    })
+    minutes.map(|m| format!("about {} min left", m.max(1)))
 }
 
 /// A job kind, optionally scoped to a profile.
@@ -210,10 +209,7 @@ mod tests {
     #[test]
     fn status_line_variants() {
         assert_eq!(status_line(&[]), "Ready");
-        assert_eq!(
-            status_line(&[("LOD".to_owned(), Some(0.42))]),
-            "LOD · 42 %"
-        );
+        assert_eq!(status_line(&[("LOD".to_owned(), Some(0.42))]), "LOD · 42 %");
         assert_eq!(
             status_line(&[
                 ("LOD".to_owned(), Some(0.42)),
@@ -227,8 +223,14 @@ mod tests {
     #[test]
     fn minutes_left_text_wording() {
         assert_eq!(minutes_left_text(None), None);
-        assert_eq!(minutes_left_text(Some(0)), Some("0 min left".to_owned()));
-        assert_eq!(minutes_left_text(Some(1)), Some("1 min left".to_owned()));
+        assert_eq!(
+            minutes_left_text(Some(0)),
+            Some("about 1 min left".to_owned())
+        );
+        assert_eq!(
+            minutes_left_text(Some(1)),
+            Some("about 1 min left".to_owned())
+        );
         assert_eq!(
             minutes_left_text(Some(3)),
             Some("about 3 min left".to_owned())
