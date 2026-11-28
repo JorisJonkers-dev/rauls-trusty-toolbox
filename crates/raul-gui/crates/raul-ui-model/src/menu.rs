@@ -34,7 +34,9 @@ pub const SEPARATOR_HEIGHT: f32 = 9.0;
 
 /// Total height of a menu with the given numbers of items and separators.
 pub fn menu_height(items: usize, separators: usize) -> f32 {
-    PADDING * 2.0 + items as f32 * ITEM_HEIGHT + separators as f32 * SEPARATOR_HEIGHT
+    #[allow(clippy::cast_precision_loss)] // a menu holds a handful of items
+    let (items, separators) = (items as f32, separators as f32);
+    PADDING * 2.0 + items * ITEM_HEIGHT + separators * SEPARATOR_HEIGHT
 }
 
 /// Places a menu left-aligned with its anchor, below by default, flipping above when needed,
@@ -129,10 +131,10 @@ impl MenuState {
     pub fn key(&mut self, items: &[MenuItem], key: Key) -> Outcome {
         match key {
             Key::Up | Key::Down => {
-                if let Some(i) = self.focused {
-                    if let Some(next) = next_enabled(items, i, key == Key::Down) {
-                        self.focused = Some(next);
-                    }
+                if let Some(i) = self.focused
+                    && let Some(next) = next_enabled(items, i, key == Key::Down)
+                {
+                    self.focused = Some(next);
                 }
                 Outcome::Stay
             }
@@ -147,9 +149,7 @@ impl MenuState {
             Key::Tab => Outcome::Close {
                 focus_anchor: false,
             },
-            Key::Escape => Outcome::Close {
-                focus_anchor: true,
-            },
+            Key::Escape => Outcome::Close { focus_anchor: true },
             Key::Enter => match self.focused {
                 Some(i) => Outcome::Activate(i),
                 None => Outcome::Stay,
@@ -167,11 +167,7 @@ fn next_enabled(items: &[MenuItem], from: usize, down: bool) -> Option<usize> {
     let mut i = from;
     for _ in 0..n {
         i = if down {
-            if i + 1 < n {
-                i + 1
-            } else {
-                0
-            }
+            if i + 1 < n { i + 1 } else { 0 }
         } else if i == 0 {
             n - 1
         } else {
@@ -290,7 +286,12 @@ mod tests {
 
     #[test]
     fn home_and_end_jump_to_enabled_ends() {
-        let items = vec![item("A", false), item("B", true), item("C", true), item("D", false)];
+        let items = vec![
+            item("A", false),
+            item("B", true),
+            item("C", true),
+            item("D", false),
+        ];
         let mut state = MenuState::open(&items);
         state.key(&items, Key::Down);
         assert_eq!(state.focused(), Some(2));
@@ -318,9 +319,7 @@ mod tests {
         let mut state = MenuState::open(&items);
         assert_eq!(
             state.key(&items, Key::Escape),
-            Outcome::Close {
-                focus_anchor: true
-            }
+            Outcome::Close { focus_anchor: true }
         );
     }
 
