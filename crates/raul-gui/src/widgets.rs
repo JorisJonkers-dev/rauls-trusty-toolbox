@@ -229,7 +229,10 @@ impl Row<'_> {
             )
         });
         let title_h = title.size().y;
-        let block_h = title_h + sub.as_ref().map_or(0.0, |g| sizes::ROW_SUB_GAP + g.size().y);
+        let block_h = title_h
+            + sub
+                .as_ref()
+                .map_or(0.0, |g| sizes::ROW_SUB_GAP + g.size().y);
         let height = (block_h + 2.0 * sizes::ROW_PADDING_Y).max(sizes::ROW_MIN_HEIGHT);
         let width = ui.available_width();
         let (rect, response) =
@@ -268,13 +271,18 @@ impl Row<'_> {
             egui::pos2(rect.left() + sizes::ROW_PADDING_X, rect.top()),
             egui::pos2(rect.right() - sizes::ROW_PADDING_X, rect.bottom()),
         );
-        let mut trailing_ui = ui.child_ui(inner, egui::Layout::right_to_left(egui::Align::Center));
+        let mut trailing_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(inner)
+                .layout(egui::Layout::right_to_left(egui::Align::Center)),
+        );
         trailing(&mut trailing_ui);
         response
     }
 }
 
 /// The kinds of [`button`] and [`small_button`]: the fills and text colours of section 2.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ButtonKind {
     /// The accent fill with `on_accent` text: a page's primary action.
     Primary,
@@ -340,7 +348,13 @@ fn text_button(
         ),
         ButtonKind::Danger => (t.err.color(), t.on_accent.color()),
     };
-    let dim = |c| if enabled { c } else { c.gamma_multiply(sizes::DISABLED_ALPHA) };
+    let dim = |c: egui::Color32| {
+        if enabled {
+            c
+        } else {
+            c.gamma_multiply(sizes::DISABLED_ALPHA)
+        }
+    };
     let radius = height / 2.0;
     ui.painter().rect_filled(rect, radius, dim(fill));
     hc_border(display, ui.painter(), rect, radius);
@@ -370,7 +384,13 @@ pub fn icon_button(ui: &mut egui::Ui, icon: &str) -> egui::Response {
         egui::Sense::click(),
     );
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, enabled, false, icon));
-    let dim = |c| if enabled { c } else { c.gamma_multiply(sizes::DISABLED_ALPHA) };
+    let dim = |c: egui::Color32| {
+        if enabled {
+            c
+        } else {
+            c.gamma_multiply(sizes::DISABLED_ALPHA)
+        }
+    };
     ui.painter()
         .rect_filled(rect, sizes::ICON_BUTTON / 2.0, dim(t.raise2.color()));
     hc_border(display, ui.painter(), rect, sizes::ICON_BUTTON / 2.0);
@@ -426,7 +446,10 @@ pub fn tag(ui: &mut egui::Ui, tone: Tone, text: &str) -> egui::Response {
         colour.color(),
     );
     let (rect, response) = ui.allocate_exact_size(
-        egui::vec2(galley.size().x + 2.0 * sizes::TAG_PADDING_X, sizes::TAG_HEIGHT),
+        egui::vec2(
+            galley.size().x + 2.0 * sizes::TAG_PADDING_X,
+            sizes::TAG_HEIGHT,
+        ),
         egui::Sense::hover(),
     );
     // The kit's one literal colour value (section 2: a tag fill is its status colour at 14 % alpha).
@@ -461,7 +484,8 @@ pub fn badge(ui: &mut egui::Ui, tone: Tone, count: usize) -> egui::Response {
     let width = (galley.size().x + 2.0 * sizes::BADGE_PADDING_X).max(sizes::BADGE_MIN_WIDTH);
     let (rect, response) =
         ui.allocate_exact_size(egui::vec2(width, sizes::BADGE_HEIGHT), egui::Sense::hover());
-    ui.painter().rect_filled(rect, sizes::BADGE_RADIUS, colour.color());
+    ui.painter()
+        .rect_filled(rect, sizes::BADGE_RADIUS, colour.color());
     ui.painter().galley(
         egui::pos2(
             rect.center().x - galley.size().x / 2.0,
@@ -489,24 +513,22 @@ pub fn progress(ui: &mut egui::Ui, fraction: Option<f32>) -> egui::Response {
     );
     ui.painter()
         .rect_filled(rect, sizes::PROGRESS_RADIUS, t.sunk.color());
-    let (left, filled) = match fraction {
-        Some(fraction) => (rect.left(), rect.width() * fraction.clamp(0.0, 1.0)),
-        None => {
-            let block = rect.width() * sizes::PROGRESS_SLIDE_WIDTH;
-            let left = match motion.indeterminate_park {
-                // Reduced motion: the block sits still, starting at its parking spot of the width.
-                Some(park) => rect.left() + rect.width() * park,
-                None => {
-                    // One pass of the slide per period; the repaints keep the block moving.
-                    let time = ui.input(|i| i.time);
-                    ui.ctx().request_repaint();
-                    #[allow(clippy::cast_precision_loss)]
-                    let phase = (time / f64::from(motion.slide_period)).fract() as f32;
-                    rect.left() + phase * (rect.width() - block).max(0.0)
-                }
-            };
-            (left, block)
-        }
+    let (left, filled) = if let Some(fraction) = fraction {
+        (rect.left(), rect.width() * fraction.clamp(0.0, 1.0))
+    } else {
+        let block = rect.width() * sizes::PROGRESS_SLIDE_WIDTH;
+        let left = if let Some(park) = motion.indeterminate_park {
+            // Reduced motion: the block sits still, starting at its parking spot of the width.
+            rect.left() + rect.width() * park
+        } else {
+            // One pass of the slide per period; the repaints keep the block moving.
+            let time = ui.input(|i| i.time);
+            ui.ctx().request_repaint();
+            #[allow(clippy::cast_possible_truncation)]
+            let phase = (time / f64::from(motion.slide_period)).fract() as f32;
+            rect.left() + phase * (rect.width() - block).max(0.0)
+        };
+        (left, block)
     };
     ui.painter().rect_filled(
         egui::Rect::from_min_size(
@@ -522,8 +544,8 @@ pub fn progress(ui: &mut egui::Ui, fraction: Option<f32>) -> egui::Response {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use egui_kittest::kittest::Queryable;
     use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::{Arc, Mutex};
 
@@ -600,7 +622,9 @@ mod tests {
 
     #[test]
     fn tags_badges_and_progress_bars_measure_to_spec() {
-        let seen = Arc::new(Mutex::new(None::<(egui::Rect, egui::Rect, egui::Rect, f32)>));
+        let seen = Arc::new(Mutex::new(
+            None::<(egui::Rect, egui::Rect, egui::Rect, f32)>,
+        ));
         let mut h = {
             let seen = seen.clone();
             Harness::builder()
