@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795835072576,
+  "lastUpdate": 1795877163193,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13670,6 +13670,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 5.693502,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "7b23ba93f6dcd25fa687b33a69443cf1710b068e",
+          "message": "feat(ui-model): minutes-left estimate, job keys and status line of the redesign (#733)\n\n* feat(ui-model): minutes-left estimate, job keys and status line of the redesign (CORE-03)\n\n* fix(ui-model): minutes-left wording as the demo says it; clippy",
+          "timestamp": "2026-11-28T15:39:42+01:00",
+          "tree_id": "8cc63ba1782ca8382887015e312b879df8b14993",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/7b23ba93f6dcd25fa687b33a69443cf1710b068e"
+        },
+        "date": 1795877162066,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.8898599999999999,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.617055,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.034894,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.083837,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.181428,
             "unit": "ms"
           }
         ]
