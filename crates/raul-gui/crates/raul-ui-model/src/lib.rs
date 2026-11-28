@@ -30,6 +30,7 @@ pub mod pages;
 pub mod palette;
 pub mod route;
 pub mod setup;
+pub mod toast;
 pub mod wizard;
 
 pub use copy::copy_details;
