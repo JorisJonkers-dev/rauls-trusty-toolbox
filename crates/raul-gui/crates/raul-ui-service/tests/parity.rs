@@ -95,7 +95,9 @@ fn every_palette_entry_that_opens_a_changing_screen_is_covered() {
     let entries = palette::entries(&Keymap::default(), true);
     assert!(!entries.is_empty());
     for e in entries {
-        if let Do::Go(screen) = e.action
+        // A page opens the screen of the earlier inventory it continues; the registry covers it through that.
+        if let Do::Page(page) = e.action
+            && let Some(screen) = page.screen()
             && screen.mutates()
         {
             assert!(
