@@ -213,7 +213,7 @@ Treat file references as starting points, not proof of every word.
 | F-TTW-01 | Entry points | differs | Entry via Home row "Set up…" and wizard "Set up TTW…"; no Mods row, Settings "Add…", or "Update TTW…". | `crates/raul-gui/src/pages/home.rs:RowId::Ttw (SET_UP)`<br>`crates/raul-gui/src/pages/setup.rs:665` |
 | F-TTW-02 | Step 1 Fallout 3 | differs | Step reads Fallout 3 from Settings ("Change in Settings"); auto-find is for the package, not FO3; no folder picker; 4-step stepper exists. | `crates/raul-gui/src/pages/ttw.rs:sources` |
 | F-TTW-03 | Step 2 TTW file | differs | "Open the download page", "Find it for me", Downloads watch, "Use this file"; no Browse…, no "Downloads › file" row. | `crates/raul-gui/src/pages/ttw.rs:package,find` |
-| F-TTW-04 | Step 3 Install | differs | Space check blocks install, Cancel and staged phases exist; needs 40 GB not 25, % not minutes, no Free-up/Change-storage buttons. | `crates/raul-gui/src/pages/ttw.rs:space_line,cancel`<br>`crates/raul-ui-model/src/pages/ttw.rs:NEEDED_BYTES` |
+| F-TTW-04 | Step 3 Install | differs | Space check blocks install, Cancel and staged phases exist; needs 25 GB by default (the installer's own figure is not read from the .mpi yet), % not minutes, no Free-up/Change-storage buttons. | `crates/raul-gui/src/pages/ttw.rs:space_line,cancel`<br>`crates/raul-ui-model/src/pages/ttw.rs:DEFAULT_NEEDED_BYTES` |
 | F-TTW-05 | Step 4 Done | differs | Done says "installed as one Mod, plugins enabled"; no per-profile wording, no pinning at top. | `crates/raul-gui/src/pages/ttw.rs:INSTALLED,DONE` |
 
 ## System

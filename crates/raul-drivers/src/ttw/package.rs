@@ -40,6 +40,9 @@ pub enum Package {
     Mpi {
         /// The file.
         path: PathBuf,
+        /// Bytes the install needs on the destination, from the manifest's largest `FreeSize` check.
+        /// `None` when the manifest has not been read (the manifest lives inside the `.mpi` BSA archive).
+        needed_bytes: Option<u64>,
     },
     /// An archive that holds exactly one `.mpi`; its content is checked when it is unpacked.
     Archive {
@@ -49,7 +52,23 @@ pub enum Package {
         entry: String,
         /// Bytes the archive holds once unpacked, all its files, as its header says.
         unpacked_bytes: u64,
+        /// Bytes the install needs on the destination, from the manifest's largest `FreeSize` check.
+        /// `None` when the manifest has not been read (the manifest lives inside the `.mpi` BSA archive).
+        needed_bytes: Option<u64>,
     },
+}
+
+impl Package {
+    /// Bytes the install needs on the destination, from the manifest's largest `FreeSize` check.
+    /// `None` when the manifest has not been read.
+    #[must_use]
+    pub fn needed_bytes(&self) -> Option<u64> {
+        match self {
+            Package::Mpi { needed_bytes, .. } | Package::Archive { needed_bytes, .. } => {
+                *needed_bytes
+            }
+        }
+    }
 }
 
 /// Why a file is not accepted as the TTW package, in plain words.
@@ -246,6 +265,9 @@ pub fn inspect(path: &Path) -> Result<Package, Problem> {
     if head.starts_with(&MPI_HEADER) {
         return Ok(Package::Mpi {
             path: path.to_path_buf(),
+            // The manifest is `_package/index.json` inside the `.mpi` BSA archive. Reading it here would need
+            // BSA extraction or ttwright's own parser; the GUI falls back to its default until the install runs.
+            needed_bytes: None,
         });
     }
     let list = match kind_of(head) {
@@ -288,6 +310,8 @@ pub fn inspect(path: &Path) -> Result<Package, Problem> {
             path: path.to_path_buf(),
             entry: packages.remove(0),
             unpacked_bytes,
+            // The manifest is inside the `.mpi` this archive holds; it is read only when the package is unpacked.
+            needed_bytes: None,
         }),
         count => Err(Problem::SeveralInside {
             path: path.to_path_buf(),
@@ -343,11 +367,12 @@ fn list_zip(path: &Path) -> Result<Vec<(String, u64)>, String> {
 /// A [`Problem`]: the archive cannot be unpacked, or what it held is not a package. Nothing is left in `into`.
 pub fn unpack(package: &Package, into: &Path) -> Result<PathBuf, Problem> {
     let (path, entry, unpacked_bytes) = match package {
-        Package::Mpi { path } => return Ok(path.clone()),
+        Package::Mpi { path, .. } => return Ok(path.clone()),
         Package::Archive {
             path,
             entry,
             unpacked_bytes,
+            ..
         } => (path, entry, *unpacked_bytes),
     };
     let fail = |why: String| Problem::Unpack {
@@ -424,6 +449,32 @@ pub fn unpacked_in(folder: &Path) -> Option<PathBuf> {
     found.next().is_none().then_some(one)
 }
 
+/// One mebibyte (MiB): the unit the manifest's `FreeSize` values are in, per ttwright's manifest.
+const MIB: u64 = 1024 * 1024;
+
+/// The largest `FreeSize` value in a TTW installer manifest, converted from mebibytes to bytes.
+///
+/// The manifest is JSON (`_package/index.json` inside the `.mpi`). Free-space checks can appear at any depth under
+/// a `FreeSize` key; the largest value wins. `MB = 1024 * 1024 bytes`.
+#[must_use]
+pub fn manifest_needed_bytes(manifest: &str) -> Option<u64> {
+    let value: serde_json::Value = serde_json::from_str(manifest).ok()?;
+    max_free_size(&value)
+        .filter(|mb| *mb > 0)
+        .map(|mb| mb.unsigned_abs() * MIB)
+}
+
+fn max_free_size(value: &serde_json::Value) -> Option<i64> {
+    match value {
+        serde_json::Value::Object(map) => {
+            let own = map.get("FreeSize").and_then(serde_json::Value::as_i64);
+            map.values().filter_map(max_free_size).chain(own).max()
+        }
+        serde_json::Value::Array(arr) => arr.iter().filter_map(max_free_size).max(),
+        _ => None,
+    }
+}
+
 /// Bytes as `1.9 GB` or `640 MB`, for messages.
 #[must_use]
 pub fn size_text(bytes: u64) -> String {
@@ -486,7 +537,14 @@ mod tests {
             let path = dir.path().join(name);
             std::fs::write(&path, mpi_bytes()).unwrap();
             assert!(is_mpi(&path), "{name}");
-            assert_eq!(inspect(&path), Ok(Package::Mpi { path }), "{name}");
+            assert_eq!(
+                inspect(&path),
+                Ok(Package::Mpi {
+                    path,
+                    needed_bytes: None
+                }),
+                "{name}"
+            );
         }
     }
 
@@ -501,6 +559,7 @@ mod tests {
                 path,
                 entry: "Tale of Two Wastelands 3.4.mpi".to_owned(),
                 unpacked_bytes: all,
+                needed_bytes: None,
             })
         );
     }
@@ -662,5 +721,25 @@ mod tests {
         assert_eq!(size_text(1_850_000_000), "1.8 GB");
         assert_eq!(size_text(640_000_001), "641 MB");
         assert_eq!(size_text(0), "0 MB");
+    }
+
+    #[test]
+    fn a_manifest_freesize_is_converted_from_mib_to_bytes() {
+        let manifest = r#"{"checks":[{"FreeSize":26000}]}"#;
+        assert_eq!(
+            manifest_needed_bytes(manifest),
+            Some(26_000 * 1024 * 1024),
+            "26000 MiB in bytes"
+        );
+        assert_eq!(manifest_needed_bytes("{}"), None, "no free-space check");
+        assert_eq!(
+            manifest_needed_bytes(r#"{"FreeSize":10000}"#),
+            Some(10_000 * 1024 * 1024)
+        );
+        assert_eq!(
+            manifest_needed_bytes(r#"{"a":{"FreeSize":10000},"b":{"FreeSize":26000}}"#),
+            Some(26_000 * 1024 * 1024),
+            "the largest FreeSize wins"
+        );
     }
 }

@@ -20,8 +20,8 @@ use std::time::Duration;
 /// Where the TTW package is downloaded from: the one place the page links to.
 pub const DOWNLOAD_URL: &str = "https://taleoftwowastelands.com/";
 
-/// The space the TTW install needs on the Instance's storage: the output and the files it works with, rounded up.
-pub const NEEDED_BYTES: u64 = 40 * 1024 * 1024 * 1024;
+/// The space the TTW install needs on the Instance's storage before a package is picked: 25 GB as the demo shows it.
+pub const DEFAULT_NEEDED_BYTES: u64 = 25 * 1000 * 1000 * 1000;
 
 /// `raul space --folder <dir>`: the free space where the Instance is; read only.
 pub fn space_command(folder: &str) -> Command {
@@ -314,6 +314,8 @@ pub struct PackageInfo {
     pub path: PathBuf,
     /// Its size in bytes.
     pub size: u64,
+    /// Bytes the install needs on the destination, from the installer's manifest; `None` before it is read.
+    pub needed_bytes: Option<u64>,
 }
 
 /// How far the install is, from the job's progress events.
@@ -362,6 +364,8 @@ pub struct State {
     pub found: Found,
     /// The free bytes where the Instance is, read from `raul space` when Output is shown.
     pub space: Fetch<u64>,
+    /// Bytes the install needs on the destination, from the installer's manifest once a package is picked.
+    pub needed_bytes: Option<u64>,
     /// Sources read again while a command ran, applied by [`State::settle`] when it ends.
     pub deferred: Option<Sources>,
 }
@@ -422,13 +426,20 @@ impl State {
     pub fn space_missing(&self) -> Option<u64> {
         self.space
             .ready()
-            .and_then(|free| NEEDED_BYTES.checked_sub(*free))
+            .and_then(|free| self.needed_bytes().checked_sub(*free))
             .filter(|missing| *missing > 0)
+    }
+
+    /// Bytes the install needs on the destination: the installer's figure when one is known, otherwise the default.
+    #[must_use]
+    pub fn needed_bytes(&self) -> u64 {
+        self.needed_bytes.unwrap_or(DEFAULT_NEEDED_BYTES)
     }
 
     /// The search for the package started.
     pub fn searching(&mut self) {
         self.found = Found::Searching;
+        self.needed_bytes = None;
     }
 
     /// The search ended: with the package it found, or with nothing and the folder it looked in.
@@ -450,6 +461,7 @@ impl State {
         if let (Found::Found { size, .. }, Some(p)) = (&mut self.found, package) {
             *size = p.size;
         }
+        self.needed_bytes = package.and_then(|p| p.needed_bytes);
     }
 
     /// The package found was chosen: it is the package the flow uses, until the sources are read again.
@@ -828,12 +840,35 @@ mod tests {
         assert!(s.can_next());
         s.space_failed("unreadable".into());
         assert!(s.can_next(), "an unreadable folder does not block");
-        s.space_read(NEEDED_BYTES - 1);
+        s.space_read(DEFAULT_NEEDED_BYTES - 1);
         assert_eq!(s.space_missing(), Some(1));
         assert!(!s.can_next());
-        s.space_read(NEEDED_BYTES);
+        s.space_read(DEFAULT_NEEDED_BYTES);
         assert_eq!(s.space_missing(), None);
         assert!(s.can_next());
+    }
+
+    #[test]
+    fn space_missing_uses_the_default_until_a_package_figure_is_known() {
+        let mut s = ready();
+        s.next();
+        s.space_read(DEFAULT_NEEDED_BYTES - 1);
+        assert_eq!(s.space_missing(), Some(1), "the default 25 GB is used");
+        let package = PackageInfo {
+            path: PathBuf::from("/p.mpi"),
+            size: 0,
+            needed_bytes: Some(30_000_000_000),
+        };
+        s.searched_package(Path::new("/d"), Some(&package));
+        assert_eq!(
+            s.needed_bytes(),
+            30_000_000_000,
+            "the package's figure is remembered"
+        );
+        s.space_read(29_999_999_999);
+        assert_eq!(s.space_missing(), Some(1), "the package's figure is used");
+        s.space_read(30_000_000_000);
+        assert_eq!(s.space_missing(), None, "just enough space");
     }
 
     #[test]

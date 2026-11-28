@@ -21,9 +21,8 @@ use raul_ui_model::pages::load_order::Problem;
 use raul_ui_model::pages::mods::{list_command, parse_list};
 use raul_ui_model::pages::settings::{Answer, Command, Fetch, Key};
 use raul_ui_model::pages::ttw::{
-    DOWNLOAD_URL, Found, NEEDED_BYTES, PackageInfo, Progress, Redirected, Report, Settling,
-    Sources, State, Step, check_command, default_downloads, free_bytes_of, install_command,
-    space_command,
+    DOWNLOAD_URL, Found, PackageInfo, Progress, Redirected, Report, Settling, Sources, State, Step,
+    check_command, default_downloads, free_bytes_of, install_command, space_command,
 };
 use raul_ui_model::pages::{Flow, PageId, View};
 use raul_ui_model::wizard::{Step as FlowStep, TtwNeed};
@@ -729,7 +728,7 @@ impl Ttw {
 
     /// The line of the Space row: what is free and what the install needs.
     fn space_line(&self) -> String {
-        let need = gb(NEEDED_BYTES);
+        let need = gb(self.state.needed_bytes());
         match &self.state.space {
             Fetch::Idle | Fetch::Loading => SPACE_READING.to_owned(),
             Fetch::Failed(_) => SPACE_UNKNOWN.replace("{need}", &need),
@@ -1323,7 +1322,8 @@ fn source_row(
 /// Label and value rows; a path value is monospace and truncates with the whole in a tooltip.
 /// Bytes as whole gigabytes, rounded up, so a shortage is never understated.
 fn gb(bytes: u64) -> String {
-    const GB: u64 = 1024 * 1024 * 1024;
+    // Decimal gigabytes, as the demo and drive tools show them.
+    const GB: u64 = 1000 * 1000 * 1000;
     bytes.div_ceil(GB).to_string()
 }
 
