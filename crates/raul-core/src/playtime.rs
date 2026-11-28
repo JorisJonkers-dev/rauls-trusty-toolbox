@@ -17,6 +17,7 @@ pub struct Session {
 
 impl Session {
     /// Length of the session in whole seconds, saturating at zero.
+    #[must_use]
     pub fn seconds(&self) -> u64 {
         self.ended.saturating_sub(self.started)
     }
@@ -39,7 +40,8 @@ pub struct Playtime {
 
 impl Playtime {
     /// Start a session now and return the value the caller keeps while it runs.
-    pub fn start(&mut self, profile: &str, now: u64) -> Running {
+    #[must_use]
+    pub fn start(&self, profile: &str, now: u64) -> Running {
         Running {
             profile: profile.to_string(),
             started: now,
@@ -55,20 +57,23 @@ impl Playtime {
             started: running.started,
             ended: now,
         };
+        let index = self.sessions.len();
         self.sessions.push(session);
-        self.sessions.last().expect("just pushed a session")
+        &self.sessions[index]
     }
 
     /// Total playtime in seconds for the given profile.
+    #[must_use]
     pub fn total(&self, profile: &str) -> u64 {
         self.sessions
             .iter()
             .filter(|s| s.profile == profile)
-            .map(|s| s.seconds())
+            .map(Session::seconds)
             .sum()
     }
 
     /// End time of the newest session for the given profile, if any.
+    #[must_use]
     pub fn last_played(&self, profile: &str) -> Option<u64> {
         self.sessions
             .iter()
@@ -81,6 +86,7 @@ impl Playtime {
 /// Format a duration in seconds the way the Home status card does.
 ///
 /// Examples: `3 s`, `59 s`, `1 min`, `1 h 1 min`, `2 h`.
+#[must_use]
 pub fn duration_text(secs: u64) -> String {
     if secs < 60 {
         format!("{secs} s")
@@ -103,20 +109,22 @@ pub fn duration_text(secs: u64) -> String {
 /// Relative wording for the last-played timestamp.
 ///
 /// Examples: `just now`, `5 min ago`, `2 h ago`, `yesterday`, `3 days ago`.
+#[must_use]
 pub fn last_played_text(last: u64, now: u64) -> String {
     let diff_secs = now.saturating_sub(last);
-    let mins = (diff_secs as f64 / 60.0).round() as u64;
+    // Rounded to the nearest unit, as the demo's `ago` does with Math.round.
+    let mins = (diff_secs + 30) / 60;
 
     if mins < 1 {
         "just now".to_string()
     } else if mins < 60 {
         format!("{mins} min ago")
     } else {
-        let hours = (mins as f64 / 60.0).round() as u64;
+        let hours = (mins + 30) / 60;
         if hours < 24 {
             format!("{hours} h ago")
         } else {
-            let days = (hours as f64 / 24.0).round() as u64;
+            let days = (hours + 12) / 24;
             if days == 1 {
                 "yesterday".to_string()
             } else {
@@ -189,6 +197,9 @@ mod tests {
         assert_eq!(last_played_text(1000, 1000 + 5 * 60), "5 min ago");
         assert_eq!(last_played_text(1000, 1000 + 2 * 60 * 60), "2 h ago");
         assert_eq!(last_played_text(1000, 1000 + 24 * 60 * 60), "yesterday");
-        assert_eq!(last_played_text(1000, 1000 + 3 * 24 * 60 * 60), "3 days ago");
+        assert_eq!(
+            last_played_text(1000, 1000 + 3 * 24 * 60 * 60),
+            "3 days ago"
+        );
     }
 }
