@@ -37,6 +37,7 @@ fork-scene = { path = "components/nv-rs/crates/fork-scene" }
 nvmod-api = { path = "components/nvmod-rs/crates/nvmod-api" }
 nvmod-cli = { path = "components/nvmod-rs/crates/nvmod-cli" }
 nvmod-core = { path = "components/nvmod-rs/crates/nvmod-core" }
+nvmod-doctor = { path = "components/nvmod-rs/crates/nvmod-doctor" }
 nvmod-formats = { path = "components/nvmod-rs/crates/nvmod-formats" }
 nvmod-instance = { path = "components/nvmod-rs/crates/nvmod-instance" }
 nvmod-journal = { path = "components/nvmod-rs/crates/nvmod-journal" }
