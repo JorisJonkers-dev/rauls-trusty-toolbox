@@ -4600,6 +4600,7 @@ dependencies = [
  "nvmod-instance",
  "nvmod-pe",
  "nvmod-run",
+ "nvmod-stage",
  "raul-drivers",
  "raul-runner",
  "schemars",
