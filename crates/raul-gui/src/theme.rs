@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
-//! The dark theme: the token table of `docs/UI-RULES.md` C1 as egui styles (ADR-0013).
+//! The themes: the colour tokens of `docs/redesign/SPEC.md` section 2 (default and high contrast) as egui styles
+//! (ADR-0013).
 //!
 //! Every colour a page uses comes from [`Tokens`]; a page never writes a colour of its own. The contrast rule is
 //! checked by a test over the table: every text colour is at least 4.5:1 on every surface, and control borders at
@@ -38,68 +39,101 @@ impl Rgb {
     }
 }
 
-/// The colour tokens of a theme (UI-RULES C1).
+/// The colour tokens of a theme (`docs/redesign/SPEC.md` section 2).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Tokens {
-    /// The canvas.
+    /// Window and page background.
     pub bg: Rgb,
-    /// Dialogs and inputs.
+    /// Cards, top bar, banners, dialogs.
     pub raise: Rgb,
-    /// The selected row and the active navigation entry.
+    /// Rows inside cards, chips, action bar, icon tiles, menus.
+    pub raise2: Rgb,
+    /// Selected or focused row tint, toast fill, open mod row.
     pub sel: Rgb,
-    /// A row or control under the pointer.
+    /// Hover on rows and buttons.
     pub hover: Rgb,
-    /// Hairlines.
+    /// Switch border, timeline, dashed empty box, menu separator.
     pub line: Rgb,
-    /// Control borders.
+    /// Checkbox border, grip, switch off knob variants.
     pub ctl: Rgb,
-    /// Text.
+    /// Main text.
     pub text: Rgb,
-    /// Secondary text.
+    /// Secondary text, ghost buttons, icons.
     pub muted: Rgb,
-    /// Primary buttons, the active marker, the focus ring and links.
+    /// Primary button, active icon, section bar, progress, selection ring.
     pub accent: Rgb,
-    /// Text on an accent fill.
+    /// Text on accent.
     pub on_accent: Rgb,
-    /// The logo, Raul's name and section ticks; never a status.
+    /// Brand mark and name only.
     pub brand: Rgb,
-    /// OK.
+    /// Success.
     pub ok: Rgb,
-    /// Warning.
+    /// Warnings, untested-change dashed border.
     pub warn: Rgb,
-    /// Problem.
+    /// Errors, danger.
     pub err: Rgb,
-    /// Updates and running work.
+    /// Information, update badge.
     pub info: Rgb,
+    /// Input fields, switch track, log box.
+    pub sunk: Rgb,
+    /// Choice marker colour.
+    pub choice: Rgb,
 }
 
 /// The dark theme.
 pub const DARK: Tokens = Tokens {
     bg: Rgb(0x10, 0x12, 0x15),
-    raise: Rgb(0x17, 0x1A, 0x1F),
-    sel: Rgb(0x1F, 0x25, 0x30),
-    hover: Rgb(0x1A, 0x1D, 0x23),
+    raise: Rgb(0x18, 0x1C, 0x22),
+    raise2: Rgb(0x22, 0x28, 0x31),
+    sel: Rgb(0x2A, 0x32, 0x40),
+    hover: Rgb(0x29, 0x30, 0x3B),
     line: Rgb(0x2F, 0x35, 0x3F),
-    ctl: Rgb(0x60, 0x69, 0x73),
+    ctl: Rgb(0x7A, 0x84, 0x8F),
     text: Rgb(0xE6, 0xE8, 0xEB),
-    muted: Rgb(0x98, 0xA1, 0xAC),
+    muted: Rgb(0xA3, 0xAC, 0xB7),
     accent: Rgb(0x3D, 0xD6, 0xC6),
-    on_accent: Rgb(0x10, 0x12, 0x15),
+    on_accent: Rgb(0x0B, 0x15, 0x13),
     brand: Rgb(0xF5, 0x9E, 0x3B),
     ok: Rgb(0x4C, 0xC3, 0x8A),
-    warn: Rgb(0xF2, 0xA9, 0x3B),
-    err: Rgb(0xF2, 0x6B, 0x6B),
+    warn: Rgb(0xFF, 0x9A, 0x4D),
+    err: Rgb(0xFF, 0x7A, 0x7A),
     info: Rgb(0x6E, 0xA8, 0xFE),
+    sunk: Rgb(0x0C, 0x0E, 0x10),
+    choice: Rgb(0xB7, 0x9C, 0xFF),
+};
+
+/// The high contrast theme.
+pub const HIGH_CONTRAST: Tokens = Tokens {
+    bg: Rgb(0x00, 0x00, 0x00),
+    raise: Rgb(0x00, 0x00, 0x00),
+    raise2: Rgb(0x00, 0x00, 0x00),
+    sel: Rgb(0x11, 0x11, 0x11),
+    hover: Rgb(0x15, 0x15, 0x15),
+    line: Rgb(0xB8, 0xB8, 0xB8),
+    ctl: Rgb(0xFF, 0xFF, 0xFF),
+    text: Rgb(0xFF, 0xFF, 0xFF),
+    muted: Rgb(0xE0, 0xE0, 0xE0),
+    accent: Rgb(0x5C, 0xF2, 0xE2),
+    on_accent: Rgb(0x0B, 0x15, 0x13),
+    brand: Rgb(0xF5, 0x9E, 0x3B),
+    ok: Rgb(0x6F, 0xE8, 0xA6),
+    warn: Rgb(0xFF, 0xB0, 0x66),
+    err: Rgb(0xFF, 0x8A, 0x8A),
+    info: Rgb(0x8D, 0xBB, 0xFF),
+    sunk: Rgb(0x00, 0x00, 0x00),
+    choice: Rgb(0xB7, 0x9C, 0xFF),
 };
 
 impl Tokens {
     /// The surfaces text is drawn on.
-    pub fn surfaces(&self) -> [(&'static str, Rgb); 4] {
+    pub fn surfaces(&self) -> [(&'static str, Rgb); 6] {
         [
             ("bg", self.bg),
             ("raise", self.raise),
+            ("raise2", self.raise2),
             ("sel", self.sel),
             ("hover", self.hover),
+            ("sunk", self.sunk),
         ]
     }
 
@@ -176,7 +210,7 @@ pub fn visuals(t: &Tokens) -> egui::Visuals {
     v.window_fill = t.raise.color();
     v.window_stroke = Stroke::new(1.0, t.line.color());
     v.window_corner_radius = CornerRadius::same(12);
-    v.extreme_bg_color = t.raise.color();
+    v.extreme_bg_color = t.sunk.color();
     v.faint_bg_color = t.hover.color();
     v.code_bg_color = t.bg.color();
     v.warn_fg_color = t.warn.color();
@@ -211,44 +245,58 @@ mod tests {
     use super::*;
     use raul_testkit::{covers, ids};
 
+    /// The themes the app ships.
+    const THEMES: [(&str, Tokens); 2] = [("dark", DARK), ("high contrast", HIGH_CONTRAST)];
+
     #[test]
     fn every_text_colour_reads_on_every_surface() {
         covers(&[ids::gui::shell::THEME_CONTRAST]);
-        let t = DARK;
-        let mut low = Vec::new();
-        for (surface, bg) in t.surfaces() {
-            for (name, fg) in t.text_colours() {
-                let ratio = fg.contrast(bg);
-                if ratio < 4.5 {
-                    low.push(format!("{name} on {surface}: {ratio:.2}"));
+        for (theme, t) in THEMES {
+            let mut low = Vec::new();
+            for (surface, bg) in t.surfaces() {
+                for (name, fg) in t.text_colours() {
+                    let ratio = fg.contrast(bg);
+                    if ratio < 4.5 {
+                        low.push(format!("{name} on {surface}: {ratio:.2}"));
+                    }
                 }
             }
+            assert!(low.is_empty(), "{theme}: below 4.5:1: {low:?}");
         }
-        assert!(low.is_empty(), "below 4.5:1: {low:?}");
     }
 
     #[test]
     fn text_on_the_accent_reads() {
-        assert!(DARK.on_accent.contrast(DARK.accent) >= 4.5);
+        for (theme, t) in THEMES {
+            let ratio = t.on_accent.contrast(t.accent);
+            assert!(ratio >= 4.5, "{theme}: on_accent on accent: {ratio:.2}");
+        }
     }
 
     #[test]
     fn control_borders_stand_out_from_every_surface_a_control_sits_on() {
-        // Controls sit on the canvas, in dialogs and in a hovered row; a selected row holds no control.
-        for (surface, bg) in [
-            ("bg", DARK.bg),
-            ("raise", DARK.raise),
-            ("hover", DARK.hover),
-        ] {
-            let ratio = DARK.ctl.contrast(bg);
-            assert!(ratio >= 3.0, "ctl on {surface}: {ratio:.2}");
+        // Controls sit on the canvas, in dialogs, in a row, in a hovered row and on a switch track; a selected
+        // row holds no control.
+        for (theme, t) in THEMES {
+            for (surface, bg) in [
+                ("bg", t.bg),
+                ("raise", t.raise),
+                ("raise2", t.raise2),
+                ("hover", t.hover),
+                ("sunk", t.sunk),
+            ] {
+                let ratio = t.ctl.contrast(bg);
+                assert!(ratio >= 3.0, "{theme}: ctl on {surface}: {ratio:.2}");
+            }
         }
     }
 
     #[test]
     fn the_accent_is_never_the_brand_or_a_warning() {
-        assert_ne!(DARK.accent, DARK.brand);
-        assert_ne!(DARK.accent, DARK.warn);
+        for (theme, t) in THEMES {
+            assert_ne!(t.accent, t.brand, "{theme}: the accent is the brand");
+            assert_ne!(t.accent, t.warn, "{theme}: the accent is a warning");
+        }
     }
 
     #[test]
@@ -263,11 +311,23 @@ mod tests {
     }
 
     #[test]
+    fn high_contrast_follows_the_spec() {
+        // `docs/redesign/SPEC.md` section 2, "High contrast" column.
+        assert_eq!(HIGH_CONTRAST.bg, Rgb(0x00, 0x00, 0x00));
+        assert_eq!(HIGH_CONTRAST.text, Rgb(0xFF, 0xFF, 0xFF));
+        assert_eq!(HIGH_CONTRAST.accent, Rgb(0x5C, 0xF2, 0xE2));
+        assert_eq!(HIGH_CONTRAST.line, Rgb(0xB8, 0xB8, 0xB8));
+    }
+
+    #[test]
     fn the_visuals_use_the_tokens() {
-        let v = visuals(&DARK);
-        assert_eq!(v.panel_fill, DARK.bg.color());
-        assert_eq!(v.override_text_color, Some(DARK.text.color()));
-        assert_eq!(v.widgets.inactive.bg_stroke.color, DARK.ctl.color());
-        assert_eq!(v.hyperlink_color, DARK.accent.color());
+        for (theme, t) in THEMES {
+            let v = visuals(&t);
+            assert_eq!(v.panel_fill, t.bg.color(), "{theme}: panel fill");
+            assert_eq!(v.override_text_color, Some(t.text.color()), "{theme}: text colour");
+            assert_eq!(v.widgets.inactive.bg_stroke.color, t.ctl.color(), "{theme}: control stroke");
+            assert_eq!(v.hyperlink_color, t.accent.color(), "{theme}: hyperlink colour");
+            assert_eq!(v.extreme_bg_color, t.sunk.color(), "{theme}: input fill");
+        }
     }
 }
