@@ -20,6 +20,7 @@
 #![cfg_attr(test, allow(clippy::assert_is_empty))]
 
 pub mod copy;
+pub mod dialog;
 pub mod doctor;
 pub mod error;
 pub mod events;
