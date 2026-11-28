@@ -54,6 +54,8 @@ it holds a rule that more than one page reads, it is core. If it is drawn or cli
 | CORE-08 | Settings, game folders, storage and cache | raul core/orchestration (raul-core, Toolbox app logic) | M | M1 | CORE-01 | 0/2/5 | JorisJonkers-dev/rauls-trusty-toolbox#670 |
 | CORE-09 | Palette index and action registry | raul core/orchestration (raul-core, Toolbox app logic) | S | M1 | none | 0/1/0 | JorisJonkers-dev/rauls-trusty-toolbox#671 |
 | CORE-10 | Fake service and scenario states for app tests | raul core/orchestration (raul-core, Toolbox app logic) | M | M0 | none | 0/0/1 | JorisJonkers-dev/rauls-trusty-toolbox#672 |
+| GUI-23 | Mod-list screens in the demo, then the GUI | raul GUI (crates/raul-gui) | M | M2 | GUI-02, GUI-04 | new | JorisJonkers-dev/rauls-trusty-toolbox#720 |
+| GUI-24 / CORE-11 | Continue from a save on Home, with the save's profile | raul GUI and raul core | M | M1 | CORE-01, CORE-04, GUI-09, NV-06 | new | JorisJonkers-dev/rauls-trusty-toolbox#719 |
 | NVMOD-01 | Archive inspection and install with options | nvmod-rs | L | M2 | none | 0/4/1 | JorisJonkers-dev/nvmod-rs#291 |
 | NVMOD-02 | Mod library: toggle, remove, plugins, kinds, masters | nvmod-rs | M | M2 | none | 0/5/0 | JorisJonkers-dev/nvmod-rs#292 |
 | LOOT-01 | Sort preview with reasons, notes and missing masters | loot-rs | M | M2 | none | 0/2/1 | JorisJonkers-dev/loot-rs#117 |
@@ -64,7 +66,7 @@ it holds a rule that more than one page reads, it is core. If it is drawn or cli
 | NV-02 | Benchmark run | nv-rs | M | M3 | none | 0/0/1 | JorisJonkers-dev/nv-rs#1013 |
 | NV-03 | Location picture sets | nv-rs | M | M3 | none | 0/0/1 | JorisJonkers-dev/nv-rs#1014 |
 | NV-04 | Run log with levels | nv-rs | S | M3 | none | 0/0/1 | JorisJonkers-dev/nv-rs#1015 |
-| NV-05 | Engine install, builds, integrity check and repair | nv-rs | M | M1 | none | 0/1/2 | JorisJonkers-dev/nv-rs#1016 |
+| NV-05 | Engine integrity check and repair | nv-rs | M | M1 | none | 0/1/2 | JorisJonkers-dev/nv-rs#1016 |
 | NV-06 | Game launch, stop and session time; per-profile graphics settings | nv-rs | M | M1 | none | 0/1/1 | JorisJonkers-dev/nv-rs#1017 |
 
 Gap now is exists / differs / missing across the ticket's functions.
@@ -413,7 +415,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 - Functions: F-SYSTEM-01, F-SYSTEM-02, F-SYSTEM-03, F-SYSTEM-04
 - Stories: US-PAGES-21, US-PAGES-22, US-PAGES-23, US-PAGES-24, US-PAGES-25
 - Gap now (exists/differs/missing): 0/2/2
-- Acceptance: Check on open (throttled 5 min, setting), per-part change list, staged update, failure leaves current version, builds list.
+- Acceptance: Check on open (throttled 5 min, setting), per-part change list, staged update, failure leaves current version, the kept Toolbox versions with "Go back to <old version>" (the engine builds of F-SYSTEM-04, since the engine ships inside the Toolbox).
 - Gherkin: `features/pages.feature`, scenarios `@US-PAGES-21` `@US-PAGES-22` `@US-PAGES-23` `@US-PAGES-24` `@US-PAGES-25`
 - Check: unit tests for the rules, the scenarios above against the app, snapshot against the design pictures listed in the functions.
 
@@ -452,6 +454,22 @@ Gap now is exists / differs / missing across the ticket's functions.
 - Acceptance: Test seam to put the app in every state the demo scenario panel reaches (no panel in the product).
 - Gherkin: `features/shell.feature`, scenarios `@US-SHELL-05`
 - Check: unit tests for the rules, the scenarios above against the app, snapshot against the design pictures listed in the functions.
+
+### GUI-23 Mod-list screens in the demo, then the GUI
+
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#720
+- Project: raul GUI (crates/raul-gui)
+- Size: M. Milestone: M2. Depends on: GUI-02, GUI-04.
+- Functions: new, added to `FUNCTIONALITY.md` once the demo has the screens.
+- Acceptance: Demo screens first (list picker, plan view, install progress, manual-download list), then new F-ids, stories and scenarios; #690 is built to them.
+
+### GUI-24 / CORE-11 Continue from a save on Home, with the save's profile
+
+- Issue: JorisJonkers-dev/rauls-trusty-toolbox#719
+- Project: raul GUI and raul core
+- Size: M. Milestone: M1. Depends on: CORE-01, CORE-04, GUI-09, NV-06.
+- Functions: new, added to `FUNCTIONALITY.md` once the demo has the screen.
+- Acceptance: "Continue from" picker on Home's status card; saves the Toolbox starts are tagged with their profile, older saves match by plugin list; a save from another profile offers "Switch to <profile>"; Play starts straight into the picked save; each save shows its in-game time, while Home's total stays the Toolbox session record.
 
 ### NVMOD-01 Archive inspection and install with options
 
@@ -509,7 +527,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 - Functions: F-LOD-01, F-LOD-02, F-LOD-03, F-LOD-04, F-LOD-05, F-LOD-06
 - Stories: US-PAGES-09, US-PAGES-10, US-PAGES-11, US-PAGES-12, US-PAGES-13, US-PAGES-14, US-PAGES-15
 - Gap now (exists/differs/missing): 0/4/2
-- Acceptance: API: five stages (Reading your mods, Terrain, Objects, Trees, Packing) with percent and minutes left; per-preset size and time estimates; fine-tune (distance 1 to 5, texture 256/512/1024, tree density, far desert plants); cancel keeps the old LOD; out-of-date check from mod and quality changes; worlds in the result.
+- Acceptance: API: phases with percent and minutes left (the Toolbox maps them onto the five UI stages Reading your mods, Terrain, Objects, Trees, Packing); per-preset size and time estimates; fine-tune (distance 1 to 5, texture 256/512/1024, tree density, far desert plants); cancel keeps the old LOD; out-of-date check from mod and quality changes; worlds in the result.
 - Gherkin: `features/pages.feature`, scenarios `@US-PAGES-09` `@US-PAGES-10` `@US-PAGES-11` `@US-PAGES-12` `@US-PAGES-13` `@US-PAGES-14` `@US-PAGES-15`
 - Check: unit tests for the rules, the scenarios above against the app, snapshot against the design pictures listed in the functions.
 
@@ -521,7 +539,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 - Functions: F-TTW-02, F-TTW-03, F-TTW-04, F-TTW-05, F-MODS-05
 - Stories: US-PAGES-16, US-PAGES-17, US-PAGES-18, US-PAGES-19, US-PAGES-20, US-MODS-05
 - Gap now (exists/differs/missing): 0/5/0
-- Acceptance: API: find Fallout 3, check installer file, space needed (25 GB) and time estimate, staged install with cancel, check for a newer TTW, result lands pinned first.
+- Acceptance: API: find Fallout 3, check installer file, space needed (the installer manifest's `FreeSize` once a file is picked, 25 GB before that; no hard-coded figure) and time estimate, staged install with cancel, check for a newer TTW, result lands pinned first.
 - Gherkin: `features/pages.feature`, `features/mods.feature`, scenarios `@US-PAGES-16` `@US-PAGES-17` `@US-PAGES-18` `@US-PAGES-19` `@US-PAGES-20` `@US-MODS-05`
 - Check: unit tests for the rules, the scenarios above against the app, snapshot against the design pictures listed in the functions.
 
@@ -533,7 +551,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 - Functions: F-TEST-01
 - Stories: US-TESTS-01, US-TESTS-02, US-TESTS-03
 - Gap now (exists/differs/missing): 0/0/1
-- Acceptance: Engine-driven run without the main menu: stage text, cells, minutes, hitches, crash location, cancel, result record for the exact mod set.
+- Acceptance: Engine-driven run over the full sweeps (80 Mojave places, plus 42 Capital Wasteland places when TTW is on) without the main menu: stage text, cells, minutes, hitches, crash location, cancel, result record for the exact mod set.
 - Gherkin: `features/tests.feature`, scenarios `@US-TESTS-01` `@US-TESTS-02` `@US-TESTS-03`
 - Check: unit tests for the rules, the scenarios above against the app, snapshot against the design pictures listed in the functions.
 
@@ -557,7 +575,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 - Functions: F-TEST-04
 - Stories: US-TESTS-07, US-TESTS-08
 - Gap now (exists/differs/missing): 0/0/1
-- Acceptance: 44 places in 5 areas (plus Capital Wasteland with TTW), set record with date and quality, cancel, same camera each time.
+- Acceptance: 44 places in 5 areas, curated from the sweep places and kept in nv-rs (plus Capital Wasteland with TTW), set record with date and quality, cancel, same camera each time.
 - Gherkin: `features/tests.feature`, scenarios `@US-TESTS-07` `@US-TESTS-08`
 - Check: unit tests for the rules, the scenarios above against the app, snapshot against the design pictures listed in the functions.
 
@@ -573,7 +591,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 - Gherkin: `features/tests.feature`, scenarios `@US-TESTS-10`
 - Check: unit tests for the rules, the scenarios above against the app, snapshot against the design pictures listed in the functions.
 
-### NV-05 Engine install, builds, integrity check and repair
+### NV-05 Engine integrity check and repair
 
 - Issue: JorisJonkers-dev/nv-rs#1016
 - Project: nv-rs
@@ -581,7 +599,7 @@ Gap now is exists / differs / missing across the ticket's functions.
 - Functions: F-SETUP-05, F-SYSTEM-04, F-DOCTOR-03
 - Stories: US-START-04, US-PAGES-25, US-PAGES-28
 - Gap now (exists/differs/missing): 0/1/2
-- Acceptance: API: install with stages, installed builds, use and remove build, "Damaged" check, repair.
+- Acceptance: API: a check of the game folder and the engine it needs that reports "Damaged" with what is wrong, and a repair that fixes the game folder and checks it again. Re-scoped on 2026-11-28: ADR-0016 links the engine in process, so there is no separate install and no separate builds; the setup engine step shows the check only, and the builds on System are kept Toolbox versions (CORE-07).
 - Gherkin: `features/start.feature`, `features/pages.feature`, scenarios `@US-START-04` `@US-PAGES-25` `@US-PAGES-28`
 - Check: unit tests for the rules, the scenarios above against the app, snapshot against the design pictures listed in the functions.
 
