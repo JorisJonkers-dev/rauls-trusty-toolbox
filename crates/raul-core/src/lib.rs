@@ -14,6 +14,7 @@ pub mod instance_lock;
 pub mod journal;
 pub mod nexus;
 pub mod pinned;
+pub mod playtime;
 pub mod selfupdate;
 pub mod setup;
 pub mod space;
