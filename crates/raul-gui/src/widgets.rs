@@ -97,6 +97,14 @@ pub mod sizes {
     pub const PROGRESS_RADIUS: u8 = 4;
     /// The indeterminate bar's block width, as a share of the track (section 6's `slide`).
     pub const PROGRESS_SLIDE_WIDTH: f32 = 0.3;
+    /// The action bar's height (`.abar`).
+    pub const ACTION_BAR_HEIGHT: f32 = 48.0;
+    /// The action bar's padding.
+    pub const ACTION_BAR_PADDING: f32 = 6.0;
+    /// The gap between the action bar's buttons.
+    pub const ACTION_BAR_GAP: f32 = 6.0;
+    /// The height of the action bar's buttons.
+    pub const ACTION_BAR_BUTTON: f32 = 36.0;
     /// The stroke high contrast draws around a filled shape (section 2's 1 px `line` border).
     pub const HC_STROKE: f32 = 1.0;
 }
@@ -541,6 +549,69 @@ pub fn progress(ui: &mut egui::Ui, fraction: Option<f32>) -> egui::Response {
         t.accent.color(),
     );
     response
+}
+
+/// The floating action bar (`.abar`, product rule 7 and 8): a 48 high `raise2` pill anchored 20 from the right
+/// and 14 from the bottom of `area` (the content area), with the shadow of section 4. `add` draws its buttons
+/// right to left, so the primary button comes first; they are 36 high with a 6 gap. The bar draws only when `add`
+/// drew something, and floats over the content: no strip is reserved.
+pub fn action_bar(
+    ui: &mut egui::Ui,
+    area: egui::Rect,
+    t: &theme::Tokens,
+    add: impl FnOnce(&mut egui::Ui),
+) {
+    let max_width = (area.width() - 40.0).clamp(0.0, 760.0);
+    let rect = egui::Rect::from_min_max(
+        egui::pos2(
+            area.right() - 20.0 - max_width,
+            area.bottom() - 14.0 - sizes::ACTION_BAR_HEIGHT,
+        ),
+        egui::pos2(area.right() - 20.0, area.bottom() - 14.0),
+    );
+    let mut bar = ui.new_child(
+        egui::UiBuilder::new()
+            .max_rect(rect)
+            .layout(egui::Layout::right_to_left(egui::Align::Center)),
+    );
+    let display = theme::display(ui.ctx());
+    let border = if display.high_contrast {
+        egui::Stroke::new(sizes::HC_STROKE, t.line.color())
+    } else {
+        egui::Stroke::NONE
+    };
+    let frame = egui::Frame::new()
+        .fill(t.raise2.color())
+        .stroke(border)
+        .corner_radius(sizes::ACTION_BAR_HEIGHT / 2.0)
+        .inner_margin(egui::Margin::same(pts(sizes::ACTION_BAR_PADDING)))
+        .shadow(egui::epaint::Shadow {
+            offset: [0, 10],
+            blur: 30,
+            spread: 0,
+            color: Color32::from_black_alpha(128),
+        });
+    let mut prep = frame.begin(&mut bar);
+    {
+        let inner = &mut prep.content_ui;
+        let style = inner.style_mut();
+        style.spacing.item_spacing.x = sizes::ACTION_BAR_GAP;
+        style.spacing.interact_size.y = sizes::ACTION_BAR_BUTTON;
+        style.spacing.button_padding = egui::vec2(16.0, 0.0);
+        let radius = egui::CornerRadius::same(pts(sizes::ACTION_BAR_BUTTON / 2.0).cast_unsigned());
+        let w = &mut style.visuals.widgets;
+        for state in [&mut w.inactive, &mut w.hovered, &mut w.active, &mut w.open] {
+            state.corner_radius = radius;
+            state.bg_stroke = egui::Stroke::NONE;
+        }
+        w.inactive.weak_bg_fill = Color32::TRANSPARENT;
+        w.hovered.weak_bg_fill = t.hover.color();
+        w.active.weak_bg_fill = t.hover.color();
+        add(inner);
+    }
+    if prep.content_ui.min_rect().width() > 1.0 {
+        let _ = prep.end(&mut bar);
+    }
 }
 
 #[cfg(test)]

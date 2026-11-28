@@ -56,6 +56,9 @@ texts!(SHELL {
     BRAND = "Raul's Toolbox";
     NEW_VEGAS = "New Vegas";
     NOT_SET = "Not set";
+    ENGINE = "Engine";
+    SEARCH = "Search";
+    SEARCH_HINT = "Ctrl K";
     PLAY = "Play";
     GROUP_PLAY = "Play";
     GROUP_SYSTEM = "System";
