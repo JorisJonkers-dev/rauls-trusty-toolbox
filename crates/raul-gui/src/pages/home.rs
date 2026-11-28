@@ -18,6 +18,7 @@ use crate::catalogue::{self as msg, ErrorText};
 use crate::dialog::{Answer, Dialog};
 use crate::shell;
 use crate::theme::{self, Tokens};
+use crate::widgets;
 use eframe::egui::{self, RichText, Stroke};
 use raul_ui_model::pages::home::{
     Block, Launch, Level, Readiness, Row, RowId, State, Step, TTW_MOD, Why, doctor_command,
@@ -42,8 +43,7 @@ crate::texts!(TEXTS {
     WHY_NO_SETTINGS = "the settings could not be read";
     WHY_NO_INSTANCE = "the Instance folder is not there yet";
     CHECK_AGAIN = "Check again";
-    SECTION_READINESS = "Readiness";
-    SECTION_LAUNCH = "Launch";
+    SECTION_SETUP = "Setup";
     ROW_NEW_VEGAS = "Game folder";
     ROW_STORAGE = "Storage";
     ROW_TTW = "TTW";
@@ -60,14 +60,13 @@ crate::texts!(TEXTS {
     DETAIL_LOD_GENERATED = "A generated LOD Mod is in your mod list.";
     DETAIL_LOD = "Generated and checked on its own page";
     MARK_OK = "OK";
+    MARK_INSTALLED = "Installed";
     MARK_WARNING = "Warning";
     MARK_PROBLEM = "Problem";
     MARK_NOT_SET = "Not set";
     MARK_NOT_CHECKED = "Not checked";
     MARK_CHECKING = "Checking";
     FIX = "Fix";
-    OPEN = "Open";
-    SET_UP = "Set up…";
     PLAY_BIG = "Play now";
     STOP_GAME = "Stop the game";
     STOP_ASKED_STATUS = "Asked the game to stop";
@@ -544,35 +543,9 @@ impl Page for Home {
                 self.play(cx);
             }
         }
-        let t = *cx.tokens;
-        let rows = self.state.rows();
-        chips(ui, &t, cx, &self.state.attention());
-        let wide = ui.available_width() >= 760.0;
-        let readiness = |ui: &mut egui::Ui, cx: &mut PageCx<'_>| {
-            shell::section_label(ui, &t, SECTION_READINESS, true);
-            for row in &rows {
-                readiness_row(ui, &t, cx, row);
-            }
-        };
-        if wide {
-            ui.horizontal_top(|ui| {
-                let left = (ui.available_width() * 0.58).floor();
-                ui.allocate_ui_with_layout(
-                    egui::vec2(left, 0.0),
-                    egui::Layout::top_down(egui::Align::Min),
-                    |ui| {
-                        ui.set_width(left);
-                        readiness(ui, cx);
-                    },
-                );
-                ui.add_space(24.0);
-                ui.vertical(|ui| self.launch_panel(ui, cx));
-            });
-        } else {
-            readiness(ui, cx);
-            ui.add_space(16.0);
-            self.launch_panel(ui, cx);
-        }
+        // One column (rule 18): the status card, then the Setup card.
+        self.status_card(ui, cx);
+        self.setup_card(ui, cx);
     }
 
     fn texts(&self) -> &'static [(&'static str, &'static str)] {
@@ -585,16 +558,42 @@ impl Page for Home {
 }
 
 impl Home {
+    /// The tone and phrase of the status card's headline, and its mark.
+    fn headline(&self) -> (widgets::Tone, Mark, String) {
+        let phrase = self.state_line();
+        let attention = !self.state.attention().is_empty();
+        let (tone, mark) = if self.state.launch == Launch::Started {
+            (widgets::Tone::Ok, Mark::Ok)
+        } else if self.state.block().is_some() || matches!(self.state.launch, Launch::Failed(_)) {
+            (widgets::Tone::Err, Mark::Problem)
+        } else if self.state.reading() {
+            (widgets::Tone::Neutral, Mark::Info)
+        } else if attention || matches!(self.state.readiness(), Readiness::Next(_)) {
+            (widgets::Tone::Warn, Mark::Warning)
+        } else {
+            (widgets::Tone::Ok, Mark::Ok)
+        };
+        (tone, mark, phrase)
+    }
+
+    /// The status card: the headline with its muted line and the launch controls on the left, the facts on the
+    /// right (F-HOME-03).
     #[allow(clippy::too_many_lines)]
-    fn launch_panel(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
+    fn status_card(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
         let t = *cx.tokens;
-        shell::section_label(ui, &t, SECTION_LAUNCH, true);
         let block = self.state.block();
         let checking = self.state.reading();
         let readiness = self.state.readiness();
         let warned = !self.state.attention().is_empty();
-        // Raul's line is the panel's headline, so it does not say twice what the error line or the step line under
-        // Play already says (UI-RULES G5). "All set" shows only when readiness holds in full (rule 1).
+        let (tone, mark, phrase) = self.headline();
+        let tone_colour = match tone {
+            widgets::Tone::Ok => t.ok.color(),
+            widgets::Tone::Warn => t.warn.color(),
+            widgets::Tone::Err => t.err.color(),
+            _ => t.muted.color(),
+        };
+        // Raul's line is the card's muted line, so it does not say twice what the error line or the step line
+        // already says (UI-RULES G5). "All set" shows only when readiness holds in full (rule 1).
         let line = match &self.state.launch {
             Launch::Started => Some(RAUL_STARTED),
             Launch::Ended { stopped: true } => Some(RAUL_ENDED_STOPPED),
@@ -606,29 +605,107 @@ impl Home {
             }
             _ => None,
         };
+        let instance = self
+            .state
+            .config
+            .ready()
+            .and_then(|c| c.get(Key::Instance))
+            .unwrap_or(FACT_NONE)
+            .to_owned();
+        widgets::card(ui, |ui| {
+            let facts = |ui: &mut egui::Ui| {
+                egui::Grid::new("home-facts")
+                    .num_columns(2)
+                    .spacing([16.0, 6.0])
+                    .show(ui, |ui| {
+                        ui.label(RichText::new(FACT_INSTANCE).color(t.muted.color()));
+                        ui.add(egui::Label::new(RichText::new(&instance).monospace()).truncate())
+                            .on_hover_text(&instance);
+                        ui.end_row();
+                    });
+            };
+            if ui.available_width() >= 640.0 {
+                let facts_width = (ui.available_width() * 0.4).clamp(200.0, 360.0);
+                let left = ui.available_width() - facts_width - 16.0;
+                ui.horizontal_top(|ui| {
+                    ui.allocate_ui_with_layout(
+                        egui::vec2(left, 0.0),
+                        egui::Layout::top_down(egui::Align::Min),
+                        |ui| {
+                            ui.set_width(left);
+                            self.launch_controls(ui, cx, (mark, tone_colour, &phrase), line);
+                        },
+                    );
+                    ui.allocate_ui_with_layout(
+                        egui::vec2(facts_width, 0.0),
+                        egui::Layout::top_down(egui::Align::Min),
+                        |ui| {
+                            ui.set_width(facts_width);
+                            facts(ui);
+                        },
+                    );
+                });
+            } else {
+                self.launch_controls(ui, cx, (mark, tone_colour, &phrase), line);
+                ui.add_space(8.0);
+                facts(ui);
+            }
+        });
+    }
+
+    /// The left half of the status card.
+    #[allow(clippy::too_many_lines)]
+    fn launch_controls(
+        &mut self,
+        ui: &mut egui::Ui,
+        cx: &mut PageCx<'_>,
+        (mark, tone_colour, phrase): (Mark, egui::Color32, &str),
+        line: Option<&str>,
+    ) {
+        let t = *cx.tokens;
+        let block = self.state.block();
+        let checking = self.state.reading();
+        let readiness = self.state.readiness();
+        let warned = !self.state.attention().is_empty();
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 8.0;
+            icon(ui, &t, mark);
+            ui.label(
+                RichText::new(phrase)
+                    .size(19.5)
+                    .family(egui::FontFamily::Name(theme::SEMIBOLD.into()))
+                    .color(tone_colour),
+            );
+        });
         if let Some(line) = line {
-            shell::raul_line(ui, &t, line);
-            ui.add_space(4.0);
+            ui.label(RichText::new(line).color(t.muted.color()));
         }
+        ui.add_space(8.0);
         let starting = self.state.launch == Launch::Starting;
         let running = self.state.launch == Launch::Started;
         let label = if starting { STARTING } else { PLAY_BIG };
-        let button = shell::primary_button(&t, label).min_size(egui::vec2(180.0, 44.0));
-        let pressed = ui.add_enabled(!starting && !running && !checking, button);
-        if let Some(b) = block {
-            pressed.clone().on_hover_text(block_text(b).what);
-        }
-        if pressed.clicked() {
-            self.play(cx);
-        }
-        if starting {
-            icon(ui, &t, Mark::Info);
-        }
-        if self.state.launch == Launch::Started && ui.button(STOP_GAME).clicked() {
-            self.stop_game(cx);
-        }
+        ui.horizontal(|ui| {
+            let pressed = ui
+                .add_enabled_ui(!starting && !running && !checking, |ui| {
+                    widgets::button(ui, widgets::ButtonKind::Primary, label)
+                })
+                .inner;
+            if let Some(b) = block {
+                pressed.clone().on_hover_text(block_text(b).what);
+            }
+            if pressed.clicked() {
+                self.play(cx);
+            }
+            if starting {
+                icon(ui, &t, Mark::Info);
+            }
+            if running && widgets::button(ui, widgets::ButtonKind::Ghost, STOP_GAME).clicked() {
+                self.stop_game(cx);
+            }
+        });
         if let Some(b) = block {
             let e = block_text(b);
+            ui.add_space(6.0);
             let fix = ui
                 .horizontal_top(|ui| {
                     icon(ui, &t, Mark::Problem);
@@ -647,10 +724,10 @@ impl Home {
                                 .selectable(true),
                         );
                     });
-                    ui.button(FIX).clicked()
+                    widgets::small_button(ui, widgets::ButtonKind::Ghost, FIX).clicked()
                 })
                 .inner;
-            if ui.button(msg::COPY_DETAILS).clicked() {
+            if widgets::small_button(ui, widgets::ButtonKind::Ghost, msg::COPY_DETAILS).clicked() {
                 let text = shell::copy_text(e.detail, e.what, e.detail);
                 ui.ctx().copy_text(text);
             }
@@ -658,108 +735,80 @@ impl Home {
                 cx.shell.go_to = Some(b.fix());
             }
         }
-        // The step that no row marks, said once under Play with the page that sets it up (UI-RULES G2, G3). A step
-        // that is known to be missing is named even while other reads run, so the header's "Not ready yet" always
-        // has its reason on the page.
+        // The step that no row marks, said once with the page that sets it up (UI-RULES G2, G3). A step that is
+        // known to be missing is named even while other reads run, so the header's "Not ready yet" always has its
+        // reason on the page.
         if let Readiness::Next(step) = readiness
             && block.is_none()
             && !warned
         {
+            ui.add_space(6.0);
             ui.horizontal_wrapped(|ui| {
                 icon(ui, &t, Mark::Warning);
                 ui.label(
                     RichText::new(STATE_NEXT.replace("{step}", step_text(step)))
                         .color(t.muted.color()),
                 );
-                if ui.button(FIX).clicked() {
+                if widgets::small_button(ui, widgets::ButtonKind::Ghost, FIX).clicked() {
                     cx.shell.go_to = Some(step.fix());
                 }
             });
         }
         if let Launch::Failed(why) = &self.state.launch {
+            ui.add_space(6.0);
             error_block(ui, &t, &RUN_FAILED, Some(why));
         }
-        ui.add_space(8.0);
-        let instance = self
-            .state
-            .config
-            .ready()
-            .and_then(|c| c.get(Key::Instance))
-            .unwrap_or(FACT_NONE)
-            .to_owned();
-        egui::Grid::new("home-facts")
-            .num_columns(2)
-            .spacing([16.0, 6.0])
-            .show(ui, |ui| {
-                ui.label(RichText::new(FACT_INSTANCE).color(t.muted.color()));
-                ui.add(egui::Label::new(RichText::new(&instance).monospace()).truncate())
-                    .on_hover_text(&instance);
-                ui.end_row();
-            });
     }
-}
 
-/// The chips of what needs attention; each opens the page that fixes it (UI-RULES G2).
-fn chips(ui: &mut egui::Ui, t: &Tokens, cx: &mut PageCx<'_>, rows: &[Row]) {
-    if rows.is_empty() {
-        return;
-    }
-    ui.horizontal_wrapped(|ui| {
-        for row in rows {
-            let m = mark_of(row.level);
-            let colour = m.colour(t);
-            let chip = egui::Button::new(RichText::new(row_title(row.id)).color(t.text.color()))
-                .fill(colour.gamma_multiply(0.16))
-                .stroke(Stroke::new(1.0, colour))
-                .corner_radius(14);
-            if ui.add(chip).clicked() {
-                cx.shell.go_to = Some(row.id.home());
+    /// The Setup card: one row per readiness row, each a click target for the page that owns it (rule 9).
+    fn setup_card(&mut self, ui: &mut egui::Ui, cx: &mut PageCx<'_>) {
+        let t = *cx.tokens;
+        let rows = self.state.rows();
+        widgets::card(ui, |ui| {
+            widgets::section_header(ui, SECTION_SETUP);
+            ui.add_space(6.0);
+            for row in &rows {
+                let m = mark_of(row.level);
+                let detail = row_detail(row);
+                let word = mark_word(row);
+                let clicked = widgets::Row {
+                    title: row_title(row.id),
+                    sub: Some(&detail),
+                    selected: false,
+                }
+                .show(ui, |ui| {
+                    chevron(ui, &t);
+                    ui.label(
+                        RichText::new(word)
+                            .color(m.colour(&t))
+                            .family(egui::FontFamily::Name(theme::SEMIBOLD.into())),
+                    );
+                    icon(ui, &t, m);
+                })
+                .clicked();
+                if clicked {
+                    cx.shell.go_to = Some(row.id.home());
+                }
+                ui.add_space(6.0);
             }
-        }
-    });
-    ui.add_space(12.0);
+        });
+    }
 }
 
-fn readiness_row(ui: &mut egui::Ui, t: &Tokens, cx: &mut PageCx<'_>, row: &Row) {
-    let width = ui.available_width();
-    let mark_width = 120.0;
-    let action_width = 96.0;
-    let text_width = (width - mark_width - action_width - 16.0).max(120.0);
-    ui.horizontal(|ui| {
-        ui.set_min_height(44.0);
-        ui.vertical(|ui| {
-            ui.set_width(text_width);
-            ui.label(
-                RichText::new(row_title(row.id))
-                    .family(egui::FontFamily::Name(theme::SEMIBOLD.into())),
-            );
-            let detail = row_detail(row);
-            let rich = if matches!(row.why, Why::Path(_) | Why::Unreadable(_)) {
-                RichText::new(&detail).monospace().color(t.muted.color())
-            } else {
-                RichText::new(&detail).color(t.muted.color())
-            };
-            ui.add(egui::Label::new(rich).truncate())
-                .on_hover_text(&detail);
-        });
-        ui.allocate_ui_with_layout(
-            egui::vec2(mark_width, 20.0),
-            egui::Layout::left_to_right(egui::Align::Center),
-            |ui| mark(ui, t, mark_of(row.level), mark_word(row.level)),
-        );
-        let action = match (row.id, row.level) {
-            (RowId::Ttw, Level::Ok) | (RowId::LoadOrder | RowId::Lod, _) => Some(OPEN),
-            (RowId::Ttw, _) => Some(SET_UP),
-            (_, Level::Problem | Level::Warning) => Some(FIX),
-            _ => None,
-        };
-        if let Some(label) = action
-            && ui.button(label).clicked()
-        {
-            cx.shell.go_to = Some(row.id.home());
-        }
-    });
-    shell::hairline(ui, t);
+/// The chevron at the right end of a row, drawn in `muted`.
+fn chevron(ui: &mut egui::Ui, t: &Tokens) {
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(12.0, 16.0), egui::Sense::hover());
+    let c = rect.center();
+    let stroke = Stroke::new(1.6, t.muted.color());
+    let p = ui.painter();
+    p.line_segment(
+        [c + egui::vec2(-2.0, -4.5), c + egui::vec2(2.0, 0.0)],
+        stroke,
+    );
+    p.line_segment(
+        [c + egui::vec2(2.0, 0.0), c + egui::vec2(-2.0, 4.5)],
+        stroke,
+    );
 }
 
 fn row_title(id: RowId) -> &'static str {
@@ -799,14 +848,15 @@ fn mark_of(level: Level) -> Mark {
     }
 }
 
-fn mark_word(level: Level) -> &'static str {
-    match level {
-        Level::Ok => MARK_OK,
-        Level::Warning => MARK_WARNING,
-        Level::Problem => MARK_PROBLEM,
-        Level::NotSet => MARK_NOT_SET,
-        Level::Elsewhere => MARK_NOT_CHECKED,
-        Level::Checking => MARK_CHECKING,
+fn mark_word(row: &Row) -> &'static str {
+    match (row.level, &row.why) {
+        (Level::Ok, Why::TtwInstalled) => MARK_INSTALLED,
+        (Level::Ok, _) => MARK_OK,
+        (Level::Warning, _) => MARK_WARNING,
+        (Level::Problem, _) => MARK_PROBLEM,
+        (Level::NotSet, _) => MARK_NOT_SET,
+        (Level::Elsewhere, _) => MARK_NOT_CHECKED,
+        (Level::Checking, _) => MARK_CHECKING,
     }
 }
 
