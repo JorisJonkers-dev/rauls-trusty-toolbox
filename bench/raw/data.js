@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795877422235,
+  "lastUpdate": 1795877974741,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13768,6 +13768,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.364975,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "4d1997c04fc2eee112082dcacc5bcd8eaadc27a9",
+          "message": "feat(core): fill the setup facts from the typed doctor report, sort proposal, LOD staleness and engine record (CORE-02) (#738)",
+          "timestamp": "2026-11-28T15:57:17+01:00",
+          "tree_id": "e59f32e2f1f468a782610b11b8fe82f26d730bee",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/4d1997c04fc2eee112082dcacc5bcd8eaadc27a9"
+        },
+        "date": 1795877973505,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 2.309952,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 10.544991,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 46.938569,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 5.4187330000000005,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 9.603097,
             "unit": "ms"
           }
         ]
