@@ -11,6 +11,7 @@ use crate::dialog::{Answer, Dialog, Dialogs};
 use crate::jobs::Jobs;
 use crate::pages::{self, Page, PageCx, ShellState};
 use crate::theme::{self, Tokens};
+use crate::widgets;
 use eframe::egui::{self, Color32, RichText, Stroke};
 use raul_ui_model::job::{JobId, JobState};
 use raul_ui_model::pages::{Group, PageId, Severity, View};
@@ -19,8 +20,22 @@ use std::path::PathBuf;
 
 /// Below this width the sidebar wraps into a bar under the top bar (UI-RULES P1).
 pub const NARROW: f32 = 860.0;
-/// The sidebar's width.
-const SIDEBAR: f32 = 224.0;
+/// The sidebar's width (SPEC section 4, `.side`).
+const SIDEBAR: f32 = 216.0;
+/// The top bar's row: 56 visible plus the 8 above it (`.top`, margin 8 8 0).
+const TOP_ROW: f32 = 64.0;
+/// The top bar's visible height.
+const TOP_HEIGHT: f32 = 56.0;
+/// The footer's height (`.foot`).
+const FOOT_HEIGHT: f32 = 32.0;
+/// A sidebar item's height (`.nav`).
+const NAV_HEIGHT: f32 = 42.0;
+/// The content's side padding (`.mscroll`).
+const CONTENT_SIDE: f32 = 24.0;
+/// The content's top padding.
+const CONTENT_TOP: f32 = 18.0;
+/// The content's bottom padding, which clears the action bar.
+const CONTENT_BOTTOM: f32 = 84.0;
 
 /// The whole window.
 pub struct App {
@@ -157,40 +172,39 @@ impl App {
         self.track_instance();
         let narrow = ctx.content_rect().width() < NARROW;
         let t = self.tokens;
-        let bar = egui::Frame::new()
-            .fill(t.bg.color())
-            .inner_margin(egui::Margin::symmetric(if narrow { 14 } else { 20 }, 8));
+        let page_bg = egui::Frame::new().fill(t.bg.color());
         egui::Panel::top("top")
-            .frame(bar)
+            .frame(page_bg.inner_margin(egui::Margin {
+                left: 8,
+                right: 8,
+                top: 8,
+                bottom: 0,
+            }))
+            .exact_size(TOP_ROW)
+            .resizable(false)
+            .show_separator_line(false)
             .show(ui, |ui| self.top_bar(ui));
         egui::Panel::bottom("foot")
-            .frame(bar.inner_margin(egui::Margin::symmetric(20, 6)))
+            .frame(page_bg.inner_margin(egui::Margin::symmetric(16, 0)))
+            .exact_size(FOOT_HEIGHT)
+            .resizable(false)
+            .show_separator_line(false)
             .show(ui, |ui| self.footer(ui));
         if narrow {
             egui::Panel::top("nav")
-                .frame(bar.inner_margin(egui::Margin::symmetric(8, 6)))
+                .frame(page_bg.inner_margin(egui::Margin::symmetric(8, 6)))
+                .show_separator_line(false)
                 .show(ui, |ui| self.nav(ui, true));
         } else {
             egui::Panel::left("side")
-                .frame(bar.inner_margin(egui::Margin::symmetric(10, 12)))
+                .frame(page_bg.inner_margin(egui::Margin::symmetric(8, 12)))
                 .resizable(false)
                 .exact_size(SIDEBAR)
+                .show_separator_line(false)
                 .show(ui, |ui| self.nav(ui, false));
         }
-        let main = egui::Frame::new()
-            .fill(t.bg.color())
-            .inner_margin(if narrow {
-                egui::Margin::symmetric(16, 16)
-            } else {
-                egui::Margin {
-                    left: 32,
-                    right: 32,
-                    top: 22,
-                    bottom: 32,
-                }
-            });
         egui::CentralPanel::default_margins()
-            .frame(main)
+            .frame(page_bg.inner_margin(egui::Margin::ZERO))
             .show(ui, |ui| self.content(ui));
         self.dialogs.show(&ctx, &t);
         self.answers();
@@ -284,27 +298,53 @@ impl App {
 
     fn top_bar(&mut self, ui: &mut egui::Ui) {
         let t = self.tokens;
-        ui.horizontal_wrapped(|ui| {
-            ui.spacing_mut().item_spacing.x = 12.0;
-            ui.label(
-                RichText::new(msg::BRAND)
-                    .color(t.brand.color())
-                    .family(egui::FontFamily::Name(theme::SEMIBOLD.into())),
-            );
+        let (rect, _) = ui.allocate_exact_size(
+            egui::vec2(ui.available_width(), TOP_HEIGHT),
+            egui::Sense::hover(),
+        );
+        ui.painter().rect_filled(rect, 14.0, t.raise.color());
+        let inner = egui::Rect::from_min_max(
+            rect.min + egui::vec2(16.0, 0.0),
+            rect.max - egui::vec2(10.0, 0.0),
+        );
+        let mut bar = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(inner)
+                .layout(egui::Layout::left_to_right(egui::Align::Center)),
+        );
+        let ui = &mut bar;
+        ui.spacing_mut().item_spacing.x = 6.0;
+        brand_mark(ui, &t);
+        ui.label(
+            RichText::new(msg::BRAND)
+                .color(t.brand.color())
+                .family(egui::FontFamily::Name(theme::SEMIBOLD.into())),
+        );
+        ui.add_space(10.0);
+        // Narrow windows drop the chips and then the search pill, so nothing reaches past the right edge.
+        let width = inner.width();
+        if width >= 700.0 {
             let nv = self.shell.new_vegas.clone();
             if setup_entry(ui, &t, msg::NEW_VEGAS, nv.as_deref()).clicked() {
                 self.view = View::Page(PageId::Settings);
             }
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let blocked = self.play_block();
-                let mut play = ui.add(primary_button(&t, msg::PLAY));
-                if let Some(why) = blocked {
-                    play = play.on_hover_text(why.what);
-                }
-                if play.clicked() {
-                    self.play(blocked);
-                }
-            });
+            if top_chip(ui, &t, msg::ENGINE, None).clicked() {
+                self.view = View::Page(PageId::Versions);
+            }
+        }
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.spacing_mut().item_spacing.x = 6.0;
+            let blocked = self.play_block();
+            let mut play = widgets::button(ui, widgets::ButtonKind::Primary, msg::PLAY);
+            if let Some(why) = blocked {
+                play = play.on_hover_text(why.what);
+            }
+            if play.clicked() {
+                self.play(blocked);
+            }
+            if width >= 1000.0 {
+                search_pill(ui, &t);
+            }
         });
     }
 
@@ -350,10 +390,7 @@ impl App {
         let draw = |ui: &mut egui::Ui, app: &mut App| {
             for group in [Group::Play, Group::System] {
                 if !narrow {
-                    if group == Group::System {
-                        ui.add_space(8.0);
-                    }
-                    section_label(ui, &t, group_title(group), false);
+                    nav_group_label(ui, &t, group_title(group));
                 }
                 for page in PageId::ALL.into_iter().filter(|p| p.group() == group) {
                     let view = View::Page(page);
@@ -363,8 +400,16 @@ impl App {
                         .find(|p| p.view() == view)
                         .and_then(|p| p.attention());
                     let title = page_title(page);
-                    if nav_entry(ui, &t, title, app.view == view, attention.as_ref(), !narrow)
-                        .clicked()
+                    if nav_entry(
+                        ui,
+                        &t,
+                        title,
+                        page,
+                        app.view == view,
+                        attention.as_ref(),
+                        !narrow,
+                    )
+                    .clicked()
                     {
                         app.view = view;
                     }
@@ -375,7 +420,7 @@ impl App {
             ui.horizontal_wrapped(|ui| draw(ui, self));
         } else {
             ui.vertical(|ui| {
-                ui.spacing_mut().item_spacing.y = 2.0;
+                ui.spacing_mut().item_spacing.y = 0.0;
                 draw(ui, self);
             });
         }
@@ -394,23 +439,39 @@ impl App {
             jobs: &mut self.jobs,
             repaint: Some(ui.ctx().clone()),
         };
-        // The header (UI-RULES A1): title, one-line state, tools on the right, then a hairline.
+        let full = ui.max_rect();
+        let side = egui::vec2(CONTENT_SIDE, 0.0);
+        // The header (product rule 7): title and one status phrase; the page's buttons are in the action bar.
         let mut shown_line = String::new();
-        ui.horizontal_wrapped(|ui| {
-            ui.label(RichText::new(page.title()).text_style(theme::title_style()));
-            shown_line = page.state_line();
-            ui.label(RichText::new(&shown_line).color(t.muted.color()));
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                page.tools(ui, &mut cx);
-            });
+        let header = egui::Rect::from_min_max(
+            full.min + egui::vec2(CONTENT_SIDE, CONTENT_TOP),
+            full.max - side,
+        );
+        let used = ui
+            .scope_builder(egui::UiBuilder::new().max_rect(header), |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(RichText::new(page.title()).text_style(theme::title_style()));
+                    shown_line = page.state_line();
+                    ui.label(RichText::new(&shown_line).color(t.muted.color()));
+                });
+                ui.add_space(16.0);
+                page.pinned(ui, &mut cx);
+            })
+            .response
+            .rect;
+        let body = egui::Rect::from_min_max(egui::pos2(full.left(), used.bottom()), full.max);
+        ui.scope_builder(egui::UiBuilder::new().max_rect(body), |ui| {
+            egui::ScrollArea::vertical()
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
+                    let inner = ui.max_rect().shrink2(side);
+                    ui.scope_builder(egui::UiBuilder::new().max_rect(inner), |ui| {
+                        page.ui(ui, &mut cx);
+                    });
+                    ui.add_space(CONTENT_BOTTOM);
+                });
         });
-        ui.add_space(10.0);
-        hairline(ui, &t);
-        ui.add_space(14.0);
-        page.pinned(ui, &mut cx);
-        egui::ScrollArea::vertical()
-            .auto_shrink([false, false])
-            .show(ui, |ui| page.ui(ui, &mut cx));
+        widgets::action_bar(ui, full, &t, |ui| page.tools(ui, &mut cx));
         // The header is drawn before the page, so a state the page changed while drawing shows in the next frame:
         // ask for it, or the line under the title keeps the old state until the person moves the mouse.
         if page.state_line() != shown_line {
@@ -420,55 +481,65 @@ impl App {
 
     fn footer(&mut self, ui: &mut egui::Ui) {
         let t = self.tokens;
-        // Wrapped, so a long status line and its "Copy details" button move onto the next line rather than past
-        // the right edge at the smallest window (UI-RULES A5, A6).
-        ui.horizontal_wrapped(|ui| {
-            let status = self
-                .shell
-                .status
-                .clone()
-                .unwrap_or_else(|| msg::READY.to_owned());
-            let running = self
-                .jobs
-                .table()
-                .jobs()
-                .iter()
-                .filter(|j| matches!(j.state, raul_ui_model::job::JobState::Running))
-                .count();
-            // A status line that reports a failure is an error surface too: it can be selected and copied.
-            let failed = self.shell.status_error;
-            let colour = if failed.is_some() {
-                t.err.color()
-            } else {
-                t.text.color()
-            };
-            let line = ui.add(
-                egui::Label::new(RichText::new(status).color(colour))
-                    .truncate()
-                    .selectable(failed.is_some()),
-            );
-            if let Some(why) = failed {
-                line.on_hover_text(why.detail);
-                if ui.button(msg::COPY_DETAILS).clicked() {
-                    ui.ctx()
-                        .copy_text(copy_text(why.what, why.what, why.detail));
-                }
+        let status = self
+            .shell
+            .status
+            .clone()
+            .unwrap_or_else(|| msg::READY.to_owned());
+        let running = self
+            .jobs
+            .table()
+            .jobs()
+            .iter()
+            .filter(|j| matches!(j.state, raul_ui_model::job::JobState::Running))
+            .count();
+        // A status line that reports a failure is an error surface too: it can be selected and copied.
+        let failed = self.shell.status_error;
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.spacing_mut().item_spacing.x = 10.0;
+            if ui
+                .add(
+                    egui::Button::new(RichText::new(msg::ABOUT).size(13.8).color(t.muted.color()))
+                        .frame(false),
+                )
+                .clicked()
+            {
+                self.dialogs.open(about());
             }
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui
-                    .add(
-                        egui::Button::new(RichText::new(msg::ABOUT).color(t.muted.color()))
-                            .frame(false),
-                    )
-                    .clicked()
-                {
-                    self.dialogs.open(about());
-                }
-                if running > 0 {
-                    ui.label(
-                        RichText::new(format!("{running} {}", msg::JOB_RUNNING))
-                            .color(t.info.color()),
-                    );
+            if running > 0 {
+                ui.label(
+                    RichText::new(format!("{running} {}", msg::JOB_RUNNING)).color(t.info.color()),
+                );
+            }
+            if let Some(why) = failed
+                && ui.button(msg::COPY_DETAILS).clicked()
+            {
+                ui.ctx()
+                    .copy_text(copy_text(why.what, why.what, why.detail));
+            }
+            // What is left of the line is the status: the dot and its text, cut short rather than pushed out.
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                let dot_colour = if failed.is_some() {
+                    t.err.color()
+                } else if running > 0 {
+                    t.accent.color()
+                } else {
+                    t.ok.color()
+                };
+                let (dot, _) = ui.allocate_exact_size(egui::vec2(8.0, 8.0), egui::Sense::hover());
+                ui.painter().circle_filled(dot.center(), 4.0, dot_colour);
+                let colour = if failed.is_some() {
+                    t.err.color()
+                } else {
+                    t.muted.color()
+                };
+                let line = ui.add(
+                    egui::Label::new(RichText::new(status).size(13.8).color(colour))
+                        .truncate()
+                        .selectable(failed.is_some()),
+                );
+                if let Some(why) = failed {
+                    line.on_hover_text(why.detail);
                 }
             });
         });
@@ -584,10 +655,103 @@ fn setup_entry(ui: &mut egui::Ui, t: &Tokens, what: &str, value: Option<&str>) -
     }
 }
 
+/// A sidebar group label (`.navh`): uppercase 11.8, muted, padding 14 10 6.
+fn nav_group_label(ui: &mut egui::Ui, t: &Tokens, text: &str) {
+    ui.add_space(14.0);
+    ui.horizontal(|ui| {
+        ui.add_space(10.0);
+        ui.label(
+            RichText::new(text.to_uppercase())
+                .size(11.8)
+                .family(egui::FontFamily::Name(theme::SEMIBOLD.into()))
+                .color(t.muted.color())
+                .extra_letter_spacing(0.9),
+        );
+    });
+    ui.add_space(6.0);
+}
+
+/// The tone a severity draws a badge in.
+fn severity_tone(s: Severity) -> widgets::Tone {
+    match s {
+        Severity::Info => widgets::Tone::Info,
+        Severity::Warning => widgets::Tone::Warn,
+        Severity::Problem => widgets::Tone::Err,
+    }
+}
+
+/// The page's small drawn icon (Inter has no icon glyphs), `18` points across, centred in `rect`.
+fn nav_icon(p: &egui::Painter, rect: egui::Rect, page: PageId, colour: Color32) {
+    let c = rect.center();
+    let s = Stroke::new(1.6, colour);
+    match page {
+        PageId::Home => {
+            let pts = vec![
+                egui::pos2(c.x - 8.0, c.y),
+                egui::pos2(c.x, c.y - 7.5),
+                egui::pos2(c.x + 8.0, c.y),
+            ];
+            p.add(egui::Shape::line(pts, s));
+            p.rect_stroke(
+                egui::Rect::from_center_size(c + egui::vec2(0.0, 3.5), egui::vec2(11.0, 8.0)),
+                1.5,
+                s,
+                egui::StrokeKind::Middle,
+            );
+        }
+        PageId::Mods => {
+            for (dx, dy) in [(-4.5, -4.5), (4.5, -4.5), (-4.5, 4.5), (4.5, 4.5)] {
+                p.rect_stroke(
+                    egui::Rect::from_center_size(c + egui::vec2(dx, dy), egui::vec2(7.0, 7.0)),
+                    2.0,
+                    s,
+                    egui::StrokeKind::Middle,
+                );
+            }
+        }
+        PageId::LoadOrder => {
+            for dy in [-6.0, 0.0, 6.0] {
+                p.rect_stroke(
+                    egui::Rect::from_center_size(c + egui::vec2(0.0, dy), egui::vec2(16.0, 4.5)),
+                    2.0,
+                    s,
+                    egui::StrokeKind::Middle,
+                );
+            }
+        }
+        PageId::Lod => {
+            let pts = vec![
+                egui::pos2(c.x - 8.0, c.y + 6.0),
+                egui::pos2(c.x - 2.0, c.y - 6.0),
+                egui::pos2(c.x + 3.0, c.y + 2.0),
+                egui::pos2(c.x + 5.0, c.y - 2.0),
+                egui::pos2(c.x + 8.0, c.y + 6.0),
+            ];
+            p.add(egui::Shape::line(pts, s));
+        }
+        PageId::Versions => {
+            p.circle_stroke(c, 7.5, s);
+            p.circle_filled(c, 2.0, colour);
+        }
+        PageId::Settings => {
+            p.circle_stroke(c, 7.5, s);
+            for dy in [-3.0, 3.0] {
+                p.line_segment(
+                    [c + egui::vec2(-4.0, dy), c + egui::vec2(4.0, dy)],
+                    Stroke::new(1.4, colour),
+                );
+            }
+        }
+    }
+}
+
+/// One sidebar item (`.nav`): 42 high, radius 12, an icon and the label, the badge at the right. The current one
+/// is filled `sel` with an `accent` icon. Narrow, the item shrinks to its content and loses the icon.
 fn nav_entry(
     ui: &mut egui::Ui,
     t: &Tokens,
     title: &str,
+    page: PageId,
     current: bool,
     attention: Option<&raul_ui_model::pages::Attention>,
     full_width: bool,
@@ -602,65 +766,160 @@ fn nav_entry(
     let galley = ui
         .painter()
         .layout_no_wrap(title.to_owned(), font, colour.color());
-    let chip = attention.map(|a| {
-        ui.painter().layout_no_wrap(
-            a.count.to_string(),
-            egui::FontId::proportional(base * 0.78),
-            severity_colour(t, a.severity),
+    let (rect, response) = if full_width {
+        ui.allocate_exact_size(
+            egui::vec2(ui.available_width(), NAV_HEIGHT),
+            egui::Sense::click(),
         )
-    });
-    let chip_width = chip.as_ref().map_or(0.0, |c| c.size().x + 20.0);
-    let width = if full_width {
-        ui.available_width()
     } else {
-        galley.size().x + 20.0 + chip_width
+        let badge = if attention.is_some() { 34.0 } else { 0.0 };
+        ui.allocate_exact_size(
+            egui::vec2(galley.size().x + 24.0 + badge, 34.0),
+            egui::Sense::click(),
+        )
     };
-    let (rect, response) = ui.allocate_exact_size(egui::vec2(width, 34.0), egui::Sense::click());
     response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, current, title));
     let p = ui.painter();
     if current {
-        p.rect_filled(rect, 6.0, t.sel.color());
+        p.rect_filled(rect, 12.0, t.sel.color());
     } else if response.hovered() {
-        p.rect_filled(rect, 6.0, t.hover.color());
+        p.rect_filled(rect, 12.0, t.raise.color());
     }
     if response.has_focus() {
         p.rect_stroke(
             rect,
-            6.0,
-            Stroke::new(2.0, t.accent.color()),
+            12.0,
+            Stroke::new(1.0, t.accent.color().gamma_multiply(0.75)),
             egui::StrokeKind::Inside,
         );
     }
-    let text_pos = egui::pos2(rect.left() + 10.0, rect.center().y - galley.size().y / 2.0);
-    p.galley(text_pos, galley, colour.color());
-    if let (Some(chip), Some(a)) = (chip, attention) {
-        let size = chip.size() + egui::vec2(12.0, 6.0);
-        let chip_rect = egui::Rect::from_center_size(
-            egui::pos2(rect.right() - 8.0 - size.x / 2.0, rect.center().y),
-            size,
+    let mut x = rect.left() + 12.0;
+    if full_width {
+        let icon = egui::Rect::from_center_size(
+            egui::pos2(x + 9.0, rect.center().y),
+            egui::vec2(18.0, 18.0),
         );
-        p.rect_filled(
-            chip_rect,
-            size.y / 2.0,
-            severity_colour(t, a.severity).gamma_multiply(0.16),
+        let icon_colour = if current { t.accent } else { t.muted };
+        nav_icon(p, icon, page, icon_colour.color());
+        x += 18.0 + 12.0;
+    }
+    p.galley(
+        egui::pos2(x, rect.center().y - galley.size().y / 2.0),
+        galley,
+        colour.color(),
+    );
+    if let Some(a) = attention {
+        let mut at = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(rect.shrink2(egui::vec2(10.0, 0.0)))
+                .layout(egui::Layout::right_to_left(egui::Align::Center)),
         );
-        p.galley(chip_rect.center() - chip.size() / 2.0, chip, t.text.color());
+        widgets::badge(&mut at, severity_tone(a.severity), a.count as usize);
     }
-    if current {
-        // The active marker (mockup: a 3 px accent bar at the left, or under the entry when narrow).
-        let bar = if full_width {
-            egui::Rect::from_min_max(
-                egui::pos2(rect.left() - 10.0, rect.top() + 8.0),
-                egui::pos2(rect.left() - 7.0, rect.bottom() - 8.0),
-            )
-        } else {
-            egui::Rect::from_min_max(
-                egui::pos2(rect.left() + 8.0, rect.bottom() - 2.0),
-                egui::pos2(rect.right() - 8.0, rect.bottom()),
-            )
-        };
-        p.rect_filled(bar, 2.0, t.accent.color());
+    response
+}
+
+/// The brand mark: a small amber gear-like disc (the demo's mark, drawn since Inter has no such glyph).
+fn brand_mark(ui: &mut egui::Ui, t: &Tokens) {
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(22.0, 22.0), egui::Sense::hover());
+    let c = rect.center();
+    ui.painter()
+        .circle_stroke(c, 8.5, Stroke::new(2.0, t.brand.color()));
+    ui.painter().circle_filled(c, 3.0, t.brand.color());
+}
+
+/// A top-bar chip (`.tchip`): 36 high, radius 10, `muted` label and an optional `text` value.
+fn top_chip(ui: &mut egui::Ui, t: &Tokens, what: &str, value: Option<&str>) -> egui::Response {
+    let base = theme::base(ui.ctx());
+    let mut job = egui::text::LayoutJob::default();
+    job.append(
+        what,
+        0.0,
+        egui::TextFormat::simple(egui::FontId::proportional(base), t.muted.color()),
+    );
+    if let Some(v) = value {
+        job.append(
+            v,
+            7.0,
+            egui::TextFormat::simple(
+                egui::FontId::new(base, egui::FontFamily::Name(theme::SEMIBOLD.into())),
+                t.text.color(),
+            ),
+        );
     }
+    let galley = ui.painter().layout_job(job);
+    let (rect, response) = ui.allocate_exact_size(
+        egui::vec2(galley.size().x + 24.0, 36.0),
+        egui::Sense::click(),
+    );
+    response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, false, what));
+    if response.hovered() || response.has_focus() {
+        ui.painter().rect_filled(rect, 10.0, t.raise2.color());
+    }
+    ui.painter().galley(
+        egui::pos2(rect.left() + 12.0, rect.center().y - galley.size().y / 2.0),
+        galley,
+        t.muted.color(),
+    );
+    response
+}
+
+/// The search pill (`.srchbtn`): 40 high, at least 240 wide, `bg` fill, the placeholder and the key hint. It is a
+/// button that will open the palette; it does nothing yet.
+fn search_pill(ui: &mut egui::Ui, t: &Tokens) -> egui::Response {
+    let base = theme::base(ui.ctx());
+    let label = ui.painter().layout_no_wrap(
+        msg::SEARCH.to_owned(),
+        egui::FontId::proportional(base),
+        t.muted.color(),
+    );
+    let hint = ui.painter().layout_no_wrap(
+        msg::SEARCH_HINT.to_owned(),
+        egui::FontId::monospace(12.5),
+        t.muted.color(),
+    );
+    let (rect, response) = ui.allocate_exact_size(egui::vec2(240.0, 40.0), egui::Sense::click());
+    response
+        .widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, false, msg::SEARCH));
+    ui.painter().rect_filled(rect, 20.0, t.bg.color());
+    if response.has_focus() {
+        ui.painter().rect_stroke(
+            rect,
+            20.0,
+            Stroke::new(1.0, t.accent.color().gamma_multiply(0.75)),
+            egui::StrokeKind::Inside,
+        );
+    }
+    let c = egui::pos2(rect.left() + 14.0 + 6.0, rect.center().y - 1.0);
+    ui.painter()
+        .circle_stroke(c, 5.0, Stroke::new(1.5, t.muted.color()));
+    ui.painter().line_segment(
+        [c + egui::vec2(3.5, 3.5), c + egui::vec2(7.5, 7.5)],
+        Stroke::new(1.5, t.muted.color()),
+    );
+    ui.painter().galley(
+        egui::pos2(
+            rect.left() + 14.0 + 16.0 + 10.0,
+            rect.center().y - label.size().y / 2.0,
+        ),
+        label,
+        t.muted.color(),
+    );
+    let kbd = egui::Rect::from_center_size(
+        egui::pos2(
+            rect.right() - 10.0 - f32::midpoint(hint.size().x, 12.0),
+            rect.center().y,
+        ),
+        egui::vec2(hint.size().x + 12.0, hint.size().y + 2.0),
+    );
+    ui.painter().rect_stroke(
+        kbd,
+        6.0,
+        Stroke::new(1.0, t.line.color()),
+        egui::StrokeKind::Inside,
+    );
+    ui.painter()
+        .galley(kbd.center() - hint.size() / 2.0, hint, t.muted.color());
     response
 }
 
