@@ -95,8 +95,8 @@ pub enum ModReason {
 pub struct MissingMaster {
     /// The plugin file.
     pub plugin: String,
-    /// The master it needs.
-    pub master: String,
+    /// The master it needs, when the source names it as data (the Doctor's report carries it in its message only).
+    pub master: Option<String>,
 }
 
 /// The facts the checks need, as plain data.
@@ -169,6 +169,100 @@ impl SetupState {
     #[must_use]
     pub fn with_space<E>(mut self, space: Result<&Space, E>) -> Self {
         self.storage_free_bytes = space.ok().map(|s| s.free_bytes);
+        self
+    }
+
+    /// Fill the mod, missing-master and out-of-order facts from the Doctor's typed report. Reads each finding's stable
+    /// `code` and `subject` (a mod or a plugin name), never its message text, and replaces those three facts.
+    ///
+    /// * `profile.mod-folder-missing`, `meta.modid-mismatch`: the subject mod needs attention.
+    /// * `loadorder.missing-master`: the subject plugin has a missing master (the master's name is only in the
+    ///   message, so it stays unknown).
+    /// * `loadorder.differs-from-loot`, `loadorder.times-out-of-order`: the order is off; the report says "yes", not
+    ///   how many, so each counts 1. [`Self::with_load_order_check`] gives the exact number.
+    ///
+    /// The report has no mod totals and its plugins are NVSE DLLs, so those facts stay as they were.
+    #[must_use]
+    pub fn with_doctor_report(mut self, report: &nvmod_api::doctor::Report) -> Self {
+        use nvmod_api::doctor::Report;
+        let findings = match report {
+            Report::Base(r) | Report::Instance(r) => &r.findings,
+            Report::Mo2(r) => &r.findings,
+        };
+        self.mods_attention.clear();
+        self.missing_masters.clear();
+        self.out_of_order = 0;
+        for f in findings {
+            match f.code {
+                "profile.mod-folder-missing" => self.mods_attention.push(ModAttention {
+                    name: f.subject.clone(),
+                    reason: ModReason::Other("its folder is missing".into()),
+                }),
+                "meta.modid-mismatch" => self.mods_attention.push(ModAttention {
+                    name: f.subject.clone(),
+                    reason: ModReason::Other("its Nexus id does not match".into()),
+                }),
+                "loadorder.missing-master" => self.missing_masters.push(MissingMaster {
+                    plugin: f.subject.clone(),
+                    master: None,
+                }),
+                "loadorder.differs-from-loot" | "loadorder.times-out-of-order" => {
+                    self.out_of_order += 1;
+                }
+                _ => {}
+            }
+        }
+        self
+    }
+
+    /// Fill the plugin count and the out-of-order count from a sort proposal: `current` is the proposal's current
+    /// order and `positions_changed` its `Proposal::positions_changed()`. Active plugins are counted.
+    #[must_use]
+    pub fn with_load_order_check(
+        mut self,
+        current: &[nvmod_stage::Slot],
+        positions_changed: usize,
+    ) -> Self {
+        self.plugin_count = current.iter().filter(|s| s.active).count();
+        self.out_of_order = positions_changed;
+        self
+    }
+
+    /// Fill the LOD fact from [`raul_drivers::lod::stale::classify`]. Nothing recorded (or not tellable) counts as
+    /// not built; a plugin or settings change both map to `StaleMods`, because the staleness carries its reason as
+    /// text only, so a quality-only change cannot be told apart here (`StaleQuality` has no typed source).
+    #[must_use]
+    pub fn with_lod_staleness(mut self, staleness: &raul_drivers::lod::stale::Staleness) -> Self {
+        use raul_drivers::lod::stale::State;
+        self.lod = match staleness.state {
+            State::Unknown => LodState::NotBuilt,
+            State::Current => LodState::UpToDate,
+            State::May | State::Must => LodState::StaleMods,
+        };
+        self
+    }
+
+    /// Fill the engine fact from the installed nv-rs against its install record. A program that is not the file
+    /// the record names is one changed engine file.
+    #[must_use]
+    pub fn with_engine_record(mut self, nv_rs: &nvmod_api::verify::NvRs) -> Self {
+        self.engine = if nv_rs.installed && !nv_rs.verified {
+            EngineState::Damaged { files_changed: 1 }
+        } else {
+            EngineState::Ok
+        };
+        self
+    }
+
+    /// Fill the TTW fact: whether the profile uses it (see [`crate::game_ini::lists_ttw`]) and whether the master is
+    /// in the staged `Data`.
+    #[must_use]
+    pub fn with_ttw(mut self, uses: bool, added: bool) -> Self {
+        self.ttw = match (uses, added) {
+            (false, _) => TtwState::NotUsed,
+            (true, false) => TtwState::NotAdded,
+            (true, true) => TtwState::Added,
+        };
         self
     }
 }
@@ -342,7 +436,10 @@ pub fn checks(state: &SetupState) -> Vec<Check> {
             Area::LoadOrder,
             Level::Fail,
             state.missing_masters.len(),
-            format!("{} needs {}", m.plugin, m.master),
+            m.master.as_ref().map_or_else(
+                || format!("{} has a missing master", m.plugin),
+                |master| format!("{} needs {master}", m.plugin),
+            ),
         ),
         None => chk(Id::MissingMasters, Area::LoadOrder, Level::Ok, 0, "OK"),
     });
@@ -609,7 +706,7 @@ mod tests {
         (0..n)
             .map(|i| MissingMaster {
                 plugin: format!("P{i}.esp"),
-                master: "M.esm".into(),
+                master: Some("M.esm".into()),
             })
             .collect()
     }
@@ -902,5 +999,122 @@ mod tests {
             SetupState::default().with_space(Err(())).storage_free_bytes,
             None
         );
+    }
+
+    mod mappings {
+        use super::*;
+        use nvmod_api::doctor::Report;
+        use nvmod_core::{Finding, Severity, Storefront};
+        use nvmod_doctor::{BaseReport, BaseSummary};
+        use raul_drivers::lod::stale::{Staleness, State};
+
+        fn base(findings: Vec<Finding>) -> BaseReport {
+            BaseReport {
+                schema_version: 1,
+                base: "base".into(),
+                storefront: Storefront::Steam,
+                exe: None,
+                target: None,
+                nv_rs: None,
+                findings,
+                summary: BaseSummary::default(),
+            }
+        }
+        fn f(code: &'static str, subject: &str) -> Finding {
+            Finding::new(code, Severity::Warning, subject, "words")
+        }
+
+        #[test]
+        fn doctor_findings_fill_mods_masters_and_order() {
+            let r = Report::Instance(base(vec![
+                f("profile.mod-folder-missing", "Gone"),
+                f("meta.modid-mismatch", "Wrong"),
+                f("loadorder.missing-master", "A.esp"),
+                f("loadorder.missing-master", "B.esp"),
+                f("loadorder.times-out-of-order", "p"),
+                f("pe.damaged", "x.dll"),
+            ]));
+            let s = SetupState {
+                out_of_order: 9,
+                ..SetupState::default()
+            }
+            .with_doctor_report(&r);
+            let names: Vec<_> = s.mods_attention.iter().map(|m| m.name.as_str()).collect();
+            assert_eq!(names, ["Gone", "Wrong"]);
+            assert_eq!(s.missing_masters.len(), 2);
+            assert_eq!(s.missing_masters[0].plugin, "A.esp");
+            assert_eq!(s.missing_masters[0].master, None);
+            assert_eq!(s.out_of_order, 1);
+            let l = checks(&s);
+            assert_eq!(
+                get(&l, CheckId::MissingMasters).reason,
+                "A.esp has a missing master"
+            );
+        }
+
+        #[test]
+        fn a_clean_report_clears_the_facts() {
+            let s = SetupState {
+                missing_masters: mm(1),
+                out_of_order: 3,
+                ..SetupState::default()
+            }
+            .with_doctor_report(&Report::Base(base(vec![])));
+            assert!(s.mods_attention.is_empty() && s.missing_masters.is_empty());
+            assert_eq!(s.out_of_order, 0);
+        }
+
+        #[test]
+        fn load_order_check_counts_active_plugins_and_changed_positions() {
+            let slot = |n: &str, active| nvmod_stage::Slot {
+                name: n.into(),
+                active,
+            };
+            let s = SetupState::default().with_load_order_check(
+                &[
+                    slot("a.esm", true),
+                    slot("b.esp", false),
+                    slot("c.esp", true),
+                ],
+                2,
+            );
+            assert_eq!((s.plugin_count, s.out_of_order), (2, 2));
+        }
+
+        #[test]
+        fn lod_staleness_maps_each_state() {
+            let of = |state| {
+                SetupState::default()
+                    .with_lod_staleness(&Staleness {
+                        state,
+                        reason: String::new(),
+                    })
+                    .lod
+            };
+            assert_eq!(of(State::Unknown), LodState::NotBuilt);
+            assert_eq!(of(State::Current), LodState::UpToDate);
+            assert_eq!(of(State::May), LodState::StaleMods);
+            assert_eq!(of(State::Must), LodState::StaleMods);
+        }
+
+        #[test]
+        fn engine_record_and_ttw() {
+            let nv = |installed, verified| nvmod_api::verify::NvRs {
+                installed,
+                verified,
+                message: String::new(),
+            };
+            let e = |n| SetupState::default().with_engine_record(&n).engine;
+            assert_eq!(
+                e(nv(true, false)),
+                EngineState::Damaged { files_changed: 1 }
+            );
+            assert_eq!(e(nv(true, true)), EngineState::Ok);
+            assert_eq!(e(nv(false, false)), EngineState::Ok);
+            let t = |u, a| SetupState::default().with_ttw(u, a).ttw;
+            assert_eq!(t(false, true), TtwState::NotUsed);
+            assert_eq!(t(true, false), TtwState::NotAdded);
+            assert_eq!(t(true, true), TtwState::Added);
+        }
     }
 }

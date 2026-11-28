@@ -28,10 +28,12 @@ nvmod-instance = { workspace = true }
 nvmod-journal = { workspace = true }
 nvmod-pe = { workspace = true }
 nvmod-run = { workspace = true }
+nvmod-stage = { workspace = true }
 
 [dev-dependencies]
 raul-testkit = { workspace = true }
 nvmod-testkit = { workspace = true }
+nvmod-doctor = { workspace = true }
 serde = { workspace = true }
 jsonschema = { workspace = true }
 
