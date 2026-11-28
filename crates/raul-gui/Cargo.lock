@@ -4598,6 +4598,7 @@ dependencies = [
  "nvmod-api",
  "nvmod-core",
  "nvmod-instance",
+ "nvmod-journal",
  "nvmod-pe",
  "nvmod-run",
  "raul-drivers",

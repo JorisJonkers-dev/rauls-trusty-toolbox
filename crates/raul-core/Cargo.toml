@@ -25,6 +25,7 @@ sysinfo = { version = "=0.40.4", default-features = false, features = ["disk"] }
 nvmod-api = { workspace = true }
 nvmod-core = { workspace = true }
 nvmod-instance = { workspace = true }
+nvmod-journal = { workspace = true }
 nvmod-pe = { workspace = true }
 nvmod-run = { workspace = true }
 
