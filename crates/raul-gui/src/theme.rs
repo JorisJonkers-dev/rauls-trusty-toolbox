@@ -324,9 +324,21 @@ mod tests {
         for (theme, t) in THEMES {
             let v = visuals(&t);
             assert_eq!(v.panel_fill, t.bg.color(), "{theme}: panel fill");
-            assert_eq!(v.override_text_color, Some(t.text.color()), "{theme}: text colour");
-            assert_eq!(v.widgets.inactive.bg_stroke.color, t.ctl.color(), "{theme}: control stroke");
-            assert_eq!(v.hyperlink_color, t.accent.color(), "{theme}: hyperlink colour");
+            assert_eq!(
+                v.override_text_color,
+                Some(t.text.color()),
+                "{theme}: text colour"
+            );
+            assert_eq!(
+                v.widgets.inactive.bg_stroke.color,
+                t.ctl.color(),
+                "{theme}: control stroke"
+            );
+            assert_eq!(
+                v.hyperlink_color,
+                t.accent.color(),
+                "{theme}: hyperlink colour"
+            );
             assert_eq!(v.extreme_bg_color, t.sunk.color(), "{theme}: input fill");
         }
     }
