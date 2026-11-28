@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1795877163193,
+  "lastUpdate": 1795877422235,
   "repoUrl": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox",
   "entries": {
     "raul bench": [
@@ -13719,6 +13719,55 @@ window.BENCHMARK_DATA = {
           {
             "name": "install/zip",
             "value": 7.181428,
+            "unit": "ms"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "74975850+ExtraToast@users.noreply.github.com",
+            "name": "Joris Wouter Jonkers",
+            "username": "ExtraToast"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3159d7248ccbb6262c994da36adcc96ff492a4b6",
+          "message": "feat(gui): widget kit of the redesign (card, section, row, buttons, tag, badge, progress) (#737)\n\n* feat(gui): widget kit of the redesign (card, section header, row, buttons, tag, badge, progress)\n\n* fix(gui): widget kit compiles on egui 0.37 and passes clippy\n\n* fix(gui): button labels draw in on_accent, not the theme's text colour\n\nThe label galley was laid out with a fixed colour, so the fallback colour\npassed to the painter never applied and primary and danger buttons showed\nwhite text.",
+          "timestamp": "2026-11-28T15:48:21+01:00",
+          "tree_id": "1441a18af2a2b70f6c8252fa71396a1906d8c53d",
+          "url": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/commit/3159d7248ccbb6262c994da36adcc96ff492a4b6"
+        },
+        "date": 1795877421204,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "sort/small",
+            "value": 1.888915,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/medium",
+            "value": 8.57304,
+            "unit": "ms"
+          },
+          {
+            "name": "sort/ttw-sized",
+            "value": 36.223580999999996,
+            "unit": "ms"
+          },
+          {
+            "name": "plugin-headers/ttw-sized",
+            "value": 4.969445,
+            "unit": "ms"
+          },
+          {
+            "name": "install/zip",
+            "value": 7.364975,
             "unit": "ms"
           }
         ]
