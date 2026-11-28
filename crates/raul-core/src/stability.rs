@@ -6,9 +6,9 @@
 use std::collections::BTreeSet;
 
 /// FNV-1a 64-bit offset basis.
-const FNV_OFFSET: u64 = 0xcbf29ce484222325;
+const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 /// FNV-1a 64-bit prime.
-const FNV_PRIME: u64 = 0x100000001b3;
+const FNV_PRIME: u64 = 0x0100_0000_01b3;
 
 /// A playable mod setup.
 ///
@@ -31,6 +31,7 @@ pub struct Setup {
 /// hash over a canonical string and returned as lowercase hexadecimal.
 ///
 /// This is a fingerprint for matching setups, not a cryptographic hash.
+#[must_use]
 pub fn signature(setup: &Setup) -> String {
     let mut canonical = String::new();
     if setup.ttw {
@@ -115,17 +116,29 @@ impl Stability {
     }
 
     /// Returns `true` if `sig` is a known-stable setup.
+    #[must_use]
     pub fn is_known_stable(&self, sig: &str) -> bool {
         self.known.iter().any(|k| k.signature == sig)
     }
 
     /// Decides whether the untested-change banner should show for `current_sig`.
+    #[must_use]
     pub fn banner(&self, current_sig: &str) -> Banner {
         if self.is_known_stable(current_sig) || self.dismissed.contains(current_sig) {
             Banner::Hidden
         } else {
             Banner::RecommendTest
         }
+    }
+
+    /// The banner for a whole setup: as [`Stability::banner`], except that a setup with no mod switched on needs no
+    /// test (the demo's `stableNow`).
+    #[must_use]
+    pub fn banner_for(&self, setup: &Setup) -> Banner {
+        if setup.mods.iter().all(|(_, on)| !on) {
+            return Banner::Hidden;
+        }
+        self.banner(&signature(setup))
     }
 
     /// Dismisses the banner for `sig`. A different setup will still show the banner.
@@ -141,6 +154,7 @@ impl Stability {
     }
 
     /// Returns the most recent known-stable entry.
+    #[must_use]
     pub fn last_stable(&self) -> Option<&KnownStable> {
         self.known.iter().max_by_key(|k| k.at_secs)
     }
@@ -148,6 +162,7 @@ impl Stability {
     /// Returns the known-stable entry whose signature exactly matches `current_sig`.
     ///
     /// This drives the "Matches now" chip.
+    #[must_use]
     pub fn matches_now(&self, current_sig: &str) -> Option<&KnownStable> {
         self.known.iter().find(|k| k.signature == current_sig)
     }
@@ -155,7 +170,7 @@ impl Stability {
 
 #[cfg(test)]
 mod tests {
-    use super::{signature, Banner, Setup, Stability};
+    use super::{Banner, Setup, Stability, signature};
 
     fn setup_a() -> Setup {
         Setup {
@@ -266,5 +281,22 @@ mod tests {
         st.record_pass(sig.clone(), "passed".to_string(), 1000);
         let matched = st.matches_now(&sig).expect("should match");
         assert_eq!(matched.signature, sig);
+    }
+
+    #[test]
+    fn a_setup_with_no_mod_on_needs_no_test() {
+        let st = Stability::default();
+        let none_on = Setup {
+            mods: vec![("a".into(), false)],
+            plugins: vec![],
+            ttw: false,
+        };
+        assert_eq!(st.banner_for(&none_on), Banner::Hidden);
+        let one_on = Setup {
+            mods: vec![("a".into(), true)],
+            plugins: vec![],
+            ttw: false,
+        };
+        assert_eq!(st.banner_for(&one_on), Banner::RecommendTest);
     }
 }
