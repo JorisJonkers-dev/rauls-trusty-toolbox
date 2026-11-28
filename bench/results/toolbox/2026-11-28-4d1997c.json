@@ -1,0 +1,62 @@
+{
+  "schema": "toolbox-bench/1",
+  "project": "toolbox",
+  "run": {
+    "id": "raul-bench",
+    "date": "2026-11-28",
+    "commit": "4d1997c",
+    "version": "raul 0.0.0",
+    "machine": "GitHub-hosted ubuntu-latest runner, linux x86_64 (shared, so noisy)",
+    "method": "raul bench on synthetic fixtures (no game data): median wall time of the timed runs of each case.",
+    "source": "https://github.com/JorisJonkers-dev/rauls-trusty-toolbox/blob/main/docs/BENCHMARKS.md"
+  },
+  "groups": [
+    {
+      "id": "cases",
+      "title": "The raul bench suite",
+      "metric": "Median wall time of one run",
+      "unit": "ms",
+      "better": "lower",
+      "series": [
+        {
+          "id": "ours",
+          "label": "raul",
+          "role": "ours"
+        }
+      ],
+      "cases": [
+        {
+          "name": "sort/small",
+          "values": {
+            "ours": 2.309952
+          }
+        },
+        {
+          "name": "sort/medium",
+          "values": {
+            "ours": 10.544991
+          }
+        },
+        {
+          "name": "sort/ttw-sized",
+          "values": {
+            "ours": 46.938569
+          }
+        },
+        {
+          "name": "plugin-headers/ttw-sized",
+          "values": {
+            "ours": 5.4187330000000005
+          }
+        },
+        {
+          "name": "install/zip",
+          "values": {
+            "ours": 9.603097
+          }
+        }
+      ]
+    }
+  ],
+  "pending": []
+}
